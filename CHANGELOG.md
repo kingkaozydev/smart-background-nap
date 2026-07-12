@@ -5,6 +5,7 @@
 Initial public release.
 
 - Added the all-in-one `SmartBackgroundNap.exe` dashboard.
+- Added single-file release packaging with embedded runtime scripts, config, README text, and icon asset.
 - Added toggle-based automatic mode and startup controls.
 - Added optimize-now, restore, logs, config, folder, README, and GitHub actions.
 - Added inline action progress and result feedback.

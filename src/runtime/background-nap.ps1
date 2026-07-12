@@ -34,12 +34,18 @@ if (-not $nap -or -not $nap.Enabled) {
     throw "BackgroundNap is disabled or missing in config."
 }
 
-$workspace = $PSScriptRoot
-$outDir = Join-Path $workspace "outputs"
-New-Item -ItemType Directory -Path $outDir -Force | Out-Null
 if (-not $LogPath) {
+    $workspace = $PSScriptRoot
+    $outDir = Join-Path $workspace "outputs"
     $LogPath = Join-Path $outDir "background-nap-auto.log"
+} else {
+    $outDir = Split-Path -Parent $LogPath
+    if (-not $outDir) {
+        $outDir = Join-Path $PSScriptRoot "outputs"
+        $LogPath = Join-Path $outDir (Split-Path -Leaf $LogPath)
+    }
 }
+New-Item -ItemType Directory -Path $outDir -Force | Out-Null
 
 $priorityClass = [string]$nap.PriorityClass
 $targetPriorityClass = [System.Enum]::Parse([System.Diagnostics.ProcessPriorityClass], $priorityClass, $true)

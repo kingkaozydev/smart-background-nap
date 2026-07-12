@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
@@ -15,6 +16,7 @@ internal static class SmartBackgroundNap
     private const string GitHubUrl = "https://github.com/kingkaozydev/smart-background-nap";
     private const string MutexName = "Local\\SmartBackgroundNap.SingleInstance";
     private const string ShowDashboardEventName = "Local\\SmartBackgroundNap.ShowDashboard";
+    private const string ResourcePrefix = "SmartBackgroundNap.Resources.";
 
     private static string appRoot;
     private static string backgroundScriptPath;
@@ -30,6 +32,20 @@ internal static class SmartBackgroundNap
 
     [STAThread]
     private static void Main(string[] args)
+    {
+        try
+        {
+            MainCore(args);
+        }
+        catch (Exception ex)
+        {
+            WriteCrash(ex);
+            try { Console.Error.WriteLine(ex.ToString()); } catch { }
+            Environment.ExitCode = unchecked((int)0xE0434352);
+        }
+    }
+
+    private static void MainCore(string[] args)
     {
         InitializePaths();
 
@@ -98,27 +114,151 @@ internal static class SmartBackgroundNap
         try { showDashboardEvent.Dispose(); } catch { }
     }
 
+    private static void WriteCrash(Exception ex)
+    {
+        try
+        {
+            string dir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "SmartBackgroundNap");
+            Directory.CreateDirectory(dir);
+            File.WriteAllText(
+                Path.Combine(dir, "crash.log"),
+                DateTime.Now.ToString("s") + Environment.NewLine + ex.ToString(),
+                Encoding.UTF8);
+        }
+        catch
+        {
+            try
+            {
+                File.WriteAllText(
+                    Path.Combine(Path.GetTempPath(), "SmartBackgroundNap-crash.log"),
+                    DateTime.Now.ToString("s") + Environment.NewLine + ex.ToString(),
+                    Encoding.UTF8);
+            }
+            catch
+            {
+            }
+        }
+    }
+
     private static void InitializePaths()
     {
         string exePath = Application.ExecutablePath;
         string exeDir = Path.GetDirectoryName(exePath);
+        string looseRoot;
         if (String.Equals(Path.GetFileName(exeDir), "bin", StringComparison.OrdinalIgnoreCase))
         {
-            appRoot = Path.GetFullPath(Path.Combine(exeDir, ".."));
+            looseRoot = Path.GetFullPath(Path.Combine(exeDir, ".."));
         }
         else
         {
-            appRoot = exeDir;
+            looseRoot = exeDir;
         }
 
-        backgroundScriptPath = Path.Combine(appRoot, "background-nap.ps1");
-        autoManagerPath = Path.Combine(appRoot, "manage-background-nap.ps1");
-        trayManagerPath = Path.Combine(appRoot, "manage-background-nap-tray.ps1");
-        configPath = Path.Combine(appRoot, "game-session.config.json");
-        readmePath = Path.Combine(appRoot, "README.md");
-        iconPath = Path.Combine(appRoot, "assets\\smart-background-nap.ico");
+        if (File.Exists(Path.Combine(looseRoot, "background-nap.ps1")))
+        {
+            appRoot = looseRoot;
+        }
+        else
+        {
+            appRoot = GetWritableAppRoot();
+            string runtimeRoot = Path.Combine(appRoot, "runtime");
+            EnsureRuntimeFiles(runtimeRoot);
+            looseRoot = runtimeRoot;
+        }
+
+        backgroundScriptPath = Path.Combine(looseRoot, "background-nap.ps1");
+        autoManagerPath = Path.Combine(looseRoot, "manage-background-nap.ps1");
+        trayManagerPath = Path.Combine(looseRoot, "manage-background-nap-tray.ps1");
+        configPath = Path.Combine(looseRoot, "game-session.config.json");
+        readmePath = Path.Combine(looseRoot, "README.md");
+        iconPath = Path.Combine(looseRoot, "assets\\smart-background-nap.ico");
         outputsPath = Path.Combine(appRoot, "outputs");
         logPath = Path.Combine(outputsPath, "background-nap-auto.log");
+    }
+
+    private static string GetWritableAppRoot()
+    {
+        string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        string[] candidates = new string[]
+        {
+            Path.Combine(local, "SmartBackgroundNap"),
+            Path.Combine(local, "Programs", "SmartBackgroundNap"),
+            Path.Combine(Path.GetTempPath(), "SmartBackgroundNap")
+        };
+
+        Exception last = null;
+        foreach (string candidate in candidates)
+        {
+            try
+            {
+                Directory.CreateDirectory(candidate);
+                string probe = Path.Combine(candidate, ".write-test");
+                File.WriteAllText(probe, "ok");
+                File.Delete(probe);
+                return candidate;
+            }
+            catch (Exception ex)
+            {
+                last = ex;
+            }
+        }
+
+        throw new UnauthorizedAccessException("Could not create a writable Smart Background Nap runtime folder.", last);
+    }
+
+    private static void EnsureRuntimeFiles(string runtimeRoot)
+    {
+        Directory.CreateDirectory(runtimeRoot);
+        Directory.CreateDirectory(Path.Combine(runtimeRoot, "assets"));
+
+        ExtractResource("background_nap_ps1", Path.Combine(runtimeRoot, "background-nap.ps1"));
+        ExtractResource("browser_nap_ps1", Path.Combine(runtimeRoot, "browser-nap.ps1"));
+        ExtractResource("manage_background_nap_ps1", Path.Combine(runtimeRoot, "manage-background-nap.ps1"));
+        ExtractResource("manage_background_nap_tray_ps1", Path.Combine(runtimeRoot, "manage-background-nap-tray.ps1"));
+        ExtractResource("smart_background_nap_tray_ps1", Path.Combine(runtimeRoot, "smart-background-nap-tray.ps1"));
+        ExtractResource("game_session_config_json", Path.Combine(runtimeRoot, "game-session.config.json"));
+        ExtractResource("readme_md", Path.Combine(runtimeRoot, "README.md"));
+        ExtractResource("icon_ico", Path.Combine(runtimeRoot, "assets\\smart-background-nap.ico"));
+    }
+
+    private static void ExtractResource(string resourceName, string targetPath)
+    {
+        string fullName = ResourcePrefix + resourceName;
+        Assembly assembly = Assembly.GetExecutingAssembly();
+        using (Stream stream = assembly.GetManifestResourceStream(fullName))
+        {
+            if (stream == null)
+            {
+                throw new InvalidOperationException("Missing embedded resource: " + fullName);
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(targetPath));
+            using (MemoryStream memory = new MemoryStream())
+            {
+                stream.CopyTo(memory);
+                byte[] bytes = memory.ToArray();
+                if (File.Exists(targetPath))
+                {
+                    byte[] existing = File.ReadAllBytes(targetPath);
+                    if (existing.Length == bytes.Length)
+                    {
+                        bool same = true;
+                        for (int i = 0; i < bytes.Length; i++)
+                        {
+                            if (existing[i] != bytes[i])
+                            {
+                                same = false;
+                                break;
+                            }
+                        }
+                        if (same) { return; }
+                    }
+                }
+                File.WriteAllBytes(targetPath, bytes);
+            }
+        }
     }
 
     private static bool HasArg(string[] args, string name)
@@ -140,6 +280,20 @@ internal static class SmartBackgroundNap
             if (File.Exists(iconPath))
             {
                 return new Icon(iconPath);
+            }
+        }
+        catch
+        {
+        }
+
+        try
+        {
+            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(ResourcePrefix + "icon_ico"))
+            {
+                if (stream != null)
+                {
+                    return new Icon(stream);
+                }
             }
         }
         catch
@@ -207,17 +361,17 @@ internal static class SmartBackgroundNap
     private static RunResult RunApplyNow()
     {
         Directory.CreateDirectory(outputsPath);
-        return RunPowerShellScript(backgroundScriptPath, "-Action Apply -StateMode Latest -Quiet", 120000);
+        return RunPowerShellScript(backgroundScriptPath, "-Action Apply -StateMode Latest -Quiet -LogPath " + Quote(logPath), 120000);
     }
 
     private static RunResult RunRestore()
     {
-        return RunPowerShellScript(backgroundScriptPath, "-Action Restore", 120000);
+        return RunPowerShellScript(backgroundScriptPath, "-Action Restore -LogPath " + Quote(logPath), 120000);
     }
 
     private static RunResult InstallAutomatic()
     {
-        return RunPowerShellScript(autoManagerPath, "-Action Install", 60000);
+        return RunPowerShellScript(autoManagerPath, "-Action Install -AppExePath " + Quote(Application.ExecutablePath), 60000);
     }
 
     private static RunResult UninstallAutomatic()
@@ -227,7 +381,7 @@ internal static class SmartBackgroundNap
 
     private static RunResult InstallStartup()
     {
-        return RunPowerShellScript(trayManagerPath, "-Action Install", 60000);
+        return RunPowerShellScript(trayManagerPath, "-Action Install -AppExePath " + Quote(Application.ExecutablePath), 60000);
     }
 
     private static RunResult UninstallStartup()

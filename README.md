@@ -1,4 +1,4 @@
-# Smart Background Nap
+﻿# Smart Background Nap
 
 ![Smart Background Nap overview](docs/images/hero.svg)
 
@@ -65,7 +65,7 @@ Smart Background Nap gives those apps a softer background profile. Your apps sta
 
 ## Install
 
-Download the latest release, extract it, and run:
+Download the latest release and open:
 
 ```text
 SmartBackgroundNap.exe
@@ -89,7 +89,9 @@ SmartBackgroundNapTray
 
 The optimizer task runs after logon, repeats every few minutes, applies a pass, writes a compact log, and exits.
 
-The tray task starts `SmartBackgroundNap.exe --tray` so you can see that Smart Background Nap is available after every login.
+The tray task starts the same `SmartBackgroundNap.exe` in tray mode so you can see that Smart Background Nap is available after every login.
+
+The release download is a single executable. Runtime scripts, default config, README text, and icon assets are embedded inside the app and extracted internally when needed.
 
 ## Tray Indicator
 
@@ -102,28 +104,10 @@ The tray indicator is optional but recommended. It gives you quick access to:
 - Open README
 - Exit tray icon
 
-Preferred tray app:
+Tray app:
 
 ```text
 SmartBackgroundNap.exe
-```
-
-Internal task target:
-
-```text
-bin\SmartBackgroundNap.exe
-```
-
-Legacy tray fallback:
-
-```text
-bin\SmartBackgroundNapTray.exe
-```
-
-PowerShell fallback for source/debug builds:
-
-```text
-smart-background-nap-tray.ps1
 ```
 
 ## App Controls
@@ -136,51 +120,11 @@ The dashboard includes:
 - Restore
 - More menu for logs, config, folder, README, GitHub, and disabling background tasks
 
-## Command Fallbacks
-
-Automatic mode:
-
-```text
-install-auto-background-nap.cmd
-uninstall-auto-background-nap.cmd
-status-auto-background-nap.cmd
-run-auto-background-nap-now.cmd
-```
-
-Tray icon:
-
-```text
-install-tray-icon.cmd
-uninstall-tray-icon.cmd
-status-tray-icon.cmd
-start-tray-icon-now.cmd
-```
-
-Manual mode:
-
-```text
-status-background-nap.cmd
-apply-background-nap.cmd
-watch-background-nap.cmd
-restore-background-nap.cmd
-```
-
-Browser-only mode:
-
-```text
-status-browser-nap.cmd
-apply-browser-nap.cmd
-watch-browser-nap.cmd
-restore-browser-nap.cmd
-```
-
 ## Configuration
 
-Edit:
+Open the app and use `More` -> `Open config`.
 
-```text
-game-session.config.json
-```
+For the single-EXE release, the default config is embedded and copied into the internal runtime folder on first use.
 
 Useful settings:
 
@@ -199,15 +143,12 @@ Useful settings:
 Smart Background Nap writes logs and restore state under:
 
 ```text
-outputs\background-nap-auto.log
-outputs\background-nap-state-latest.json
+SmartBackgroundNap internal runtime folder
 ```
 
-Use this to restore the latest snapshot:
+Open the app and use `More` -> `Open log` to inspect the latest pass.
 
-```text
-restore-background-nap.cmd
-```
+Use `Restore` in the dashboard to restore the latest snapshot for currently running processes.
 
 ## Build The App
 
@@ -226,16 +167,16 @@ src\SmartBackgroundNapTray.cs
 Build it with:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\build-tray-exe.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\build\build.ps1
 ```
 
 Generated output:
 
 ```text
 SmartBackgroundNap.exe
-bin\SmartBackgroundNap.exe
-bin\SmartBackgroundNapTray.exe
 ```
+
+The root executable embeds the runtime PowerShell scripts, default config, README text, and icon asset. Source files are kept in the repository for transparency and development, but users only need the release EXE.
 
 ## What It Does Not Do
 
@@ -276,3 +217,4 @@ ram-optimizer
 ## License
 
 MIT License. See `LICENSE`.
+

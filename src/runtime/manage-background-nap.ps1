@@ -8,7 +8,9 @@ param(
 
     [int]$LogonDelaySeconds,
 
-    [int]$ExecutionTimeLimitMinutes
+    [int]$ExecutionTimeLimitMinutes,
+
+    [string]$AppExePath
 )
 
 $ErrorActionPreference = "Stop"
@@ -36,7 +38,9 @@ $scriptPath = Join-Path $PSScriptRoot "background-nap.ps1"
 if (-not (Test-Path -LiteralPath $scriptPath)) {
     throw "background-nap.ps1 not found: $scriptPath"
 }
-$appExePath = Join-Path $PSScriptRoot "bin\SmartBackgroundNap.exe"
+if (-not $AppExePath) {
+    $AppExePath = Join-Path $PSScriptRoot "bin\SmartBackgroundNap.exe"
+}
 
 function ConvertTo-XmlText {
     param([string]$Text)
@@ -51,8 +55,8 @@ function Get-TaskDefinitionXml {
     $logonDelay = "PT${LogonDelaySeconds}S"
     $limit = "PT${ExecutionTimeLimitMinutes}M"
     $workDir = Split-Path -Parent $scriptPath
-    if (Test-Path -LiteralPath $appExePath) {
-        $command = $appExePath
+    if (Test-Path -LiteralPath $AppExePath) {
+        $command = $AppExePath
         $arguments = '--apply'
     } else {
         $command = "powershell.exe"

@@ -4,6 +4,8 @@ Initial public release by KaozyKing.
 
 ## Highlights
 
+- Single-file release: download and run `SmartBackgroundNap.exe`.
+- Runtime scripts, config, README text, and icon assets are embedded inside the EXE.
 - New all-in-one `SmartBackgroundNap.exe` dashboard.
 - Toggle-based automatic mode and start-with-Windows tray controls.
 - Inline action progress and result feedback.
@@ -17,14 +19,7 @@ Initial public release by KaozyKing.
 
 ## Included
 
-- `background-nap.ps1`
-- `browser-nap.ps1`
-- `manage-background-nap.ps1`
-- `manage-background-nap-tray.ps1`
 - `SmartBackgroundNap.exe`
-- `SmartBackgroundNapTray.exe`
-- icon and README visuals
-- install/uninstall/status command shortcuts
 - MIT license
 
 ## Notes

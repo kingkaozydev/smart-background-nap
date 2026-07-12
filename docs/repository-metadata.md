@@ -41,4 +41,4 @@ https://github.com/kingkaozydev/smart-background-nap
 
 Keep your apps open. Let Windows breathe.
 
-Smart Background Nap is a lightweight Windows utility with a desktop app, tray icon, and one-click background optimization.
+Smart Background Nap is a lightweight single-file Windows utility with a desktop app, tray icon, and automatic background optimization.

@@ -2,7 +2,9 @@ param(
     [ValidateSet("Install", "Uninstall", "Status", "RunNow")]
     [string]$Action = "Status",
 
-    [string]$ConfigPath = (Join-Path $PSScriptRoot "game-session.config.json")
+    [string]$ConfigPath = (Join-Path $PSScriptRoot "game-session.config.json"),
+
+    [string]$AppExePath
 )
 
 $ErrorActionPreference = "Stop"
@@ -21,7 +23,9 @@ $scriptPath = Join-Path $PSScriptRoot "smart-background-nap-tray.ps1"
 if (-not (Test-Path -LiteralPath $scriptPath)) {
     throw "Tray script not found: $scriptPath"
 }
-$appExePath = Join-Path $PSScriptRoot "bin\SmartBackgroundNap.exe"
+if (-not $AppExePath) {
+    $AppExePath = Join-Path $PSScriptRoot "bin\SmartBackgroundNap.exe"
+}
 $exePath = Join-Path $PSScriptRoot "bin\SmartBackgroundNapTray.exe"
 $autoTaskName = [string]$config.Automation.TaskName
 $managerPath = Join-Path $PSScriptRoot "manage-background-nap.ps1"
@@ -39,8 +43,8 @@ function Get-TrayTaskDefinitionXml {
     $sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
     $author = "$env:USERDOMAIN\$env:USERNAME"
     $workDir = $PSScriptRoot
-    if (Test-Path -LiteralPath $appExePath) {
-        $command = $appExePath
+    if (Test-Path -LiteralPath $AppExePath) {
+        $command = $AppExePath
         $arguments = '--tray'
     } elseif (Test-Path -LiteralPath $exePath) {
         $command = $exePath
@@ -116,7 +120,7 @@ function Get-TrayStatusObject {
             TaskName = $taskName
             Installed = $false
             TrayProcessCount = $trayProcess.Count
-            LaunchPath = if (Test-Path -LiteralPath $appExePath) { $appExePath } elseif (Test-Path -LiteralPath $exePath) { $exePath } else { $scriptPath }
+            LaunchPath = if (Test-Path -LiteralPath $AppExePath) { $AppExePath } elseif (Test-Path -LiteralPath $exePath) { $exePath } else { $scriptPath }
         }
     }
 
@@ -129,7 +133,7 @@ function Get-TrayStatusObject {
         LastTaskResult = if ($info) { $info.LastTaskResult } else { $null }
         NextRunTime = if ($info) { $info.NextRunTime } else { $null }
         TrayProcessCount = $trayProcess.Count
-        LaunchPath = if (Test-Path -LiteralPath $appExePath) { $appExePath } elseif (Test-Path -LiteralPath $exePath) { $exePath } else { $scriptPath }
+        LaunchPath = if (Test-Path -LiteralPath $AppExePath) { $AppExePath } elseif (Test-Path -LiteralPath $exePath) { $exePath } else { $scriptPath }
     }
 }
 

@@ -1,6 +1,11 @@
 $ErrorActionPreference = "Stop"
 
-$binDir = Join-Path $PSScriptRoot "bin"
+$projectRoot = $PSScriptRoot
+if ((Split-Path -Leaf $PSScriptRoot) -ieq "build") {
+    $projectRoot = Split-Path -Parent $PSScriptRoot
+}
+
+$binDir = Join-Path $projectRoot "bin"
 
 New-Item -ItemType Directory -Path $binDir -Force | Out-Null
 
@@ -18,7 +23,23 @@ if (-not $csc) {
     throw "csc.exe not found. Install .NET Framework developer tools or build with Visual Studio/MSBuild."
 }
 
-$icon = Join-Path $PSScriptRoot "assets\smart-background-nap.ico"
+$icon = Join-Path $projectRoot "assets\smart-background-nap.ico"
+
+function Get-RuntimeFile {
+    param([string]$Name)
+
+    $rootPath = Join-Path $projectRoot $Name
+    if (Test-Path -LiteralPath $rootPath) {
+        return $rootPath
+    }
+
+    $runtimePath = Join-Path (Join-Path $projectRoot "src\runtime") $Name
+    if (Test-Path -LiteralPath $runtimePath) {
+        return $runtimePath
+    }
+
+    return $rootPath
+}
 
 function Build-WinFormsExe {
     param(
@@ -26,7 +47,9 @@ function Build-WinFormsExe {
         [string]$Source,
 
         [Parameter(Mandatory = $true)]
-        [string]$Output
+        [string]$Output,
+
+        [object[]]$Resources = @()
     )
 
     if (-not (Test-Path -LiteralPath $Source)) {
@@ -48,6 +71,13 @@ function Build-WinFormsExe {
         $args += "/win32icon:$icon"
     }
 
+    foreach ($resource in $Resources) {
+        if (-not (Test-Path -LiteralPath $resource.Path)) {
+            throw "Resource not found: $($resource.Path)"
+        }
+        $args += "/resource:$($resource.Path),$($resource.Name)"
+    }
+
     $args += $Source
 
     & $csc @args
@@ -64,8 +94,18 @@ function Build-WinFormsExe {
 
 $results = @()
 $mainOutput = Join-Path $binDir "SmartBackgroundNap.exe"
+$mainResources = @(
+    [pscustomobject]@{ Path = (Get-RuntimeFile "background-nap.ps1"); Name = "SmartBackgroundNap.Resources.background_nap_ps1" },
+    [pscustomobject]@{ Path = (Get-RuntimeFile "browser-nap.ps1"); Name = "SmartBackgroundNap.Resources.browser_nap_ps1" },
+    [pscustomobject]@{ Path = (Get-RuntimeFile "manage-background-nap.ps1"); Name = "SmartBackgroundNap.Resources.manage_background_nap_ps1" },
+    [pscustomobject]@{ Path = (Get-RuntimeFile "manage-background-nap-tray.ps1"); Name = "SmartBackgroundNap.Resources.manage_background_nap_tray_ps1" },
+    [pscustomobject]@{ Path = (Get-RuntimeFile "smart-background-nap-tray.ps1"); Name = "SmartBackgroundNap.Resources.smart_background_nap_tray_ps1" },
+    [pscustomobject]@{ Path = (Get-RuntimeFile "game-session.config.json"); Name = "SmartBackgroundNap.Resources.game_session_config_json" },
+    [pscustomobject]@{ Path = (Join-Path $projectRoot "README.md"); Name = "SmartBackgroundNap.Resources.readme_md" },
+    [pscustomobject]@{ Path = (Join-Path $projectRoot "assets\smart-background-nap.ico"); Name = "SmartBackgroundNap.Resources.icon_ico" }
+)
 try {
-    $results += Build-WinFormsExe -Source (Join-Path $PSScriptRoot "src\SmartBackgroundNap.cs") -Output $mainOutput
+    $results += Build-WinFormsExe -Source (Join-Path $projectRoot "src\SmartBackgroundNap.cs") -Output $mainOutput -Resources $mainResources
 } catch {
     if (-not (Test-Path -LiteralPath $mainOutput)) {
         throw
@@ -80,12 +120,12 @@ try {
 }
 
 try {
-    $results += Build-WinFormsExe -Source (Join-Path $PSScriptRoot "src\SmartBackgroundNapTray.cs") -Output (Join-Path $binDir "SmartBackgroundNapTray.exe")
+    $results += Build-WinFormsExe -Source (Join-Path $projectRoot "src\SmartBackgroundNapTray.cs") -Output (Join-Path $binDir "SmartBackgroundNapTray.exe")
 } catch {
     Write-Warning "Legacy tray build skipped: $($_.Exception.Message)"
 }
 
-$rootLauncher = Join-Path $PSScriptRoot "SmartBackgroundNap.exe"
+$rootLauncher = Join-Path $projectRoot "SmartBackgroundNap.exe"
 try {
     Copy-Item -LiteralPath $mainOutput -Destination $rootLauncher -Force
     $results += [pscustomobject]@{
