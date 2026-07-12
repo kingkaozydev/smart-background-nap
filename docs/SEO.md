@@ -2,34 +2,37 @@
 
 ## Short Description
 
-Lightweight Windows background app optimizer for gaming and multitasking. Keeps apps open while reducing background CPU scheduling, RAM pressure, and EcoQoS impact.
+Lightweight Windows background app optimizer that keeps your apps open while reducing safe background CPU, RAM, and EcoQoS pressure.
 
 ## Long Description
 
-Smart Background Nap is a Windows gaming and multitasking optimizer that gently reduces the impact of background apps without closing them. It lowers safe background app priority, memory priority, and EcoQoS pressure while preserving Process Lasso, ThrottleStop, MSI Afterburner, RTSS, NVIDIA services, Windows processes, active workloads, and the foreground app.
+Smart Background Nap is a small Windows utility for gaming, streaming, creative work, coding, and heavy multitasking. It looks for safe background apps and gives them a quieter profile using process priority, memory priority, Power Throttling / EcoQoS, and optional working set trimming. It protects the foreground app, system processes, active workloads, and configured protected paths, so it can reduce background noise without closing apps or taking over the whole PC.
 
 ## Tagline
 
 Keep your apps open. Let Windows breathe.
 
+## Suggested GitHub Description
+
+Lightweight Windows background app optimizer for gaming and multitasking. Keeps apps open while reducing safe background CPU, RAM, and EcoQoS pressure.
+
 ## Keywords
 
+- Windows background app optimizer
 - Windows gaming optimizer
-- Windows 11 gaming tweak
-- background app optimizer
+- Windows 11 performance utility
+- reduce background CPU usage
+- reduce background RAM pressure
+- background process optimizer
 - process priority optimizer
 - memory priority optimizer
-- EcoQoS tweak
+- EcoQoS utility
 - Power Throttling Windows
-- reduce Discord RAM
-- reduce browser RAM
-- Process Lasso companion
-- ThrottleStop companion
-- MSI Afterburner companion
-- RTSS companion
-- PC performance tweak
-- Windows multitasking optimizer
 - tray app optimizer
+- multitasking optimizer
+- PC responsiveness tool
+- lightweight Windows utility
+- open-source Windows tweak
 
 ## GitHub Topics
 
@@ -37,26 +40,27 @@ Keep your apps open. Let Windows breathe.
 windows
 windows-11
 gaming
+performance
 optimization
-pc-tweaks
+background-apps
 process-priority
 memory-management
 ecoqos
 power-throttling
-process-lasso
-performance
 tray-app
 powershell
 winforms
+cpu-optimization
+ram-optimizer
 ```
 
 ## Social Post
 
-I released Smart Background Nap: a lightweight Windows helper for gaming and multitasking that reduces the impact of background apps without closing them.
+I released Smart Background Nap, a lightweight Windows utility that reduces background app pressure without closing your apps.
 
-It keeps your apps open, protects your tweak stack, and runs automatically through scheduled tasks instead of a heavy resident service.
+It runs through scheduled tasks, has a small tray indicator, and focuses on the apps that quietly sit behind your main workload.
 
-Created by KaozyKing.
+Keep your apps open. Let Windows breathe.
 
 GitHub: https://github.com/kingkaozydev/smart-background-nap
 Instagram: https://www.instagram.com/oeduardomacedo/

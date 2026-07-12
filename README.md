@@ -1,113 +1,86 @@
 # Smart Background Nap
 
-**Smart Background Nap** is a lightweight Windows background app optimizer for gaming, streaming, and heavy multitasking.
+![Smart Background Nap overview](docs/images/hero.svg)
+
+**Smart Background Nap** is a lightweight Windows helper that keeps background apps from getting louder than they need to be.
+
+It is made for people who leave browsers, chat, launchers, tools, music, and capture apps open while gaming, streaming, coding, or multitasking. Instead of closing your apps, it quietly lowers safe background pressure and then gets out of the way.
 
 Created by **KaozyKing**.
 
 - GitHub: [@kingkaozydev](https://github.com/kingkaozydev)
 - Instagram: [@oeduardomacedo](https://www.instagram.com/oeduardomacedo/)
 
-It automatically reduces the CPU scheduling pressure and resident memory footprint of safe background apps, while preserving your existing performance tools such as Process Lasso, ThrottleStop, MSI Afterburner, RTSS, and NVIDIA services.
-
 > Keep your apps open. Let Windows breathe.
 
-## Why This Exists
+## What It Does
 
-Most PC optimization tools either close apps, disable risky services, or fight with existing tweak stacks. Smart Background Nap takes a different approach:
+Smart Background Nap watches the current Windows user session and applies a conservative "nap" to apps that are safe to quiet down.
 
-- it does not close Discord, browsers, launchers, chat apps, or utilities;
-- it does not change power plans;
-- it does not touch voltages, clocks, CPU affinity, CPU Sets, drivers, or Windows services;
-- it does not replace Process Lasso, ThrottleStop, Afterburner, or RTSS.
+![Before and after comparison](docs/images/before-after.svg)
 
-Instead, it gently pushes safe background apps into a lower-impact state using Windows process APIs.
+For selected background apps, it can apply:
 
-## Features
+- below-normal process priority
+- low memory priority
+- Windows Power Throttling / EcoQoS where supported
+- timer-resolution isolation for throttled background apps
+- working set trimming above a configurable RAM threshold
 
-- Automatic scheduled optimization every few minutes.
-- Tray icon with quick status, apply-now, log, and README actions.
-- Low memory priority for background candidates.
-- Below-normal process priority for safe apps.
-- Windows Power Throttling / EcoQoS where supported.
-- Working set trimming for apps above a configurable RAM threshold.
-- Foreground app protection.
-- Active CPU workload protection.
-- Protected process and protected path rules.
-- Browser-only fallback mode.
-- Manual, watch, automatic, and restore modes.
-- Configurable JSON settings.
-- No always-running optimizer service.
-
-## SEO Keywords
-
-Windows gaming optimizer, background app optimizer, RAM optimizer, CPU optimizer, EcoQoS tweak, Power Throttling Windows, Process Lasso companion, ThrottleStop companion, MSI Afterburner companion, Windows 11 gaming tweak, background process optimizer, reduce Discord RAM, reduce browser RAM, Windows multitasking optimizer, low overhead tray optimizer.
-
-## How It Works
-
-Smart Background Nap scans your current user session and classifies processes.
-
-It skips:
+It skips the things that should stay awake:
 
 - Windows system processes
-- services / session 0
+- services and session 0 processes
 - the foreground app
 - active high-CPU workloads
-- Process Lasso
-- Process Governor
-- ThrottleStop
-- MSI Afterburner
-- RTSS / RivaTuner
-- NVIDIA container / overlay / share
-- Codex and PowerShell
-- configured game paths
+- configured protected apps and paths
+- configured game folders
 
-For safe candidates, it can apply:
+The goal is simple: reduce background noise without killing your workflow.
 
-- `BelowNormal` process priority
-- low process memory priority
-- Power Throttling / EcoQoS
-- ignore timer resolution for throttled background apps
-- working set trim above the configured threshold
+## Why It Exists
 
-## Automatic Mode
+Modern PCs are fast, but day-to-day app stacks are noisy. A few browsers, chats, launchers, overlays, downloaders, and helper apps can keep waking the CPU, holding RAM, or competing for scheduler attention long after they stop being important.
 
-Recommended for daily use.
+Smart Background Nap gives those apps a softer background profile. Your apps stay open, your session stays intact, and Windows has a little more room for what you are actually doing now.
 
-The installer registers a scheduled task named:
+## Highlights
 
-```text
-SmartBackgroundNap
-```
+- Automatic scheduled optimization every few minutes.
+- Tray icon with status, apply-now, log, folder, and README shortcuts.
+- No heavy always-running optimizer service.
+- Foreground app protection.
+- Active workload protection.
+- Configurable JSON rules.
+- Manual, automatic, watch, restore, and browser-only modes.
+- Auditable PowerShell core.
+- Lightweight compiled C# WinForms tray indicator.
 
-Behavior:
+![Automatic flow](docs/images/automatic-flow.svg)
 
-- runs once after logon, with a 45-second delay;
-- runs again every 5 minutes;
-- applies the rules and exits;
-- keeps a compact log;
-- keeps a latest restore snapshot;
-- does not keep a heavy optimizer daemon running.
+## Install
 
-Commands:
+Download the latest release, extract it, and run:
 
 ```text
 install-auto-background-nap.cmd
-uninstall-auto-background-nap.cmd
-status-auto-background-nap.cmd
-run-auto-background-nap-now.cmd
+install-tray-icon.cmd
 ```
 
-## Tray Indicator
-
-The tray indicator is optional but recommended if you want a visible signal that the system is active.
-
-It registers a separate task named:
+This creates two scheduled tasks:
 
 ```text
+SmartBackgroundNap
 SmartBackgroundNapTray
 ```
 
-The tray menu includes:
+The optimizer task runs after logon, repeats every few minutes, applies a pass, writes a compact log, and exits.
+
+The tray task starts the small tray indicator so you can see that Smart Background Nap is available.
+
+## Tray Indicator
+
+The tray indicator is optional but recommended. It gives you quick access to:
 
 - Status
 - Apply now
@@ -116,7 +89,30 @@ The tray menu includes:
 - Open README
 - Exit tray icon
 
-Commands:
+Preferred tray app:
+
+```text
+bin\SmartBackgroundNapTray.exe
+```
+
+PowerShell fallback:
+
+```text
+smart-background-nap-tray.ps1
+```
+
+## Commands
+
+Automatic mode:
+
+```text
+install-auto-background-nap.cmd
+uninstall-auto-background-nap.cmd
+status-auto-background-nap.cmd
+run-auto-background-nap-now.cmd
+```
+
+Tray icon:
 
 ```text
 install-tray-icon.cmd
@@ -125,21 +121,7 @@ status-tray-icon.cmd
 start-tray-icon-now.cmd
 ```
 
-The preferred tray app is the compiled WinForms executable:
-
-```text
-bin\SmartBackgroundNapTray.exe
-```
-
-The PowerShell tray script is kept as an auditable fallback:
-
-```text
-smart-background-nap-tray.ps1
-```
-
-## Manual Mode
-
-Use this when you want direct control:
+Manual mode:
 
 ```text
 status-background-nap.cmd
@@ -148,39 +130,13 @@ watch-background-nap.cmd
 restore-background-nap.cmd
 ```
 
-`apply-background-nap.cmd` applies one pass.
-
-`watch-background-nap.cmd` reapplies for 90 minutes and then exits. This is useful for long gaming sessions, but it keeps a PowerShell process open during that window.
-
-## Browser-Only Mode
-
-For a narrower tweak that only targets browsers:
+Browser-only mode:
 
 ```text
 status-browser-nap.cmd
 apply-browser-nap.cmd
 watch-browser-nap.cmd
 restore-browser-nap.cmd
-```
-
-## Build The Tray App
-
-The tray app is built from:
-
-```text
-src\SmartBackgroundNapTray.cs
-```
-
-Build command:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\build-tray-exe.ps1
-```
-
-Generated output:
-
-```text
-bin\SmartBackgroundNapTray.exe
 ```
 
 ## Configuration
@@ -203,57 +159,77 @@ Useful settings:
 - `Automation.IntervalMinutes`
 - `Tray.RefreshSeconds`
 
-## Logs And State
+## Logs And Restore
 
-Outputs:
+Smart Background Nap writes logs and restore state under:
 
 ```text
 outputs\background-nap-auto.log
 outputs\background-nap-state-latest.json
 ```
 
-The restore command uses the latest snapshot when available.
+Use this to restore the latest snapshot:
+
+```text
+restore-background-nap.cmd
+```
+
+## Build The Tray App
+
+The tray app source lives here:
+
+```text
+src\SmartBackgroundNapTray.cs
+```
+
+Build it with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\build-tray-exe.ps1
+```
+
+Generated output:
+
+```text
+bin\SmartBackgroundNapTray.exe
+```
 
 ## What It Does Not Do
 
-Smart Background Nap intentionally avoids:
+Smart Background Nap intentionally avoids risky or invasive tuning:
 
-- power plan switching
-- CPU affinity rules
-- ProBalance-style behavior
-- CPU Sets
-- overclocking
-- undervolting
-- GPU tuning
-- driver changes
-- service disabling
-- closing apps
+- no app killing
+- no power plan switching
+- no CPU affinity rules
+- no CPU Sets
+- no overclocking
+- no undervolting
+- no GPU tuning
+- no driver changes
+- no Windows service disabling
 
-Those areas are better handled by dedicated tools or by Windows itself.
+It is a background-pressure reducer, not a miracle FPS button. Results depend on your workload, hardware, Windows version, and app behavior.
 
-## Recommended GitHub Topics
+## Recommended Topics
 
 ```text
 windows
 windows-11
 gaming
+performance
 optimization
-pc-tweaks
+background-apps
 process-priority
 memory-management
 ecoqos
 power-throttling
-process-lasso
-performance
 tray-app
 powershell
 winforms
+cpu-optimization
+ram-optimizer
 ```
 
 ## License
 
 MIT License. See `LICENSE`.
-
-## Disclaimer
-
-This project is a performance helper, not a miracle FPS booster. It is designed to reduce background pressure and improve responsiveness when many apps are open. Results depend on your workload, RAM, CPU, Windows version, and app behavior.

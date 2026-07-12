@@ -6,7 +6,7 @@ Thanks for considering a contribution to Smart Background Nap.
 
 - Keep the optimizer transparent and easy to audit.
 - Prefer safe defaults over aggressive tweaks.
-- Do not fight Process Lasso, ThrottleStop, MSI Afterburner, RTSS, or GPU drivers.
+- Do not interfere with protected user tools, games, overlays, or GPU drivers.
 - Avoid always-running heavy background services.
 - Keep changes reversible.
 

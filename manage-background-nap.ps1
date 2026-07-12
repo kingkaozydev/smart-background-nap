@@ -57,7 +57,7 @@ function Get-TaskDefinitionXml {
 <Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
   <RegistrationInfo>
     <Author>$(ConvertTo-XmlText $author)</Author>
-    <Description>Smart Background Nap applies low-impact background process throttling for user apps while preserving tweakers, games, Windows processes, and the active foreground app.</Description>
+    <Description>Smart Background Nap applies low-impact background process tuning for safe user apps while preserving games, Windows processes, configured protected apps, and the active foreground app.</Description>
   </RegistrationInfo>
   <Triggers>
     <LogonTrigger>

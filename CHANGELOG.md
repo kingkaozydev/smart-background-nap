@@ -6,7 +6,7 @@ Initial public release.
 
 - Added Smart Background Nap automatic scheduled optimizer.
 - Added safe background process classification.
-- Added protected tweaker/system/game path rules.
+- Added protected app, system, and game path rules.
 - Added active high-CPU workload protection.
 - Added low memory priority, below-normal process priority, EcoQoS, and working set trim support.
 - Added tray indicator with compiled C# WinForms executable.
