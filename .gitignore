@@ -1,0 +1,10 @@
+outputs/
+*.log
+*.tmp
+*.bak
+*.user
+*.suo
+*.zip
+*.7z
+Thumbs.db
+desktop.ini

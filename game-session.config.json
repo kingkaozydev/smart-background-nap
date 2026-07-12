@@ -1,0 +1,113 @@
+{
+  "ProtectedProcessNames": [
+    "ProcessLasso",
+    "ProcessGovernor",
+    "bitsumsessionagent",
+    "ThrottleStop",
+    "MSIAfterburner",
+    "RTSS",
+    "RTSSHooksLoader64",
+    "RivaTunerStatisticsServer",
+    "nvcontainer",
+    "NVIDIA Overlay",
+    "NVIDIA Share"
+  ],
+  "BrowserNap": {
+    "Enabled": true,
+    "ProcessNames": [
+      "zen",
+      "chrome",
+      "msedge",
+      "firefox"
+    ],
+    "PriorityClass": "BelowNormal",
+    "MemoryPriority": "Low",
+    "EnableEcoQoS": true,
+    "IgnoreTimerResolution": true,
+    "TrimWorkingSetOnce": true,
+    "SkipForegroundProcess": true
+  },
+  "BackgroundNap": {
+    "Enabled": true,
+    "PriorityClass": "BelowNormal",
+    "MemoryPriority": "Low",
+    "EnableEcoQoS": true,
+    "IgnoreTimerResolution": true,
+    "TrimWorkingSetOnce": true,
+    "TrimMinimumWorkingSetMB": 60,
+    "SkipHighCpuPercent": true,
+    "HighCpuPercentThreshold": 8,
+    "CpuSampleMilliseconds": 750,
+    "SkipForegroundProcessName": true,
+    "SkipWindowsPath": true,
+    "SkipSessionZero": true,
+    "ProtectedProcessNames": [
+      "ProcessLasso",
+      "ProcessGovernor",
+      "bitsumsessionagent",
+      "ThrottleStop",
+      "MSIAfterburner",
+      "RTSS",
+      "RTSSHooksLoader64",
+      "RivaTunerStatisticsServer",
+      "HWiNFO64",
+      "HWiNFO32",
+      "nvcontainer",
+      "NVIDIA Overlay",
+      "NVIDIA Share",
+      "Codex",
+      "node_repl",
+      "powershell",
+      "pwsh",
+      "WindowsTerminal",
+      "conhost"
+    ],
+    "ProtectedPathFragments": [
+      "\\OpenAI\\Codex\\",
+      "\\AppData\\Local\\OpenAI\\Codex\\",
+      "\\steamapps\\common\\",
+      "\\XboxGames\\",
+      "\\Epic Games\\",
+      "\\Riot Games\\VALORANT\\",
+      "\\Riot Games\\League of Legends\\"
+    ],
+    "SystemProcessNames": [
+      "System",
+      "Idle",
+      "Registry",
+      "smss",
+      "csrss",
+      "wininit",
+      "winlogon",
+      "services",
+      "lsass",
+      "svchost",
+      "fontdrvhost",
+      "dwm",
+      "explorer",
+      "sihost",
+      "ShellExperienceHost",
+      "StartMenuExperienceHost",
+      "SearchHost",
+      "SearchIndexer",
+      "RuntimeBroker",
+      "TextInputHost",
+      "SecurityHealthSystray",
+      "audiodg",
+      "spoolsv",
+      "WUDFHost"
+    ]
+  },
+  "Automation": {
+    "TaskName": "SmartBackgroundNap",
+    "IntervalMinutes": 5,
+    "LogonDelaySeconds": 45,
+    "ExecutionTimeLimitMinutes": 4,
+    "StateMode": "Latest"
+  },
+  "Tray": {
+    "TaskName": "SmartBackgroundNapTray",
+    "RefreshSeconds": 30,
+    "IconPath": "assets\\smart-background-nap.ico"
+  }
+}
