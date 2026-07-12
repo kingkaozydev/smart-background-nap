@@ -24,6 +24,8 @@ if (-not $csc) {
 }
 
 $icon = Join-Path $projectRoot "assets\smart-background-nap.ico"
+$manifest = Join-Path $projectRoot "src\app.manifest"
+$assemblyInfo = Join-Path $projectRoot "src\AssemblyInfo.cs"
 
 function Get-RuntimeFile {
     param([string]$Name)
@@ -70,6 +72,9 @@ function Build-WinFormsExe {
     if (Test-Path -LiteralPath $icon) {
         $args += "/win32icon:$icon"
     }
+    if (Test-Path -LiteralPath $manifest) {
+        $args += "/win32manifest:$manifest"
+    }
 
     foreach ($resource in $Resources) {
         if (-not (Test-Path -LiteralPath $resource.Path)) {
@@ -78,6 +83,9 @@ function Build-WinFormsExe {
         $args += "/resource:$($resource.Path),$($resource.Name)"
     }
 
+    if (Test-Path -LiteralPath $assemblyInfo) {
+        $args += $assemblyInfo
+    }
     $args += $Source
 
     & $csc @args
@@ -102,6 +110,7 @@ $mainResources = @(
     [pscustomobject]@{ Path = (Get-RuntimeFile "smart-background-nap-tray.ps1"); Name = "SmartBackgroundNap.Resources.smart_background_nap_tray_ps1" },
     [pscustomobject]@{ Path = (Get-RuntimeFile "game-session.config.json"); Name = "SmartBackgroundNap.Resources.game_session_config_json" },
     [pscustomobject]@{ Path = (Join-Path $projectRoot "README.md"); Name = "SmartBackgroundNap.Resources.readme_md" },
+    [pscustomobject]@{ Path = (Join-Path $projectRoot "docs\SECURITY_MODEL.md"); Name = "SmartBackgroundNap.Resources.security_model_md" },
     [pscustomobject]@{ Path = (Join-Path $projectRoot "assets\smart-background-nap.ico"); Name = "SmartBackgroundNap.Resources.icon_ico" }
 )
 try {

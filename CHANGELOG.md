@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.1 - 2026-07-12
+
+- Added product/version metadata and an `asInvoker` Windows manifest.
+- Added an in-app safety report with executable SHA-256, runtime path, task status, and security posture.
+- Added a public security model document for advanced audits.
+- Automatic mode now uses a managed per-user startup copy for the single-EXE release.
+- Expanded release notes around Windows trust, privacy, and local-only behavior.
+
 ## 0.1.0 - 2026-07-12
 
 Initial public release.

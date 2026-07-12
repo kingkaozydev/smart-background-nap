@@ -15,7 +15,7 @@ Thanks for considering a contribution to Smart Background Nap.
 Build the tray app:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\build-tray-exe.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\build\build.ps1
 ```
 
 Run a status pass:

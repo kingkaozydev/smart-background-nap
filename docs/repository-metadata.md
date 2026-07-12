@@ -6,7 +6,7 @@ smart-background-nap
 
 ## Description
 
-Lightweight Windows background app optimizer for gaming and multitasking. Includes a desktop app, tray icon, and start-with-Windows control.
+Lightweight local-only Windows background app optimizer for gaming and multitasking. Includes a desktop app, tray icon, safety report, and start-with-Windows control.
 
 ## Author
 

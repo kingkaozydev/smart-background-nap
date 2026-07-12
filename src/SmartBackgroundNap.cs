@@ -3,6 +3,8 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Security.Principal;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
@@ -10,6 +12,7 @@ using System.Windows.Forms;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
+    private const string AppVersion = "0.1.1";
     private const string CreatorLine = "Criado por KaozyKing | Instagram: @oeduardomacedo | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
@@ -24,9 +27,12 @@ internal static class SmartBackgroundNap
     private static string trayManagerPath;
     private static string configPath;
     private static string readmePath;
+    private static string securityModelPath;
     private static string iconPath;
     private static string outputsPath;
     private static string logPath;
+    private static string safetyReportPath;
+    private static bool usingLooseRuntime;
     private static Mutex singleInstanceMutex;
     private static EventWaitHandle showDashboardEvent;
 
@@ -87,6 +93,12 @@ internal static class SmartBackgroundNap
         if (HasArg(args, "--uninstall-startup"))
         {
             Environment.ExitCode = UninstallStartup().ExitCode;
+            return;
+        }
+        if (HasArg(args, "--safety-report"))
+        {
+            WriteSafetyReport();
+            Environment.ExitCode = 0;
             return;
         }
 
@@ -159,6 +171,7 @@ internal static class SmartBackgroundNap
         if (File.Exists(Path.Combine(looseRoot, "background-nap.ps1")))
         {
             appRoot = looseRoot;
+            usingLooseRuntime = true;
         }
         else
         {
@@ -166,6 +179,7 @@ internal static class SmartBackgroundNap
             string runtimeRoot = Path.Combine(appRoot, "runtime");
             EnsureRuntimeFiles(runtimeRoot);
             looseRoot = runtimeRoot;
+            usingLooseRuntime = false;
         }
 
         backgroundScriptPath = Path.Combine(looseRoot, "background-nap.ps1");
@@ -173,9 +187,15 @@ internal static class SmartBackgroundNap
         trayManagerPath = Path.Combine(looseRoot, "manage-background-nap-tray.ps1");
         configPath = Path.Combine(looseRoot, "game-session.config.json");
         readmePath = Path.Combine(looseRoot, "README.md");
+        securityModelPath = Path.Combine(looseRoot, "SECURITY_MODEL.md");
+        if (!File.Exists(securityModelPath) && File.Exists(Path.Combine(looseRoot, "docs\\SECURITY_MODEL.md")))
+        {
+            securityModelPath = Path.Combine(looseRoot, "docs\\SECURITY_MODEL.md");
+        }
         iconPath = Path.Combine(looseRoot, "assets\\smart-background-nap.ico");
         outputsPath = Path.Combine(appRoot, "outputs");
         logPath = Path.Combine(outputsPath, "background-nap-auto.log");
+        safetyReportPath = Path.Combine(outputsPath, "SmartBackgroundNap-SafetyReport.txt");
     }
 
     private static string GetWritableAppRoot()
@@ -220,6 +240,7 @@ internal static class SmartBackgroundNap
         ExtractResource("smart_background_nap_tray_ps1", Path.Combine(runtimeRoot, "smart-background-nap-tray.ps1"));
         ExtractResource("game_session_config_json", Path.Combine(runtimeRoot, "game-session.config.json"));
         ExtractResource("readme_md", Path.Combine(runtimeRoot, "README.md"));
+        ExtractResource("security_model_md", Path.Combine(runtimeRoot, "SECURITY_MODEL.md"));
         ExtractResource("icon_ico", Path.Combine(runtimeRoot, "assets\\smart-background-nap.ico"));
     }
 
@@ -371,7 +392,7 @@ internal static class SmartBackgroundNap
 
     private static RunResult InstallAutomatic()
     {
-        return RunPowerShellScript(autoManagerPath, "-Action Install -AppExePath " + Quote(Application.ExecutablePath), 60000);
+        return RunPowerShellScript(autoManagerPath, "-Action Install -AppExePath " + Quote(GetLaunchExecutablePath()), 60000);
     }
 
     private static RunResult UninstallAutomatic()
@@ -381,7 +402,7 @@ internal static class SmartBackgroundNap
 
     private static RunResult InstallStartup()
     {
-        return RunPowerShellScript(trayManagerPath, "-Action Install -AppExePath " + Quote(Application.ExecutablePath), 60000);
+        return RunPowerShellScript(trayManagerPath, "-Action Install -AppExePath " + Quote(GetLaunchExecutablePath()), 60000);
     }
 
     private static RunResult UninstallStartup()
@@ -407,6 +428,144 @@ internal static class SmartBackgroundNap
     {
         RunResult result = RunHidden("schtasks.exe", "/Query /TN " + Quote(taskName), 8000);
         return result.ExitCode == 0;
+    }
+
+    private static string GetLaunchExecutablePath()
+    {
+        if (usingLooseRuntime)
+        {
+            return Application.ExecutablePath;
+        }
+
+        try
+        {
+            string installDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Programs",
+                "SmartBackgroundNap");
+            Directory.CreateDirectory(installDir);
+
+            string target = Path.Combine(installDir, "SmartBackgroundNap.exe");
+            string current = Application.ExecutablePath;
+            if (!String.Equals(Path.GetFullPath(current), Path.GetFullPath(target), StringComparison.OrdinalIgnoreCase))
+            {
+                File.Copy(current, target, true);
+            }
+
+            return target;
+        }
+        catch
+        {
+            return Application.ExecutablePath;
+        }
+    }
+
+    private static string GetAssemblyVersionText()
+    {
+        try
+        {
+            AssemblyInformationalVersionAttribute info =
+                (AssemblyInformationalVersionAttribute)Attribute.GetCustomAttribute(
+                    Assembly.GetExecutingAssembly(),
+                    typeof(AssemblyInformationalVersionAttribute));
+            if (info != null && !String.IsNullOrWhiteSpace(info.InformationalVersion))
+            {
+                return info.InformationalVersion;
+            }
+        }
+        catch
+        {
+        }
+
+        return AppVersion;
+    }
+
+    private static string ComputeFileSha256(string path)
+    {
+        try
+        {
+            using (FileStream stream = File.OpenRead(path))
+            using (SHA256 sha = SHA256.Create())
+            {
+                byte[] hash = sha.ComputeHash(stream);
+                StringBuilder builder = new StringBuilder(hash.Length * 2);
+                for (int i = 0; i < hash.Length; i++)
+                {
+                    builder.Append(hash[i].ToString("x2"));
+                }
+                return builder.ToString();
+            }
+        }
+        catch (Exception ex)
+        {
+            return "Unavailable: " + ex.Message;
+        }
+    }
+
+    private static string IsAdministratorText()
+    {
+        try
+        {
+            WindowsIdentity identity = WindowsIdentity.GetCurrent();
+            WindowsPrincipal principal = new WindowsPrincipal(identity);
+            return principal.IsInRole(WindowsBuiltInRole.Administrator) ? "yes" : "no";
+        }
+        catch
+        {
+            return "unknown";
+        }
+    }
+
+    private static string BuildTaskStatusLine(string taskName)
+    {
+        return taskName + ": " + (IsTaskInstalled(taskName) ? "installed" : "not installed");
+    }
+
+    private static string WriteSafetyReport()
+    {
+        Directory.CreateDirectory(outputsPath);
+
+        StringBuilder report = new StringBuilder();
+        report.AppendLine("Smart Background Nap safety report");
+        report.AppendLine("Generated: " + DateTime.Now.ToString("s"));
+        report.AppendLine("Version: " + GetAssemblyVersionText());
+        report.AppendLine("Creator: KaozyKing (@oeduardomacedo)");
+        report.AppendLine();
+        report.AppendLine("Local identity");
+        report.AppendLine("Executable: " + Application.ExecutablePath);
+        report.AppendLine("Executable SHA-256: " + ComputeFileSha256(Application.ExecutablePath));
+        report.AppendLine("Runs as administrator: " + IsAdministratorText());
+        report.AppendLine("Runtime folder: " + Path.GetDirectoryName(backgroundScriptPath));
+        report.AppendLine("Writable data folder: " + appRoot);
+        report.AppendLine("Managed startup copy: " + GetLaunchExecutablePath());
+        report.AppendLine();
+        report.AppendLine("Windows integration");
+        report.AppendLine(BuildTaskStatusLine(AutoTaskName));
+        report.AppendLine(BuildTaskStatusLine(TrayTaskName));
+        report.AppendLine("Startup method: per-user scheduled tasks, least privilege.");
+        report.AppendLine("Service installed: no.");
+        report.AppendLine("Driver installed: no.");
+        report.AppendLine("Startup registry key: no.");
+        report.AppendLine();
+        report.AppendLine("Data and network posture");
+        report.AppendLine("Network access: none by design.");
+        report.AppendLine("Telemetry: none.");
+        report.AppendLine("Accounts, passwords, cookies, browser profiles, documents, and game files: not read.");
+        report.AppendLine("Local files written: config, compact logs, restore snapshots, embedded runtime files, this report.");
+        report.AppendLine();
+        report.AppendLine("Optimization scope");
+        report.AppendLine("Allowed actions: process priority, memory priority, Windows power throttling/EcoQoS, timer-resolution isolation, optional working-set trimming.");
+        report.AppendLine("Skipped targets: Windows/system processes, session 0 services, foreground app, high-CPU active workloads, configured protected apps, configured protected paths.");
+        report.AppendLine("Destructive actions: none. It does not kill apps, delete files, change drivers, change power plans, overclock, undervolt, or disable Windows services.");
+        report.AppendLine();
+        report.AppendLine("Audit files");
+        report.AppendLine("Config: " + configPath);
+        report.AppendLine("Log: " + logPath);
+        report.AppendLine("Security model: " + securityModelPath);
+        report.AppendLine("Source: " + GitHubUrl);
+
+        File.WriteAllText(safetyReportPath, report.ToString(), Encoding.UTF8);
+        return safetyReportPath;
     }
 
     private static string ReadLastLogLine()
@@ -486,6 +645,23 @@ internal static class SmartBackgroundNap
     private static void OpenReadme()
     {
         OpenExternal(readmePath);
+    }
+
+    private static void OpenSafetyReport()
+    {
+        try
+        {
+            OpenExternal(WriteSafetyReport());
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message, AppName, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+
+    private static void OpenSecurityModel()
+    {
+        OpenExternal(securityModelPath);
     }
 
     private static void OpenGitHub()
@@ -590,6 +766,10 @@ internal static class SmartBackgroundNap
             ToolStripMenuItem readme = new ToolStripMenuItem("Open README");
             readme.Click += delegate { OpenReadme(); };
             menu.Items.Add(readme);
+
+            ToolStripMenuItem safety = new ToolStripMenuItem("Safety report");
+            safety.Click += delegate { OpenSafetyReport(); };
+            menu.Items.Add(safety);
 
             menu.Items.Add(new ToolStripSeparator());
 
@@ -874,7 +1054,7 @@ internal static class SmartBackgroundNap
             actionPanel.Controls.Add(actions, 1, 0);
 
             Label footnote = new Label();
-            footnote.Text = "Automatic mode runs short scheduled passes and exits. The tray only keeps this control surface available.";
+            footnote.Text = "Automatic mode runs short scheduled passes and exits. Safety report is available under More.";
             footnote.Font = new Font("Segoe UI", 9);
             footnote.ForeColor = Color.FromArgb(94, 106, 120);
             footnote.AutoSize = true;
@@ -901,6 +1081,8 @@ internal static class SmartBackgroundNap
             menu.Items.Add("Open config", null, delegate { OpenConfig(); });
             menu.Items.Add("Open folder", null, delegate { OpenFolder(); });
             menu.Items.Add("README", null, delegate { OpenReadme(); });
+            menu.Items.Add("Safety report", null, delegate { OpenSafetyReport(); });
+            menu.Items.Add("Security model", null, delegate { OpenSecurityModel(); });
             menu.Items.Add("GitHub", null, delegate { OpenGitHub(); });
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add("Disable background tasks", null, delegate

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
+  <title id="title">Automatic Smart Background Nap flow</title>
+  <desc id="desc">A diagram of the automatic scheduled task flow.</desc>
+  <rect width="1200" height="360" fill="#11161c"/>
+  <text x="72" y="68" fill="#f4f7fb" font-family="Segoe UI, Arial, sans-serif" font-size="32" font-weight="700">Automatic by design</text>
+  <text x="72" y="102" fill="#aab7c4" font-family="Segoe UI, Arial, sans-serif" font-size="18">A scheduled pass runs, applies safe rules, saves state, and exits. The tray icon stays available for quick control.</text>
+  <g transform="translate(90 160)">
+    <rect width="210" height="96" rx="16" fill="#1c242c" stroke="#334250"/>
+    <text x="28" y="40" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700">Logon</text>
+    <text x="28" y="68" fill="#aab7c4" font-family="Segoe UI, Arial, sans-serif" font-size="15">wait briefly</text>
+  </g>
+  <path d="M320 208 L390 208" stroke="#55718a" stroke-width="4" stroke-linecap="round"/>
+  <path d="M390 208 L376 196 M390 208 L376 220" stroke="#55718a" stroke-width="4" stroke-linecap="round"/>
+  <g transform="translate(410 160)">
+    <rect width="210" height="96" rx="16" fill="#1c242c" stroke="#334250"/>
+    <text x="28" y="40" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700">Scan</text>
+    <text x="28" y="68" fill="#aab7c4" font-family="Segoe UI, Arial, sans-serif" font-size="15">classify apps</text>
+  </g>
+  <path d="M640 208 L710 208" stroke="#55718a" stroke-width="4" stroke-linecap="round"/>
+  <path d="M710 208 L696 196 M710 208 L696 220" stroke="#55718a" stroke-width="4" stroke-linecap="round"/>
+  <g transform="translate(730 160)">
+    <rect width="210" height="96" rx="16" fill="#1c242c" stroke="#334250"/>
+    <text x="28" y="40" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700">Nap</text>
+    <text x="28" y="68" fill="#aab7c4" font-family="Segoe UI, Arial, sans-serif" font-size="15">apply safe rules</text>
+  </g>
+  <path d="M960 208 L1030 208" stroke="#55718a" stroke-width="4" stroke-linecap="round"/>
+  <path d="M1030 208 L1016 196 M1030 208 L1016 220" stroke="#55718a" stroke-width="4" stroke-linecap="round"/>
+  <g transform="translate(1050 160)">
+    <rect width="90" height="96" rx="16" fill="#1f332c" stroke="#3d6c58"/>
+    <text x="24" y="40" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700">Exit</text>
+    <text x="24" y="68" fill="#a4d9bf" font-family="Segoe UI, Arial, sans-serif" font-size="15">clean</text>
+  </g>
+</svg>

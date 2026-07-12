@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="640" viewBox="0 0 1200 640" role="img" aria-labelledby="title desc">
+  <title id="title">Smart Background Nap app dashboard</title>
+  <desc id="desc">Illustrative dashboard for the Smart Background Nap Windows app.</desc>
+  <rect width="1200" height="640" fill="#f6f8fa"/>
+  <rect x="110" y="70" width="980" height="500" rx="20" fill="#ffffff" stroke="#d8e0e7"/>
+  <text x="150" y="132" fill="#18202b" font-family="Segoe UI, Arial, sans-serif" font-size="36" font-weight="700">Smart Background Nap</text>
+  <text x="150" y="166" fill="#647180" font-family="Segoe UI, Arial, sans-serif" font-size="18">Keep background apps quieter without closing them.</text>
+  <g transform="translate(150 214)">
+    <rect width="210" height="106" rx="12" fill="#f9fbfc" stroke="#dbe3ea"/>
+    <text x="20" y="32" fill="#687887" font-family="Segoe UI, Arial, sans-serif" font-size="15">Automatic mode</text>
+    <text x="20" y="70" fill="#1c7c54" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="700">On</text>
+  </g>
+  <g transform="translate(384 214)">
+    <rect width="210" height="106" rx="12" fill="#f9fbfc" stroke="#dbe3ea"/>
+    <text x="20" y="32" fill="#687887" font-family="Segoe UI, Arial, sans-serif" font-size="15">Start with Windows</text>
+    <text x="20" y="70" fill="#1c7c54" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="700">On</text>
+  </g>
+  <g transform="translate(618 214)">
+    <rect width="210" height="106" rx="12" fill="#f9fbfc" stroke="#dbe3ea"/>
+    <text x="20" y="32" fill="#687887" font-family="Segoe UI, Arial, sans-serif" font-size="15">Last apply</text>
+    <text x="20" y="70" fill="#18202b" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700">2026-07-12 18:24</text>
+  </g>
+  <g transform="translate(852 214)">
+    <rect width="198" height="106" rx="12" fill="#f9fbfc" stroke="#dbe3ea"/>
+    <text x="20" y="32" fill="#687887" font-family="Segoe UI, Arial, sans-serif" font-size="15">Last log</text>
+    <text x="20" y="70" fill="#18202b" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700">targets=5</text>
+  </g>
+  <g transform="translate(150 356)">
+    <rect width="164" height="48" rx="8" fill="#237053"/>
+    <text x="32" y="31" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700">Optimize now</text>
+    <rect x="184" width="112" height="48" rx="8" fill="#ffffff" stroke="#c8d2dc"/>
+    <text x="212" y="31" fill="#263341" font-family="Segoe UI, Arial, sans-serif" font-size="16">Restore</text>
+    <rect x="316" width="88" height="48" rx="8" fill="#ffffff" stroke="#c8d2dc"/>
+    <text x="342" y="31" fill="#263341" font-family="Segoe UI, Arial, sans-serif" font-size="16">More</text>
+  </g>
+  <g transform="translate(150 452)">
+    <rect width="20" height="20" rx="4" fill="#237053"/>
+    <path d="M5 10 l4 4 l7 -9" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="32" y="17" fill="#25313d" font-family="Segoe UI, Arial, sans-serif" font-size="18">Run automatically</text>
+    <rect x="300" width="20" height="20" rx="4" fill="#237053"/>
+    <path d="M305 10 l4 4 l7 -9" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="332" y="17" fill="#25313d" font-family="Segoe UI, Arial, sans-serif" font-size="18">Start with Windows</text>
+  </g>
+  <text x="150" y="530" fill="#6a7785" font-family="Segoe UI, Arial, sans-serif" font-size="15">Criado por KaozyKing | Instagram: @oeduardomacedo | GitHub: kingkaozydev</text>
+</svg>

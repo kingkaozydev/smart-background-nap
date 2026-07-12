@@ -1,4 +1,4 @@
-﻿# Smart Background Nap
+# Smart Background Nap
 
 ![Smart Background Nap overview](docs/images/hero.svg)
 
@@ -49,6 +49,7 @@ Smart Background Nap gives those apps a softer background profile. Your apps sta
 - Desktop dashboard: open `SmartBackgroundNap.exe` and control the app from one clean surface.
 - Start with Windows toggle for the tray indicator.
 - Run automatically toggle for scheduled background passes.
+- Built-in safety report with local integrity details.
 - Automatic scheduled optimization every few minutes.
 - Tray icon with status, apply-now, log, folder, and README shortcuts.
 - No heavy always-running optimizer service.
@@ -93,6 +94,14 @@ The tray task starts the same `SmartBackgroundNap.exe` in tray mode so you can s
 
 The release download is a single executable. Runtime scripts, default config, README text, and icon assets are embedded inside the app and extracted internally when needed.
 
+When automatic mode or tray startup is enabled, Smart Background Nap keeps a managed copy here:
+
+```text
+%LOCALAPPDATA%\Programs\SmartBackgroundNap\SmartBackgroundNap.exe
+```
+
+That keeps startup reliable even if the original download is moved or deleted.
+
 ## Tray Indicator
 
 The tray indicator is optional but recommended. It gives you quick access to:
@@ -118,7 +127,31 @@ The dashboard includes:
 - Start with Windows
 - Optimize now
 - Restore
-- More menu for logs, config, folder, README, GitHub, and disabling background tasks
+- More menu for logs, config, folder, safety report, security model, README, GitHub, and disabling background tasks
+
+## Trust, Privacy, And Windows Safety
+
+Smart Background Nap is intentionally local and boring in the places that matter:
+
+- no telemetry
+- no network calls
+- no accounts, passwords, cookies, browser profiles, documents, or game files are read
+- no driver install
+- no Windows service install
+- no startup registry key
+- no administrator elevation requested by the app manifest
+- no app killing
+- no file deletion
+
+Open `More` -> `Safety report` inside the app to generate a local report with the executable path, SHA-256 hash, runtime folder, scheduled-task status, and a summary of what the app does and does not touch.
+
+The repository includes the full security model in:
+
+```text
+docs\SECURITY_MODEL.md
+```
+
+Windows SmartScreen reputation is controlled by Microsoft and is heavily influenced by Authenticode signing and download reputation. Smart Background Nap ships with product/version metadata and an `asInvoker` manifest, but unsigned community builds can still show an "Unknown Publisher" warning until a code-signing certificate and reputation path are in place.
 
 ## Configuration
 
@@ -217,4 +250,3 @@ ram-optimizer
 ## License
 
 MIT License. See `LICENSE`.
-

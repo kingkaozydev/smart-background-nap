@@ -20,6 +20,14 @@ Those toggles enable automatic optimization and the tray icon startup task.
 
 The release is a single executable. Runtime scripts and default config are embedded inside the app.
 
+When automatic mode or tray startup is enabled, the app keeps a managed copy at:
+
+```text
+%LOCALAPPDATA%\Programs\SmartBackgroundNap\SmartBackgroundNap.exe
+```
+
+This lets Windows startup continue working even if the downloaded EXE is moved later.
+
 ## What Gets Installed
 
 Two Windows scheduled tasks may be created:
