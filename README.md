@@ -46,6 +46,9 @@ Smart Background Nap gives those apps a softer background profile. Your apps sta
 
 ## Highlights
 
+- One-click Windows app: open `SmartBackgroundNap.exe` and control everything from the dashboard.
+- Start with Windows toggle for the tray indicator.
+- Automatic optimization toggle for scheduled background passes.
 - Automatic scheduled optimization every few minutes.
 - Tray icon with status, apply-now, log, folder, and README shortcuts.
 - No heavy always-running optimizer service.
@@ -56,6 +59,8 @@ Smart Background Nap gives those apps a softer background profile. Your apps sta
 - Auditable PowerShell core.
 - Lightweight compiled C# WinForms tray indicator.
 
+![App dashboard](docs/images/app-dashboard.svg)
+
 ![Automatic flow](docs/images/automatic-flow.svg)
 
 ## Install
@@ -63,11 +68,18 @@ Smart Background Nap gives those apps a softer background profile. Your apps sta
 Download the latest release, extract it, and run:
 
 ```text
-install-auto-background-nap.cmd
-install-tray-icon.cmd
+SmartBackgroundNap.exe
 ```
 
-This creates two scheduled tasks:
+Then click:
+
+```text
+Install / update
+```
+
+That enables automatic optimization and the tray icon startup task.
+
+Smart Background Nap creates two scheduled tasks:
 
 ```text
 SmartBackgroundNap
@@ -76,7 +88,7 @@ SmartBackgroundNapTray
 
 The optimizer task runs after logon, repeats every few minutes, applies a pass, writes a compact log, and exits.
 
-The tray task starts the small tray indicator so you can see that Smart Background Nap is available.
+The tray task starts `SmartBackgroundNap.exe --tray` so you can see that Smart Background Nap is available after every login.
 
 ## Tray Indicator
 
@@ -92,16 +104,44 @@ The tray indicator is optional but recommended. It gives you quick access to:
 Preferred tray app:
 
 ```text
+SmartBackgroundNap.exe
+```
+
+Internal task target:
+
+```text
+bin\SmartBackgroundNap.exe
+```
+
+Legacy tray fallback:
+
+```text
 bin\SmartBackgroundNapTray.exe
 ```
 
-PowerShell fallback:
+PowerShell fallback for source/debug builds:
 
 ```text
 smart-background-nap-tray.ps1
 ```
 
-## Commands
+## App Controls
+
+The dashboard includes:
+
+- Automatic optimization
+- Start tray with Windows
+- Install / update
+- Apply now
+- Restore
+- Open log
+- Open config
+- Open folder
+- README
+- GitHub
+- Uninstall all
+
+## Command Fallbacks
 
 Automatic mode:
 
@@ -174,9 +214,15 @@ Use this to restore the latest snapshot:
 restore-background-nap.cmd
 ```
 
-## Build The Tray App
+## Build The App
 
-The tray app source lives here:
+The main app source lives here:
+
+```text
+src\SmartBackgroundNap.cs
+```
+
+The legacy tray source lives here:
 
 ```text
 src\SmartBackgroundNapTray.cs
@@ -191,6 +237,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build-tray-exe.ps1
 Generated output:
 
 ```text
+SmartBackgroundNap.exe
+bin\SmartBackgroundNap.exe
 bin\SmartBackgroundNapTray.exe
 ```
 

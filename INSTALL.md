@@ -2,15 +2,33 @@
 
 ## Quick Start
 
-1. Download or clone this repository.
-2. Open the project folder.
-3. Run:
+1. Download the latest release.
+2. Extract the zip.
+3. Open:
+
+```text
+SmartBackgroundNap.exe
+```
+
+4. Click:
+
+```text
+Install / update
+```
+
+That enables both automatic optimization and the tray icon startup task.
+
+## Advanced Command Fallbacks
+
+The app is the recommended path. The command files remain available for advanced users and troubleshooting.
+
+Install only the automatic optimizer:
 
 ```text
 install-auto-background-nap.cmd
 ```
 
-4. Optional, recommended if you want a visible tray indicator:
+Install only the tray startup task:
 
 ```text
 install-tray-icon.cmd
@@ -25,9 +43,9 @@ SmartBackgroundNap
 SmartBackgroundNapTray
 ```
 
-`SmartBackgroundNap` is the optimizer. It runs after logon and every few minutes, applies rules, then exits.
+`SmartBackgroundNap` is the optimizer. It runs `bin\SmartBackgroundNap.exe --apply` after logon and every few minutes, applies rules, then exits.
 
-`SmartBackgroundNapTray` is only the tray indicator. It is optional.
+`SmartBackgroundNapTray` starts `bin\SmartBackgroundNap.exe --tray` at logon. It is optional, but recommended.
 
 ## Verify Installation
 
@@ -62,6 +80,8 @@ restore-background-nap.cmd
 
 - Windows 10/11
 - PowerShell 5+
-- .NET Framework 4.x for building the tray app from source
+- .NET Framework 4.x for building the app from source
 
-The included tray executable is built from `src\SmartBackgroundNapTray.cs`.
+The included main executable is built from `src\SmartBackgroundNap.cs`.
+
+The legacy tray executable is built from `src\SmartBackgroundNapTray.cs`.

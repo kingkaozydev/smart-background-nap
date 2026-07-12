@@ -4,6 +4,11 @@
 
 Initial public release.
 
+- Added the all-in-one `SmartBackgroundNap.exe` dashboard.
+- Added one-click install/update, apply-now, restore, logs, config, folder, README, and GitHub actions.
+- Added built-in "start with Windows" tray startup control.
+- Updated scheduled tasks to call the EXE directly.
+- Moved logs and restore snapshots into the app folder for portable releases.
 - Added Smart Background Nap automatic scheduled optimizer.
 - Added safe background process classification.
 - Added protected app, system, and game path rules.

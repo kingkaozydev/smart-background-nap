@@ -1,12 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-$src = Join-Path $PSScriptRoot "src\SmartBackgroundNapTray.cs"
 $binDir = Join-Path $PSScriptRoot "bin"
-$out = Join-Path $binDir "SmartBackgroundNapTray.exe"
-
-if (-not (Test-Path -LiteralPath $src)) {
-    throw "Source not found: $src"
-}
 
 New-Item -ItemType Directory -Path $binDir -Force | Out-Null
 
@@ -25,30 +19,82 @@ if (-not $csc) {
 }
 
 $icon = Join-Path $PSScriptRoot "assets\smart-background-nap.ico"
-$args = @(
-    "/nologo",
-    "/target:winexe",
-    "/optimize+",
-    "/platform:anycpu",
-    "/out:$out",
-    "/reference:System.dll",
-    "/reference:System.Drawing.dll",
-    "/reference:System.Windows.Forms.dll"
-)
 
-if (Test-Path -LiteralPath $icon) {
-    $args += "/win32icon:$icon"
+function Build-WinFormsExe {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Source,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Output
+    )
+
+    if (-not (Test-Path -LiteralPath $Source)) {
+        throw "Source not found: $Source"
+    }
+
+    $args = @(
+        "/nologo",
+        "/target:winexe",
+        "/optimize+",
+        "/platform:anycpu",
+        "/out:$Output",
+        "/reference:System.dll",
+        "/reference:System.Drawing.dll",
+        "/reference:System.Windows.Forms.dll"
+    )
+
+    if (Test-Path -LiteralPath $icon) {
+        $args += "/win32icon:$icon"
+    }
+
+    $args += $Source
+
+    & $csc @args
+    if ($LASTEXITCODE -ne 0) {
+        throw "csc failed with exit code $LASTEXITCODE"
+    }
+
+    [pscustomobject]@{
+        ExePath = $Output
+        SizeKB = [math]::Round((Get-Item -LiteralPath $Output).Length / 1KB, 1)
+        Compiler = $csc
+    }
 }
 
-$args += $src
-
-& $csc @args
-if ($LASTEXITCODE -ne 0) {
-    throw "csc failed with exit code $LASTEXITCODE"
+$results = @()
+$mainOutput = Join-Path $binDir "SmartBackgroundNap.exe"
+try {
+    $results += Build-WinFormsExe -Source (Join-Path $PSScriptRoot "src\SmartBackgroundNap.cs") -Output $mainOutput
+} catch {
+    if (-not (Test-Path -LiteralPath $mainOutput)) {
+        throw
+    }
+    Write-Warning "Main app build skipped because the existing EXE may be running: $($_.Exception.Message)"
+    $results += [pscustomobject]@{
+        ExePath = $mainOutput
+        SizeKB = [math]::Round((Get-Item -LiteralPath $mainOutput).Length / 1KB, 1)
+        Compiler = $csc
+        ReusedExisting = $true
+    }
 }
 
-[pscustomobject]@{
-    ExePath = $out
-    SizeKB = [math]::Round((Get-Item -LiteralPath $out).Length / 1KB, 1)
-    Compiler = $csc
+try {
+    $results += Build-WinFormsExe -Source (Join-Path $PSScriptRoot "src\SmartBackgroundNapTray.cs") -Output (Join-Path $binDir "SmartBackgroundNapTray.exe")
+} catch {
+    Write-Warning "Legacy tray build skipped: $($_.Exception.Message)"
 }
+
+$rootLauncher = Join-Path $PSScriptRoot "SmartBackgroundNap.exe"
+try {
+    Copy-Item -LiteralPath $mainOutput -Destination $rootLauncher -Force
+    $results += [pscustomobject]@{
+        ExePath = $rootLauncher
+        SizeKB = [math]::Round((Get-Item -LiteralPath $rootLauncher).Length / 1KB, 1)
+        Compiler = "copied from bin"
+    }
+} catch {
+    Write-Warning "Root launcher copy skipped: $($_.Exception.Message)"
+}
+
+$results

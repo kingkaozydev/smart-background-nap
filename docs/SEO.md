@@ -6,7 +6,7 @@ Lightweight Windows background app optimizer that keeps your apps open while red
 
 ## Long Description
 
-Smart Background Nap is a small Windows utility for gaming, streaming, creative work, coding, and heavy multitasking. It looks for safe background apps and gives them a quieter profile using process priority, memory priority, Power Throttling / EcoQoS, and optional working set trimming. It protects the foreground app, system processes, active workloads, and configured protected paths, so it can reduce background noise without closing apps or taking over the whole PC.
+Smart Background Nap is a small Windows utility for gaming, streaming, creative work, coding, and heavy multitasking. It ships with an all-in-one desktop app, tray indicator, automatic start-with-Windows control, and scheduled optimization passes. It looks for safe background apps and gives them a quieter profile using process priority, memory priority, Power Throttling / EcoQoS, and optional working set trimming. It protects the foreground app, system processes, active workloads, and configured protected paths, so it can reduce background noise without closing apps or taking over the whole PC.
 
 ## Tagline
 
@@ -19,6 +19,9 @@ Lightweight Windows background app optimizer for gaming and multitasking. Keeps 
 ## Keywords
 
 - Windows background app optimizer
+- Windows tray optimizer
+- start with Windows optimizer
+- one-click Windows optimizer
 - Windows gaming optimizer
 - Windows 11 performance utility
 - reduce background CPU usage
@@ -58,7 +61,7 @@ ram-optimizer
 
 I released Smart Background Nap, a lightweight Windows utility that reduces background app pressure without closing your apps.
 
-It runs through scheduled tasks, has a small tray indicator, and focuses on the apps that quietly sit behind your main workload.
+It now has an all-in-one desktop app, a tray indicator, one-click setup, start-with-Windows control, and scheduled optimization passes.
 
 Keep your apps open. Let Windows breathe.
 

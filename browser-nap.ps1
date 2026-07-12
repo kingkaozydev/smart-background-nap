@@ -27,7 +27,7 @@ if (-not $nap -or -not $nap.Enabled) {
     throw "BrowserNap is disabled or missing in config."
 }
 
-$workspace = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$workspace = $PSScriptRoot
 $outDir = Join-Path $workspace "outputs"
 New-Item -ItemType Directory -Path $outDir -Force | Out-Null
 

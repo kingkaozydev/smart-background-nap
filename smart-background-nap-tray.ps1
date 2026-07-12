@@ -19,7 +19,7 @@ $trayTaskName = [string]$config.Tray.TaskName
 $refreshSeconds = [int]$config.Tray.RefreshSeconds
 if ($refreshSeconds -lt 10) { $refreshSeconds = 10 }
 
-$workspace = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$workspace = $PSScriptRoot
 $outDir = Join-Path $workspace "outputs"
 $logPath = Join-Path $outDir "background-nap-auto.log"
 $mainScriptPath = Join-Path $PSScriptRoot "background-nap.ps1"

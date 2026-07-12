@@ -21,10 +21,11 @@ $scriptPath = Join-Path $PSScriptRoot "smart-background-nap-tray.ps1"
 if (-not (Test-Path -LiteralPath $scriptPath)) {
     throw "Tray script not found: $scriptPath"
 }
+$appExePath = Join-Path $PSScriptRoot "bin\SmartBackgroundNap.exe"
 $exePath = Join-Path $PSScriptRoot "bin\SmartBackgroundNapTray.exe"
 $autoTaskName = [string]$config.Automation.TaskName
 $managerPath = Join-Path $PSScriptRoot "manage-background-nap.ps1"
-$workspace = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$workspace = $PSScriptRoot
 $logPath = Join-Path $workspace "outputs\background-nap-auto.log"
 $readmePath = Join-Path $PSScriptRoot "README.md"
 $iconPath = Join-Path $PSScriptRoot ([string]$config.Tray.IconPath)
@@ -38,7 +39,10 @@ function Get-TrayTaskDefinitionXml {
     $sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
     $author = "$env:USERDOMAIN\$env:USERNAME"
     $workDir = $PSScriptRoot
-    if (Test-Path -LiteralPath $exePath) {
+    if (Test-Path -LiteralPath $appExePath) {
+        $command = $appExePath
+        $arguments = '--tray'
+    } elseif (Test-Path -LiteralPath $exePath) {
         $command = $exePath
         $arguments = '--auto-task "' + $autoTaskName + '" --manager "' + $managerPath + '" --log "' + $logPath + '" --folder "' + $PSScriptRoot + '" --readme "' + $readmePath + '" --icon "' + $iconPath + '"'
     } else {
@@ -103,6 +107,8 @@ function Get-TrayStatusObject {
     $trayProcess = @()
     $trayProcess += @(Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe'" -ErrorAction SilentlyContinue |
         Where-Object { $_.CommandLine -like "*smart-background-nap-tray.ps1*" })
+    $trayProcess += @(Get-CimInstance Win32_Process -Filter "Name = 'SmartBackgroundNap.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -like "*--tray*" })
     $trayProcess += @(Get-CimInstance Win32_Process -Filter "Name = 'SmartBackgroundNapTray.exe'" -ErrorAction SilentlyContinue)
 
     if (-not $task) {
@@ -110,7 +116,7 @@ function Get-TrayStatusObject {
             TaskName = $taskName
             Installed = $false
             TrayProcessCount = $trayProcess.Count
-            LaunchPath = if (Test-Path -LiteralPath $exePath) { $exePath } else { $scriptPath }
+            LaunchPath = if (Test-Path -LiteralPath $appExePath) { $appExePath } elseif (Test-Path -LiteralPath $exePath) { $exePath } else { $scriptPath }
         }
     }
 
@@ -123,7 +129,7 @@ function Get-TrayStatusObject {
         LastTaskResult = if ($info) { $info.LastTaskResult } else { $null }
         NextRunTime = if ($info) { $info.NextRunTime } else { $null }
         TrayProcessCount = $trayProcess.Count
-        LaunchPath = if (Test-Path -LiteralPath $exePath) { $exePath } else { $scriptPath }
+        LaunchPath = if (Test-Path -LiteralPath $appExePath) { $appExePath } elseif (Test-Path -LiteralPath $exePath) { $exePath } else { $scriptPath }
     }
 }
 
@@ -144,6 +150,8 @@ switch ($Action) {
 
         $trayProcesses = @(Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe'" -ErrorAction SilentlyContinue |
             Where-Object { $_.CommandLine -like "*smart-background-nap-tray.ps1*" })
+        $trayProcesses += @(Get-CimInstance Win32_Process -Filter "Name = 'SmartBackgroundNap.exe'" -ErrorAction SilentlyContinue |
+            Where-Object { $_.CommandLine -like "*--tray*" })
         $trayProcesses += @(Get-CimInstance Win32_Process -Filter "Name = 'SmartBackgroundNapTray.exe'" -ErrorAction SilentlyContinue)
         foreach ($proc in $trayProcesses) {
             Stop-Process -Id $proc.ProcessId -Force -ErrorAction SilentlyContinue

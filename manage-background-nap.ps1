@@ -36,6 +36,7 @@ $scriptPath = Join-Path $PSScriptRoot "background-nap.ps1"
 if (-not (Test-Path -LiteralPath $scriptPath)) {
     throw "background-nap.ps1 not found: $scriptPath"
 }
+$appExePath = Join-Path $PSScriptRoot "bin\SmartBackgroundNap.exe"
 
 function ConvertTo-XmlText {
     param([string]$Text)
@@ -50,7 +51,13 @@ function Get-TaskDefinitionXml {
     $logonDelay = "PT${LogonDelaySeconds}S"
     $limit = "PT${ExecutionTimeLimitMinutes}M"
     $workDir = Split-Path -Parent $scriptPath
-    $arguments = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $scriptPath + '" -Action Apply -StateMode Latest -Quiet'
+    if (Test-Path -LiteralPath $appExePath) {
+        $command = $appExePath
+        $arguments = '--apply'
+    } else {
+        $command = "powershell.exe"
+        $arguments = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $scriptPath + '" -Action Apply -StateMode Latest -Quiet'
+    }
 
 @"
 <?xml version="1.0" encoding="UTF-16"?>
@@ -106,7 +113,7 @@ function Get-TaskDefinitionXml {
   </Settings>
   <Actions Context="Author">
     <Exec>
-      <Command>powershell.exe</Command>
+      <Command>$(ConvertTo-XmlText $command)</Command>
       <Arguments>$(ConvertTo-XmlText $arguments)</Arguments>
       <WorkingDirectory>$(ConvertTo-XmlText $workDir)</WorkingDirectory>
     </Exec>

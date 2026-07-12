@@ -6,7 +6,7 @@ smart-background-nap
 
 ## Description
 
-Lightweight Windows background app optimizer for gaming and multitasking. Keeps apps open while reducing safe background CPU, RAM, and EcoQoS pressure.
+Lightweight Windows background app optimizer for gaming and multitasking. Includes a desktop app, tray icon, and start-with-Windows control.
 
 ## Author
 
@@ -41,4 +41,4 @@ https://github.com/kingkaozydev/smart-background-nap
 
 Keep your apps open. Let Windows breathe.
 
-Smart Background Nap is a lightweight Windows utility that reduces background app pressure without closing your apps.
+Smart Background Nap is a lightweight Windows utility with a desktop app, tray icon, and one-click background optimization.
