@@ -105,7 +105,7 @@ internal static class SmartBackgroundNapTray
         status.Click += delegate { ShowStatus(); };
         menu.Items.Add(status);
 
-        ToolStripMenuItem apply = new ToolStripMenuItem("Apply now");
+        ToolStripMenuItem apply = new ToolStripMenuItem("Optimize now");
         apply.Click += delegate { ApplyNow(); };
         menu.Items.Add(apply);
 

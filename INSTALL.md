@@ -13,10 +13,11 @@ SmartBackgroundNap.exe
 4. Click:
 
 ```text
-Install / update
+Run automatically
+Start with Windows
 ```
 
-That enables both automatic optimization and the tray icon startup task.
+Those toggles enable automatic optimization and the tray icon startup task.
 
 ## Advanced Command Fallbacks
 

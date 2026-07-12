@@ -5,7 +5,9 @@ Initial public release by KaozyKing.
 ## Highlights
 
 - New all-in-one `SmartBackgroundNap.exe` dashboard.
-- One-click install/update for automatic mode and start-with-Windows tray.
+- Toggle-based automatic mode and start-with-Windows tray controls.
+- Inline action progress and result feedback.
+- Single-instance behavior when opening the EXE while the tray is already running.
 - Automatic background app optimization for Windows.
 - Built for gaming, streaming, creative work, coding, and heavy multitasking.
 - Keeps apps open instead of killing them.

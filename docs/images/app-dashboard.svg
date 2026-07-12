@@ -27,23 +27,19 @@
   </g>
   <g transform="translate(150 356)">
     <rect width="164" height="48" rx="8" fill="#237053"/>
-    <text x="30" y="31" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700">Install / update</text>
-    <rect x="184" width="122" height="48" rx="8" fill="#ffffff" stroke="#c8d2dc"/>
-    <text x="210" y="31" fill="#263341" font-family="Segoe UI, Arial, sans-serif" font-size="16">Apply now</text>
-    <rect x="326" width="112" height="48" rx="8" fill="#ffffff" stroke="#c8d2dc"/>
-    <text x="354" y="31" fill="#263341" font-family="Segoe UI, Arial, sans-serif" font-size="16">Restore</text>
-    <rect x="458" width="116" height="48" rx="8" fill="#ffffff" stroke="#c8d2dc"/>
-    <text x="490" y="31" fill="#263341" font-family="Segoe UI, Arial, sans-serif" font-size="16">Open log</text>
-    <rect x="594" width="132" height="48" rx="8" fill="#ffffff" stroke="#c8d2dc"/>
-    <text x="622" y="31" fill="#263341" font-family="Segoe UI, Arial, sans-serif" font-size="16">Open config</text>
+    <text x="32" y="31" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700">Optimize now</text>
+    <rect x="184" width="112" height="48" rx="8" fill="#ffffff" stroke="#c8d2dc"/>
+    <text x="212" y="31" fill="#263341" font-family="Segoe UI, Arial, sans-serif" font-size="16">Restore</text>
+    <rect x="316" width="88" height="48" rx="8" fill="#ffffff" stroke="#c8d2dc"/>
+    <text x="342" y="31" fill="#263341" font-family="Segoe UI, Arial, sans-serif" font-size="16">More</text>
   </g>
   <g transform="translate(150 452)">
     <rect width="20" height="20" rx="4" fill="#237053"/>
     <path d="M5 10 l4 4 l7 -9" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-    <text x="32" y="17" fill="#25313d" font-family="Segoe UI, Arial, sans-serif" font-size="18">Automatic optimization</text>
+    <text x="32" y="17" fill="#25313d" font-family="Segoe UI, Arial, sans-serif" font-size="18">Run automatically</text>
     <rect x="300" width="20" height="20" rx="4" fill="#237053"/>
     <path d="M305 10 l4 4 l7 -9" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-    <text x="332" y="17" fill="#25313d" font-family="Segoe UI, Arial, sans-serif" font-size="18">Start tray with Windows</text>
+    <text x="332" y="17" fill="#25313d" font-family="Segoe UI, Arial, sans-serif" font-size="18">Start with Windows</text>
   </g>
   <text x="150" y="530" fill="#6a7785" font-family="Segoe UI, Arial, sans-serif" font-size="15">Criado por KaozyKing | Instagram: @oeduardomacedo | GitHub: kingkaozydev</text>
 </svg>

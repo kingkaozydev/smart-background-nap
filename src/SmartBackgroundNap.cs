@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Windows.Forms;
 
 internal static class SmartBackgroundNap
@@ -12,6 +13,8 @@ internal static class SmartBackgroundNap
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
     private const string GitHubUrl = "https://github.com/kingkaozydev/smart-background-nap";
+    private const string MutexName = "Local\\SmartBackgroundNap.SingleInstance";
+    private const string ShowDashboardEventName = "Local\\SmartBackgroundNap.ShowDashboard";
 
     private static string appRoot;
     private static string backgroundScriptPath;
@@ -22,6 +25,8 @@ internal static class SmartBackgroundNap
     private static string iconPath;
     private static string outputsPath;
     private static string logPath;
+    private static Mutex singleInstanceMutex;
+    private static EventWaitHandle showDashboardEvent;
 
     [STAThread]
     private static void Main(string[] args)
@@ -69,12 +74,28 @@ internal static class SmartBackgroundNap
             return;
         }
 
+        bool trayOnly = HasArg(args, "--tray");
+        bool ownsMutex;
+        singleInstanceMutex = new Mutex(true, MutexName, out ownsMutex);
+        showDashboardEvent = new EventWaitHandle(false, EventResetMode.AutoReset, ShowDashboardEventName);
+        if (!ownsMutex)
+        {
+            if (!trayOnly)
+            {
+                try { showDashboardEvent.Set(); } catch { }
+            }
+            return;
+        }
+
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
 
-        bool trayOnly = HasArg(args, "--tray");
         SmartNapContext context = new SmartNapContext(trayOnly);
         Application.Run(context);
+
+        try { singleInstanceMutex.ReleaseMutex(); } catch { }
+        try { singleInstanceMutex.Dispose(); } catch { }
+        try { showDashboardEvent.Dispose(); } catch { }
     }
 
     private static void InitializePaths()
@@ -343,6 +364,8 @@ internal static class SmartBackgroundNap
         private readonly NotifyIcon notifyIcon;
         private readonly MainWindow mainWindow;
         private bool allowExit;
+        private bool listenerStopping;
+        private Thread showThread;
 
         public SmartNapContext(bool trayOnly)
         {
@@ -372,6 +395,8 @@ internal static class SmartBackgroundNap
             {
                 ShowTrayMessage("Ready. Automatic mode can be controlled from the tray.");
             }
+
+            StartShowListener();
         }
 
         private ContextMenuStrip BuildMenu()
@@ -390,13 +415,9 @@ internal static class SmartBackgroundNap
             open.Click += delegate { ShowMainWindow(); };
             menu.Items.Add(open);
 
-            ToolStripMenuItem apply = new ToolStripMenuItem("Apply now");
-            apply.Click += delegate { RunFromTray("Apply now", RunApplyNow); };
+            ToolStripMenuItem apply = new ToolStripMenuItem("Optimize now");
+            apply.Click += delegate { RunFromTray("Optimize now", RunApplyNow); };
             menu.Items.Add(apply);
-
-            ToolStripMenuItem install = new ToolStripMenuItem("Install / update automatic mode");
-            install.Click += delegate { RunFromTray("Install", InstallComplete); };
-            menu.Items.Add(install);
 
             ToolStripMenuItem restore = new ToolStripMenuItem("Restore last snapshot");
             restore.Click += delegate { RunFromTray("Restore", RunRestore); };
@@ -422,6 +443,8 @@ internal static class SmartBackgroundNap
             exit.Click += delegate
             {
                 allowExit = true;
+                listenerStopping = true;
+                try { showDashboardEvent.Set(); } catch { }
                 notifyIcon.Visible = false;
                 notifyIcon.Dispose();
                 mainWindow.Close();
@@ -430,6 +453,28 @@ internal static class SmartBackgroundNap
             menu.Items.Add(exit);
 
             return menu;
+        }
+
+        private void StartShowListener()
+        {
+            showThread = new Thread(new ThreadStart(delegate
+            {
+                while (!listenerStopping)
+                {
+                    try
+                    {
+                        showDashboardEvent.WaitOne();
+                        if (listenerStopping) { break; }
+                        mainWindow.BeginInvoke(new MethodInvoker(delegate { ShowMainWindow(); }));
+                    }
+                    catch
+                    {
+                        break;
+                    }
+                }
+            }));
+            showThread.IsBackground = true;
+            showThread.Start();
         }
 
         private void ShowMainWindow()
@@ -470,58 +515,91 @@ internal static class SmartBackgroundNap
         private Label autoValue;
         private Label startupValue;
         private Label lastRunValue;
-        private Label logValue;
+        private Label resultValue;
+        private Label statusPill;
+        private Label actionTitle;
+        private Label actionDetail;
         private CheckBox autoCheck;
         private CheckBox startupCheck;
+        private Button optimizeButton;
+        private Button restoreButton;
+        private Button moreButton;
+        private ProgressBar actionProgress;
         private bool loading;
-        private Timer refreshTimer;
+        private bool busy;
+        private System.Windows.Forms.Timer refreshTimer;
 
         public MainWindow()
         {
             Text = AppName;
             StartPosition = FormStartPosition.CenterScreen;
-            MinimumSize = new Size(780, 560);
-            Size = new Size(900, 640);
+            MinimumSize = new Size(760, 500);
+            Size = new Size(860, 560);
             Icon = LoadIcon();
             BuildLayout();
 
-            refreshTimer = new Timer();
-            refreshTimer.Interval = 15000;
-            refreshTimer.Tick += delegate { RefreshStatus(); };
+            refreshTimer = new System.Windows.Forms.Timer();
+            refreshTimer.Interval = 60000;
+            refreshTimer.Tick += delegate { if (Visible && !busy) { RefreshStatus(); } };
             refreshTimer.Start();
         }
 
         private void BuildLayout()
         {
-            BackColor = Color.FromArgb(246, 248, 250);
+            BackColor = Color.FromArgb(244, 247, 249);
 
             TableLayoutPanel root = new TableLayoutPanel();
             root.Dock = DockStyle.Fill;
             root.Padding = new Padding(24);
-            root.RowCount = 6;
+            root.RowCount = 7;
             root.ColumnCount = 1;
             root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 132));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 116));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 70));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 124));
             root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             Controls.Add(root);
 
+            TableLayoutPanel header = new TableLayoutPanel();
+            header.Dock = DockStyle.Top;
+            header.AutoSize = true;
+            header.ColumnCount = 2;
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+
+            FlowLayoutPanel headerText = new FlowLayoutPanel();
+            headerText.FlowDirection = FlowDirection.TopDown;
+            headerText.WrapContents = false;
+            headerText.AutoSize = true;
+
             Label title = new Label();
             title.Text = AppName;
-            title.Font = new Font("Segoe UI", 24, FontStyle.Bold);
-            title.ForeColor = Color.FromArgb(24, 32, 43);
+            title.Font = new Font("Segoe UI", 23, FontStyle.Bold);
+            title.ForeColor = Color.FromArgb(20, 29, 40);
             title.AutoSize = true;
-            root.Controls.Add(title, 0, 0);
+            headerText.Controls.Add(title);
 
             Label subtitle = new Label();
-            subtitle.Text = "Keep background apps quieter without closing them.";
+            subtitle.Text = "Background apps stay open, but quieter.";
             subtitle.Font = new Font("Segoe UI", 10, FontStyle.Regular);
-            subtitle.ForeColor = Color.FromArgb(84, 96, 110);
+            subtitle.ForeColor = Color.FromArgb(88, 101, 115);
             subtitle.AutoSize = true;
-            subtitle.Margin = new Padding(0, 0, 0, 18);
-            root.Controls.Add(subtitle, 0, 1);
+            subtitle.Margin = new Padding(0, 2, 0, 0);
+            headerText.Controls.Add(subtitle);
+            header.Controls.Add(headerText, 0, 0);
+
+            statusPill = new Label();
+            statusPill.Text = "Checking";
+            statusPill.AutoSize = true;
+            statusPill.Font = new Font("Segoe UI", 10, FontStyle.Bold);
+            statusPill.ForeColor = Color.White;
+            statusPill.BackColor = Color.FromArgb(95, 108, 122);
+            statusPill.Padding = new Padding(14, 7, 14, 7);
+            statusPill.Margin = new Padding(16, 8, 0, 0);
+            header.Controls.Add(statusPill, 1, 0);
+            root.Controls.Add(header, 0, 0);
 
             TableLayoutPanel cards = new TableLayoutPanel();
             cards.Dock = DockStyle.Fill;
@@ -531,75 +609,127 @@ internal static class SmartBackgroundNap
             cards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
             cards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
             cards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
-            root.Controls.Add(cards, 0, 2);
+            root.Controls.Add(cards, 0, 1);
 
-            autoValue = AddStatusCard(cards, 0, "Automatic mode");
-            startupValue = AddStatusCard(cards, 1, "Start with Windows");
-            lastRunValue = AddStatusCard(cards, 2, "Last apply");
-            logValue = AddStatusCard(cards, 3, "Last log");
+            autoValue = AddStatusCard(cards, 0, "Auto optimize");
+            startupValue = AddStatusCard(cards, 1, "Tray startup");
+            lastRunValue = AddStatusCard(cards, 2, "Last pass");
+            resultValue = AddStatusCard(cards, 3, "Result");
 
             FlowLayoutPanel toggles = new FlowLayoutPanel();
             toggles.Dock = DockStyle.Fill;
             toggles.AutoSize = true;
-            toggles.Margin = new Padding(0, 18, 0, 10);
+            toggles.Margin = new Padding(0, 18, 0, 0);
 
             autoCheck = new CheckBox();
-            autoCheck.Text = "Automatic optimization";
+            autoCheck.Text = "Run automatically";
             autoCheck.AutoSize = true;
             autoCheck.Font = new Font("Segoe UI", 10);
-            autoCheck.Margin = new Padding(0, 0, 28, 0);
+            autoCheck.Margin = new Padding(0, 10, 34, 0);
             autoCheck.CheckedChanged += delegate
             {
                 if (loading) { return; }
-                RunUserAction(autoCheck.Checked ? "Automatic optimization enabled." : "Automatic optimization disabled.",
+                RunUserAction(autoCheck.Checked ? "Enabling automatic mode..." : "Pausing automatic mode...",
+                    autoCheck.Checked ? "Automatic mode is on." : "Automatic mode is paused.",
                     autoCheck.Checked ? (Func<RunResult>)InstallAutomatic : UninstallAutomatic);
             };
             toggles.Controls.Add(autoCheck);
 
             startupCheck = new CheckBox();
-            startupCheck.Text = "Start tray with Windows";
+            startupCheck.Text = "Start with Windows";
             startupCheck.AutoSize = true;
             startupCheck.Font = new Font("Segoe UI", 10);
+            startupCheck.Margin = new Padding(0, 10, 0, 0);
             startupCheck.CheckedChanged += delegate
             {
                 if (loading) { return; }
-                RunUserAction(startupCheck.Checked ? "Tray startup enabled." : "Tray startup disabled.",
+                RunUserAction(startupCheck.Checked ? "Enabling startup..." : "Disabling startup...",
+                    startupCheck.Checked ? "The tray will start with Windows." : "Tray startup is off.",
                     startupCheck.Checked ? (Func<RunResult>)InstallStartup : UninstallStartup);
             };
             toggles.Controls.Add(startupCheck);
 
-            root.Controls.Add(toggles, 0, 3);
+            root.Controls.Add(toggles, 0, 2);
+
+            TableLayoutPanel actionPanel = new TableLayoutPanel();
+            actionPanel.Dock = DockStyle.Fill;
+            actionPanel.BackColor = Color.White;
+            actionPanel.Padding = new Padding(18);
+            actionPanel.ColumnCount = 2;
+            actionPanel.RowCount = 1;
+            actionPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            actionPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            actionPanel.Margin = new Padding(0, 0, 0, 14);
+            root.Controls.Add(actionPanel, 0, 3);
+
+            FlowLayoutPanel actionText = new FlowLayoutPanel();
+            actionText.Dock = DockStyle.Fill;
+            actionText.FlowDirection = FlowDirection.TopDown;
+            actionText.WrapContents = false;
+
+            actionTitle = new Label();
+            actionTitle.Text = "Ready";
+            actionTitle.Font = new Font("Segoe UI", 15, FontStyle.Bold);
+            actionTitle.ForeColor = Color.FromArgb(24, 35, 48);
+            actionTitle.AutoSize = true;
+            actionText.Controls.Add(actionTitle);
+
+            actionDetail = new Label();
+            actionDetail.Text = "Waiting for the next automatic pass.";
+            actionDetail.Font = new Font("Segoe UI", 9);
+            actionDetail.ForeColor = Color.FromArgb(90, 103, 116);
+            actionDetail.AutoSize = false;
+            actionDetail.Width = 440;
+            actionDetail.Height = 38;
+            actionText.Controls.Add(actionDetail);
+
+            actionProgress = new ProgressBar();
+            actionProgress.Width = 420;
+            actionProgress.Height = 8;
+            actionProgress.Style = ProgressBarStyle.Continuous;
+            actionProgress.MarqueeAnimationSpeed = 0;
+            actionProgress.Value = 0;
+            actionText.Controls.Add(actionProgress);
+            actionPanel.Controls.Add(actionText, 0, 0);
 
             FlowLayoutPanel actions = new FlowLayoutPanel();
+            actions.FlowDirection = FlowDirection.LeftToRight;
+            actions.WrapContents = false;
+            actions.AutoSize = true;
             actions.Dock = DockStyle.Fill;
-            actions.AutoScroll = true;
-            actions.WrapContents = true;
-            actions.Margin = new Padding(0, 6, 0, 12);
-            root.Controls.Add(actions, 0, 4);
+            actions.Margin = new Padding(18, 10, 0, 0);
 
-            actions.Controls.Add(CreateButton("Install / update", delegate { RunUserAction("Complete setup installed.", InstallComplete); }, true));
-            actions.Controls.Add(CreateButton("Apply now", delegate { RunUserAction("Optimization pass finished.", RunApplyNow); }, false));
-            actions.Controls.Add(CreateButton("Restore", delegate
+            optimizeButton = CreateButton("Optimize now", delegate
+            {
+                RunUserAction("Optimizing background apps...", "Optimization pass finished.", RunApplyNow);
+            }, true, 148);
+            actions.Controls.Add(optimizeButton);
+
+            restoreButton = CreateButton("Restore", delegate
             {
                 DialogResult confirm = MessageBox.Show("Restore the latest priority and throttling snapshot for currently running processes?", AppName, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                 if (confirm == DialogResult.Yes)
                 {
-                    RunUserAction("Restore finished.", RunRestore);
+                    RunUserAction("Restoring latest snapshot...", "Restore finished.", RunRestore);
                 }
-            }, false));
-            actions.Controls.Add(CreateButton("Open log", delegate { OpenLog(); }, false));
-            actions.Controls.Add(CreateButton("Open config", delegate { OpenConfig(); }, false));
-            actions.Controls.Add(CreateButton("Open folder", delegate { OpenFolder(); }, false));
-            actions.Controls.Add(CreateButton("README", delegate { OpenReadme(); }, false));
-            actions.Controls.Add(CreateButton("GitHub", delegate { OpenGitHub(); }, false));
-            actions.Controls.Add(CreateButton("Uninstall all", delegate
-            {
-                DialogResult confirm = MessageBox.Show("Disable automatic mode and tray startup?", AppName, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                if (confirm == DialogResult.Yes)
-                {
-                    RunUserAction("Smart Background Nap was uninstalled from startup tasks.", UninstallComplete);
-                }
-            }, false));
+            }, false, 108);
+            actions.Controls.Add(restoreButton);
+
+            moreButton = CreateButton("More", delegate { ShowMoreMenu(); }, false, 86);
+            actions.Controls.Add(moreButton);
+            actionPanel.Controls.Add(actions, 1, 0);
+
+            Label footnote = new Label();
+            footnote.Text = "Automatic mode runs short scheduled passes and exits. The tray only keeps this control surface available.";
+            footnote.Font = new Font("Segoe UI", 9);
+            footnote.ForeColor = Color.FromArgb(94, 106, 120);
+            footnote.AutoSize = true;
+            footnote.Margin = new Padding(0, 0, 0, 0);
+            root.Controls.Add(footnote, 0, 4);
+
+            Panel spacer = new Panel();
+            spacer.Dock = DockStyle.Fill;
+            root.Controls.Add(spacer, 0, 5);
 
             Label footer = new Label();
             footer.Text = CreatorLine;
@@ -607,7 +737,27 @@ internal static class SmartBackgroundNap
             footer.ForeColor = Color.FromArgb(92, 104, 116);
             footer.AutoSize = true;
             footer.Margin = new Padding(0, 10, 0, 0);
-            root.Controls.Add(footer, 0, 5);
+            root.Controls.Add(footer, 0, 6);
+        }
+
+        private void ShowMoreMenu()
+        {
+            ContextMenuStrip menu = new ContextMenuStrip();
+            menu.Items.Add("Open log", null, delegate { OpenLog(); });
+            menu.Items.Add("Open config", null, delegate { OpenConfig(); });
+            menu.Items.Add("Open folder", null, delegate { OpenFolder(); });
+            menu.Items.Add("README", null, delegate { OpenReadme(); });
+            menu.Items.Add("GitHub", null, delegate { OpenGitHub(); });
+            menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add("Disable background tasks", null, delegate
+            {
+                DialogResult confirm = MessageBox.Show("Disable automatic mode and tray startup?", AppName, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (confirm == DialogResult.Yes)
+                {
+                    RunUserAction("Disabling background tasks...", "Background tasks disabled.", UninstallComplete);
+                }
+            });
+            menu.Show(moreButton, new Point(0, moreButton.Height));
         }
 
         private Label AddStatusCard(TableLayoutPanel parent, int column, string caption)
@@ -616,22 +766,22 @@ internal static class SmartBackgroundNap
             panel.Dock = DockStyle.Fill;
             panel.Margin = new Padding(column == 0 ? 0 : 8, 0, column == 3 ? 0 : 8, 0);
             panel.BackColor = Color.White;
-            panel.Padding = new Padding(16);
+            panel.Padding = new Padding(14);
 
             Label title = new Label();
             title.Text = caption;
             title.Font = new Font("Segoe UI", 9, FontStyle.Regular);
             title.ForeColor = Color.FromArgb(91, 104, 118);
             title.AutoSize = true;
-            title.Location = new Point(16, 14);
+            title.Location = new Point(14, 13);
             panel.Controls.Add(title);
 
             Label value = new Label();
             value.Text = "...";
-            value.Font = new Font("Segoe UI", 13, FontStyle.Bold);
+            value.Font = new Font("Segoe UI", 12, FontStyle.Bold);
             value.ForeColor = Color.FromArgb(24, 32, 43);
-            value.Location = new Point(16, 46);
-            value.Size = new Size(170, 58);
+            value.Location = new Point(14, 44);
+            value.Size = new Size(160, 52);
             value.AutoEllipsis = true;
             panel.Controls.Add(value);
 
@@ -639,13 +789,13 @@ internal static class SmartBackgroundNap
             return value;
         }
 
-        private Button CreateButton(string text, EventHandler handler, bool primary)
+        private Button CreateButton(string text, EventHandler handler, bool primary, int width)
         {
             Button button = new Button();
             button.Text = text;
             button.Font = new Font("Segoe UI", 10, primary ? FontStyle.Bold : FontStyle.Regular);
-            button.Width = primary ? 178 : 132;
-            button.Height = 42;
+            button.Width = width;
+            button.Height = 40;
             button.Margin = new Padding(0, 0, 10, 10);
             button.FlatStyle = FlatStyle.Flat;
             button.FlatAppearance.BorderColor = primary ? Color.FromArgb(35, 112, 83) : Color.FromArgb(196, 205, 214);
@@ -657,6 +807,7 @@ internal static class SmartBackgroundNap
 
         public void RefreshStatus()
         {
+            if (busy) { return; }
             loading = true;
             bool autoInstalled = IsTaskInstalled(AutoTaskName);
             bool startupInstalled = IsTaskInstalled(TrayTaskName);
@@ -668,41 +819,111 @@ internal static class SmartBackgroundNap
             startupValue.ForeColor = startupInstalled ? Color.FromArgb(28, 124, 84) : Color.FromArgb(165, 76, 64);
 
             lastRunValue.Text = GetLastRunText();
-            logValue.Text = ReadLastLogLine();
+            resultValue.Text = BuildResultText();
+
+            statusPill.Text = autoInstalled ? "Active" : "Manual";
+            statusPill.BackColor = autoInstalled ? Color.FromArgb(28, 124, 84) : Color.FromArgb(95, 108, 122);
+            actionTitle.Text = autoInstalled ? "Running quietly" : "Manual mode";
+            actionDetail.Text = BuildStatusDetail(autoInstalled, startupInstalled);
+            actionProgress.Style = ProgressBarStyle.Continuous;
+            actionProgress.MarqueeAnimationSpeed = 0;
+            actionProgress.Value = 0;
 
             autoCheck.Checked = autoInstalled;
             startupCheck.Checked = startupInstalled;
             loading = false;
         }
 
-        private void RunUserAction(string successMessage, Func<RunResult> action)
+        private string BuildStatusDetail(bool autoInstalled, bool startupInstalled)
         {
-            Cursor previous = Cursor.Current;
-            Cursor.Current = Cursors.WaitCursor;
-            RunResult result;
-            try
+            string line = ReadLastLogLine();
+            if (line == "No log yet.")
             {
-                result = action();
+                return autoInstalled ? "Automatic passes are scheduled. No log yet." : "Turn on automatic mode or run a manual pass.";
             }
-            finally
+            return "Last pass: " + BuildResultText() + (startupInstalled ? "" : " | Tray startup is off.");
+        }
+
+        private string BuildResultText()
+        {
+            string line = ReadLastLogLine();
+            if (line == "No log yet.")
             {
-                Cursor.Current = previous;
+                return "No run yet";
             }
 
-            RefreshStatus();
-            if (result.ExitCode == 0)
+            string targets = ExtractLogValue(line, "targets");
+            string delta = ExtractLogValue(line, "deltaMB");
+            if (!String.IsNullOrWhiteSpace(targets))
             {
-                MessageBox.Show(successMessage, AppName, MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            else
-            {
-                string output = result.Output;
-                if (output.Length > 3000)
+                string text = targets + " apps";
+                if (!String.IsNullOrWhiteSpace(delta))
                 {
-                    output = output.Substring(0, 3000) + Environment.NewLine + "...";
+                    text += " / " + delta + " MB";
                 }
-                MessageBox.Show(output, AppName, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return text;
             }
+
+            return line.Length > 28 ? line.Substring(0, 28) + "..." : line;
+        }
+
+        private string ExtractLogValue(string line, string key)
+        {
+            string marker = key + "=";
+            int start = line.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+            if (start < 0) { return ""; }
+            start += marker.Length;
+            int end = line.IndexOf(' ', start);
+            if (end < 0) { end = line.Length; }
+            return line.Substring(start, end - start).Trim();
+        }
+
+        private void SetBusyState(bool isBusy, string title, string detail)
+        {
+            busy = isBusy;
+            optimizeButton.Enabled = !isBusy;
+            restoreButton.Enabled = !isBusy;
+            moreButton.Enabled = !isBusy;
+            autoCheck.Enabled = !isBusy;
+            startupCheck.Enabled = !isBusy;
+            actionTitle.Text = title;
+            actionDetail.Text = detail;
+            actionProgress.Style = isBusy ? ProgressBarStyle.Marquee : ProgressBarStyle.Continuous;
+            actionProgress.MarqueeAnimationSpeed = isBusy ? 24 : 0;
+            if (!isBusy) { actionProgress.Value = 0; }
+        }
+
+        private void RunUserAction(string activeMessage, string successMessage, Func<RunResult> action)
+        {
+            if (busy) { return; }
+
+            SetBusyState(true, activeMessage, "Working in the background...");
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                RunResult result = action();
+                BeginInvoke(new MethodInvoker(delegate
+                {
+                    string title = result.ExitCode == 0 ? successMessage : "Action failed";
+                    string detail = result.ExitCode == 0 ? BuildResultText() : ShortError(result.Output);
+                    busy = false;
+                    RefreshStatus();
+                    SetBusyState(false, title, detail);
+                    if (result.ExitCode != 0)
+                    {
+                        MessageBox.Show(ShortError(result.Output), AppName, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                }));
+            });
+        }
+
+        private string ShortError(string output)
+        {
+            if (String.IsNullOrWhiteSpace(output))
+            {
+                return "No details were returned.";
+            }
+            output = output.Trim();
+            return output.Length > 650 ? output.Substring(0, 650) + Environment.NewLine + "..." : output;
         }
 
         protected override void OnShown(EventArgs e)

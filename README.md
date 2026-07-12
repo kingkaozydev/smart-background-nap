@@ -46,9 +46,9 @@ Smart Background Nap gives those apps a softer background profile. Your apps sta
 
 ## Highlights
 
-- One-click Windows app: open `SmartBackgroundNap.exe` and control everything from the dashboard.
+- Desktop dashboard: open `SmartBackgroundNap.exe` and control the app from one clean surface.
 - Start with Windows toggle for the tray indicator.
-- Automatic optimization toggle for scheduled background passes.
+- Run automatically toggle for scheduled background passes.
 - Automatic scheduled optimization every few minutes.
 - Tray icon with status, apply-now, log, folder, and README shortcuts.
 - No heavy always-running optimizer service.
@@ -74,10 +74,11 @@ SmartBackgroundNap.exe
 Then click:
 
 ```text
-Install / update
+Run automatically
+Start with Windows
 ```
 
-That enables automatic optimization and the tray icon startup task.
+Those toggles enable automatic optimization and the tray icon startup task.
 
 Smart Background Nap creates two scheduled tasks:
 
@@ -94,8 +95,8 @@ The tray task starts `SmartBackgroundNap.exe --tray` so you can see that Smart B
 
 The tray indicator is optional but recommended. It gives you quick access to:
 
-- Status
-- Apply now
+- Open dashboard
+- Optimize now
 - Open log
 - Open folder
 - Open README
@@ -129,17 +130,11 @@ smart-background-nap-tray.ps1
 
 The dashboard includes:
 
-- Automatic optimization
-- Start tray with Windows
-- Install / update
-- Apply now
+- Run automatically
+- Start with Windows
+- Optimize now
 - Restore
-- Open log
-- Open config
-- Open folder
-- README
-- GitHub
-- Uninstall all
+- More menu for logs, config, folder, README, GitHub, and disabling background tasks
 
 ## Command Fallbacks
 
