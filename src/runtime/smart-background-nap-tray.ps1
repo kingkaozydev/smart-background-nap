@@ -13,7 +13,7 @@ if (-not (Test-Path -LiteralPath $ConfigPath)) {
 }
 
 $config = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
-$creatorLine = "Criado por KaozyKing | Instagram: @oeduardomacedo | GitHub: kingkaozydev"
+$creatorLine = "Criado por KaozyKing | GitHub: kingkaozydev"
 $autoTaskName = [string]$config.Automation.TaskName
 $trayTaskName = [string]$config.Tray.TaskName
 $refreshSeconds = [int]$config.Tray.RefreshSeconds

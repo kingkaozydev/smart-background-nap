@@ -9,7 +9,6 @@ It is made for people who leave browsers, chat, launchers, tools, music, and cap
 Created by **KaozyKing**.
 
 - GitHub: [@kingkaozydev](https://github.com/kingkaozydev)
-- Instagram: [@oeduardomacedo](https://www.instagram.com/oeduardomacedo/)
 
 > Keep your apps open. Let Windows breathe.
 
@@ -23,6 +22,7 @@ For selected background apps, it can apply:
 
 - below-normal process priority
 - low memory priority
+- low process I/O priority
 - Windows Power Throttling / EcoQoS where supported
 - timer-resolution isolation for throttled background apps
 - working set trimming above a configurable RAM threshold
@@ -50,6 +50,7 @@ Smart Background Nap gives those apps a softer background profile. Your apps sta
 - Start with Windows toggle for the tray indicator.
 - Run automatically toggle for scheduled background passes.
 - Built-in safety report with local integrity details.
+- Low I/O priority for safe background apps to reduce disk contention.
 - Automatic scheduled optimization every few minutes.
 - Tray icon with status, apply-now, log, folder, and README shortcuts.
 - No heavy always-running optimizer service.
@@ -163,6 +164,7 @@ Useful settings:
 
 - `BackgroundNap.PriorityClass`
 - `BackgroundNap.MemoryPriority`
+- `BackgroundNap.IoPriority`
 - `BackgroundNap.TrimMinimumWorkingSetMB`
 - `BackgroundNap.SkipHighCpuPercent`
 - `BackgroundNap.HighCpuPercentThreshold`
@@ -219,6 +221,7 @@ Smart Background Nap intentionally avoids risky or invasive tuning:
 - no power plan switching
 - no CPU affinity rules
 - no CPU Sets
+- no forced process suspension
 - no overclocking
 - no undervolting
 - no GPU tuning

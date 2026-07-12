@@ -17,6 +17,7 @@ For selected background apps in the current user session, Smart Background Nap m
 
 - below-normal process priority;
 - low process memory priority;
+- low process I/O priority;
 - Windows Power Throttling / EcoQoS where supported;
 - timer-resolution isolation for throttled background apps;
 - one working-set trim when the process is above the configured RAM threshold.

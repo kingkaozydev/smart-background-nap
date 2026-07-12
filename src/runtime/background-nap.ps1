@@ -83,6 +83,24 @@ if (-not $memoryPriorityMap.ContainsKey($memoryPriorityName)) {
 $targetMemoryPriority = [int]$memoryPriorityMap[$memoryPriorityName]
 $normalMemoryPriority = [int]$memoryPriorityMap["Normal"]
 
+$ioPriorityMap = @{
+    VeryLow = 0
+    Low = 1
+    Normal = 2
+    High = 3
+}
+$ioPriorityName = [string]$nap.IoPriority
+if (-not $ioPriorityMap.ContainsKey($ioPriorityName)) {
+    $ioPriorityName = "Low"
+}
+$useIoPriority = [bool]$nap.EnableIoPriority
+$targetIoPriority = [int]$ioPriorityMap[$ioPriorityName]
+$normalIoPriority = [int]$ioPriorityMap["Normal"]
+$ioPriorityNameByValue = @{}
+foreach ($key in $ioPriorityMap.Keys) {
+    $ioPriorityNameByValue[[int]$ioPriorityMap[$key]] = [string]$key
+}
+
 $currentProcess = Get-Process -Id $PID
 $currentSessionId = $currentProcess.SessionId
 $currentPid = $currentProcess.Id
@@ -99,6 +117,7 @@ public static class BackgroundNapNative {
     private const UInt32 PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
     private const Int32 ProcessMemoryPriority = 0;
     private const Int32 ProcessPowerThrottling = 4;
+    private const Int32 ProcessIoPriority = 33;
     private const UInt32 PROCESS_POWER_THROTTLING_CURRENT_VERSION = 1;
     private const UInt32 PROCESS_POWER_THROTTLING_EXECUTION_SPEED = 0x1;
     private const UInt32 PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION = 0x4;
@@ -123,6 +142,12 @@ public static class BackgroundNapNative {
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool SetProcessInformation(IntPtr hProcess, Int32 processInformationClass, IntPtr processInformation, UInt32 processInformationSize);
+
+    [DllImport("ntdll.dll")]
+    private static extern Int32 NtSetInformationProcess(IntPtr ProcessHandle, Int32 ProcessInformationClass, ref UInt32 ProcessInformation, UInt32 ProcessInformationLength);
+
+    [DllImport("ntdll.dll")]
+    private static extern Int32 NtQueryInformationProcess(IntPtr ProcessHandle, Int32 ProcessInformationClass, out UInt32 ProcessInformation, UInt32 ProcessInformationLength, out UInt32 ReturnLength);
 
     [DllImport("psapi.dll", SetLastError = true)]
     private static extern bool EmptyWorkingSet(IntPtr hProcess);
@@ -201,6 +226,34 @@ public static class BackgroundNapNative {
         }
     }
 
+    public static Int32 SetIoPriority(Int32 pid, UInt32 ioPriority) {
+        IntPtr h = OpenProcess(PROCESS_SET_INFORMATION | PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+        if (h == IntPtr.Zero) {
+            return unchecked((Int32)0xC0000022);
+        }
+
+        try {
+            return NtSetInformationProcess(h, ProcessIoPriority, ref ioPriority, sizeof(UInt32));
+        } finally {
+            CloseHandle(h);
+        }
+    }
+
+    public static Int32 GetIoPriority(Int32 pid, out UInt32 ioPriority) {
+        ioPriority = 0;
+        UInt32 returnLength = 0;
+        IntPtr h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+        if (h == IntPtr.Zero) {
+            return unchecked((Int32)0xC0000022);
+        }
+
+        try {
+            return NtQueryInformationProcess(h, ProcessIoPriority, out ioPriority, sizeof(UInt32), out returnLength);
+        } finally {
+            CloseHandle(h);
+        }
+    }
+
     public static Int32 TrimWorkingSet(Int32 pid) {
         IntPtr h = OpenProcess(PROCESS_SET_QUOTA | PROCESS_QUERY_INFORMATION | PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
         if (h == IntPtr.Zero) {
@@ -230,6 +283,12 @@ function Convert-Win32Result {
     return "Win32Error=$Code"
 }
 
+function Convert-NtStatusResult {
+    param([int]$Code)
+    if ($Code -eq 0) { return "OK" }
+    return ("NtStatus=0x{0:X8}" -f ([uint32]$Code))
+}
+
 function Get-ForegroundInfo {
     $foregroundPid = [BackgroundNapNative]::GetForegroundPid()
     $proc = $null
@@ -251,6 +310,22 @@ function Get-ProcessPriorityText {
 function Get-ProcessPathText {
     param([System.Diagnostics.Process]$Process)
     try { return [string]$Process.Path } catch { return $null }
+}
+
+function Get-ProcessIoPriorityText {
+    param([System.Diagnostics.Process]$Process)
+    try {
+        $raw = [uint32]0
+        $status = [BackgroundNapNative]::GetIoPriority([int]$Process.Id, [ref]$raw)
+        if ($status -ne 0) { return $null }
+        $value = [int]$raw
+        if ($ioPriorityNameByValue.ContainsKey($value)) {
+            return [string]$ioPriorityNameByValue[$value]
+        }
+        return [string]$value
+    } catch {
+        return $null
+    }
 }
 
 function Get-SkipReason {
@@ -333,6 +408,7 @@ function Get-BackgroundProcessRows {
             Candidate = -not $skip
             SkipReason = $skip
             PriorityClass = Get-ProcessPriorityText -Process $p
+            IoPriority = Get-ProcessIoPriorityText -Process $p
             WorkingSetMB = [math]::Round($p.WorkingSet64 / 1MB, 1)
             CpuSeconds = if ($p.CPU -ne $null) { [math]::Round($p.CPU, 1) } else { $null }
             CpuPercent = $cpuPercent
@@ -366,6 +442,7 @@ function New-StateSnapshot {
                 Id = $_.Id
                 ProcessName = $_.ProcessName
                 PriorityClass = $_.PriorityClass
+                IoPriority = $_.IoPriority
                 WorkingSetMB = $_.WorkingSetMB
                 Path = $_.Path
             }
@@ -414,6 +491,11 @@ function Invoke-ApplyOnce {
         }
 
         $memoryStatus = Convert-Win32Result ([BackgroundNapNative]::SetMemoryPriority([int]$p.Id, [uint32]$targetMemoryPriority))
+        $ioStatus = if ($useIoPriority) {
+            Convert-NtStatusResult ([BackgroundNapNative]::SetIoPriority([int]$p.Id, [uint32]$targetIoPriority))
+        } else {
+            "Disabled"
+        }
         $powerStatus = Convert-Win32Result ([BackgroundNapNative]::SetPowerThrottling([int]$p.Id, $useEcoQos, $ignoreTimerResolution, $false))
 
         $trimStatus = "SkippedBelowThreshold"
@@ -432,6 +514,7 @@ function Invoke-ApplyOnce {
             ProcessName = $row.ProcessName
             Priority = $priorityStatus
             MemoryPriority = $memoryStatus
+            IoPriority = $ioStatus
             PowerThrottling = $powerStatus
             TrimWorkingSet = $trimStatus
             WorkingSetBeforeMB = $row.WorkingSetMB
@@ -468,6 +551,10 @@ function Invoke-Restore {
         }
 
         $targetPriority = if ($item.PriorityClass) { [string]$item.PriorityClass } else { "Normal" }
+        $targetIo = $normalIoPriority
+        if ($item.IoPriority -and $ioPriorityMap.ContainsKey([string]$item.IoPriority)) {
+            $targetIo = [int]$ioPriorityMap[[string]$item.IoPriority]
+        }
         $priorityStatus = "OK"
         try {
             $restorePriority = [System.Enum]::Parse([System.Diagnostics.ProcessPriorityClass], $targetPriority, $true)
@@ -482,6 +569,7 @@ function Invoke-Restore {
             PriorityRestore = $priorityStatus
             TargetPriority = $targetPriority
             MemoryPriority = Convert-Win32Result ([BackgroundNapNative]::SetMemoryPriority([int]$p.Id, [uint32]$normalMemoryPriority))
+            IoPriority = if ($useIoPriority) { Convert-NtStatusResult ([BackgroundNapNative]::SetIoPriority([int]$p.Id, [uint32]$targetIo)) } else { "Disabled" }
             PowerThrottling = Convert-Win32Result ([BackgroundNapNative]::SetPowerThrottling([int]$p.Id, $useEcoQos, $ignoreTimerResolution, $true))
             StatePath = $StatePath
         }

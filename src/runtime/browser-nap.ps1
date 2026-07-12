@@ -53,6 +53,24 @@ $targetMemoryPriority = [int]$memoryPriorityMap[$memoryPriorityName]
 $normalMemoryPriority = [int]$memoryPriorityMap["Normal"]
 $targetPriorityClass = [System.Enum]::Parse([System.Diagnostics.ProcessPriorityClass], $priorityClass, $true)
 
+$ioPriorityMap = @{
+    VeryLow = 0
+    Low = 1
+    Normal = 2
+    High = 3
+}
+$ioPriorityName = [string]$nap.IoPriority
+if (-not $ioPriorityMap.ContainsKey($ioPriorityName)) {
+    $ioPriorityName = "Low"
+}
+$useIoPriority = [bool]$nap.EnableIoPriority
+$targetIoPriority = [int]$ioPriorityMap[$ioPriorityName]
+$normalIoPriority = [int]$ioPriorityMap["Normal"]
+$ioPriorityNameByValue = @{}
+foreach ($key in $ioPriorityMap.Keys) {
+    $ioPriorityNameByValue[[int]$ioPriorityMap[$key]] = [string]$key
+}
+
 $cs = @"
 using System;
 using System.Runtime.InteropServices;
@@ -64,6 +82,7 @@ public static class BrowserNapNative {
     private const UInt32 PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
     private const Int32 ProcessMemoryPriority = 0;
     private const Int32 ProcessPowerThrottling = 4;
+    private const Int32 ProcessIoPriority = 33;
     private const UInt32 PROCESS_POWER_THROTTLING_CURRENT_VERSION = 1;
     private const UInt32 PROCESS_POWER_THROTTLING_EXECUTION_SPEED = 0x1;
     private const UInt32 PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION = 0x4;
@@ -88,6 +107,12 @@ public static class BrowserNapNative {
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool SetProcessInformation(IntPtr hProcess, Int32 processInformationClass, IntPtr processInformation, UInt32 processInformationSize);
+
+    [DllImport("ntdll.dll")]
+    private static extern Int32 NtSetInformationProcess(IntPtr ProcessHandle, Int32 ProcessInformationClass, ref UInt32 ProcessInformation, UInt32 ProcessInformationLength);
+
+    [DllImport("ntdll.dll")]
+    private static extern Int32 NtQueryInformationProcess(IntPtr ProcessHandle, Int32 ProcessInformationClass, out UInt32 ProcessInformation, UInt32 ProcessInformationLength, out UInt32 ReturnLength);
 
     [DllImport("psapi.dll", SetLastError = true)]
     private static extern bool EmptyWorkingSet(IntPtr hProcess);
@@ -166,6 +191,34 @@ public static class BrowserNapNative {
         }
     }
 
+    public static Int32 SetIoPriority(Int32 pid, UInt32 ioPriority) {
+        IntPtr h = OpenProcess(PROCESS_SET_INFORMATION | PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+        if (h == IntPtr.Zero) {
+            return unchecked((Int32)0xC0000022);
+        }
+
+        try {
+            return NtSetInformationProcess(h, ProcessIoPriority, ref ioPriority, sizeof(UInt32));
+        } finally {
+            CloseHandle(h);
+        }
+    }
+
+    public static Int32 GetIoPriority(Int32 pid, out UInt32 ioPriority) {
+        ioPriority = 0;
+        UInt32 returnLength = 0;
+        IntPtr h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+        if (h == IntPtr.Zero) {
+            return unchecked((Int32)0xC0000022);
+        }
+
+        try {
+            return NtQueryInformationProcess(h, ProcessIoPriority, out ioPriority, sizeof(UInt32), out returnLength);
+        } finally {
+            CloseHandle(h);
+        }
+    }
+
     public static Int32 TrimWorkingSet(Int32 pid) {
         IntPtr h = OpenProcess(PROCESS_SET_QUOTA | PROCESS_QUERY_INFORMATION | PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
         if (h == IntPtr.Zero) {
@@ -217,6 +270,22 @@ function Get-ProcessPathText {
     try { return [string]$Process.Path } catch { return $null }
 }
 
+function Get-ProcessIoPriorityText {
+    param([System.Diagnostics.Process]$Process)
+    try {
+        $raw = [uint32]0
+        $status = [BrowserNapNative]::GetIoPriority([int]$Process.Id, [ref]$raw)
+        if ($status -ne 0) { return $null }
+        $value = [int]$raw
+        if ($ioPriorityNameByValue.ContainsKey($value)) {
+            return [string]$ioPriorityNameByValue[$value]
+        }
+        return [string]$value
+    } catch {
+        return $null
+    }
+}
+
 function New-StateSnapshot {
     param(
         [array]$Processes,
@@ -234,6 +303,7 @@ function New-StateSnapshot {
                 Id = $_.Id
                 ProcessName = $_.ProcessName
                 PriorityClass = Get-ProcessPriorityText -Process $_
+                IoPriority = Get-ProcessIoPriorityText -Process $_
                 WorkingSetMB = [math]::Round($_.WorkingSet64 / 1MB, 1)
                 Path = Get-ProcessPathText -Process $_
             }
@@ -249,6 +319,12 @@ function Convert-Win32Result {
     return "Win32Error=$Code"
 }
 
+function Convert-NtStatusResult {
+    param([int]$Code)
+    if ($Code -eq 0) { return "OK" }
+    return ("NtStatus=0x{0:X8}" -f ([uint32]$Code))
+}
+
 function Get-StatusRows {
     $foreground = Get-ForegroundInfo
     $skipNames = @()
@@ -262,6 +338,7 @@ function Get-StatusRows {
             ProcessName = $_.ProcessName
             ForegroundNameSkipped = $skipNames -contains $_.ProcessName
             PriorityClass = Get-ProcessPriorityText -Process $_
+            IoPriority = Get-ProcessIoPriorityText -Process $_
             WorkingSetMB = [math]::Round($_.WorkingSet64 / 1MB, 1)
             CpuSeconds = if ($_.CPU -ne $null) { [math]::Round($_.CPU, 1) } else { $null }
             Path = Get-ProcessPathText -Process $_
@@ -288,6 +365,7 @@ function Invoke-ApplyOnce {
         $skipped = $skipNames -contains $p.ProcessName
         $priorityStatus = "Skipped"
         $memoryStatus = "Skipped"
+        $ioStatus = "Skipped"
         $powerStatus = "Skipped"
         $trimStatus = "Skipped"
         $beforeMB = [math]::Round($p.WorkingSet64 / 1MB, 1)
@@ -301,6 +379,11 @@ function Invoke-ApplyOnce {
             }
 
             $memoryStatus = Convert-Win32Result ([BrowserNapNative]::SetMemoryPriority([int]$p.Id, [uint32]$targetMemoryPriority))
+            $ioStatus = if ($useIoPriority) {
+                Convert-NtStatusResult ([BrowserNapNative]::SetIoPriority([int]$p.Id, [uint32]$targetIoPriority))
+            } else {
+                "Disabled"
+            }
             $powerStatus = Convert-Win32Result ([BrowserNapNative]::SetPowerThrottling([int]$p.Id, $useEcoQos, $ignoreTimerResolution, $false))
 
             if ($trimWorkingSet) {
@@ -320,6 +403,7 @@ function Invoke-ApplyOnce {
             Skipped = $skipped
             Priority = $priorityStatus
             MemoryPriority = $memoryStatus
+            IoPriority = $ioStatus
             PowerThrottling = $powerStatus
             TrimWorkingSet = $trimStatus
             WorkingSetBeforeMB = $beforeMB
@@ -354,10 +438,14 @@ function Invoke-Restore {
     }
 
     $priorityByPid = @{}
+    $ioPriorityByPid = @{}
     if ($state -and $state.Processes) {
         foreach ($item in @($state.Processes)) {
             if ($item.Id -and $item.PriorityClass) {
                 $priorityByPid[[string]$item.Id] = [string]$item.PriorityClass
+            }
+            if ($item.Id -and $item.IoPriority) {
+                $ioPriorityByPid[[string]$item.Id] = [string]$item.IoPriority
             }
         }
     }
@@ -366,6 +454,10 @@ function Invoke-Restore {
         $targetPriority = "Normal"
         if ($priorityByPid.ContainsKey([string]$p.Id)) {
             $targetPriority = $priorityByPid[[string]$p.Id]
+        }
+        $targetIo = $normalIoPriority
+        if ($ioPriorityByPid.ContainsKey([string]$p.Id) -and $ioPriorityMap.ContainsKey($ioPriorityByPid[[string]$p.Id])) {
+            $targetIo = [int]$ioPriorityMap[$ioPriorityByPid[[string]$p.Id]]
         }
 
         $priorityStatus = "OK"
@@ -382,6 +474,7 @@ function Invoke-Restore {
             PriorityRestore = $priorityStatus
             TargetPriority = $targetPriority
             MemoryPriority = Convert-Win32Result ([BrowserNapNative]::SetMemoryPriority([int]$p.Id, [uint32]$normalMemoryPriority))
+            IoPriority = if ($useIoPriority) { Convert-NtStatusResult ([BrowserNapNative]::SetIoPriority([int]$p.Id, [uint32]$targetIo)) } else { "Disabled" }
             PowerThrottling = Convert-Win32Result ([BrowserNapNative]::SetPowerThrottling([int]$p.Id, $useEcoQos, $ignoreTimerResolution, $true))
             StatePath = $StatePath
         }

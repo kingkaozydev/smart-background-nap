@@ -1,11 +1,14 @@
-# Smart Background Nap 0.1.1
+# Smart Background Nap 0.1.2
 
-Security and trust polish for the first public release by KaozyKing.
+Cleaner public identity and a stronger background-pressure pass.
 
 ## Highlights
 
 - Single-file release: download and run `SmartBackgroundNap.exe`.
 - Runtime scripts, config, README text, and icon assets are embedded inside the EXE.
+- External social references removed from the app and repository.
+- New low process I/O priority pass for safe background apps.
+- I/O priority snapshot/restore support.
 - Product/version metadata and an `asInvoker` Windows manifest.
 - Built-in safety report with executable SHA-256, runtime path, scheduled-task status, and local-only behavior summary.
 - Public security model for advanced audits.
@@ -17,7 +20,7 @@ Security and trust polish for the first public release by KaozyKing.
 - Automatic background app optimization for Windows.
 - Built for gaming, streaming, creative work, coding, and heavy multitasking.
 - Keeps apps open instead of killing them.
-- Lowers safe background CPU scheduling, memory priority, and EcoQoS pressure.
+- Lowers safe background CPU scheduling, memory priority, disk I/O priority, and EcoQoS pressure.
 - Includes a tray indicator with status, apply-now, logs, and folder shortcuts.
 - Includes an auditable PowerShell core and a lightweight compiled C# WinForms tray app.
 
@@ -31,7 +34,7 @@ Security and trust polish for the first public release by KaozyKing.
 SHA-256 for `SmartBackgroundNap.exe`:
 
 ```text
-59360D0EC914F40DC5139CDAE81CA0F8428BE1F2E8B85569D634C97DC8B8EF0C
+E36B51973D428FEBE1E3186034A128031BD93D327C3000803E1AE91097C79830
 ```
 
 ## Trust Notes

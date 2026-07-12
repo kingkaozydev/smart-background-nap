@@ -12,8 +12,8 @@ using System.Windows.Forms;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.1.1";
-    private const string CreatorLine = "Criado por KaozyKing | Instagram: @oeduardomacedo | GitHub: kingkaozydev";
+    private const string AppVersion = "0.1.2";
+    private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
     private const string GitHubUrl = "https://github.com/kingkaozydev/smart-background-nap";
@@ -529,7 +529,7 @@ internal static class SmartBackgroundNap
         report.AppendLine("Smart Background Nap safety report");
         report.AppendLine("Generated: " + DateTime.Now.ToString("s"));
         report.AppendLine("Version: " + GetAssemblyVersionText());
-        report.AppendLine("Creator: KaozyKing (@oeduardomacedo)");
+        report.AppendLine("Creator: KaozyKing");
         report.AppendLine();
         report.AppendLine("Local identity");
         report.AppendLine("Executable: " + Application.ExecutablePath);
@@ -554,7 +554,7 @@ internal static class SmartBackgroundNap
         report.AppendLine("Local files written: config, compact logs, restore snapshots, embedded runtime files, this report.");
         report.AppendLine();
         report.AppendLine("Optimization scope");
-        report.AppendLine("Allowed actions: process priority, memory priority, Windows power throttling/EcoQoS, timer-resolution isolation, optional working-set trimming.");
+        report.AppendLine("Allowed actions: process priority, memory priority, process I/O priority, Windows power throttling/EcoQoS, timer-resolution isolation, optional working-set trimming.");
         report.AppendLine("Skipped targets: Windows/system processes, session 0 services, foreground app, high-CPU active workloads, configured protected apps, configured protected paths.");
         report.AppendLine("Destructive actions: none. It does not kill apps, delete files, change drivers, change power plans, overclock, undervolt, or disable Windows services.");
         report.AppendLine();

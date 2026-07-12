@@ -7,7 +7,7 @@ using System.Windows.Forms;
 
 internal static class SmartBackgroundNapTray
 {
-    private const string CreatorLine = "Criado por KaozyKing | Instagram: @oeduardomacedo | GitHub: kingkaozydev";
+    private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private static NotifyIcon notifyIcon;
     private static string autoTaskName = "SmartBackgroundNap";
     private static string managerPath = "";

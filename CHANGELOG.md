@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.2 - 2026-07-12
+
+- Removed external social references from the app, docs, license, SEO copy, release material, and dashboard preview image.
+- Added optional low process I/O priority for safe background apps to reduce disk contention during gaming and multitasking.
+- Added I/O priority state capture and restore support.
+- Updated security documentation and safety report language for the new process-level I/O setting.
+
 ## 0.1.1 - 2026-07-12
 
 - Added product/version metadata and an `asInvoker` Windows manifest.

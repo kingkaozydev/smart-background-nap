@@ -13,7 +13,6 @@ Lightweight local-only Windows background app optimizer for gaming and multitask
 KaozyKing
 
 - GitHub: https://github.com/kingkaozydev
-- Instagram: https://www.instagram.com/oeduardomacedo/
 
 ## Website
 
@@ -41,4 +40,4 @@ https://github.com/kingkaozydev/smart-background-nap
 
 Keep your apps open. Let Windows breathe.
 
-Smart Background Nap is a lightweight single-file Windows utility with a desktop app, tray icon, and automatic background optimization.
+Smart Background Nap is a lightweight single-file Windows utility with a desktop app, tray icon, safety report, and automatic background optimization.

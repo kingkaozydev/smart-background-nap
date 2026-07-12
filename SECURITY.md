@@ -33,3 +33,4 @@ At a glance:
 - no administrator elevation requested by the app manifest;
 - no app killing or file deletion;
 - local logs and restore snapshots only.
+- background process I/O priority can be lowered and restored like the other process-level settings.
