@@ -1,61 +1,63 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
   <title id="title">Smart Background Nap overview</title>
-  <desc id="desc">A polished product banner for Smart Background Nap showing a Windows tray helper that quiets background apps.</desc>
+  <desc id="desc">Dark product banner showing the Smart Background Nap engine, WebView2 dashboard, and lightweight background optimization.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#121417"/>
-      <stop offset="0.52" stop-color="#18201d"/>
-      <stop offset="1" stop-color="#10151d"/>
+      <stop offset="0" stop-color="#05080d"/>
+      <stop offset="0.55" stop-color="#0a1422"/>
+      <stop offset="1" stop-color="#07101b"/>
     </linearGradient>
-    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#20252b"/>
-      <stop offset="1" stop-color="#15191f"/>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#101d30"/>
+      <stop offset="1" stop-color="#08111e"/>
     </linearGradient>
     <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#7cffa3"/>
-      <stop offset="1" stop-color="#65a7ff"/>
+      <stop offset="0" stop-color="#ffa629"/>
+      <stop offset="0.5" stop-color="#2ee184"/>
+      <stop offset="1" stop-color="#4b93ff"/>
     </linearGradient>
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000000" flood-opacity="0.35"/>
+      <feDropShadow dx="0" dy="22" stdDeviation="24" flood-color="#000000" flood-opacity="0.42"/>
     </filter>
   </defs>
   <rect width="1200" height="420" fill="url(#bg)"/>
-  <path d="M0 338 C170 292 267 390 430 343 C570 303 654 242 824 294 C982 342 1054 280 1200 242 L1200 420 L0 420 Z" fill="#1b2d27" opacity="0.72"/>
+  <circle cx="230" cy="10" r="220" fill="#ffa629" opacity="0.12"/>
+  <circle cx="1010" cy="76" r="260" fill="#4b93ff" opacity="0.14"/>
+  <path d="M0 348 C185 292 302 394 462 336 C602 285 730 243 902 296 C1038 338 1082 286 1200 248 L1200 420 L0 420 Z" fill="#071626" opacity="0.92"/>
   <g filter="url(#shadow)">
-    <rect x="74" y="70" width="512" height="280" rx="18" fill="url(#card)" stroke="#303942"/>
-    <rect x="105" y="101" width="56" height="56" rx="16" fill="#11161c" stroke="#2d3740"/>
-    <path d="M133 116 C149 126 149 144 133 154 C117 144 117 126 133 116 Z" fill="url(#accent)"/>
-    <circle cx="133" cy="135" r="5" fill="#11161c"/>
-    <text x="185" y="124" fill="#f5f7fa" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="700">Smart Background Nap</text>
-    <text x="185" y="158" fill="#b5c0cc" font-family="Segoe UI, Arial, sans-serif" font-size="18">Keep your apps open. Let Windows breathe.</text>
-    <g transform="translate(105 206)">
-      <rect width="130" height="72" rx="12" fill="#11161c" stroke="#2f3942"/>
-      <text x="20" y="30" fill="#99a8b5" font-family="Segoe UI, Arial, sans-serif" font-size="13">background CPU</text>
-      <rect x="20" y="46" width="84" height="8" rx="4" fill="#3a4550"/>
-      <rect x="20" y="46" width="38" height="8" rx="4" fill="#7cffa3"/>
+    <rect x="72" y="64" width="1056" height="292" rx="24" fill="url(#panel)" stroke="#263a55"/>
+    <rect x="72" y="64" width="78" height="292" rx="24" fill="#07101b"/>
+    <rect x="96" y="91" width="42" height="42" rx="13" fill="#141c28" stroke="#6a4b1b"/>
+    <path d="M119 96 L105 122 H118 L112 139 L134 111 H121 Z" fill="#ffa629"/>
+    <text x="182" y="124" fill="#f4f7fb" font-family="Segoe UI, Arial, sans-serif" font-size="44" font-weight="800">Smart Background Nap</text>
+    <text x="184" y="164" fill="#a7b6c9" font-family="Segoe UI, Arial, sans-serif" font-size="19">Keep apps open. Quiet the background. Wake the foreground instantly.</text>
+    <g transform="translate(184 208)">
+      <rect width="148" height="44" rx="12" fill="#132238" stroke="#314967"/>
+      <text x="22" y="28" fill="#7db3ff" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="800">CPU priority</text>
+      <rect x="166" width="118" height="44" rx="12" fill="#132238" stroke="#314967"/>
+      <text x="188" y="28" fill="#ffa629" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="800">RAM trim</text>
+      <rect x="302" width="110" height="44" rx="12" fill="#132238" stroke="#314967"/>
+      <text x="324" y="28" fill="#2ee184" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="800">EcoQoS</text>
+      <rect x="430" width="132" height="44" rx="12" fill="#132238" stroke="#314967"/>
+      <text x="452" y="28" fill="#b99cff" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="800">Fast wake</text>
     </g>
-    <g transform="translate(255 206)">
-      <rect width="130" height="72" rx="12" fill="#11161c" stroke="#2f3942"/>
-      <text x="20" y="30" fill="#99a8b5" font-family="Segoe UI, Arial, sans-serif" font-size="13">RAM pressure</text>
-      <rect x="20" y="46" width="84" height="8" rx="4" fill="#3a4550"/>
-      <rect x="20" y="46" width="44" height="8" rx="4" fill="#65a7ff"/>
+    <g transform="translate(760 108)">
+      <rect width="306" height="184" rx="18" fill="#0a1423" stroke="#334964"/>
+      <text x="22" y="42" fill="#f4f7fb" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="800">Nap Engine</text>
+      <rect x="198" y="21" width="84" height="28" rx="14" fill="#113928" stroke="#1d674b"/>
+      <text x="213" y="40" fill="#2ee184" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="900">ACTIVE</text>
+      <circle cx="78" cy="105" r="42" fill="none" stroke="#1d2b3f" stroke-width="12"/>
+      <path d="M78 63 A42 42 0 1 1 45 130" fill="none" stroke="url(#accent)" stroke-width="12" stroke-linecap="round"/>
+      <text x="61" y="111" fill="#f4f7fb" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="900">66</text>
+      <text x="57" y="130" fill="#8fa1b8" font-family="Segoe UI, Arial, sans-serif" font-size="11">apps</text>
+      <rect x="138" y="72" width="64" height="48" rx="9" fill="#0e1a2b" stroke="#223650"/>
+      <text x="148" y="92" fill="#71839b" font-family="Segoe UI, Arial, sans-serif" font-size="9" font-weight="900">NEXT</text>
+      <text x="148" y="111" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="800">04:32</text>
+      <rect x="212" y="72" width="64" height="48" rx="9" fill="#0e1a2b" stroke="#223650"/>
+      <text x="222" y="92" fill="#71839b" font-family="Segoe UI, Arial, sans-serif" font-size="9" font-weight="900">WAKE</text>
+      <text x="222" y="111" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="800">Fast</text>
+      <rect x="22" y="154" width="260" height="5" fill="#152338" stroke="#435a78"/>
+      <rect x="22" y="154" width="176" height="5" fill="url(#accent)"/>
     </g>
-    <g transform="translate(405 206)">
-      <rect width="130" height="72" rx="12" fill="#11161c" stroke="#2f3942"/>
-      <text x="20" y="30" fill="#99a8b5" font-family="Segoe UI, Arial, sans-serif" font-size="13">foreground</text>
-      <text x="20" y="55" fill="#f5f7fa" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700">protected</text>
-    </g>
-  </g>
-  <g filter="url(#shadow)">
-    <rect x="650" y="78" width="418" height="264" rx="18" fill="#12171d" stroke="#303942"/>
-    <rect x="684" y="112" width="350" height="48" rx="12" fill="#1f262e"/>
-    <circle cx="712" cy="136" r="9" fill="#7cffa3"/>
-    <text x="735" y="142" fill="#edf2f7" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600">Apply a quiet background profile</text>
-    <rect x="684" y="180" width="350" height="48" rx="12" fill="#1f262e"/>
-    <circle cx="712" cy="204" r="9" fill="#65a7ff"/>
-    <text x="735" y="210" fill="#edf2f7" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600">Leave active work untouched</text>
-    <rect x="684" y="248" width="350" height="48" rx="12" fill="#1f262e"/>
-    <circle cx="712" cy="272" r="9" fill="#ffc857"/>
-    <text x="735" y="278" fill="#edf2f7" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600">Run automatically, then exit</text>
   </g>
 </svg>
