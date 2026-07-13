@@ -1,33 +1,38 @@
-﻿# Smart Background Nap
+# Smart Background Nap
 
-![Smart Background Nap overview](docs/images/hero.svg)
+![Smart Background Nap product showcase](docs/images/smart-nap-showcase.png)
 
-**Smart Background Nap** is a lightweight Windows helper that keeps background apps from getting louder than they need to be.
+**Smart Background Nap** is a local-first Windows performance companion for people who keep a lot of apps open while gaming, streaming, coding, recording, or multitasking.
 
-It is made for people who leave browsers, chat, launchers, tools, music, and capture apps open while gaming, streaming, coding, or multitasking. Instead of closing your apps, it quietly lowers safe background pressure and then gets out of the way.
+It does not close your apps or pretend to be a magic FPS button. It watches the current user session, identifies safe background processes, gives them a quieter profile, and restores responsiveness when you bring an app back to the foreground.
 
 Created by **KaozyKing**.
 
 - GitHub: [@kingkaozydev](https://github.com/kingkaozydev)
+- Latest release: [Download SmartBackgroundNap.exe](https://github.com/kingkaozydev/smart-background-nap/releases/latest)
 
-> Keep your apps open. Let Windows breathe.
+> Keep apps open. Quiet the background. Wake the foreground fast.
 
-## What It Does
+## Why It Feels Different
 
-Smart Background Nap watches the current Windows user session and applies a conservative "nap" to apps that are safe to quiet down.
+Smart Background Nap is built around one idea: background apps should stay available, but they should not compete with what you are doing right now.
 
-![Before and after comparison](docs/images/before-after.svg)
+Most optimization tools either ask you to close things, apply broad system tweaks, or leave a heavy service running. Smart Background Nap keeps the scope tighter. It applies process-level pressure reduction, writes a compact local log, and gets out of the way.
 
-For selected background apps, it can apply:
+## What It Controls
+
+![Smart Background Nap engine story](docs/images/smart-nap-engine-story.png)
+
+For safe background apps, the engine can apply:
 
 - below-normal process priority
 - low memory priority
 - low process I/O priority
 - Windows Power Throttling / EcoQoS where supported
 - timer-resolution isolation for throttled background apps
-- working set trimming above a configurable RAM threshold
+- cooldown-aware working set trimming above configurable RAM thresholds
 
-It skips the things that should stay awake:
+It avoids the things that should stay awake:
 
 - Windows system processes
 - services and session 0 processes
@@ -36,75 +41,90 @@ It skips the things that should stay awake:
 - configured protected apps and paths
 - configured game folders
 
-The goal is simple: reduce background noise without killing your workflow.
+## Key Features
 
-## Why It Exists
+- **Single EXE release**: download `SmartBackgroundNap.exe` and run it.
+- **Modern dashboard**: .NET 9 / WebView2 launcher with live telemetry, event stream, and real-time manager.
+- **Tray indicator**: quick access to dashboard, optimize now, logs, config, restore, and exit.
+- **Automatic mode**: scheduled optimization passes after login and every few minutes.
+- **Start with Windows**: managed per-user startup copy under `%LOCALAPPDATA%\Programs\SmartBackgroundNap`.
+- **Foreground Wake Restore**: priority, memory priority, I/O priority, and EcoQoS are restored quickly when an app becomes active.
+- **Adaptive nap tiers**: Light, Balanced, and Deep decisions based on process behavior and session context.
+- **Smart Learning**: optional local profiles that adapt nap strength when memory pressure rises.
+- **Permission Guard**: shows apps that denied changes and can request one administrator pass through UAC.
+- **Multilingual UI**: Portuguese BR, English, Russian, Spanish, French, and German.
+- **Safety report**: local report with executable path, SHA-256, runtime folder, task status, and behavior summary.
 
-Modern PCs are fast, but day-to-day app stacks are noisy. A few browsers, chats, launchers, overlays, downloaders, and helper apps can keep waking the CPU, holding RAM, or competing for scheduler attention long after they stop being important.
+## Smart Learning And Permission Guard
 
-Smart Background Nap gives those apps a softer background profile. Your apps stay open, your session stays intact, and Windows has a little more room for what you are actually doing now.
+![Smart Learning and Permission Guard](docs/images/smart-nap-intelligence.png)
 
-## Highlights
+Smart Learning is optional. When enabled, it builds compact local profiles from process name/path, memory use, CPU bursts, nap tier outcomes, and foreground wake events.
 
-- .NET 9 / WebView2 dashboard: open `SmartBackgroundNap.exe` and control the app from one clean surface.
-- First-run language picker for Portuguese BR, English, Russian, Spanish, French, and German.
-- Live Manager, Event Stream, and Engine Telemetry views.
-- Start with Windows toggle for the tray indicator.
-- Run automatically toggle for scheduled background passes.
-- Built-in safety report with local integrity details.
-- Low I/O priority for safe background apps to reduce disk contention.
-- Native Foreground Wake Restore: apps wake back up quickly when they become active again.
-- Temporary active-app protection for newly active foreground or high-CPU apps.
-- Fullscreen-aware thresholds for gaming and borderless workloads.
-- Adaptive Light, Balanced, and Deep nap tiers.
-- Optional Smart Learning mode that builds local per-app profiles and adapts nap strength when memory pressure rises.
-- Permission Guard that lists apps that denied process changes and can request one administrator pass through UAC.
-- Cooldown-aware RAM trim so the same process is not hammered repeatedly.
-- Burst watcher and Nap Score for repeated background spikes.
-- Automatic scheduled optimization every few minutes.
-- Tray icon with status, apply-now, log, folder, and README shortcuts.
-- No heavy always-running optimizer service.
-- WebView2 dashboard resources are released when the window is closed or minimized to tray.
-- Foreground app protection.
-- Active workload protection.
-- Configurable JSON rules.
-- Manual, automatic, watch, restore, and browser-only modes.
-- Auditable PowerShell core.
-- Lightweight compiled C# tray/dashboard host.
+Apps you switch back to often can receive a lighter Fast Wake profile. Heavy idle background apps can be treated more strongly when memory pressure rises. The profile data stays on your PC.
 
-![App dashboard](docs/images/app-dashboard.svg)
-
-![Automatic flow](docs/images/automatic-flow.svg)
+Permission Guard is there for apps that refuse process-level changes. The dashboard lists those apps and offers one UAC-protected elevated pass. Smart Background Nap does not stay elevated, does not install a service, and does not install a driver.
 
 ## Install
 
-Download the latest release and open:
+Download the latest release:
 
 ```text
 SmartBackgroundNap.exe
 ```
 
-Then click:
+Open it, then use the dashboard toggles:
 
 ```text
-Resume motor / Run automatically
+Run automatically
 Start with Windows
 ```
 
-Those toggles enable automatic optimization and the tray icon startup task.
-
-Smart Background Nap creates two scheduled tasks:
+Smart Background Nap creates two per-user scheduled tasks when enabled:
 
 ```text
 SmartBackgroundNap
 SmartBackgroundNapTray
 ```
 
-The optimizer task runs after logon, repeats every few minutes, applies a pass, writes a compact log, and exits.
+The optimizer task runs a short pass and exits. The tray task starts the dashboard/tray host after login.
 
-The tray task starts the same `SmartBackgroundNap.exe` in tray mode so you can see that Smart Background Nap is available after every login.
+## App Controls
 
-The release download is a single executable. Runtime scripts, default config, README text, and icon assets are embedded inside the app and extracted internally when needed.
+The launcher includes:
+
+- Optimize now
+- Pause / resume motor
+- Restore latest state
+- Smart Learning toggle with explanation
+- Permission Guard with administrator request
+- Live Manager
+- Event Stream
+- Engine Telemetry
+- Nap Score
+- Language selector
+- Local files, logs, config, safety report, README, and GitHub shortcuts
+
+## Trust And Privacy
+
+Smart Background Nap is intentionally local:
+
+- no telemetry
+- no network calls
+- no accounts
+- no browser cookies or profiles
+- no documents or game files read
+- no driver install
+- no Windows service install
+- no startup registry key
+- no app killing
+- no power plan switching
+
+Windows SmartScreen reputation is controlled by Microsoft and is heavily influenced by Authenticode signing and download reputation. Smart Background Nap ships with product/version metadata and an `asInvoker` manifest, but unsigned community builds can still show an "Unknown Publisher" warning until the project has signing and reputation.
+
+## Runtime Files
+
+The release EXE embeds the runtime PowerShell scripts, default config, README text, security model, and image assets. Source files stay in the repository for transparency and development.
 
 When automatic mode or tray startup is enabled, Smart Background Nap keeps a managed copy here:
 
@@ -112,72 +132,19 @@ When automatic mode or tray startup is enabled, Smart Background Nap keeps a man
 %LOCALAPPDATA%\Programs\SmartBackgroundNap\SmartBackgroundNap.exe
 ```
 
-That keeps startup reliable even if the original download is moved or deleted.
-
-## Tray Indicator
-
-The tray indicator is optional but recommended. It gives you quick access to:
-
-- Open dashboard
-- Optimize now
-- Open log
-- Open folder
-- Open README
-- Exit tray icon
-
-Tray app:
+Runtime state is stored locally under:
 
 ```text
-SmartBackgroundNap.exe
+%LOCALAPPDATA%\SmartBackgroundNap
 ```
 
-## App Controls
-
-The dashboard includes:
-
-- Language selector
-- Smart Learning toggle with a short explanation before enabling
-- Permission Guard with a one-pass administrator request for apps that denied changes
-- Live Manager
-- Event Stream
-- Engine Telemetry
-- Run automatically / pause motor
-- Start with Windows
-- Optimize now
-- Restore
-- Shortcuts for logs, config, folder, safety report, README, GitHub, and local reports
-
-## Trust, Privacy, And Windows Safety
-
-Smart Background Nap is intentionally local and boring in the places that matter:
-
-- no telemetry
-- no network calls
-- no accounts, passwords, cookies, browser profiles, documents, or game files are read
-- no driver install
-- no Windows service install
-- no startup registry key
-- no administrator elevation requested by the app manifest
-- no app killing
-- no file deletion
-
-Open `Mais` -> `Safety report` inside the app to generate a local report with the executable path, SHA-256 hash, runtime folder, scheduled-task status, and a summary of what the app does and does not touch.
-
-The repository includes the full security model in:
-
-```text
-docs\SECURITY_MODEL.md
-```
-
-Windows SmartScreen reputation is controlled by Microsoft and is heavily influenced by Authenticode signing and download reputation. Smart Background Nap ships with product/version metadata and an `asInvoker` manifest, but unsigned community builds can still show an "Unknown Publisher" warning until a code-signing certificate and reputation path are in place.
+That folder contains logs, score reports, restore state, Smart Learning profiles, UI settings, and the user config override.
 
 ## Configuration
 
 Open the app and use the config shortcut.
 
-For the single-EXE release, the default config is embedded and copied into the internal runtime folder on first use.
-
-Useful settings:
+Useful settings include:
 
 - `BackgroundNap.PriorityClass`
 - `BackgroundNap.MemoryPriority`
@@ -196,80 +163,49 @@ Useful settings:
 - `Automation.IntervalMinutes`
 - `Tray.RefreshSeconds`
 
-## Smart Learning
+## Build
 
-Smart Learning is optional and off until the user enables it in the launcher.
-
-When enabled, it keeps compact local profiles for apps it manages. Those profiles are based on process name/path, memory use, CPU bursts, nap tier outcomes, and foreground wake events. Apps you often bring back to the foreground can be kept in a lighter Fast Wake profile, while heavy idle background apps can be napped more strongly when system memory pressure rises.
-
-Smart Learning does not upload telemetry, close apps, change drivers, change power plans, or modify game files. The learning state is stored locally in the app runtime outputs folder.
-
-## Permission Guard
-
-Some apps can deny process-level changes unless Windows grants administrator permission. When that happens, the dashboard shows the affected apps and offers a one-time administrator pass.
-
-That button opens the normal Windows UAC prompt and runs only one elevated optimization pass. Smart Background Nap does not stay permanently elevated, does not install a service or driver, and does not change power plans. Some protected apps can still refuse changes even after an administrator pass.
-
-## Logs And Restore
-
-Smart Background Nap writes logs and restore state under:
-
-```text
-SmartBackgroundNap internal runtime folder
-```
-
-Open the app and use the log shortcut to inspect the latest pass.
-
-Use `Restore` in the dashboard to restore the latest snapshot for currently running processes.
-
-Open `Nap score` to inspect the latest ranked optimization report.
-
-## Build The App
-
-The main app source lives here:
-
-```text
-src\SmartBackgroundNap.cs
-```
-
-The legacy tray source lives here:
-
-```text
-src\SmartBackgroundNapTray.cs
-```
-
-Build it with:
+Build the app with:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build\build-net9.ps1
 ```
 
-Generated output:
+Main source:
+
+```text
+src\SmartBackgroundNap.cs
+```
+
+Output:
 
 ```text
 SmartBackgroundNap.exe
 ```
 
-The root executable embeds the runtime PowerShell scripts, default config, README text, and icon asset. Source files are kept in the repository for transparency and development, but users only need the release EXE.
+README images are generated with:
+
+```powershell
+python .\tools\art\render-readme-images.py
+```
 
 ## What It Does Not Do
 
-Smart Background Nap intentionally avoids risky or invasive tuning:
+Smart Background Nap avoids invasive tuning:
 
 - no app killing
-- no power plan switching
+- no forced process suspension
 - no CPU affinity rules
 - no CPU Sets
-- no forced process suspension
 - no overclocking
 - no undervolting
 - no GPU tuning
 - no driver changes
 - no Windows service disabling
 
-It is a background-pressure reducer, not a miracle FPS button. Results depend on your workload, hardware, Windows version, and app behavior.
+It is a background-pressure reducer. Results depend on workload, hardware, Windows version, and app behavior.
 
-## Recommended Topics
+## Suggested Topics
 
 ```text
 windows
@@ -283,10 +219,13 @@ memory-management
 ecoqos
 power-throttling
 tray-app
-powershell
-winforms
+webview2
+dotnet-9
 cpu-optimization
 ram-optimizer
+multitasking
+foreground-boost
+windows-performance
 ```
 
 ## License

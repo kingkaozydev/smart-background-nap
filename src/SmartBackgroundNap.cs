@@ -26,7 +26,7 @@ using Microsoft.Web.WebView2.Wpf;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.3.5";
+    private const string AppVersion = "0.3.6";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
@@ -389,6 +389,9 @@ internal static class SmartBackgroundNap
         ExtractConfigResource("game_session_config_json", Path.Combine(runtimeRoot, "game-session.config.json"));
         ExtractResource("readme_md", Path.Combine(runtimeRoot, "README.md"));
         ExtractResource("security_model_md", Path.Combine(runtimeRoot, "SECURITY_MODEL.md"));
+        ExtractResource("readme_showcase_png", Path.Combine(runtimeRoot, "docs\\images\\smart-nap-showcase.png"));
+        ExtractResource("readme_engine_story_png", Path.Combine(runtimeRoot, "docs\\images\\smart-nap-engine-story.png"));
+        ExtractResource("readme_intelligence_png", Path.Combine(runtimeRoot, "docs\\images\\smart-nap-intelligence.png"));
         ExtractResource("icon_ico", Path.Combine(runtimeRoot, "assets\\smart-nap-logo.ico"));
         ExtractResource("logo_png", Path.Combine(runtimeRoot, "assets\\smart-nap-logo-v2.png"));
         ExtractResource("hero_png", Path.Combine(runtimeRoot, "assets\\smart-nap-hero-bg.png"));

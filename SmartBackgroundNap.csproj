@@ -51,6 +51,9 @@
     <EmbeddedResource Include="src\launcher\dashboard.html" LogicalName="SmartBackgroundNap.Resources.dashboard_html" />
     <EmbeddedResource Include="README.md" LogicalName="SmartBackgroundNap.Resources.readme_md" />
     <EmbeddedResource Include="docs\SECURITY_MODEL.md" LogicalName="SmartBackgroundNap.Resources.security_model_md" />
+    <EmbeddedResource Include="docs\images\smart-nap-showcase.png" LogicalName="SmartBackgroundNap.Resources.readme_showcase_png" />
+    <EmbeddedResource Include="docs\images\smart-nap-engine-story.png" LogicalName="SmartBackgroundNap.Resources.readme_engine_story_png" />
+    <EmbeddedResource Include="docs\images\smart-nap-intelligence.png" LogicalName="SmartBackgroundNap.Resources.readme_intelligence_png" />
     <EmbeddedResource Include="assets\smart-nap-logo.ico" LogicalName="SmartBackgroundNap.Resources.icon_ico" />
     <EmbeddedResource Include="assets\smart-nap-logo-v2.png" LogicalName="SmartBackgroundNap.Resources.logo_png" />
     <EmbeddedResource Include="assets\smart-nap-hero-bg.png" LogicalName="SmartBackgroundNap.Resources.hero_png" />

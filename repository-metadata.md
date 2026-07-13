@@ -6,7 +6,7 @@ smart-background-nap
 
 ## Description
 
-Local-only Windows background app optimizer for gaming and multitasking. Smart Nap quietly lowers safe background CPU, RAM, I/O, and EcoQoS pressure while instantly restoring foreground apps.
+Local-first Windows nap engine for gaming and multitasking. Keeps apps open while reducing safe background CPU, RAM, I/O, and EcoQoS pressure.
 
 ## Author
 
@@ -43,6 +43,6 @@ https://github.com/kingkaozydev/smart-background-nap
 
 ## Social Preview Text
 
-Keep apps open. Quiet the background. Wake the foreground instantly.
+Keep apps open. Quiet the background. Wake the foreground fast.
 
-Smart Background Nap is a single-file Windows utility with a WebView2 dashboard, tray mode, adaptive nap tiers, foreground wake restore, and automatic background optimization.
+Smart Background Nap is a single-EXE Windows utility with a WebView2 dashboard, tray mode, adaptive nap tiers, Smart Learning, Permission Guard, foreground wake restore, and automatic background optimization.

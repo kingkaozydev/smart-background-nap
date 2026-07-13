@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.6 - 2026-07-13
+
+- Rebuilt the GitHub README as a professional product overview with a clearer pitch, visual tour, trust model, and install flow.
+- Replaced the old SVG preview images with polished PNG product artwork.
+- Added a reproducible README image renderer under `tools/art`.
+- Embedded the README artwork in the EXE runtime so the local README shortcut can resolve the new images.
+- Updated SEO and repository metadata copy for the refreshed positioning.
+
 ## 0.3.5 - 2026-07-13
 
 - Fixed Smart Learning persistence when the runtime config is refreshed without the learning key.
