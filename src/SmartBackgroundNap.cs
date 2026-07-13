@@ -26,7 +26,7 @@ using Microsoft.Web.WebView2.Wpf;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.3.4";
+    private const string AppVersion = "0.3.5";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
@@ -40,12 +40,14 @@ internal static class SmartBackgroundNap
     private static string autoManagerPath;
     private static string trayManagerPath;
     private static string configPath;
+    private static string userConfigPath;
     private static string readmePath;
     private static string securityModelPath;
     private static string iconPath;
     private static string logoPath;
     private static string heroPath;
     private static string uiSettingsPath;
+    private static string learningSettingsPath;
     private static string uiLanguage;
     private static string outputsPath;
     private static string logPath;
@@ -244,6 +246,7 @@ internal static class SmartBackgroundNap
         autoManagerPath = Path.Combine(looseRoot, "manage-background-nap.ps1");
         trayManagerPath = Path.Combine(looseRoot, "manage-background-nap-tray.ps1");
         configPath = Path.Combine(looseRoot, "game-session.config.json");
+        userConfigPath = Path.Combine(appRoot, "game-session.user.config.json");
         readmePath = Path.Combine(looseRoot, "README.md");
         securityModelPath = Path.Combine(looseRoot, "SECURITY_MODEL.md");
         if (!File.Exists(securityModelPath) && File.Exists(Path.Combine(looseRoot, "docs\\SECURITY_MODEL.md")))
@@ -254,6 +257,7 @@ internal static class SmartBackgroundNap
         logoPath = Path.Combine(looseRoot, "assets\\smart-nap-logo-v2.png");
         heroPath = Path.Combine(looseRoot, "assets\\smart-nap-hero-bg.png");
         uiSettingsPath = Path.Combine(appRoot, "ui-settings.json");
+        learningSettingsPath = Path.Combine(appRoot, "smart-learning.settings.json");
         uiLanguage = LoadUiLanguage();
         outputsPath = Path.Combine(appRoot, "outputs");
         logPath = Path.Combine(outputsPath, "background-nap-auto.log");
@@ -714,8 +718,9 @@ internal static class SmartBackgroundNap
 
     private static RunResult RunApplyNow(RunControl control)
     {
+        SyncSmartLearningSettingToConfig();
         Directory.CreateDirectory(outputsPath);
-        return RunPowerShellScript(backgroundScriptPath, "-Action Apply -StateMode Latest -Quiet -LogPath " + Quote(logPath), 120000, control);
+        return RunPowerShellScript(backgroundScriptPath, "-ConfigPath " + Quote(GetEffectiveConfigPath()) + " -Action Apply -StateMode Latest -Quiet -LogPath " + Quote(logPath), 120000, control);
     }
 
     private static RunResult RunElevatedApply()
@@ -763,7 +768,7 @@ internal static class SmartBackgroundNap
 
     private static RunResult RunRestore()
     {
-        return RunPowerShellScript(backgroundScriptPath, "-Action Restore -LogPath " + Quote(logPath), 120000);
+        return RunPowerShellScript(backgroundScriptPath, "-ConfigPath " + Quote(GetEffectiveConfigPath()) + " -Action Restore -LogPath " + Quote(logPath), 120000);
     }
 
     private static RunResult RunForegroundRestore(int pid)
@@ -772,7 +777,7 @@ internal static class SmartBackgroundNap
         {
             return new RunResult(0, "No foreground pid.");
         }
-        return RunPowerShellScript(backgroundScriptPath, "-Action ForegroundRestore -TargetPid " + pid.ToString() + " -StateMode Latest -Quiet -LogPath " + Quote(logPath), 30000);
+        return RunPowerShellScript(backgroundScriptPath, "-ConfigPath " + Quote(GetEffectiveConfigPath()) + " -Action ForegroundRestore -TargetPid " + pid.ToString() + " -StateMode Latest -Quiet -LogPath " + Quote(logPath), 30000);
     }
 
     private static RunResult InstallAutomatic()
@@ -833,9 +838,25 @@ internal static class SmartBackgroundNap
 
     private static IDictionary<string, object> LoadConfigRoot()
     {
-        if (!File.Exists(configPath)) { return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase); }
-        IDictionary<string, object> root = JsonCompat.DeserializeObject(File.ReadAllText(configPath, Encoding.UTF8));
+        string sourcePath = GetEffectiveConfigPath();
+        if (!File.Exists(sourcePath)) { return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase); }
+        IDictionary<string, object> root = JsonCompat.DeserializeObject(File.ReadAllText(sourcePath, Encoding.UTF8));
         return root ?? new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static string GetEffectiveConfigPath()
+    {
+        try
+        {
+            if (!String.IsNullOrWhiteSpace(userConfigPath) && File.Exists(userConfigPath))
+            {
+                return userConfigPath;
+            }
+        }
+        catch
+        {
+        }
+        return configPath;
     }
 
     private static IDictionary<string, object> GetOrCreateMap(IDictionary<string, object> root, string key)
@@ -858,11 +879,81 @@ internal static class SmartBackgroundNap
     {
         try
         {
-            IDictionary<string, object> root = LoadConfigRoot();
-            object smartObject;
-            IDictionary<string, object> smart = root.TryGetValue("SmartMode", out smartObject) ? smartObject as IDictionary<string, object> : null;
-            object enabled;
-            return smart != null && smart.TryGetValue("LearningEnabled", out enabled) && Convert.ToBoolean(enabled, CultureInfo.InvariantCulture);
+            bool enabled;
+            if (TryReadSmartLearningSetting(out enabled))
+            {
+                EnsureSmartLearningConfigValue(enabled);
+                return enabled;
+            }
+
+            if (TryReadSmartLearningFromConfig(out enabled))
+            {
+                SaveSmartLearningSetting(enabled);
+                return enabled;
+            }
+
+            if (TryReadSmartLearningFromLog(out enabled))
+            {
+                SaveSmartLearningSetting(enabled);
+                WriteSmartLearningToConfig(enabled);
+                return enabled;
+            }
+        }
+        catch
+        {
+        }
+        return false;
+    }
+
+    private static RunResult SetSmartLearningEnabled(bool enabled)
+    {
+        try
+        {
+            SaveSmartLearningSetting(enabled);
+            WriteSmartLearningToConfig(enabled);
+            AppendOperationalLog("action=learning enabled=" + enabled.ToString().ToLowerInvariant());
+            return new RunResult(0, enabled ? "Smart Learning enabled." : "Smart Learning disabled.");
+        }
+        catch (Exception ex)
+        {
+            return new RunResult(1, ex.Message);
+        }
+    }
+
+    private static void SyncSmartLearningSettingToConfig()
+    {
+        try
+        {
+            bool enabled;
+            if (TryReadSmartLearningSetting(out enabled))
+            {
+                EnsureSmartLearningConfigValue(enabled);
+                return;
+            }
+
+            if (TryReadSmartLearningFromLog(out enabled))
+            {
+                SaveSmartLearningSetting(enabled);
+                WriteSmartLearningToConfig(enabled);
+            }
+        }
+        catch (Exception ex)
+        {
+            AppendOperationalLog("action=learning-sync status=failed error=" + ex.GetType().Name);
+        }
+    }
+
+    private static bool TryReadSmartLearningSetting(out bool enabled)
+    {
+        enabled = false;
+        try
+        {
+            if (string.IsNullOrEmpty(learningSettingsPath) || !File.Exists(learningSettingsPath)) { return false; }
+            IDictionary<string, object> root = JsonCompat.DeserializeObject(File.ReadAllText(learningSettingsPath, Encoding.UTF8));
+            object value;
+            if (root == null || !root.TryGetValue("LearningEnabled", out value)) { return false; }
+            enabled = Convert.ToBoolean(value, CultureInfo.InvariantCulture);
+            return true;
         }
         catch
         {
@@ -870,23 +961,87 @@ internal static class SmartBackgroundNap
         }
     }
 
-    private static RunResult SetSmartLearningEnabled(bool enabled)
+    private static bool TryReadSmartLearningFromConfig(out bool enabled)
     {
+        enabled = false;
         try
         {
             IDictionary<string, object> root = LoadConfigRoot();
-            IDictionary<string, object> smart = GetOrCreateMap(root, "SmartMode");
-            smart["LearningEnabled"] = enabled;
-            File.WriteAllText(configPath, JsonCompat.SerializeObject(root), Encoding.UTF8);
-            Directory.CreateDirectory(outputsPath);
-            string line = DateTime.Now.ToString("s", CultureInfo.InvariantCulture) + " action=learning enabled=" + enabled.ToString().ToLowerInvariant();
-            File.AppendAllText(logPath, line + Environment.NewLine, Encoding.UTF8);
-            return new RunResult(0, enabled ? "Smart Learning enabled." : "Smart Learning disabled.");
+            object smartObject;
+            IDictionary<string, object> smart = root.TryGetValue("SmartMode", out smartObject) ? smartObject as IDictionary<string, object> : null;
+            object value;
+            if (smart == null || !smart.TryGetValue("LearningEnabled", out value)) { return false; }
+            enabled = Convert.ToBoolean(value, CultureInfo.InvariantCulture);
+            return true;
         }
-        catch (Exception ex)
+        catch
         {
-            return new RunResult(1, ex.Message);
+            return false;
         }
+    }
+
+    private static bool TryReadSmartLearningFromLog(out bool enabled)
+    {
+        enabled = false;
+        try
+        {
+            if (string.IsNullOrEmpty(logPath) || !File.Exists(logPath)) { return false; }
+            string[] lines = File.ReadAllLines(logPath, Encoding.UTF8);
+            for (int i = lines.Length - 1; i >= 0; i--)
+            {
+                if (lines[i].IndexOf("action=learning", StringComparison.OrdinalIgnoreCase) < 0) { continue; }
+                string raw = ExtractLogToken(lines[i], "enabled");
+                bool parsed;
+                if (Boolean.TryParse(raw, out parsed))
+                {
+                    enabled = parsed;
+                    return true;
+                }
+            }
+        }
+        catch
+        {
+        }
+        return false;
+    }
+
+    private static string ExtractLogToken(string line, string key)
+    {
+        if (String.IsNullOrEmpty(line) || String.IsNullOrEmpty(key)) { return String.Empty; }
+        string marker = key + "=";
+        int start = line.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        if (start < 0) { return String.Empty; }
+        start += marker.Length;
+        int end = line.IndexOf(' ', start);
+        if (end < 0) { end = line.Length; }
+        return line.Substring(start, end - start).Trim();
+    }
+
+    private static void SaveSmartLearningSetting(bool enabled)
+    {
+        Directory.CreateDirectory(appRoot);
+        IDictionary<string, object> root = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        root["LearningEnabled"] = enabled;
+        root["UpdatedAt"] = DateTime.Now.ToString("s", CultureInfo.InvariantCulture);
+        File.WriteAllText(learningSettingsPath, JsonCompat.SerializeObject(root), Encoding.UTF8);
+    }
+
+    private static void EnsureSmartLearningConfigValue(bool enabled)
+    {
+        bool current;
+        if (!TryReadSmartLearningFromConfig(out current) || current != enabled)
+        {
+            WriteSmartLearningToConfig(enabled);
+        }
+    }
+
+    private static void WriteSmartLearningToConfig(bool enabled)
+    {
+        IDictionary<string, object> root = LoadConfigRoot();
+        IDictionary<string, object> smart = GetOrCreateMap(root, "SmartMode");
+        smart["LearningEnabled"] = enabled;
+        Directory.CreateDirectory(appRoot);
+        File.WriteAllText(userConfigPath, JsonCompat.SerializeObject(root), Encoding.UTF8);
     }
 
     private static int GetLearningProfileCount()

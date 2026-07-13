@@ -1,10 +1,11 @@
-# Smart Background Nap 0.3.4
+# Smart Background Nap 0.3.5
 
-Smart Learning, WebView2 launcher, adaptive nap engine, multilingual UI, and lighter tray behavior.
+Smart Learning persistence hotfix, WebView2 launcher, adaptive nap engine, multilingual UI, and lighter tray behavior.
 
 ## Highlights
 
 - Single-file release: download and run `SmartBackgroundNap.exe`.
+- Smart Learning now persists through runtime config refreshes and uses a writable per-user config override when needed.
 - .NET 9 / WebView2 dashboard with live manager, telemetry, and event stream.
 - First-run language picker with Portuguese BR, English, Russian, Spanish, French, and German.
 - Optional Smart Learning mode with an in-app explanation before enabling.
@@ -34,7 +35,7 @@ Smart Learning, WebView2 launcher, adaptive nap engine, multilingual UI, and lig
 SHA-256 for `SmartBackgroundNap.exe`:
 
 ```text
-FAA128423633E9EF4E3314AE9F64F0C80E34EA8FC9B102FA4C10CB2452FDE23C
+9FDB239BF274CA203B26D75BDD607E3AB726DE2EA6EBA872F0B6E62B87C551A0
 ```
 
 ## Trust Notes

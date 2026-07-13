@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.5 - 2026-07-13
+
+- Fixed Smart Learning persistence when the runtime config is refreshed without the learning key.
+- Added a dedicated local Smart Learning preference file and automatic sync back into the nap engine config.
+- Added a writable per-user config override so older runtime config files with restrictive permissions cannot disable Smart Learning.
+- Added migration from the latest learning toggle event in the local log, so existing users keep their last choice after updating.
+- The apply path now syncs Smart Learning before each manual or automatic optimization pass.
+
 ## 0.3.4 - 2026-07-13
 
 - Added optional Smart Learning mode as an extra power toggle inside the launcher.
