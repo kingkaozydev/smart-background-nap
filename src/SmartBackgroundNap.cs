@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -25,7 +26,7 @@ using Microsoft.Web.WebView2.Wpf;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.3.3";
+    private const string AppVersion = "0.3.4";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
@@ -381,12 +382,82 @@ internal static class SmartBackgroundNap
         ExtractResource("manage_background_nap_ps1", Path.Combine(runtimeRoot, "manage-background-nap.ps1"));
         ExtractResource("manage_background_nap_tray_ps1", Path.Combine(runtimeRoot, "manage-background-nap-tray.ps1"));
         ExtractResource("smart_background_nap_tray_ps1", Path.Combine(runtimeRoot, "smart-background-nap-tray.ps1"));
-        ExtractResource("game_session_config_json", Path.Combine(runtimeRoot, "game-session.config.json"));
+        ExtractConfigResource("game_session_config_json", Path.Combine(runtimeRoot, "game-session.config.json"));
         ExtractResource("readme_md", Path.Combine(runtimeRoot, "README.md"));
         ExtractResource("security_model_md", Path.Combine(runtimeRoot, "SECURITY_MODEL.md"));
         ExtractResource("icon_ico", Path.Combine(runtimeRoot, "assets\\smart-nap-logo.ico"));
         ExtractResource("logo_png", Path.Combine(runtimeRoot, "assets\\smart-nap-logo-v2.png"));
         ExtractResource("hero_png", Path.Combine(runtimeRoot, "assets\\smart-nap-hero-bg.png"));
+    }
+
+    private static void ExtractConfigResource(string resourceName, string targetPath)
+    {
+        string defaultJson = ReadEmbeddedText(resourceName);
+        if (String.IsNullOrWhiteSpace(defaultJson))
+        {
+            throw new InvalidOperationException("Missing embedded config: " + ResourcePrefix + resourceName);
+        }
+
+        Directory.CreateDirectory(Path.GetDirectoryName(targetPath));
+        if (!File.Exists(targetPath))
+        {
+            File.WriteAllText(targetPath, defaultJson, Encoding.UTF8);
+            return;
+        }
+
+        try
+        {
+            IDictionary<string, object> defaults = JsonCompat.DeserializeObject(defaultJson);
+            IDictionary<string, object> current = JsonCompat.DeserializeObject(File.ReadAllText(targetPath, Encoding.UTF8));
+            if (current == null || defaults == null)
+            {
+                return;
+            }
+            if (MergeMissingConfigValues(current, defaults))
+            {
+                File.WriteAllText(targetPath, JsonCompat.SerializeObject(current), Encoding.UTF8);
+            }
+        }
+        catch
+        {
+            // Keep the existing user config if it cannot be merged safely.
+        }
+    }
+
+    private static string ReadEmbeddedText(string resourceName)
+    {
+        string fullName = ResourcePrefix + resourceName;
+        using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(fullName))
+        {
+            if (stream == null) { return ""; }
+            using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
+            {
+                return reader.ReadToEnd();
+            }
+        }
+    }
+
+    private static bool MergeMissingConfigValues(IDictionary<string, object> current, IDictionary<string, object> defaults)
+    {
+        bool changed = false;
+        foreach (KeyValuePair<string, object> pair in defaults)
+        {
+            object existing;
+            if (!current.TryGetValue(pair.Key, out existing))
+            {
+                current[pair.Key] = pair.Value;
+                changed = true;
+                continue;
+            }
+
+            IDictionary<string, object> existingMap = existing as IDictionary<string, object>;
+            IDictionary<string, object> defaultMap = pair.Value as IDictionary<string, object>;
+            if (existingMap != null && defaultMap != null && MergeMissingConfigValues(existingMap, defaultMap))
+            {
+                changed = true;
+            }
+        }
+        return changed;
     }
 
 
@@ -624,6 +695,18 @@ internal static class SmartBackgroundNap
         return RunHidden("powershell.exe", psArgs, timeoutMs, control);
     }
 
+    private static void AppendOperationalLog(string text)
+    {
+        try
+        {
+            Directory.CreateDirectory(outputsPath);
+            File.AppendAllText(logPath, DateTime.Now.ToString("s", CultureInfo.InvariantCulture) + " " + text + Environment.NewLine, Encoding.UTF8);
+        }
+        catch
+        {
+        }
+    }
+
     private static RunResult RunApplyNow()
     {
         return RunApplyNow(null);
@@ -633,6 +716,49 @@ internal static class SmartBackgroundNap
     {
         Directory.CreateDirectory(outputsPath);
         return RunPowerShellScript(backgroundScriptPath, "-Action Apply -StateMode Latest -Quiet -LogPath " + Quote(logPath), 120000, control);
+    }
+
+    private static RunResult RunElevatedApply()
+    {
+        try
+        {
+            Directory.CreateDirectory(outputsPath);
+            ProcessStartInfo start = new ProcessStartInfo();
+            start.FileName = GetLaunchExecutablePath();
+            start.Arguments = "--apply";
+            start.UseShellExecute = true;
+            start.Verb = "runas";
+            start.WindowStyle = ProcessWindowStyle.Hidden;
+
+            using (Process process = Process.Start(start))
+            {
+                if (process == null)
+                {
+                    return new RunResult(1, "Could not start elevated optimizer pass.");
+                }
+                if (!process.WaitForExit(180000))
+                {
+                    try { process.Kill(); } catch { }
+                    AppendOperationalLog("action=elevated-apply status=timeout");
+                    return new RunResult(124, "Elevated optimizer pass timed out.");
+                }
+                AppendOperationalLog("action=elevated-apply status=done exitCode=" + process.ExitCode.ToString(CultureInfo.InvariantCulture));
+                return new RunResult(process.ExitCode, process.ExitCode == 0 ? "Elevated pass finished." : "Elevated pass exited with code " + process.ExitCode.ToString(CultureInfo.InvariantCulture) + ".");
+            }
+        }
+        catch (Win32Exception ex)
+        {
+            if (ex.NativeErrorCode == 1223)
+            {
+                AppendOperationalLog("action=elevated-apply status=cancelled");
+                return new RunResult(1223, "Administrator permission was cancelled.");
+            }
+            return new RunResult(1, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return new RunResult(1, ex.Message);
+        }
     }
 
     private static RunResult RunRestore()
@@ -687,6 +813,100 @@ internal static class SmartBackgroundNap
     {
         RunResult result = RunHidden("schtasks.exe", "/Query /TN " + Quote(taskName), 8000);
         return result.ExitCode == 0;
+    }
+
+    private static bool IsCurrentProcessElevated()
+    {
+        try
+        {
+            using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
+            {
+                WindowsPrincipal principal = new WindowsPrincipal(identity);
+                return principal.IsInRole(WindowsBuiltInRole.Administrator);
+            }
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static IDictionary<string, object> LoadConfigRoot()
+    {
+        if (!File.Exists(configPath)) { return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase); }
+        IDictionary<string, object> root = JsonCompat.DeserializeObject(File.ReadAllText(configPath, Encoding.UTF8));
+        return root ?? new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static IDictionary<string, object> GetOrCreateMap(IDictionary<string, object> root, string key)
+    {
+        object value;
+        IDictionary<string, object> map = null;
+        if (root != null && root.TryGetValue(key, out value))
+        {
+            map = value as IDictionary<string, object>;
+        }
+        if (map == null)
+        {
+            map = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            root[key] = map;
+        }
+        return map;
+    }
+
+    private static bool IsSmartLearningEnabled()
+    {
+        try
+        {
+            IDictionary<string, object> root = LoadConfigRoot();
+            object smartObject;
+            IDictionary<string, object> smart = root.TryGetValue("SmartMode", out smartObject) ? smartObject as IDictionary<string, object> : null;
+            object enabled;
+            return smart != null && smart.TryGetValue("LearningEnabled", out enabled) && Convert.ToBoolean(enabled, CultureInfo.InvariantCulture);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static RunResult SetSmartLearningEnabled(bool enabled)
+    {
+        try
+        {
+            IDictionary<string, object> root = LoadConfigRoot();
+            IDictionary<string, object> smart = GetOrCreateMap(root, "SmartMode");
+            smart["LearningEnabled"] = enabled;
+            File.WriteAllText(configPath, JsonCompat.SerializeObject(root), Encoding.UTF8);
+            Directory.CreateDirectory(outputsPath);
+            string line = DateTime.Now.ToString("s", CultureInfo.InvariantCulture) + " action=learning enabled=" + enabled.ToString().ToLowerInvariant();
+            File.AppendAllText(logPath, line + Environment.NewLine, Encoding.UTF8);
+            return new RunResult(0, enabled ? "Smart Learning enabled." : "Smart Learning disabled.");
+        }
+        catch (Exception ex)
+        {
+            return new RunResult(1, ex.Message);
+        }
+    }
+
+    private static int GetLearningProfileCount()
+    {
+        try
+        {
+            string path = Path.Combine(outputsPath, "background-nap-learning-latest.json");
+            if (!File.Exists(path)) { return 0; }
+            IDictionary<string, object> root = JsonCompat.DeserializeObject(File.ReadAllText(path, Encoding.UTF8));
+            object items = null;
+            System.Collections.IEnumerable enumerable = root != null && root.TryGetValue("Items", out items) ? items as System.Collections.IEnumerable : null;
+            if (enumerable == null || items is string) { return 0; }
+            int count = 0;
+            foreach (object ignored in enumerable) { count++; }
+            return count;
+        }
+        catch
+        {
+            return 0;
+        }
     }
 
     private static string GetLaunchExecutablePath()
@@ -813,7 +1033,7 @@ internal static class SmartBackgroundNap
         report.AppendLine("Local files written: config, compact logs, restore snapshots, embedded runtime files, this report.");
         report.AppendLine();
         report.AppendLine("Optimization scope");
-        report.AppendLine("Allowed actions: process priority, memory priority, process I/O priority, Windows power throttling/EcoQoS, timer-resolution isolation, foreground wake restore, temporary active-app protection, burst scoring, fullscreen-aware thresholds, optional working-set trimming.");
+        report.AppendLine("Allowed actions: process priority, memory priority, process I/O priority, Windows power throttling/EcoQoS, timer-resolution isolation, foreground wake restore, temporary active-app protection, burst scoring, fullscreen-aware thresholds, optional local Smart Learning profiles, optional working-set trimming.");
         report.AppendLine("Skipped targets: Windows/system processes, session 0 services, foreground app, high-CPU active workloads, configured protected apps, configured protected paths.");
         report.AppendLine("Destructive actions: none. It does not kill apps, delete files, change drivers, change power plans, overclock, undervolt, or disable Windows services.");
         report.AppendLine();
@@ -1999,6 +2219,20 @@ internal static class SmartBackgroundNap
                         startupInstalled ? (Func<RunResult>)UninstallStartup : InstallStartup);
                     return;
                 }
+                if (String.Equals(action, "toggleLearning", StringComparison.OrdinalIgnoreCase))
+                {
+                    bool learningEnabled = IsSmartLearningEnabled();
+                    RunUserAction(
+                        learningEnabled ? "Disabling Smart Learning..." : "Enabling Smart Learning...",
+                        learningEnabled ? "Smart Learning is off." : "Smart Learning is active.",
+                        delegate { return SetSmartLearningEnabled(!learningEnabled); });
+                    return;
+                }
+                if (String.Equals(action, "runElevatedApply", StringComparison.OrdinalIgnoreCase))
+                {
+                    RunUserAction("Requesting administrator permission...", "Elevated pass finished.", RunElevatedApply);
+                    return;
+                }
                 if (String.Equals(action, "restore", StringComparison.OrdinalIgnoreCase)) { RunUserAction("Restoring latest snapshot...", "Restore finished.", RunRestore); return; }
                 if (String.Equals(action, "score", StringComparison.OrdinalIgnoreCase)) { OpenScore(); return; }
                 if (String.Equals(action, "log", StringComparison.OrdinalIgnoreCase)) { OpenLog(); return; }
@@ -2165,7 +2399,9 @@ internal static class SmartBackgroundNap
         {
             bool autoInstalled = IsTaskInstalled(AutoTaskName);
             bool startupInstalled = IsTaskInstalled(TrayTaskName);
+            bool learningEnabled = IsSmartLearningEnabled();
             List<WebManagerRow> rows = LoadManagerRows();
+            ScoreMeta scoreMeta = LoadScoreMeta();
             string line = ReadLastApplyLogLine();
             string targets = line == "No log yet." ? "" : ExtractLogValue(line, "targets");
             string delta = line == "No log yet." ? "" : ExtractLogValue(line, "deltaMB");
@@ -2181,6 +2417,13 @@ internal static class SmartBackgroundNap
             state.FirstRun = String.IsNullOrWhiteSpace(uiLanguage);
             state.AutoMode = autoInstalled;
             state.Startup = startupInstalled;
+            state.Learning = learningEnabled;
+            state.LearningProfiles = learningEnabled ? Math.Max(scoreMeta.LearningProfiles, GetLearningProfileCount()) : 0;
+            state.MemoryPressure = String.IsNullOrWhiteSpace(scoreMeta.MemoryPressure) ? ExtractLogValue(line, "pressure") : scoreMeta.MemoryPressure;
+            state.FreeMemoryMB = scoreMeta.FreeMemoryMB;
+            state.IsElevated = IsCurrentProcessElevated();
+            state.PermissionDeniedCount = scoreMeta.PermissionDeniedCount;
+            state.PermissionDeniedApps = scoreMeta.PermissionDeniedApps;
             state.Busy = busy;
             state.CanStop = activeRunCanStop;
             state.RunState = busy ? runState : (autoInstalled ? "MOTOR ACTIVE" : "MANUAL");
@@ -2199,6 +2442,65 @@ internal static class SmartBackgroundNap
             state.Events = BuildEvents(autoInstalled, heartbeat, lastEventAge, nextPass);
             state.Logo = GetLogoDataUri();
             return state;
+        }
+
+        private ScoreMeta LoadScoreMeta()
+        {
+            ScoreMeta meta = new ScoreMeta();
+            meta.PermissionDeniedApps = new List<string>();
+            try
+            {
+                if (!File.Exists(scorePath)) { return meta; }
+                string json = File.ReadAllText(scorePath, Encoding.UTF8);
+                if (String.IsNullOrWhiteSpace(json)) { return meta; }
+                IDictionary<string, object> root = JsonCompat.DeserializeObject(json);
+                if (root == null) { return meta; }
+                meta.LearningEnabled = GetBool(root, "LearningEnabled");
+                meta.LearningProfiles = GetInt(root, "LearningProfiles");
+                meta.MemoryPressure = GetString(root, "MemoryPressure");
+                meta.FreeMemoryMB = GetDouble(root, "FreeMemoryMB");
+                object items;
+                if (root.TryGetValue("Items", out items) && items != null)
+                {
+                    System.Collections.IEnumerable enumerable = items as System.Collections.IEnumerable;
+                    if (enumerable != null && !(items is string))
+                    {
+                        HashSet<string> denied = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                        foreach (object item in enumerable)
+                        {
+                            IDictionary<string, object> map = item as IDictionary<string, object>;
+                            if (map == null || !HasPermissionDeniedStatus(map)) { continue; }
+                            string label = BuildProcessLabel(map);
+                            if (!String.IsNullOrWhiteSpace(label)) { denied.Add(label); }
+                        }
+                        meta.PermissionDeniedCount = denied.Count;
+                        meta.PermissionDeniedApps = new List<string>(denied);
+                        meta.PermissionDeniedApps.Sort(StringComparer.OrdinalIgnoreCase);
+                    }
+                }
+            }
+            catch
+            {
+            }
+            return meta;
+        }
+
+        private static bool HasPermissionDeniedStatus(IDictionary<string, object> map)
+        {
+            return IsPermissionDeniedStatus(GetString(map, "Priority")) ||
+                IsPermissionDeniedStatus(GetString(map, "MemoryPriority")) ||
+                IsPermissionDeniedStatus(GetString(map, "IoPriority")) ||
+                IsPermissionDeniedStatus(GetString(map, "PowerThrottling")) ||
+                IsPermissionDeniedStatus(GetString(map, "TrimWorkingSet"));
+        }
+
+        private static bool IsPermissionDeniedStatus(string value)
+        {
+            if (String.IsNullOrWhiteSpace(value)) { return false; }
+            return value.IndexOf("Access denied", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                value.IndexOf("Acesso negado", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                value.IndexOf("Win32Error=5", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                value.IndexOf("0xC0000022", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private string BuildStatusDetail(bool autoInstalled, bool startupInstalled)
@@ -2363,6 +2665,7 @@ internal static class SmartBackgroundNap
                     row.Cpu = FormatDecimal(GetDouble(map, "CpuPercent"));
                     row.Bursts = GetInt(map, "BurstCount").ToString(CultureInfo.CurrentCulture);
                     row.Action = BuildActionSummary(map);
+                    row.PermissionDenied = HasPermissionDeniedStatus(map);
                     row.RawScore = GetDouble(map, "Score");
                     rows.Add(row);
                 }
@@ -2394,7 +2697,20 @@ internal static class SmartBackgroundNap
             string io = BlankToDash(GetString(map, "IoPriority"));
             string trim = BlankToDash(GetString(map, "TrimWorkingSet"));
             string power = BlankToDash(GetString(map, "PowerThrottling"));
-            return "Tier " + tier + " / P " + priority + " / M " + memory + " / IO " + io + " / T " + trim + " / Eco " + power;
+            string learning = GetString(map, "Learning");
+            int observations = GetInt(map, "LearningObservations");
+            int wakes = GetInt(map, "LearningWakeCount");
+            string summary = "Tier " + tier + " / P " + priority + " / M " + memory + " / IO " + io + " / T " + trim + " / Eco " + power;
+            if (!String.IsNullOrWhiteSpace(learning) || observations > 0 || wakes > 0)
+            {
+                summary += " / Learn " + (String.IsNullOrWhiteSpace(learning) ? observations.ToString(CultureInfo.CurrentCulture) : learning);
+                if (wakes > 0) { summary += " / Wake " + wakes.ToString(CultureInfo.CurrentCulture); }
+            }
+            if (HasPermissionDeniedStatus(map))
+            {
+                summary += " / Admin needed";
+            }
+            return summary;
         }
 
         private List<string> ReadLastLines(string path, int maxLines)
@@ -2430,13 +2746,37 @@ internal static class SmartBackgroundNap
                 string trimmed = ExtractLogValue(line, "trimmed");
                 string cooldown = ExtractLogValue(line, "cooldown");
                 string top = ExtractLogValue(line, "top");
+                string learning = ExtractLogValue(line, "learning");
+                string pressure = ExtractLogValue(line, "pressure");
+                string profiles = ExtractLogValue(line, "profiles");
                 string text = time + "  APPLY";
                 if (!String.IsNullOrWhiteSpace(targets)) { text += "  " + targets + " apps"; }
                 if (!String.IsNullOrWhiteSpace(delta)) { text += "  " + delta + " MB"; }
                 if (!String.IsNullOrWhiteSpace(light) || !String.IsNullOrWhiteSpace(balanced) || !String.IsNullOrWhiteSpace(deep)) { text += "  L/B/D " + BlankToZero(light) + "/" + BlankToZero(balanced) + "/" + BlankToZero(deep); }
                 if (!String.IsNullOrWhiteSpace(trimmed)) { text += "  T " + trimmed; }
                 if (!String.IsNullOrWhiteSpace(cooldown) && cooldown != "0") { text += "  C " + cooldown; }
+                if (String.Equals(learning, "on", StringComparison.OrdinalIgnoreCase)) { text += "  LEARN " + BlankToZero(profiles) + " " + BlankToDash(pressure); }
                 if (!String.IsNullOrWhiteSpace(top)) { text += "  top " + top; }
+                return text;
+            }
+            if (String.Equals(action, "learning", StringComparison.OrdinalIgnoreCase))
+            {
+                string enabled = ExtractLogValue(line, "enabled");
+                string process = ExtractLogValue(line, "process");
+                string wakes = ExtractLogValue(line, "wakes");
+                string text = time + "  LEARN";
+                if (!String.IsNullOrWhiteSpace(enabled)) { text += "  " + (String.Equals(enabled, "true", StringComparison.OrdinalIgnoreCase) ? "enabled" : "disabled"); }
+                if (!String.IsNullOrWhiteSpace(process)) { text += "  " + process; }
+                if (!String.IsNullOrWhiteSpace(wakes)) { text += "  wakes " + wakes; }
+                return text;
+            }
+            if (String.Equals(action, "elevated-apply", StringComparison.OrdinalIgnoreCase))
+            {
+                string status = ExtractLogValue(line, "status");
+                string exitCode = ExtractLogValue(line, "exitCode");
+                string text = time + "  ADMIN";
+                if (!String.IsNullOrWhiteSpace(status)) { text += "  " + status; }
+                if (!String.IsNullOrWhiteSpace(exitCode)) { text += "  exit " + exitCode; }
                 return text;
             }
             if (String.Equals(action, "foreground-restore", StringComparison.OrdinalIgnoreCase))
@@ -2535,6 +2875,18 @@ internal static class SmartBackgroundNap
             {
                 double parsed;
                 return Double.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), NumberStyles.Float, CultureInfo.InvariantCulture, out parsed) ? parsed : 0;
+            }
+        }
+
+        private static bool GetBool(IDictionary<string, object> map, string key)
+        {
+            object value;
+            if (map == null || !map.TryGetValue(key, out value) || value == null) { return false; }
+            try { return Convert.ToBoolean(value, CultureInfo.InvariantCulture); }
+            catch
+            {
+                bool parsed;
+                return Boolean.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), out parsed) && parsed;
             }
         }
 
@@ -2666,6 +3018,13 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public bool FirstRun { get; set; }
             public bool AutoMode { get; set; }
             public bool Startup { get; set; }
+            public bool Learning { get; set; }
+            public int LearningProfiles { get; set; }
+            public string MemoryPressure { get; set; }
+            public double FreeMemoryMB { get; set; }
+            public bool IsElevated { get; set; }
+            public int PermissionDeniedCount { get; set; }
+            public List<string> PermissionDeniedApps { get; set; }
             public bool Busy { get; set; }
             public bool CanStop { get; set; }
             public string RunState { get; set; }
@@ -2685,6 +3044,16 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public List<string> Events { get; set; }
         }
 
+        private sealed class ScoreMeta
+        {
+            public bool LearningEnabled { get; set; }
+            public int LearningProfiles { get; set; }
+            public string MemoryPressure { get; set; }
+            public double FreeMemoryMB { get; set; }
+            public int PermissionDeniedCount { get; set; }
+            public List<string> PermissionDeniedApps { get; set; }
+        }
+
         private sealed class WebManagerRow
         {
             public string Name { get; set; }
@@ -2693,6 +3062,7 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public string Cpu { get; set; }
             public string Bursts { get; set; }
             public string Action { get; set; }
+            public bool PermissionDenied { get; set; }
             public double RawScore { get; set; }
         }
     }
@@ -6353,6 +6723,18 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
 #else
             JavaScriptSerializer serializer = new JavaScriptSerializer();
             return serializer.DeserializeObject(json) as IDictionary<string, object>;
+#endif
+        }
+
+        public static string SerializeObject(object value)
+        {
+#if NET9_0_OR_GREATER
+            JsonSerializerOptions options = new JsonSerializerOptions();
+            options.WriteIndented = true;
+            return JsonSerializer.Serialize(value, options);
+#else
+            JavaScriptSerializer serializer = new JavaScriptSerializer();
+            return serializer.Serialize(value);
 #endif
         }
 

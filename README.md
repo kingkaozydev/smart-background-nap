@@ -57,6 +57,8 @@ Smart Background Nap gives those apps a softer background profile. Your apps sta
 - Temporary active-app protection for newly active foreground or high-CPU apps.
 - Fullscreen-aware thresholds for gaming and borderless workloads.
 - Adaptive Light, Balanced, and Deep nap tiers.
+- Optional Smart Learning mode that builds local per-app profiles and adapts nap strength when memory pressure rises.
+- Permission Guard that lists apps that denied process changes and can request one administrator pass through UAC.
 - Cooldown-aware RAM trim so the same process is not hammered repeatedly.
 - Burst watcher and Nap Score for repeated background spikes.
 - Automatic scheduled optimization every few minutes.
@@ -134,6 +136,8 @@ SmartBackgroundNap.exe
 The dashboard includes:
 
 - Language selector
+- Smart Learning toggle with a short explanation before enabling
+- Permission Guard with a one-pass administrator request for apps that denied changes
 - Live Manager
 - Event Stream
 - Engine Telemetry
@@ -188,8 +192,23 @@ Useful settings:
 - `SmartMode.FullscreenAware`
 - `SmartMode.BurstWatcher`
 - `SmartMode.NapScore`
+- `SmartMode.LearningEnabled`
 - `Automation.IntervalMinutes`
 - `Tray.RefreshSeconds`
+
+## Smart Learning
+
+Smart Learning is optional and off until the user enables it in the launcher.
+
+When enabled, it keeps compact local profiles for apps it manages. Those profiles are based on process name/path, memory use, CPU bursts, nap tier outcomes, and foreground wake events. Apps you often bring back to the foreground can be kept in a lighter Fast Wake profile, while heavy idle background apps can be napped more strongly when system memory pressure rises.
+
+Smart Learning does not upload telemetry, close apps, change drivers, change power plans, or modify game files. The learning state is stored locally in the app runtime outputs folder.
+
+## Permission Guard
+
+Some apps can deny process-level changes unless Windows grants administrator permission. When that happens, the dashboard shows the affected apps and offers a one-time administrator pass.
+
+That button opens the normal Windows UAC prompt and runs only one elevated optimization pass. Smart Background Nap does not stay permanently elevated, does not install a service or driver, and does not change power plans. Some protected apps can still refuse changes even after an administrator pass.
 
 ## Logs And Restore
 

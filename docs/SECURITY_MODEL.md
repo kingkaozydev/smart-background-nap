@@ -9,6 +9,7 @@ Smart Background Nap is designed to be transparent, local-only, and easy to audi
 - No accounts, passwords, cookies, browser profiles, documents, or game files are read.
 - No drivers, kernel components, Windows services, browser extensions, or startup registry keys are installed.
 - No administrator elevation is requested by the app manifest.
+- Optional administrator passes require an explicit UAC confirmation from the user and run only one optimization pass.
 - No apps are killed and no user files are deleted.
 
 ## What It Changes
@@ -24,6 +25,7 @@ For selected background apps in the current user session, Smart Background Nap m
 - temporary protection for recently active or high-CPU apps;
 - fullscreen-aware thresholds;
 - burst scoring for repeated background spikes;
+- optional local Smart Learning profiles for per-app wake behavior and memory-pressure adaptation;
 - one working-set trim when the process is above the configured RAM threshold.
 
 These changes are Windows process settings. They are not permanent patches to the app executable, Windows, drivers, or firmware.
@@ -49,6 +51,8 @@ Persistence is handled through two per-user scheduled tasks:
 
 Both tasks run with `InteractiveToken` and `LeastPrivilege`. They do not require administrator rights.
 
+If an app denies process-level changes, the dashboard can offer a one-time elevated pass. That pass uses the standard Windows UAC prompt, runs `SmartBackgroundNap.exe --apply`, writes the normal local log/score files, and exits. It does not install a persistent elevated helper.
+
 When the single-executable release enables automatic mode, it keeps a managed copy at:
 
 ```text
@@ -66,6 +70,7 @@ Smart Background Nap writes only local operational files:
 - compact logs;
 - restore snapshots for process settings;
 - temporary active-app and burst-state JSON files;
+- optional Smart Learning profiles with process name/path, aggregate memory/CPU observations, wake counts, and nap decisions;
 - Nap Score JSON reports;
 - optional safety reports generated from the app.
 

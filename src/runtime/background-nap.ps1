@@ -53,6 +53,7 @@ $protectStatePath = Join-Path $outDir "background-nap-protect-latest.json"
 $burstStatePath = Join-Path $outDir "background-nap-burst-latest.json"
 $trimStatePath = Join-Path $outDir "background-nap-trim-latest.json"
 $scorePath = Join-Path $outDir "background-nap-score-latest.json"
+$learningStatePath = Join-Path $outDir "background-nap-learning-latest.json"
 
 $priorityClass = [string]$nap.PriorityClass
 $targetPriorityClass = [System.Enum]::Parse([System.Diagnostics.ProcessPriorityClass], $priorityClass, $true)
@@ -84,6 +85,12 @@ $burstTrimMinimumMB = 30.0
 $maxTargetsPerPass = 80
 $trimCooldownMinutes = 10
 $adaptiveNap = $true
+$smartLearning = $false
+$learningMinObservations = 3
+$learningMaxProfiles = 180
+$learningFastWakeThreshold = 3
+$learningElevatedFreeMemoryMB = 6144.0
+$learningAggressiveFreeMemoryMB = 3072.0
 $deepNapMinimumMB = 180.0
 $deepNapMaxCpuPercent = 0.35
 $balancedNapMinimumMB = 80.0
@@ -119,6 +126,12 @@ if ($smart) {
     if ($smart.PSObject.Properties.Name -contains "MaxTargetsPerPass") { $maxTargetsPerPass = [int]$smart.MaxTargetsPerPass }
     if ($smart.PSObject.Properties.Name -contains "TrimCooldownMinutes") { $trimCooldownMinutes = [int]$smart.TrimCooldownMinutes }
     if ($smart.PSObject.Properties.Name -contains "AdaptiveNap") { $adaptiveNap = [bool]$smart.AdaptiveNap }
+    if ($smart.PSObject.Properties.Name -contains "LearningEnabled") { $smartLearning = [bool]$smart.LearningEnabled }
+    if ($smart.PSObject.Properties.Name -contains "LearningMinObservations") { $learningMinObservations = [int]$smart.LearningMinObservations }
+    if ($smart.PSObject.Properties.Name -contains "LearningMaxProfiles") { $learningMaxProfiles = [int]$smart.LearningMaxProfiles }
+    if ($smart.PSObject.Properties.Name -contains "LearningFastWakeThreshold") { $learningFastWakeThreshold = [int]$smart.LearningFastWakeThreshold }
+    if ($smart.PSObject.Properties.Name -contains "LearningElevatedFreeMemoryMB") { $learningElevatedFreeMemoryMB = [double]$smart.LearningElevatedFreeMemoryMB }
+    if ($smart.PSObject.Properties.Name -contains "LearningAggressiveFreeMemoryMB") { $learningAggressiveFreeMemoryMB = [double]$smart.LearningAggressiveFreeMemoryMB }
     if ($smart.PSObject.Properties.Name -contains "DeepNapMinimumWorkingSetMB") { $deepNapMinimumMB = [double]$smart.DeepNapMinimumWorkingSetMB }
     if ($smart.PSObject.Properties.Name -contains "DeepNapMaxCpuPercent") { $deepNapMaxCpuPercent = [double]$smart.DeepNapMaxCpuPercent }
     if ($smart.PSObject.Properties.Name -contains "BalancedNapMinimumWorkingSetMB") { $balancedNapMinimumMB = [double]$smart.BalancedNapMinimumWorkingSetMB }
@@ -144,6 +157,11 @@ if ($burstWindowMinutes -lt 1) { $burstWindowMinutes = 1 }
 if ($burstRepeatCount -lt 1) { $burstRepeatCount = 1 }
 if ($maxTargetsPerPass -lt 1) { $maxTargetsPerPass = 1 }
 if ($trimCooldownMinutes -lt 1) { $trimCooldownMinutes = 1 }
+if ($learningMinObservations -lt 1) { $learningMinObservations = 1 }
+if ($learningMaxProfiles -lt 20) { $learningMaxProfiles = 20 }
+if ($learningFastWakeThreshold -lt 1) { $learningFastWakeThreshold = 1 }
+if ($learningElevatedFreeMemoryMB -lt 512) { $learningElevatedFreeMemoryMB = 512.0 }
+if ($learningAggressiveFreeMemoryMB -lt 256) { $learningAggressiveFreeMemoryMB = 256.0 }
 if ($deepNapMinimumMB -lt 1) { $deepNapMinimumMB = 1.0 }
 if ($balancedNapMinimumMB -lt 1) { $balancedNapMinimumMB = 1.0 }
 if ($deepNapMaxCpuPercent -lt 0) { $deepNapMaxCpuPercent = 0.0 }
@@ -163,6 +181,10 @@ $systemNames = New-Object "System.Collections.Generic.HashSet[string]" ([System.
 $realtimeFriendlyNames = New-Object "System.Collections.Generic.HashSet[string]" ([System.StringComparer]::OrdinalIgnoreCase)
 $realtimeFriendlySource = if ($realtimeFriendlyConfigured -ne $null) { $realtimeFriendlyConfigured } else { $realtimeFriendlyDefaults }
 @($realtimeFriendlySource) | Where-Object { $_ } | ForEach-Object { [void]$realtimeFriendlyNames.Add([string]$_) }
+
+$script:learningMap = @{}
+$script:currentMemoryPressure = [pscustomobject]@{ Level = "Unknown"; FreeMB = -1.0; UsedPercent = -1.0 }
+$script:currentLearningSession = [pscustomobject]@{ Name = ""; Kind = "Desktop"; Pressure = "Unknown" }
 
 $memoryPriorityMap = @{
     VeryLow = 1
@@ -593,6 +615,259 @@ function Write-StateArray {
     $state | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $Path -Encoding UTF8
 }
 
+function Get-LearningKeyFromText {
+    param(
+        [string]$ProcessName,
+        [string]$Path
+    )
+
+    if ($Path) {
+        return ("path:" + $Path.ToLowerInvariant())
+    }
+    if ($ProcessName) {
+        return ("name:" + $ProcessName.ToLowerInvariant())
+    }
+    return ""
+}
+
+function Read-LearningMap {
+    $map = @{}
+    if (-not $smartLearning) { return $map }
+
+    foreach ($item in @(Read-StateArray -Path $learningStatePath)) {
+        if (-not $item.Key) { continue }
+        $key = [string]$item.Key
+        $map[$key] = [pscustomobject]@{
+            Key = $key
+            ProcessName = [string]$item.ProcessName
+            Path = [string]$item.Path
+            Observations = [int]$item.Observations
+            WakeCount = [int]$item.WakeCount
+            PressureHitCount = [int]$item.PressureHitCount
+            TrimOkCount = [int]$item.TrimOkCount
+            CooldownCount = [int]$item.CooldownCount
+            DeepCount = [int]$item.DeepCount
+            BalancedCount = [int]$item.BalancedCount
+            LightCount = [int]$item.LightCount
+            AvgWorkingSetMB = [double]$item.AvgWorkingSetMB
+            AvgCpuPercent = [double]$item.AvgCpuPercent
+            AvgDeltaMB = [double]$item.AvgDeltaMB
+            AvgBurstCount = [double]$item.AvgBurstCount
+            Aggression = [int]$item.Aggression
+            PreferredTier = [string]$item.PreferredTier
+            FastWake = [bool]$item.FastWake
+            LastReason = [string]$item.LastReason
+            LastSession = [string]$item.LastSession
+            LastSeen = [string]$item.LastSeen
+            LastWakeAt = [string]$item.LastWakeAt
+        }
+    }
+    return $map
+}
+
+function Save-LearningMap {
+    param([hashtable]$Map)
+
+    if (-not $smartLearning) { return }
+    $items = @($Map.Values |
+        Sort-Object @{ Expression = { if ($_.LastSeen) { [string]$_.LastSeen } else { "" } }; Descending = $true } |
+        Select-Object -First $learningMaxProfiles)
+    Write-StateArray -Path $learningStatePath -Items $items
+}
+
+function New-LearningProfile {
+    param(
+        [string]$Key,
+        [string]$ProcessName,
+        [string]$Path
+    )
+
+    [pscustomobject]@{
+        Key = $Key
+        ProcessName = $ProcessName
+        Path = $Path
+        Observations = 0
+        WakeCount = 0
+        PressureHitCount = 0
+        TrimOkCount = 0
+        CooldownCount = 0
+        DeepCount = 0
+        BalancedCount = 0
+        LightCount = 0
+        AvgWorkingSetMB = 0.0
+        AvgCpuPercent = 0.0
+        AvgDeltaMB = 0.0
+        AvgBurstCount = 0.0
+        Aggression = 0
+        PreferredTier = "Balanced"
+        FastWake = $false
+        LastReason = "new"
+        LastSession = ""
+        LastSeen = (Get-Date).ToString("o")
+        LastWakeAt = ""
+    }
+}
+
+function Update-LearningAverage {
+    param(
+        [double]$OldValue,
+        [double]$NewValue,
+        [int]$ObservationCount
+    )
+
+    if ($ObservationCount -le 1) { return [math]::Round($NewValue, 2) }
+    return [math]::Round(($OldValue * 0.72) + ($NewValue * 0.28), 2)
+}
+
+function Get-SystemMemoryPressure {
+    $totalMB = -1.0
+    $freeMB = -1.0
+    try {
+        $os = Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop
+        $totalMB = [double]$os.TotalVisibleMemorySize / 1024.0
+        $freeMB = [double]$os.FreePhysicalMemory / 1024.0
+    } catch {
+        try {
+            Add-Type -AssemblyName Microsoft.VisualBasic -ErrorAction Stop
+            $info = [Microsoft.VisualBasic.Devices.ComputerInfo]::new()
+            $totalMB = [double]$info.TotalPhysicalMemory / 1MB
+            $freeMB = [double]$info.AvailablePhysicalMemory / 1MB
+        } catch {
+            return [pscustomobject]@{ Level = "Unknown"; FreeMB = -1.0; UsedPercent = -1.0 }
+        }
+    }
+
+    $usedPercent = if ($totalMB -gt 0) { (($totalMB - $freeMB) / $totalMB) * 100.0 } else { -1.0 }
+    $level = "Normal"
+    if ($freeMB -le $learningAggressiveFreeMemoryMB -or $usedPercent -ge 88.0) {
+        $level = "Critical"
+    } elseif ($freeMB -le $learningElevatedFreeMemoryMB -or $usedPercent -ge 78.0) {
+        $level = "Elevated"
+    }
+    return [pscustomobject]@{
+        Level = $level
+        FreeMB = [math]::Round($freeMB, 1)
+        UsedPercent = [math]::Round($usedPercent, 1)
+    }
+}
+
+function Get-LearningSessionContext {
+    param(
+        [object]$Foreground,
+        [object]$Pressure
+    )
+
+    $name = ""
+    $kind = "Desktop"
+    if ($Foreground -and $Foreground.ProcessName) {
+        $name = [string]$Foreground.ProcessName
+        if ([bool]$Foreground.IsFullscreen) {
+            $kind = "Fullscreen"
+        }
+    }
+    if ($Pressure -and ([string]$Pressure.Level -in @("Elevated", "Critical"))) {
+        if ($kind -eq "Desktop") { $kind = "MemoryPressure" }
+    }
+    return [pscustomobject]@{
+        Name = $name
+        Kind = $kind
+        Pressure = if ($Pressure) { [string]$Pressure.Level } else { "Unknown" }
+    }
+}
+
+function Resolve-LearningPreference {
+    param([object]$Profile)
+
+    if (-not $Profile) { return "Balanced" }
+    $fastWake = [bool]$Profile.FastWake -or ([int]$Profile.WakeCount -ge $learningFastWakeThreshold)
+    if ($fastWake) { return "Light" }
+    if ([int]$Profile.Observations -lt $learningMinObservations) { return "Balanced" }
+
+    $aggression = 0
+    if ([double]$Profile.AvgWorkingSetMB -ge $balancedNapMinimumMB) { $aggression = 1 }
+    if ([double]$Profile.AvgWorkingSetMB -ge $deepNapMinimumMB -and [double]$Profile.AvgCpuPercent -le [math]::Max(1.0, $deepNapMaxCpuPercent) -and [double]$Profile.AvgDeltaMB -ge 10.0) { $aggression = 2 }
+    if ([double]$Profile.AvgWorkingSetMB -ge 420.0 -and [double]$Profile.AvgCpuPercent -le 0.6 -and [int]$Profile.PressureHitCount -gt 0) { $aggression = 3 }
+
+    $Profile.Aggression = $aggression
+    if ($aggression -ge 2) { return "Deep" }
+    if ($aggression -eq 1) { return "Balanced" }
+    return "Light"
+}
+
+function Update-LearningProfiles {
+    param([array]$Results)
+
+    if (-not $smartLearning) { return }
+    $pressureLevel = [string]$script:currentMemoryPressure.Level
+    foreach ($result in @($Results)) {
+        $key = Get-LearningKeyFromText -ProcessName ([string]$result.ProcessName) -Path ([string]$result.Path)
+        if (-not $key) { continue }
+        $profile = $null
+        if ($script:learningMap.ContainsKey($key)) {
+            $profile = $script:learningMap[$key]
+        } else {
+            $profile = New-LearningProfile -Key $key -ProcessName ([string]$result.ProcessName) -Path ([string]$result.Path)
+        }
+
+        $profile.ProcessName = [string]$result.ProcessName
+        $profile.Path = [string]$result.Path
+        $profile.Observations = [int]$profile.Observations + 1
+        $profile.AvgWorkingSetMB = Update-LearningAverage -OldValue ([double]$profile.AvgWorkingSetMB) -NewValue ([double]$result.WorkingSetBeforeMB) -ObservationCount ([int]$profile.Observations)
+        $profile.AvgCpuPercent = Update-LearningAverage -OldValue ([double]$profile.AvgCpuPercent) -NewValue ([double]$result.CpuPercent) -ObservationCount ([int]$profile.Observations)
+        $deltaForLearning = 0.0
+        if ($result.WorkingSetBeforeMB -ne $null -and $result.WorkingSetAfterMB -ne $null) {
+            $deltaForLearning = [double]$result.WorkingSetBeforeMB - [double]$result.WorkingSetAfterMB
+            if ($deltaForLearning -lt 0) { $deltaForLearning = 0.0 }
+        }
+        $profile.AvgDeltaMB = Update-LearningAverage -OldValue ([double]$profile.AvgDeltaMB) -NewValue $deltaForLearning -ObservationCount ([int]$profile.Observations)
+        if ([double]$profile.AvgDeltaMB -lt 0) { $profile.AvgDeltaMB = 0.0 }
+        $profile.AvgBurstCount = Update-LearningAverage -OldValue ([double]$profile.AvgBurstCount) -NewValue ([double]$result.BurstCount) -ObservationCount ([int]$profile.Observations)
+
+        if ([string]$result.TrimWorkingSet -eq "OK") { $profile.TrimOkCount = [int]$profile.TrimOkCount + 1 }
+        if ([string]$result.TrimWorkingSet -eq "Cooldown") { $profile.CooldownCount = [int]$profile.CooldownCount + 1 }
+        if ([string]$result.NapTier -eq "Deep") { $profile.DeepCount = [int]$profile.DeepCount + 1 }
+        if ([string]$result.NapTier -eq "Balanced") { $profile.BalancedCount = [int]$profile.BalancedCount + 1 }
+        if ([string]$result.NapTier -eq "Light") { $profile.LightCount = [int]$profile.LightCount + 1 }
+        if ($pressureLevel -in @("Elevated", "Critical")) { $profile.PressureHitCount = [int]$profile.PressureHitCount + 1 }
+
+        $profile.FastWake = ([int]$profile.WakeCount -ge $learningFastWakeThreshold)
+        $profile.PreferredTier = Resolve-LearningPreference -Profile $profile
+        $profile.LastReason = [string]$result.Decision
+        $profile.LastSession = if ($script:currentLearningSession.Name) { ([string]$script:currentLearningSession.Kind + ":" + [string]$script:currentLearningSession.Name) } else { [string]$script:currentLearningSession.Kind }
+        $profile.LastSeen = (Get-Date).ToString("o")
+        $script:learningMap[$key] = $profile
+    }
+    Save-LearningMap -Map $script:learningMap
+}
+
+function Add-LearningWake {
+    param(
+        [System.Diagnostics.Process]$Process,
+        [string]$Path
+    )
+
+    if (-not $smartLearning -or -not $Process) { return }
+    $key = Get-LearningKeyFromText -ProcessName $Process.ProcessName -Path $Path
+    if (-not $key) { return }
+    $profile = $null
+    if ($script:learningMap.ContainsKey($key)) {
+        $profile = $script:learningMap[$key]
+    } else {
+        $profile = New-LearningProfile -Key $key -ProcessName $Process.ProcessName -Path $Path
+    }
+    $profile.WakeCount = [int]$profile.WakeCount + 1
+    $profile.FastWake = ([int]$profile.WakeCount -ge $learningFastWakeThreshold)
+    if ($profile.FastWake) {
+        $profile.PreferredTier = "Light"
+        $profile.Aggression = 0
+        $profile.LastReason = "learned-fast-wake"
+    }
+    $profile.LastWakeAt = (Get-Date).ToString("o")
+    $profile.LastSeen = (Get-Date).ToString("o")
+    $script:learningMap[$key] = $profile
+    Save-LearningMap -Map $script:learningMap
+}
+
 function Read-TemporaryProtectMap {
     $map = @{}
     $now = Get-Date
@@ -798,6 +1073,13 @@ function Get-CandidateWeight {
     if ($realtimeFriendlyNames.Contains([string]$Row.ProcessName)) {
         $weight *= 0.62
     }
+    if ($smartLearning -and [int]$Row.LearningObservations -ge $learningMinObservations) {
+        if ([bool]$Row.LearningFastWake) {
+            $weight *= 0.48
+        } elseif (([string]$script:currentMemoryPressure.Level -in @("Elevated", "Critical")) -and [int]$Row.LearningAggression -gt 0) {
+            $weight *= (1.0 + ([int]$Row.LearningAggression * 0.18))
+        }
+    }
     if ([bool]$Row.ForegroundFullscreen) {
         $weight *= 1.15
     }
@@ -821,6 +1103,15 @@ function Get-NapPolicy {
     } elseif ($realtimeFriendlyNames.Contains([string]$Row.ProcessName)) {
         $tier = "Light"
         $reason = "realtime-friendly"
+    } elseif ($smartLearning -and [int]$Row.LearningObservations -ge $learningMinObservations -and [bool]$Row.LearningFastWake) {
+        $tier = "Light"
+        $reason = "learned-fast-wake"
+    } elseif ($smartLearning -and [int]$Row.LearningObservations -ge $learningMinObservations -and [int]$Row.LearningAggression -ge 2 -and ([string]$script:currentMemoryPressure.Level -in @("Elevated", "Critical")) -and [double]$Row.CpuPercent -le [math]::Max(1.0, $deepCpuLimit)) {
+        $tier = "Deep"
+        $reason = "learned-memory-pressure"
+    } elseif ($smartLearning -and [int]$Row.LearningObservations -ge $learningMinObservations -and [string]$Row.LearningPreferredTier -eq "Balanced" -and [double]$Row.WorkingSetMB -ge $balancedNapMinimumMB) {
+        $tier = "Balanced"
+        $reason = "learned-steady-background"
     } elseif ([double]$Row.WorkingSetMB -ge $deepMinimum -and [double]$Row.CpuPercent -le $deepCpuLimit -and [int]$Row.BurstCount -eq 0) {
         $tier = "Deep"
         $reason = if ([bool]$Row.ForegroundFullscreen) { "fullscreen-idle-heavy" } else { "idle-heavy" }
@@ -842,6 +1133,7 @@ function Get-NapPolicy {
         MemoryPriority = [int]$napTierMemory[$tier]
         IoPriority = [int]$napTierIo[$tier]
         TrimMinimumMB = [double]$napTierTrimMinimum[$tier]
+        LearningSummary = if ($smartLearning -and [int]$Row.LearningObservations -gt 0) { "L " + [string]$Row.LearningPreferredTier } else { "" }
     }
 }
 
@@ -910,6 +1202,9 @@ function Get-ProcessCpuPercentMap {
 
 function Get-BackgroundProcessRows {
     $foreground = Get-ForegroundInfo
+    if ($smartLearning) {
+        $script:currentLearningSession = Get-LearningSessionContext -Foreground $foreground -Pressure $script:currentMemoryPressure
+    }
     $effectiveHighCpuThreshold = $highCpuThreshold
     $effectiveTrimMinimumMB = $trimMinimumMB
     if ($smartFullscreenAware -and $foreground.IsFullscreen) {
@@ -950,6 +1245,13 @@ function Get-BackgroundProcessRows {
 
         $burstCount = if ($path) { Get-BurstCount -Map $burstMap -Process $p -Path $path } else { 0 }
         $skip = Get-SkipReason -Process $p -Foreground $foreground -CpuPercent $cpuPercent -ProtectMap $protectMap -CpuProtectThreshold $effectiveHighCpuThreshold
+        $learningProfile = $null
+        if ($smartLearning) {
+            $learningKey = Get-LearningKeyFromText -ProcessName $p.ProcessName -Path $path
+            if ($learningKey -and $script:learningMap.ContainsKey($learningKey)) {
+                $learningProfile = $script:learningMap[$learningKey]
+            }
+        }
         $rows += [pscustomobject]@{
             Id = $p.Id
             ProcessName = $p.ProcessName
@@ -965,6 +1267,11 @@ function Get-BackgroundProcessRows {
             EffectiveTrimMinimumMB = $effectiveTrimMinimumMB
             SessionId = $p.SessionId
             Path = $path
+            LearningObservations = if ($learningProfile) { [int]$learningProfile.Observations } else { 0 }
+            LearningWakeCount = if ($learningProfile) { [int]$learningProfile.WakeCount } else { 0 }
+            LearningFastWake = if ($learningProfile) { [bool]$learningProfile.FastWake } else { $false }
+            LearningPreferredTier = if ($learningProfile -and $learningProfile.PreferredTier) { [string]$learningProfile.PreferredTier } else { "" }
+            LearningAggression = if ($learningProfile) { [int]$learningProfile.Aggression } else { 0 }
         }
     }
 
@@ -1027,7 +1334,11 @@ function Write-ApplySummaryLog {
     $fullscreen = @($Results | Where-Object { $_.ForegroundFullscreen } | Select-Object -First 1).Count -gt 0
     $top = @($Results | Sort-Object NapScore -Descending | Select-Object -First 1)
     $topText = if ($top.Count -gt 0 -and $top[0].ProcessName) { " top=$($top[0].ProcessName) score=$($top[0].NapScore)" } else { "" }
-    $line = "{0} action=apply targets={1} beforeMB={2} afterMB={3} deltaMB={4} light={5} balanced={6} deep={7} trimmed={8} cooldown={9} fullscreen={10}{11}" -f (Get-Date).ToString("s"), $count, ([math]::Round($before, 1)), ([math]::Round($after, 1)), ([math]::Round($delta, 1)), $light, $balanced, $deep, $trimmed, $cooldown, ([string]$fullscreen).ToLowerInvariant(), $topText
+    $learningText = ""
+    if ($smartLearning) {
+        $learningText = " learning=on profiles={0} pressure={1} freeMB={2}" -f $script:learningMap.Count, ([string]$script:currentMemoryPressure.Level), ([math]::Round([double]$script:currentMemoryPressure.FreeMB, 0))
+    }
+    $line = "{0} action=apply targets={1} beforeMB={2} afterMB={3} deltaMB={4} light={5} balanced={6} deep={7} trimmed={8} cooldown={9} fullscreen={10}{11}{12}" -f (Get-Date).ToString("s"), $count, ([math]::Round($before, 1)), ([math]::Round($after, 1)), ([math]::Round($delta, 1)), $light, $balanced, $deep, $trimmed, $cooldown, ([string]$fullscreen).ToLowerInvariant(), $topText, $learningText
     Add-Content -LiteralPath $LogPath -Value $line -Encoding UTF8
 }
 
@@ -1057,6 +1368,11 @@ function Write-NapScore {
             TrimWorkingSet = $_.TrimWorkingSet
             NapTier = $_.NapTier
             Decision = $_.Decision
+            Learning = $_.Learning
+            LearningObservations = $_.LearningObservations
+            LearningWakeCount = $_.LearningWakeCount
+            LearningAggression = $_.LearningAggression
+            LearningPressure = $_.LearningPressure
             ForegroundFullscreen = $_.ForegroundFullscreen
             Path = $_.Path
         }
@@ -1064,12 +1380,21 @@ function Write-NapScore {
 
     [pscustomobject]@{
         Timestamp = (Get-Date).ToString("o")
+        LearningEnabled = [bool]$smartLearning
+        LearningProfiles = if ($smartLearning) { [int]$script:learningMap.Count } else { 0 }
+        MemoryPressure = [string]$script:currentMemoryPressure.Level
+        FreeMemoryMB = [double]$script:currentMemoryPressure.FreeMB
         Items = $items
     } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $scorePath -Encoding UTF8
 }
 
 function Invoke-ApplyOnce {
     param([bool]$SaveState = $true)
+
+    if ($smartLearning) {
+        $script:learningMap = Read-LearningMap
+        $script:currentMemoryPressure = Get-SystemMemoryPressure
+    }
 
     $rows = @(Get-BackgroundProcessRows)
     $targets = @($rows |
@@ -1142,6 +1467,11 @@ function Invoke-ApplyOnce {
             ProcessName = $row.ProcessName
             NapTier = $policy.Tier
             Decision = $policy.Reason
+            Learning = $policy.LearningSummary
+            LearningObservations = $row.LearningObservations
+            LearningWakeCount = $row.LearningWakeCount
+            LearningAggression = $row.LearningAggression
+            LearningPressure = [string]$script:currentMemoryPressure.Level
             Priority = $priorityStatus
             MemoryPriority = $memoryStatus
             IoPriority = $ioStatus
@@ -1302,6 +1632,15 @@ function Invoke-ForegroundRestore {
 
     $line = "{0} action=foreground-restore pid={1} process={2} priority={3} io={4}" -f (Get-Date).ToString("s"), $p.Id, $p.ProcessName, $priorityStatus, $ioStatus
     Add-Content -LiteralPath $LogPath -Value $line -Encoding UTF8
+    if ($smartLearning) {
+        Add-LearningWake -Process $p -Path $path
+        $wakeProfile = $null
+        $wakeKey = Get-LearningKeyFromText -ProcessName $p.ProcessName -Path $path
+        if ($wakeKey -and $script:learningMap.ContainsKey($wakeKey)) { $wakeProfile = $script:learningMap[$wakeKey] }
+        $wakeCount = if ($wakeProfile) { [int]$wakeProfile.WakeCount } else { 0 }
+        $learnLine = "{0} action=learning event=wake process={1} wakes={2} fastWake={3}" -f (Get-Date).ToString("s"), $p.ProcessName, $wakeCount, ([string]($wakeCount -ge $learningFastWakeThreshold)).ToLowerInvariant()
+        Add-Content -LiteralPath $LogPath -Value $learnLine -Encoding UTF8
+    }
 
     [pscustomobject]@{
         Action = "ForegroundRestore"
@@ -1317,6 +1656,11 @@ function Invoke-ForegroundRestore {
     }
 }
 
+if ($smartLearning) {
+    $script:learningMap = Read-LearningMap
+    $script:currentMemoryPressure = Get-SystemMemoryPressure
+}
+
 switch ($Action) {
     "Status" {
         Get-BackgroundProcessRows |
@@ -1325,6 +1669,7 @@ switch ($Action) {
     }
     "Apply" {
         $results = @(Invoke-ApplyOnce -SaveState:($StateMode -ne "None"))
+        Update-LearningProfiles -Results $results
         Write-ApplySummaryLog -Results $results
         Write-NapScore -Results $results
         if (-not $Quiet) {

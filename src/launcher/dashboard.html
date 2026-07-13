@@ -45,6 +45,7 @@ button{font:inherit}
 .headline{max-width:740px;margin:5px 0 0;font-size:clamp(30px,2.2vw,42px);line-height:1.02;font-weight:900}
 .subline{margin:8px 0 0;color:#a9b8ca;font-size:13px}
 .featureGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-width:760px}.feature{border:1px solid #233650;border-radius:12px;background:rgba(9,18,31,.72);padding:12px;min-width:0}.feature small{display:block;color:#71839b;font-size:10px;font-weight:900;text-transform:uppercase}.feature b{display:block;margin-top:5px;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.feature p{margin:5px 0 0;color:#8ea0b8;font-size:11px;line-height:1.35}
+.learningStrip{max-width:760px;border:1px solid rgba(154,114,255,.36);border-radius:14px;background:linear-gradient(135deg,rgba(154,114,255,.15),rgba(75,147,255,.08));padding:12px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center}.learningStrip small{display:block;color:#a88fff;font-size:10px;font-weight:950;text-transform:uppercase}.learningStrip b{display:block;margin-top:4px;font-size:15px}.learningStrip p{margin:4px 0 0;color:#a9b8ca;font-size:11px;line-height:1.35}.learningToggle{height:40px;min-width:132px;border-radius:999px;border:1px solid rgba(154,114,255,.5);background:#111b2d;color:#d7ccff;font-size:12px;font-weight:950;cursor:pointer}.learningToggle.on{border-color:rgba(46,225,132,.5);background:rgba(46,225,132,.15);color:var(--green)}
 .chipRow{display:flex;gap:8px;flex-wrap:wrap}
 .chip{height:28px;border-radius:8px;padding:0 10px;display:inline-flex;align-items:center;border:1px solid #263b57;background:#101d30;color:#d9e5f4;font-size:11px;font-weight:900}
 .chip.cpu{color:#7db3ff}.chip.ram{color:var(--amber)}.chip.eco{color:var(--green)}.chip.wake{color:var(--violet)}
@@ -61,11 +62,12 @@ button{font:inherit}
 .bar{height:5px;border:1px solid #435a78;background:#152338;overflow:hidden}.bar i{display:block;height:100%;width:0;background:var(--amber)}.busy .bar i{width:100%;animation:slide 1s linear infinite;background:linear-gradient(90deg,var(--amber),var(--green),var(--blue))}
 @keyframes slide{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
 .actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.btn{height:38px;border-radius:9px;border:1px solid #314967;background:#132238;color:#f4f8ff;font-size:13px;font-weight:900;cursor:pointer;transition:120ms ease;white-space:nowrap;padding:0 10px;min-width:0;overflow:hidden;text-overflow:ellipsis}.btn:hover{filter:brightness(1.08);transform:translateY(-1px)}.btn.primary{grid-column:1/-1;background:linear-gradient(180deg,#ffb13a,#ff9f21);border-color:#ffb13a;color:#121212}.btn.danger{background:linear-gradient(180deg,#ff6674,#eb3f51);border-color:#ff6674;color:#fff}
-.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.card{min-height:86px;border:1px solid #263a55;border-radius:12px;background:linear-gradient(145deg,#101d30,#0a1422);padding:13px;position:relative;overflow:hidden}.card:before{content:"";position:absolute;inset:0 auto auto 0;width:100%;height:3px;background:var(--blue)}.card:nth-child(2):before{background:var(--green)}.card:nth-child(3):before{background:var(--amber)}.card:nth-child(4):before{background:var(--violet)}.card small{display:block;color:#8ea0b8;font-size:11px;font-weight:800}.card b{display:block;margin-top:8px;font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cards{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}.card{min-height:86px;border:1px solid #263a55;border-radius:12px;background:linear-gradient(145deg,#101d30,#0a1422);padding:13px;position:relative;overflow:hidden}.card:before{content:"";position:absolute;inset:0 auto auto 0;width:100%;height:3px;background:var(--blue)}.card:nth-child(2):before{background:var(--green)}.card:nth-child(3):before{background:var(--amber)}.card:nth-child(4):before{background:var(--violet)}.card:nth-child(5):before{background:var(--green)}.card small{display:block;color:#8ea0b8;font-size:11px;font-weight:800}.card b{display:block;margin-top:8px;font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .manager{min-height:0;padding:14px;display:grid;grid-template-rows:auto minmax(0,1fr);gap:10px}.panelTitle{display:flex;align-items:center;justify-content:space-between;gap:12px}.panelTitle h3{margin:0;font-size:18px}.panelTitle span{color:#71839b;font-size:11px;font-weight:800}
 .table{min-height:0;display:grid;grid-template-rows:30px minmax(0,1fr);border:1px solid #1d3048;border-radius:10px;overflow:hidden}.thead,.row{display:grid;grid-template-columns:2fr .6fr .85fr .6fr .6fr 3.35fr;align-items:center}.thead{background:#14243a;color:#9fb0c6;font-size:11px;font-weight:900}.row{min-height:32px;border-top:1px solid #1b2d44;background:#0b1524;color:#dde9f8;font-size:11px}.row:nth-child(even){background:#0e192a}.row span{padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#rows{min-height:0;overflow:auto;scrollbar-color:#2e4565 #09111e;scrollbar-width:thin}.actionsCell{display:flex;align-items:center;gap:4px;padding:0 8px!important;overflow:hidden}
 .badge{display:inline-flex;align-items:center;height:20px;border-radius:6px;border:1px solid #2b405e;background:#111f33;color:#cfe0f5;padding:0 6px;font-size:9px;font-weight:950;flex:0 0 auto}.badge.ok{border-color:#176649;background:#0c3225;color:var(--green)}.badge.cool{border-color:#6b5223;background:#2a2113;color:var(--amber)}.badge.skip{border-color:#40536d;color:#8fa1ba}.badge.deep{border-color:#8d5a18;background:#2b1d10;color:var(--amber)}.badge.balanced{border-color:#1a5d86;background:#0d263b;color:#58b9ff}.badge.light{border-color:#355178;background:#111f33;color:#b8c8dc}.goodtxt{color:var(--green);font-weight:900}.amber{color:var(--amber)}
 .sidePanel{padding:14px;min-height:0;display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:12px}.focusBox{display:grid;grid-template-columns:1fr;gap:8px}.focusLine{border:1px solid #223650;border-radius:10px;background:#0a1728;padding:11px}.focusLine small{display:block;color:#71839b;font-size:10px;font-weight:900;text-transform:uppercase}.focusLine b{display:block;margin-top:4px;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.permissionBox{display:none;border:1px solid rgba(255,166,41,.42);border-radius:12px;background:linear-gradient(145deg,rgba(255,166,41,.14),rgba(12,23,38,.92));padding:12px}.permissionBox.show{display:grid;gap:8px}.permissionBox small{display:block;color:var(--amber);font-size:10px;font-weight:950;text-transform:uppercase}.permissionBox b{display:block;font-size:15px}.permissionBox p{margin:0;color:#afbfd2;font-size:11px;line-height:1.4}.permissionBox .btn{height:36px}
 .timeline{min-height:0;border:1px solid #1d3048;border-radius:10px;background:#08111d;padding:8px;overflow:auto;scrollbar-color:#2e4565 #09111e;scrollbar-width:thin}.eventLine{display:grid;grid-template-columns:58px minmax(0,1fr);gap:8px;border-bottom:1px solid rgba(255,255,255,.05);padding:7px 2px;color:#dce8f8;font-family:Consolas,monospace;font-size:11px;line-height:1.35}.eventLine:last-child{border-bottom:0}.eventLine time{color:var(--amber);font-weight:900}.eventLine span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .feedbox{display:none}.status{display:none}.footer{display:none}
 .languageOverlay{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(1,5,10,.72);backdrop-filter:blur(14px)}
@@ -73,6 +75,10 @@ button{font:inherit}
 .languagePanel{width:min(720px,calc(100vw - 48px));border:1px solid rgba(75,147,255,.34);border-radius:18px;background:radial-gradient(circle at 20% 0%,rgba(255,166,41,.18),transparent 34%),linear-gradient(145deg,#101b2c,#08111e);box-shadow:0 28px 80px rgba(0,0,0,.5);padding:22px}
 .languagePanel h2{margin:0;font-size:28px}.languagePanel p{margin:8px 0 18px;color:#a9b8ca;font-size:13px;line-height:1.45}
 .languageGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.locale{min-height:74px;border-radius:12px;border:1px solid #2a405f;background:#0b1728;color:var(--text);padding:12px;text-align:left;cursor:pointer}.locale:hover,.locale.active{border-color:var(--amber);background:rgba(255,166,41,.12)}.locale b{display:block;font-size:15px}.locale span{display:block;margin-top:5px;color:#8fa1b8;font-size:11px;line-height:1.35}
+.infoOverlay{position:fixed;inset:0;z-index:21;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(1,5,10,.66);backdrop-filter:blur(12px)}
+.infoOverlay.open{display:flex}
+.infoPanel{width:min(560px,calc(100vw - 48px));border:1px solid rgba(154,114,255,.42);border-radius:18px;background:radial-gradient(circle at 15% 0%,rgba(154,114,255,.20),transparent 38%),linear-gradient(145deg,#101b2c,#08111e);box-shadow:0 28px 80px rgba(0,0,0,.52);padding:20px}
+.infoPanel h2{margin:0;font-size:24px}.infoPanel p{margin:8px 0 14px;color:#a9b8ca;font-size:13px;line-height:1.45}.infoList{display:grid;gap:8px;margin:0 0 16px;padding:0;list-style:none}.infoList li{border:1px solid #223650;border-radius:11px;background:#0a1728;padding:10px;color:#dbe7f6;font-size:12px;line-height:1.35}.infoActions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.infoActions .btn{height:40px}
 @media(max-width:1280px){.dashboard{grid-template-columns:1fr}.rightCol{grid-template-rows:minmax(320px,420px)}.command{grid-template-columns:minmax(0,1fr) minmax(340px,380px)}}
 @media(max-width:900px){.app{grid-template-columns:64px minmax(0,1fr)}.rail{padding-top:12px}.nav{width:42px;height:42px}.brandMark{width:42px;height:42px}.workspace{padding:14px}.topbar{height:auto;align-items:flex-start;flex-direction:column}.statusBar{justify-content:flex-start}.command{grid-template-columns:1fr}.featureGrid,.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard{grid-template-columns:1fr}.headline{font-size:30px}.languageGrid{grid-template-columns:1fr}}
 </style>
@@ -115,6 +121,10 @@ button{font:inherit}
                 <div class="feature"><small data-i18n="feature2K">Memory</small><b data-i18n="feature2T">Adaptive trim</b><p data-i18n="feature2D">Reduz sobra de RAM com cooldown para evitar agressividade.</p></div>
                 <div class="feature"><small data-i18n="feature3K">Scheduler</small><b data-i18n="feature3T">Tiered nap</b><p data-i18n="feature3D">Light, Balanced e Deep conforme uso real do processo.</p></div>
               </div>
+              <div class="learningStrip" onclick="openLearningInfo()">
+                <div><small data-i18n="learningK">Optional power</small><b data-i18n="learningT">Smart Learning</b><p id="learningDetail" data-i18n="learningD">Learns your sessions locally and adapts nap strength when memory pressure rises.</p></div>
+                <button class="learningToggle" id="learningToggle" onclick="openLearningInfo();event.stopPropagation()">Enable</button>
+              </div>
               <div class="chipRow">
                 <span class="chip cpu" data-i18n="chipCpu">CPU priority</span><span class="chip ram" data-i18n="chipRam">RAM trim</span><span class="chip eco">EcoQoS</span><span class="chip wake" data-i18n="chipWake">Fast wake</span>
               </div>
@@ -138,6 +148,7 @@ button{font:inherit}
           <section class="cards">
             <div class="card"><small data-i18n="autoMode">Auto mode</small><b id="autoCard">-</b></div>
             <div class="card"><small data-i18n="startup">Startup</small><b id="startupCard">-</b></div>
+            <div class="card"><small data-i18n="smartLearning">Smart Learning</small><b id="learningCard">-</b></div>
             <div class="card"><small data-i18n="lastEvent">Last event</small><b id="lastCard">-</b></div>
             <div class="card"><small data-i18n="lastResult">Last result</small><b id="resultCard">-</b></div>
           </section>
@@ -155,6 +166,13 @@ button{font:inherit}
             <div class="focusBox">
               <div class="focusLine"><small data-i18n="topManaged">Top managed app</small><b id="engineTop">-</b></div>
               <div class="focusLine"><small data-i18n="reclaimedMemory">Reclaimed memory</small><b id="reclaimedValue">0 MB</b></div>
+              <div class="focusLine"><small data-i18n="learnedProfiles">Learned profiles</small><b id="learnedProfiles">0</b></div>
+              <div class="focusLine"><small data-i18n="memoryPressure">Memory pressure</small><b id="memoryPressure">-</b></div>
+            </div>
+            <div class="permissionBox" id="permissionBox">
+              <div><small data-i18n="permissionK">Permission guard</small><b data-i18n="permissionT">Some apps refused changes</b></div>
+              <p id="permissionText">Run an administrator pass to try again.</p>
+              <button class="btn primary" id="adminButton" onclick="openAdminInfo()">Request admin pass</button>
             </div>
             <div class="timeline" id="events"></div>
           </section>
@@ -178,6 +196,37 @@ button{font:inherit}
     </div>
   </div>
 </div>
+<div class="infoOverlay" id="learningOverlay" role="dialog" aria-modal="true">
+  <div class="infoPanel">
+    <h2 data-i18n="learningModalTitle">Smart Learning</h2>
+    <p data-i18n="learningModalBody">This optional mode learns how your apps behave and adapts future nap passes without sending data anywhere.</p>
+    <ul class="infoList">
+      <li data-i18n="learningModalLocal">Profiles stay local on this PC and are based on process name/path, memory use, CPU bursts, and wake events.</li>
+      <li data-i18n="learningModalWake">Apps you switch back to often get a lighter Fast Wake profile, so Discord, browsers, and tools wake faster.</li>
+      <li data-i18n="learningModalPressure">When memory pressure rises, heavy idle background apps can receive a stronger nap automatically.</li>
+      <li data-i18n="learningModalSafe">It does not kill apps, change drivers, change power plans, or upload telemetry.</li>
+    </ul>
+    <div class="infoActions">
+      <button class="btn" data-i18n="cancel" onclick="closeLearningInfo()">Cancel</button>
+      <button class="btn primary" id="learningConfirm" onclick="confirmLearningToggle()">Enable</button>
+    </div>
+  </div>
+</div>
+<div class="infoOverlay" id="adminOverlay" role="dialog" aria-modal="true">
+  <div class="infoPanel">
+    <h2 data-i18n="adminModalTitle">Administrator pass</h2>
+    <p id="adminModalBody" data-i18n="adminModalBody">Some apps refused process changes because Windows requires higher permission. Smart Nap can ask UAC and run one elevated optimization pass.</p>
+    <ul class="infoList">
+      <li data-i18n="adminModalScope">This does not keep Smart Nap permanently elevated. It only runs one administrator pass.</li>
+      <li data-i18n="adminModalNoService">It does not install drivers, services, or change power plans.</li>
+      <li data-i18n="adminModalProtected">Some protected apps can still refuse changes even with administrator permission.</li>
+    </ul>
+    <div class="infoActions">
+      <button class="btn" data-i18n="cancel" onclick="closeAdminInfo()">Cancel</button>
+      <button class="btn primary" id="adminConfirm" onclick="confirmAdminApply()">Open UAC</button>
+    </div>
+  </div>
+</div>
 <script>
 const $ = (id) => document.getElementById(id);
 const LANGS = {
@@ -197,7 +246,21 @@ const LANGS = {
     apps:"apps", noEntries:"Nenhuma entrada gerenciada ainda.", runPass:"Rode um passe para preencher os dados ao vivo.", tracking:"Monitorando {count} entradas recentes",
     noRun:"Nenhum passe ainda", fastWake:"Fast wake", manualWake:"Manual", event:"evento", next:"prox.", noEvent:"sem evento", now:"agora", ago:"atras", paused:"pausado", waiting:"aguardando", dueNow:"agora",
     detailArmed:"Fast wake armado. Apps em segundo plano sao ajustados por nivel.", detailPaused:"Pausado. Rode um passe manual ou retome o motor.",
-    wakeGuard:"wake guard ativo", startupOffDetail:"startup off", working:"Trabalhando em segundo plano..."
+    wakeGuard:"wake guard ativo", startupOffDetail:"startup off", working:"Trabalhando em segundo plano...",
+    learningK:"Poder extra", learningT:"Smart Learning", learningD:"Aprende suas sessoes localmente e ajusta o nap quando a memoria aperta.",
+    smartLearning:"Smart Learning", learnedProfiles:"Perfis aprendidos", memoryPressure:"Pressao de memoria", enableLearning:"Ativar", disableLearning:"Desativar", learningOn:"Ligado", learningOff:"Desligado",
+    learningModalTitle:"Smart Learning", learningModalBody:"Modo opcional que aprende como seus apps se comportam e adapta os proximos passes sem enviar dados para lugar nenhum.",
+    learningModalLocal:"Os perfis ficam neste PC e usam nome/caminho do processo, memoria, bursts de CPU e eventos de wake.",
+    learningModalWake:"Apps que voce traz de volta com frequencia recebem um perfil mais leve de Fast Wake.",
+    learningModalPressure:"Quando a memoria aperta, apps pesados e ociosos em segundo plano podem receber um nap mais forte.",
+    learningModalSafe:"Nao fecha apps, nao mexe em drivers, nao troca plano de energia e nao envia telemetria.",
+    permissionK:"Permissao", permissionT:"Apps recusaram mudancas", permissionBody:"{count} app(s) negaram mudancas: {apps}. Voce pode autorizar um passe como administrador para tentar agir neles.",
+    requestAdmin:"Pedir admin", alreadyElevated:"Ja esta como admin", adminModalTitle:"Passe com administrador", adminModalBody:"Alguns apps recusaram mudancas porque o Windows exige permissao maior. O Smart Nap pode abrir o UAC e rodar um unico passe elevado.",
+    adminModalScope:"Isso nao deixa o Smart Nap permanentemente como administrador. Ele roda apenas um passe elevado.",
+    adminModalNoService:"Nao instala driver, servico, extensao, nem troca plano de energia.",
+    adminModalProtected:"Alguns apps protegidos ainda podem recusar mudancas mesmo com administrador.",
+    openUac:"Abrir UAC",
+    cancel:"Cancelar"
   },
   "en-US": {
     languageName:"English", appTitle:"Smart Nap", appSubtitle:"Background control for gaming and multitasking",
@@ -215,7 +278,21 @@ const LANGS = {
     apps:"apps", noEntries:"No managed entries yet.", runPass:"Run a pass to populate live entries.", tracking:"Tracking {count} latest entries",
     noRun:"No run yet", fastWake:"Fast wake", manualWake:"Manual", event:"event", next:"next", noEvent:"no event", now:"now", ago:"ago", paused:"paused", waiting:"waiting", dueNow:"due now",
     detailArmed:"Foreground wake is armed. Background apps are tuned by tier.", detailPaused:"Paused. Run a manual pass or resume the engine.",
-    wakeGuard:"wake guard active", startupOffDetail:"startup off", working:"Working in the background..."
+    wakeGuard:"wake guard active", startupOffDetail:"startup off", working:"Working in the background...",
+    learningK:"Optional power", learningT:"Smart Learning", learningD:"Learns sessions locally and adapts nap strength when memory pressure rises.",
+    smartLearning:"Smart Learning", learnedProfiles:"Learned profiles", memoryPressure:"Memory pressure", enableLearning:"Enable", disableLearning:"Disable", learningOn:"On", learningOff:"Off",
+    learningModalTitle:"Smart Learning", learningModalBody:"Optional mode that learns how your apps behave and adapts future passes without sending data anywhere.",
+    learningModalLocal:"Profiles stay on this PC and use process name/path, memory use, CPU bursts, and wake events.",
+    learningModalWake:"Apps you switch back to often receive a lighter Fast Wake profile.",
+    learningModalPressure:"When memory gets tight, heavy idle background apps can receive a stronger nap.",
+    learningModalSafe:"It does not close apps, change drivers, switch power plans, or upload telemetry.",
+    permissionK:"Permission", permissionT:"Apps refused changes", permissionBody:"{count} app(s) denied changes: {apps}. You can authorize one administrator pass to try those apps again.",
+    requestAdmin:"Request admin", alreadyElevated:"Already admin", adminModalTitle:"Administrator pass", adminModalBody:"Some apps refused changes because Windows requires higher permission. Smart Nap can open UAC and run one elevated pass.",
+    adminModalScope:"This does not keep Smart Nap permanently elevated. It only runs one administrator pass.",
+    adminModalNoService:"It does not install drivers, services, extensions, or change power plans.",
+    adminModalProtected:"Some protected apps can still refuse changes even with administrator permission.",
+    openUac:"Open UAC",
+    cancel:"Cancel"
   },
   "ru-RU": {
     languageName:"Русский", appTitle:"Smart Nap", appSubtitle:"Контроль фоновых приложений для игр и многозадачности",
@@ -233,7 +310,21 @@ const LANGS = {
     apps:"прил.", noEntries:"Пока нет управляемых записей.", runPass:"Запустите проход, чтобы заполнить живые данные.", tracking:"Отслеживается последних записей: {count}",
     noRun:"Запусков еще нет", fastWake:"Быстро", manualWake:"Ручной", event:"событие", next:"след.", noEvent:"нет событий", now:"сейчас", ago:"назад", paused:"пауза", waiting:"ожидание", dueNow:"сейчас",
     detailArmed:"Быстрое пробуждение включено. Фоновые приложения настраиваются по уровням.", detailPaused:"Пауза. Запустите ручной проход или включите движок.",
-    wakeGuard:"wake guard активен", startupOffDetail:"автозапуск выключен", working:"Работа в фоне..."
+    wakeGuard:"wake guard активен", startupOffDetail:"автозапуск выключен", working:"Работа в фоне...",
+    learningK:"Дополнительная сила", learningT:"Smart Learning", learningD:"Локально изучает сессии и усиливает nap при давлении на память.",
+    smartLearning:"Smart Learning", learnedProfiles:"Изученные профили", memoryPressure:"Давление памяти", enableLearning:"Включить", disableLearning:"Выключить", learningOn:"Вкл", learningOff:"Выкл",
+    learningModalTitle:"Smart Learning", learningModalBody:"Опциональный режим изучает поведение приложений и адаптирует будущие проходы без отправки данных.",
+    learningModalLocal:"Профили остаются на этом ПК и используют имя/путь процесса, память, всплески CPU и события wake.",
+    learningModalWake:"Приложения, к которым вы часто возвращаетесь, получают более легкий профиль Fast Wake.",
+    learningModalPressure:"Когда памяти мало, тяжелые бездействующие фоновые приложения могут получить более сильный nap.",
+    learningModalSafe:"Не закрывает приложения, не меняет драйверы, планы питания и не отправляет телеметрию.",
+    permissionK:"Разрешение", permissionT:"Приложения отказали", permissionBody:"{count} прилож. отказали: {apps}. Можно разрешить один запуск от администратора.",
+    requestAdmin:"Запросить admin", alreadyElevated:"Уже admin", adminModalTitle:"Запуск администратора", adminModalBody:"Некоторые приложения отказали, потому что Windows требует больше прав. Smart Nap может открыть UAC и выполнить один повышенный проход.",
+    adminModalScope:"Smart Nap не останется постоянно повышенным. Будет выполнен только один проход.",
+    adminModalNoService:"Не устанавливает драйверы, службы, расширения и не меняет планы питания.",
+    adminModalProtected:"Некоторые защищенные приложения могут отказать даже с правами администратора.",
+    openUac:"Открыть UAC",
+    cancel:"Отмена"
   },
   "es-ES": {
     languageName:"Español", appTitle:"Smart Nap", appSubtitle:"Control de apps en segundo plano para juegos y multitarea",
@@ -251,7 +342,21 @@ const LANGS = {
     apps:"apps", noEntries:"Aun no hay entradas gestionadas.", runPass:"Ejecuta un pase para llenar los datos en vivo.", tracking:"Monitoreando {count} entradas recientes",
     noRun:"Sin ejecuciones", fastWake:"Fast wake", manualWake:"Manual", event:"evento", next:"sig.", noEvent:"sin evento", now:"ahora", ago:"atras", paused:"pausado", waiting:"esperando", dueNow:"ahora",
     detailArmed:"Fast wake armado. Las apps de fondo se ajustan por nivel.", detailPaused:"Pausado. Ejecuta un pase manual o retoma el motor.",
-    wakeGuard:"wake guard activo", startupOffDetail:"startup off", working:"Trabajando en segundo plano..."
+    wakeGuard:"wake guard activo", startupOffDetail:"startup off", working:"Trabajando en segundo plano...",
+    learningK:"Poder extra", learningT:"Smart Learning", learningD:"Aprende sesiones localmente y adapta el nap cuando sube la presion de memoria.",
+    smartLearning:"Smart Learning", learnedProfiles:"Perfiles aprendidos", memoryPressure:"Presion de memoria", enableLearning:"Activar", disableLearning:"Desactivar", learningOn:"On", learningOff:"Off",
+    learningModalTitle:"Smart Learning", learningModalBody:"Modo opcional que aprende como se comportan tus apps y adapta los proximos pases sin enviar datos.",
+    learningModalLocal:"Los perfiles quedan en este PC y usan nombre/ruta del proceso, memoria, bursts de CPU y eventos wake.",
+    learningModalWake:"Las apps a las que vuelves seguido reciben un perfil Fast Wake mas ligero.",
+    learningModalPressure:"Cuando falta memoria, apps pesadas e inactivas pueden recibir un nap mas fuerte.",
+    learningModalSafe:"No cierra apps, no cambia drivers, no cambia planes de energia y no sube telemetria.",
+    permissionK:"Permiso", permissionT:"Apps rechazaron cambios", permissionBody:"{count} app(s) rechazaron cambios: {apps}. Puedes autorizar un pase como administrador.",
+    requestAdmin:"Pedir admin", alreadyElevated:"Ya es admin", adminModalTitle:"Pase administrador", adminModalBody:"Algunas apps rechazaron cambios porque Windows requiere mas permiso. Smart Nap puede abrir UAC y ejecutar un pase elevado.",
+    adminModalScope:"Esto no deja Smart Nap permanentemente elevado. Solo ejecuta un pase.",
+    adminModalNoService:"No instala drivers, servicios, extensiones ni cambia planes de energia.",
+    adminModalProtected:"Algunas apps protegidas pueden rechazar cambios incluso con administrador.",
+    openUac:"Abrir UAC",
+    cancel:"Cancelar"
   },
   "fr-FR": {
     languageName:"Français", appTitle:"Smart Nap", appSubtitle:"Controle des apps en arriere-plan pour le jeu et le multitache",
@@ -269,7 +374,21 @@ const LANGS = {
     apps:"apps", noEntries:"Aucune entree geree pour le moment.", runPass:"Lancez un passage pour remplir les donnees live.", tracking:"Suivi des {count} dernieres entrees",
     noRun:"Aucun passage", fastWake:"Fast wake", manualWake:"Manuel", event:"evenement", next:"proch.", noEvent:"aucun evenement", now:"maintenant", ago:"avant", paused:"pause", waiting:"attente", dueNow:"maintenant",
     detailArmed:"Fast wake est arme. Les apps en arriere-plan sont ajustees par niveau.", detailPaused:"En pause. Lancez un passage manuel ou relancez le moteur.",
-    wakeGuard:"wake guard actif", startupOffDetail:"startup off", working:"Travail en arriere-plan..."
+    wakeGuard:"wake guard actif", startupOffDetail:"startup off", working:"Travail en arriere-plan...",
+    learningK:"Pouvoir optionnel", learningT:"Smart Learning", learningD:"Apprend les sessions localement et adapte le nap quand la memoire se tend.",
+    smartLearning:"Smart Learning", learnedProfiles:"Profils appris", memoryPressure:"Pression memoire", enableLearning:"Activer", disableLearning:"Desactiver", learningOn:"On", learningOff:"Off",
+    learningModalTitle:"Smart Learning", learningModalBody:"Mode optionnel qui apprend le comportement des apps et adapte les prochains passages sans envoyer de donnees.",
+    learningModalLocal:"Les profils restent sur ce PC et utilisent nom/chemin du processus, memoire, pics CPU et evenements wake.",
+    learningModalWake:"Les apps que vous rouvrez souvent recoivent un profil Fast Wake plus leger.",
+    learningModalPressure:"Quand la memoire est sous pression, les apps lourdes et inactives peuvent recevoir un nap plus fort.",
+    learningModalSafe:"Ne ferme pas les apps, ne change pas les drivers, les plans d'energie ou la telemetrie.",
+    permissionK:"Permission", permissionT:"Apps refusees", permissionBody:"{count} app(s) ont refuse les changements: {apps}. Vous pouvez autoriser un passage administrateur.",
+    requestAdmin:"Demander admin", alreadyElevated:"Deja admin", adminModalTitle:"Passage administrateur", adminModalBody:"Certaines apps ont refuse les changements car Windows demande plus de permission. Smart Nap peut ouvrir UAC et lancer un passage eleve.",
+    adminModalScope:"Smart Nap ne reste pas administrateur en permanence. Un seul passage est lance.",
+    adminModalNoService:"N'installe pas de drivers, services, extensions et ne change pas les plans d'energie.",
+    adminModalProtected:"Certaines apps protegees peuvent encore refuser meme en administrateur.",
+    openUac:"Ouvrir UAC",
+    cancel:"Annuler"
   },
   "de-DE": {
     languageName:"Deutsch", appTitle:"Smart Nap", appSubtitle:"Hintergrundkontrolle fuer Gaming und Multitasking",
@@ -287,7 +406,21 @@ const LANGS = {
     apps:"Apps", noEntries:"Noch keine verwalteten Eintraege.", runPass:"Starte einen Durchlauf, um Live-Daten zu fuellen.", tracking:"Verfolge {count} letzte Eintraege",
     noRun:"Noch kein Durchlauf", fastWake:"Fast wake", manualWake:"Manuell", event:"Ereignis", next:"naechst.", noEvent:"kein Ereignis", now:"jetzt", ago:"her", paused:"pausiert", waiting:"wartet", dueNow:"jetzt",
     detailArmed:"Fast wake ist aktiv. Hintergrund-Apps werden nach Stufe angepasst.", detailPaused:"Pausiert. Starte einen manuellen Durchlauf oder den Motor.",
-    wakeGuard:"wake guard aktiv", startupOffDetail:"startup off", working:"Arbeitet im Hintergrund..."
+    wakeGuard:"wake guard aktiv", startupOffDetail:"startup off", working:"Arbeitet im Hintergrund...",
+    learningK:"Optionaler Boost", learningT:"Smart Learning", learningD:"Lernt Sessions lokal und passt Nap-Staerke bei Speicherdruck an.",
+    smartLearning:"Smart Learning", learnedProfiles:"Gelernte Profile", memoryPressure:"Speicherdruck", enableLearning:"Aktivieren", disableLearning:"Deaktivieren", learningOn:"An", learningOff:"Aus",
+    learningModalTitle:"Smart Learning", learningModalBody:"Optionaler Modus, der App-Verhalten lernt und kuenftige Durchlaeufe anpasst, ohne Daten zu senden.",
+    learningModalLocal:"Profile bleiben auf diesem PC und nutzen Prozessname/Pfad, Speicher, CPU-Bursts und Wake-Ereignisse.",
+    learningModalWake:"Apps, zu denen du oft zurueckwechselst, bekommen ein leichteres Fast-Wake-Profil.",
+    learningModalPressure:"Bei Speicherdruck koennen schwere inaktive Hintergrund-Apps einen staerkeren Nap erhalten.",
+    learningModalSafe:"Schliesst keine Apps, aendert keine Treiber, keine Energieplaene und sendet keine Telemetrie.",
+    permissionK:"Berechtigung", permissionT:"Apps lehnten ab", permissionBody:"{count} App(s) lehnten Aenderungen ab: {apps}. Du kannst einen Admin-Durchlauf erlauben.",
+    requestAdmin:"Admin anfragen", alreadyElevated:"Schon Admin", adminModalTitle:"Admin-Durchlauf", adminModalBody:"Einige Apps lehnten Aenderungen ab, weil Windows hoehere Rechte verlangt. Smart Nap kann UAC oeffnen und einen erhoehten Durchlauf starten.",
+    adminModalScope:"Smart Nap bleibt nicht dauerhaft erhoeht. Es wird nur ein Durchlauf gestartet.",
+    adminModalNoService:"Installiert keine Treiber, Dienste, Erweiterungen und aendert keine Energieplaene.",
+    adminModalProtected:"Einige geschuetzte Apps koennen auch mit Admin-Rechten ablehnen.",
+    openUac:"UAC oeffnen",
+    cancel:"Abbrechen"
   }
 };
 const LANGUAGE_ORDER = ["pt-BR","en-US","ru-RU","es-ES","fr-FR","de-DE"];
@@ -332,6 +465,28 @@ function chooseLanguage(code){
   applyI18n();
   closeLanguagePicker();
   send("setLanguage",{language:currentLanguage});
+}
+function openLearningInfo(){
+  $("learningOverlay")?.classList.add("open");
+  txt("learningConfirm", (lastState && lastState.Learning) ? t("disableLearning") : t("enableLearning"));
+}
+function closeLearningInfo(){
+  $("learningOverlay")?.classList.remove("open");
+}
+function confirmLearningToggle(){
+  closeLearningInfo();
+  send("toggleLearning");
+}
+function openAdminInfo(){
+  $("adminOverlay")?.classList.add("open");
+  txt("adminConfirm", t("openUac"));
+}
+function closeAdminInfo(){
+  $("adminOverlay")?.classList.remove("open");
+}
+function confirmAdminApply(){
+  closeAdminInfo();
+  send("runElevatedApply");
 }
 function translateAge(value){
   const raw=String(value||"");
@@ -402,11 +557,19 @@ function paintState(state){
   txt("reclaimedValue",(s.Reclaimed || "0")+" MB");
   txt("autoCard",s.AutoMode?t("on"):t("off"));
   txt("startupCard",s.Startup?t("on"):t("off"));
+  txt("learningCard",s.Learning?t("learningOn"):t("learningOff"));
   txt("lastCard",s.LastRun || "-");
   txt("resultCard",translateResult(s.Result || "-"));
   txt("motorBtn",s.AutoMode?t("pauseMotor"):t("resumeMotor"));
   txt("apply",s.CanStop?t("stop"):t("apply"));
   txt("restoreBtn",t("restore"));
+  txt("learningToggle",s.Learning?t("disableLearning"):t("enableLearning"));
+  txt("learningConfirm",s.Learning?t("disableLearning"):t("enableLearning"));
+  $("learningToggle")?.classList.toggle("on",!!s.Learning);
+  txt("learningDetail",s.Learning ? ((s.LearningProfiles || 0)+" "+t("learnedProfiles").toLowerCase()+" | "+t("memoryPressure")+": "+formatPressure(s.MemoryPressure,s.FreeMemoryMB)) : t("learningD"));
+  txt("learnedProfiles",String(s.LearningProfiles || 0));
+  txt("memoryPressure",formatPressure(s.MemoryPressure,s.FreeMemoryMB));
+  updatePermissionGuard(s);
   $("apply").className=s.CanStop?"btn danger":"btn primary";
   cls("motor",s.AutoMode?"pill good":"pill warn");
   txt("motor",s.AutoMode?t("motorActive"):t("manual"));
@@ -424,6 +587,26 @@ function translateRunState(value){
   if(raw==="RUNNING") return t("apply").toUpperCase();
   if(raw==="STOPPING") return t("stop").toUpperCase();
   return raw;
+}
+function formatPressure(level,freeMB){
+  const pressure=String(level||"").trim();
+  const free=Number(freeMB||0);
+  const freeText=free>0 ? " / "+Math.round(free)+" MB" : "";
+  return pressure ? pressure+freeText : "-";
+}
+function updatePermissionGuard(s){
+  const box=$("permissionBox");
+  if(!box) return;
+  const count=Number(s.PermissionDeniedCount||0);
+  const apps=Array.isArray(s.PermissionDeniedApps)?s.PermissionDeniedApps:[];
+  box.classList.toggle("show",count>0);
+  if(count<=0) return;
+  const shown=apps.slice(0,4).join(", ") || "-";
+  const suffix=apps.length>4 ? " +" + (apps.length-4) : "";
+  txt("permissionText",t("permissionBody").replace("{count}",String(count)).replace("{apps}",shown+suffix));
+  txt("adminButton",s.IsElevated?t("alreadyElevated"):t("requestAdmin"));
+  $("adminButton").disabled=!!s.IsElevated;
+  $("adminButton").style.opacity=s.IsElevated?".62":"1";
 }
 function renderRows(rowsData){
   const rows=$("rows");
@@ -469,10 +652,11 @@ function actionBadges(value){
     if(low.indexOf("tier deep")===0) clsName+=" deep";
     else if(low.indexOf("tier balanced")===0) clsName+=" balanced";
     else if(low.indexOf("tier light")===0) clsName+=" light";
+    else if(low.indexOf("admin needed")>=0) clsName+=" cool";
     else if(low.indexOf(" ok")>=0) clsName+=" ok";
     else if(low.indexOf("cooldown")>=0) clsName+=" cool";
     else if(low.indexOf("skip")>=0 || low.indexOf("disabled")>=0) clsName+=" skip";
-    let label=x.replace("SkippedBelowThreshold","Skip").replace(/^Tier /,"").replace(/^Eco /,"E ");
+    let label=x.replace("SkippedBelowThreshold","Skip").replace(/^Tier /,"").replace(/^Eco /,"E ").replace("Admin needed","Admin");
     label=label.replace("Light","Light").replace("Balanced","Balanced").replace("Deep","Deep");
     return '<b class="'+clsName+'">'+esc(label)+'</b>';
   }).join("");

@@ -1,12 +1,16 @@
-# Smart Background Nap 0.3.3
+# Smart Background Nap 0.3.4
 
-WebView2 launcher, adaptive nap engine, multilingual UI, and lighter tray behavior.
+Smart Learning, WebView2 launcher, adaptive nap engine, multilingual UI, and lighter tray behavior.
 
 ## Highlights
 
 - Single-file release: download and run `SmartBackgroundNap.exe`.
 - .NET 9 / WebView2 dashboard with live manager, telemetry, and event stream.
 - First-run language picker with Portuguese BR, English, Russian, Spanish, French, and German.
+- Optional Smart Learning mode with an in-app explanation before enabling.
+- Local per-app learning profiles for foreground wake behavior, memory pressure, CPU bursts, and nap tier outcomes.
+- Learned fast-wake apps can stay lighter, while heavy idle background apps can be handled more strongly when memory pressure rises.
+- Permission Guard lists apps that denied process changes and can request one UAC administrator pass.
 - Adaptive nap tiers: Light, Balanced, and Deep.
 - Native fast foreground wake restores priority, memory priority, I/O priority, and EcoQoS when apps return to the front.
 - Cooldown-aware RAM trim to avoid repeatedly trimming the same process.
@@ -30,7 +34,7 @@ WebView2 launcher, adaptive nap engine, multilingual UI, and lighter tray behavi
 SHA-256 for `SmartBackgroundNap.exe`:
 
 ```text
-A73AA6D7CFC4C8E0229FF968D3D08B402CF25945BD58D6DB2821DE12CA5BAA02
+FAA128423633E9EF4E3314AE9F64F0C80E34EA8FC9B102FA4C10CB2452FDE23C
 ```
 
 ## Trust Notes

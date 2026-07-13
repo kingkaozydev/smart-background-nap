@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.4 - 2026-07-13
+
+- Added optional Smart Learning mode as an extra power toggle inside the launcher.
+- Smart Learning builds local per-app profiles from memory pressure, CPU bursts, nap tier outcomes, and foreground wake events.
+- Learned fast-wake apps stay lighter so frequent Alt+Tab targets can recover faster.
+- Heavy idle background apps can receive stronger nap decisions when system memory pressure rises.
+- Added an in-app explanation/confirmation panel before enabling Smart Learning.
+- Added dashboard telemetry for learned profiles and current memory pressure.
+- Added Permission Guard: the launcher lists apps that refused process changes and can request one UAC administrator pass for them.
+- Config extraction now merges new default settings without overwriting existing user choices.
+
 ## 0.3.3 - 2026-07-13
 
 - Migrated the main launcher to .NET 9 with a WebView2 dashboard.
