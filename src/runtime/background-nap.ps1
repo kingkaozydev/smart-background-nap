@@ -54,6 +54,11 @@ $burstStatePath = Join-Path $outDir "background-nap-burst-latest.json"
 $trimStatePath = Join-Path $outDir "background-nap-trim-latest.json"
 $scorePath = Join-Path $outDir "background-nap-score-latest.json"
 $learningStatePath = Join-Path $outDir "background-nap-learning-latest.json"
+$intentStatePath = Join-Path $outDir "background-nap-intent-latest.json"
+$foregroundSwitchStatePath = Join-Path $outDir "background-nap-foreground-switch-latest.json"
+$gameProfileStatePath = Join-Path $outDir "background-nap-game-profiles-latest.json"
+$appPolicyStatePath = Join-Path $outDir "background-nap-app-policies.json"
+$radarStatePath = Join-Path $outDir "background-nap-radar-latest.json"
 
 $priorityClass = [string]$nap.PriorityClass
 $targetPriorityClass = [System.Enum]::Parse([System.Diagnostics.ProcessPriorityClass], $priorityClass, $true)
@@ -91,6 +96,22 @@ $learningMaxProfiles = 180
 $learningFastWakeThreshold = 3
 $learningElevatedFreeMemoryMB = 6144.0
 $learningAggressiveFreeMemoryMB = 3072.0
+$intentEngine = $true
+$intentMinConfidence = 60
+$foregroundSwitchAccelerator = $true
+$foregroundSwitchWindowSeconds = 90
+$foregroundSwitchMinWakes = 2
+$foregroundSwitchProtectMinutes = 5
+$perGameProfiles = $true
+$gameProfileMinObservations = 3
+$contentionRadar = $true
+$downloadLauncherGuard = $true
+$mediaCallProtection = $true
+$memoryPressureGovernor = $true
+$userAppPolicy = $true
+$moderateFreeMemoryMB = 8192.0
+$elevatedFreeMemoryMB = 6144.0
+$criticalFreeMemoryMB = 3072.0
 $deepNapMinimumMB = 180.0
 $deepNapMaxCpuPercent = 0.35
 $balancedNapMinimumMB = 80.0
@@ -109,6 +130,14 @@ $balancedNapIoPriorityName = "Low"
 $deepNapIoPriorityName = "VeryLow"
 $realtimeFriendlyDefaults = @("Discord", "Spotify", "WhatsApp", "Telegram", "Slack", "Teams", "steam", "steamwebhelper")
 $realtimeFriendlyConfigured = $null
+$knownLauncherDefaults = @("steam", "steamwebhelper", "EpicGamesLauncher", "EpicWebHelper", "Battle.net", "EADesktop", "EABackgroundService", "RiotClientServices", "RiotClientUx", "UbisoftConnect", "upc", "GalaxyClient", "GOG Galaxy", "XboxPcApp")
+$knownCommunicationDefaults = @("Discord", "Teams", "Slack", "Zoom", "Telegram", "WhatsApp")
+$knownMediaDefaults = @("Spotify", "vlc", "mpv", "obs64", "obs32", "Streamlabs Desktop")
+$knownGamePathDefaults = @("\steamapps\common\", "\XboxGames\", "\Epic Games\", "\Riot Games\", "\Battle.net\", "\GOG Galaxy\Games\")
+$knownLauncherConfigured = $null
+$knownCommunicationConfigured = $null
+$knownMediaConfigured = $null
+$knownGamePathConfigured = $null
 
 if ($smart) {
     if ($smart.PSObject.Properties.Name -contains "ForegroundWakeRestore") { $smartForegroundWake = [bool]$smart.ForegroundWakeRestore }
@@ -132,6 +161,22 @@ if ($smart) {
     if ($smart.PSObject.Properties.Name -contains "LearningFastWakeThreshold") { $learningFastWakeThreshold = [int]$smart.LearningFastWakeThreshold }
     if ($smart.PSObject.Properties.Name -contains "LearningElevatedFreeMemoryMB") { $learningElevatedFreeMemoryMB = [double]$smart.LearningElevatedFreeMemoryMB }
     if ($smart.PSObject.Properties.Name -contains "LearningAggressiveFreeMemoryMB") { $learningAggressiveFreeMemoryMB = [double]$smart.LearningAggressiveFreeMemoryMB }
+    if ($smart.PSObject.Properties.Name -contains "IntentEngine") { $intentEngine = [bool]$smart.IntentEngine }
+    if ($smart.PSObject.Properties.Name -contains "IntentMinConfidence") { $intentMinConfidence = [int]$smart.IntentMinConfidence }
+    if ($smart.PSObject.Properties.Name -contains "ForegroundSwitchAccelerator") { $foregroundSwitchAccelerator = [bool]$smart.ForegroundSwitchAccelerator }
+    if ($smart.PSObject.Properties.Name -contains "ForegroundSwitchWindowSeconds") { $foregroundSwitchWindowSeconds = [int]$smart.ForegroundSwitchWindowSeconds }
+    if ($smart.PSObject.Properties.Name -contains "ForegroundSwitchMinWakes") { $foregroundSwitchMinWakes = [int]$smart.ForegroundSwitchMinWakes }
+    if ($smart.PSObject.Properties.Name -contains "ForegroundSwitchProtectMinutes") { $foregroundSwitchProtectMinutes = [int]$smart.ForegroundSwitchProtectMinutes }
+    if ($smart.PSObject.Properties.Name -contains "PerGameProfiles") { $perGameProfiles = [bool]$smart.PerGameProfiles }
+    if ($smart.PSObject.Properties.Name -contains "GameProfileMinObservations") { $gameProfileMinObservations = [int]$smart.GameProfileMinObservations }
+    if ($smart.PSObject.Properties.Name -contains "ContentionRadar") { $contentionRadar = [bool]$smart.ContentionRadar }
+    if ($smart.PSObject.Properties.Name -contains "DownloadLauncherGuard") { $downloadLauncherGuard = [bool]$smart.DownloadLauncherGuard }
+    if ($smart.PSObject.Properties.Name -contains "MediaCallProtection") { $mediaCallProtection = [bool]$smart.MediaCallProtection }
+    if ($smart.PSObject.Properties.Name -contains "MemoryPressureGovernor") { $memoryPressureGovernor = [bool]$smart.MemoryPressureGovernor }
+    if ($smart.PSObject.Properties.Name -contains "UserAppPolicy") { $userAppPolicy = [bool]$smart.UserAppPolicy }
+    if ($smart.PSObject.Properties.Name -contains "ModerateFreeMemoryMB") { $moderateFreeMemoryMB = [double]$smart.ModerateFreeMemoryMB }
+    if ($smart.PSObject.Properties.Name -contains "ElevatedFreeMemoryMB") { $elevatedFreeMemoryMB = [double]$smart.ElevatedFreeMemoryMB }
+    if ($smart.PSObject.Properties.Name -contains "CriticalFreeMemoryMB") { $criticalFreeMemoryMB = [double]$smart.CriticalFreeMemoryMB }
     if ($smart.PSObject.Properties.Name -contains "DeepNapMinimumWorkingSetMB") { $deepNapMinimumMB = [double]$smart.DeepNapMinimumWorkingSetMB }
     if ($smart.PSObject.Properties.Name -contains "DeepNapMaxCpuPercent") { $deepNapMaxCpuPercent = [double]$smart.DeepNapMaxCpuPercent }
     if ($smart.PSObject.Properties.Name -contains "BalancedNapMinimumWorkingSetMB") { $balancedNapMinimumMB = [double]$smart.BalancedNapMinimumWorkingSetMB }
@@ -149,6 +194,10 @@ if ($smart) {
     if ($smart.PSObject.Properties.Name -contains "BalancedNapIoPriority") { $balancedNapIoPriorityName = [string]$smart.BalancedNapIoPriority }
     if ($smart.PSObject.Properties.Name -contains "DeepNapIoPriority") { $deepNapIoPriorityName = [string]$smart.DeepNapIoPriority }
     if ($smart.PSObject.Properties.Name -contains "RealtimeFriendlyProcessNames") { $realtimeFriendlyConfigured = @($smart.RealtimeFriendlyProcessNames) }
+    if ($smart.PSObject.Properties.Name -contains "KnownLauncherProcessNames") { $knownLauncherConfigured = @($smart.KnownLauncherProcessNames) }
+    if ($smart.PSObject.Properties.Name -contains "KnownCommunicationProcessNames") { $knownCommunicationConfigured = @($smart.KnownCommunicationProcessNames) }
+    if ($smart.PSObject.Properties.Name -contains "KnownMediaProcessNames") { $knownMediaConfigured = @($smart.KnownMediaProcessNames) }
+    if ($smart.PSObject.Properties.Name -contains "KnownGamePathFragments") { $knownGamePathConfigured = @($smart.KnownGamePathFragments) }
     if ($smart.PSObject.Properties.Name -contains "NapScore") { $smartNapScore = [bool]$smart.NapScore }
 }
 if ($autoProtectForegroundMinutes -lt 1) { $autoProtectForegroundMinutes = 1 }
@@ -162,6 +211,15 @@ if ($learningMaxProfiles -lt 20) { $learningMaxProfiles = 20 }
 if ($learningFastWakeThreshold -lt 1) { $learningFastWakeThreshold = 1 }
 if ($learningElevatedFreeMemoryMB -lt 512) { $learningElevatedFreeMemoryMB = 512.0 }
 if ($learningAggressiveFreeMemoryMB -lt 256) { $learningAggressiveFreeMemoryMB = 256.0 }
+if ($intentMinConfidence -lt 0) { $intentMinConfidence = 0 }
+if ($intentMinConfidence -gt 100) { $intentMinConfidence = 100 }
+if ($foregroundSwitchWindowSeconds -lt 15) { $foregroundSwitchWindowSeconds = 15 }
+if ($foregroundSwitchMinWakes -lt 1) { $foregroundSwitchMinWakes = 1 }
+if ($foregroundSwitchProtectMinutes -lt 1) { $foregroundSwitchProtectMinutes = 1 }
+if ($gameProfileMinObservations -lt 1) { $gameProfileMinObservations = 1 }
+if ($moderateFreeMemoryMB -lt 512) { $moderateFreeMemoryMB = 512.0 }
+if ($elevatedFreeMemoryMB -lt 512) { $elevatedFreeMemoryMB = 512.0 }
+if ($criticalFreeMemoryMB -lt 256) { $criticalFreeMemoryMB = 256.0 }
 if ($deepNapMinimumMB -lt 1) { $deepNapMinimumMB = 1.0 }
 if ($balancedNapMinimumMB -lt 1) { $balancedNapMinimumMB = 1.0 }
 if ($deepNapMaxCpuPercent -lt 0) { $deepNapMaxCpuPercent = 0.0 }
@@ -182,9 +240,29 @@ $realtimeFriendlyNames = New-Object "System.Collections.Generic.HashSet[string]"
 $realtimeFriendlySource = if ($realtimeFriendlyConfigured -ne $null) { $realtimeFriendlyConfigured } else { $realtimeFriendlyDefaults }
 @($realtimeFriendlySource) | Where-Object { $_ } | ForEach-Object { [void]$realtimeFriendlyNames.Add([string]$_) }
 
+$knownLauncherNames = New-Object "System.Collections.Generic.HashSet[string]" ([System.StringComparer]::OrdinalIgnoreCase)
+$knownLauncherSource = if ($knownLauncherConfigured -ne $null) { $knownLauncherConfigured } else { $knownLauncherDefaults }
+@($knownLauncherSource) | Where-Object { $_ } | ForEach-Object { [void]$knownLauncherNames.Add([string]$_) }
+
+$knownCommunicationNames = New-Object "System.Collections.Generic.HashSet[string]" ([System.StringComparer]::OrdinalIgnoreCase)
+$knownCommunicationSource = if ($knownCommunicationConfigured -ne $null) { $knownCommunicationConfigured } else { $knownCommunicationDefaults }
+@($knownCommunicationSource) | Where-Object { $_ } | ForEach-Object { [void]$knownCommunicationNames.Add([string]$_) }
+
+$knownMediaNames = New-Object "System.Collections.Generic.HashSet[string]" ([System.StringComparer]::OrdinalIgnoreCase)
+$knownMediaSource = if ($knownMediaConfigured -ne $null) { $knownMediaConfigured } else { $knownMediaDefaults }
+@($knownMediaSource) | Where-Object { $_ } | ForEach-Object { [void]$knownMediaNames.Add([string]$_) }
+
+$knownGamePathFragments = @()
+$knownGamePathSource = if ($knownGamePathConfigured -ne $null) { $knownGamePathConfigured } else { $knownGamePathDefaults }
+@($knownGamePathSource) | Where-Object { $_ } | ForEach-Object { $knownGamePathFragments += [string]$_ }
+
 $script:learningMap = @{}
 $script:currentMemoryPressure = [pscustomobject]@{ Level = "Unknown"; FreeMB = -1.0; UsedPercent = -1.0 }
 $script:currentLearningSession = [pscustomobject]@{ Name = ""; Kind = "Desktop"; Pressure = "Unknown" }
+$script:currentIntent = [pscustomobject]@{ Kind = "Desktop"; Name = ""; Confidence = 0; Signals = @(); Foreground = "" }
+$script:foregroundSwitchMap = @{}
+$script:gameProfileMap = @{}
+$script:appPolicyMap = @{}
 
 $memoryPriorityMap = @{
     VeryLow = 1
@@ -615,6 +693,42 @@ function Write-StateArray {
     $state | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $Path -Encoding UTF8
 }
 
+function Write-StateObject {
+    param(
+        [string]$Path,
+        [object]$Value,
+        [int]$Depth = 7
+    )
+
+    $Value | ConvertTo-Json -Depth $Depth | Set-Content -LiteralPath $Path -Encoding UTF8
+}
+
+function Test-NameInSet {
+    param(
+        [object]$Set,
+        [string]$Name
+    )
+
+    if (-not $Set -or [string]::IsNullOrWhiteSpace($Name)) { return $false }
+    try { return [bool]$Set.Contains($Name) } catch { return $false }
+}
+
+function Test-PathContainsFragment {
+    param(
+        [string]$Path,
+        [array]$Fragments
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Path)) { return $false }
+    foreach ($fragment in @($Fragments)) {
+        if ([string]::IsNullOrWhiteSpace([string]$fragment)) { continue }
+        if ($Path.IndexOf([string]$fragment, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+            return $true
+        }
+    }
+    return $false
+}
+
 function Get-LearningKeyFromText {
     param(
         [string]$ProcessName,
@@ -628,6 +742,287 @@ function Get-LearningKeyFromText {
         return ("name:" + $ProcessName.ToLowerInvariant())
     }
     return ""
+}
+
+function Get-AppIdentityKeyFromText {
+    param(
+        [string]$ProcessName,
+        [string]$Path
+    )
+
+    return Get-LearningKeyFromText -ProcessName $ProcessName -Path $Path
+}
+
+function Get-ProcessRole {
+    param(
+        [string]$ProcessName,
+        [string]$Path
+    )
+
+    if (Test-NameInSet -Set $knownLauncherNames -Name $ProcessName) { return "Launcher" }
+    if (Test-NameInSet -Set $knownCommunicationNames -Name $ProcessName) { return "Communication" }
+    if (Test-NameInSet -Set $knownMediaNames -Name $ProcessName) { return "Media" }
+    if (Test-PathContainsFragment -Path $Path -Fragments $knownGamePathFragments) { return "GameCandidate" }
+    if ($ProcessName -match '^(chrome|msedge|firefox|zen|brave|opera|vivaldi)$') { return "Browser" }
+    return "App"
+}
+
+function Read-AppPolicyMap {
+    $map = @{}
+    if (-not $userAppPolicy) { return $map }
+    foreach ($item in @(Read-StateArray -Path $appPolicyStatePath)) {
+        if (-not $item.Key) { continue }
+        $policy = [string]$item.Policy
+        if ($policy -notin @("Protect", "Light", "Balanced", "Deep")) { continue }
+        $key = [string]$item.Key
+        $map[$key] = [pscustomobject]@{
+            Key = $key
+            ProcessName = [string]$item.ProcessName
+            Path = [string]$item.Path
+            Policy = $policy
+            UpdatedAt = [string]$item.UpdatedAt
+        }
+    }
+    return $map
+}
+
+function Get-AppPolicyForText {
+    param(
+        [string]$ProcessName,
+        [string]$Path
+    )
+
+    $key = Get-AppIdentityKeyFromText -ProcessName $ProcessName -Path $Path
+    if ($key -and $script:appPolicyMap.ContainsKey($key)) {
+        return $script:appPolicyMap[$key]
+    }
+    return [pscustomobject]@{
+        Key = $key
+        ProcessName = $ProcessName
+        Path = $Path
+        Policy = "Auto"
+        UpdatedAt = ""
+    }
+}
+
+function Read-ForegroundSwitchMap {
+    $map = @{}
+    if (-not $foregroundSwitchAccelerator) { return $map }
+    $now = Get-Date
+    foreach ($item in @(Read-StateArray -Path $foregroundSwitchStatePath)) {
+        if (-not $item.Key) { continue }
+        $lastObserved = $null
+        try { if ($item.LastObservedAt) { $lastObserved = [DateTime]::Parse([string]$item.LastObservedAt, $null, [Globalization.DateTimeStyles]::RoundtripKind) } } catch { $lastObserved = $null }
+        if ($lastObserved -and (($now - $lastObserved).TotalHours -gt 24)) { continue }
+        $map[[string]$item.Key] = [pscustomobject]@{
+            Key = [string]$item.Key
+            ProcessName = [string]$item.ProcessName
+            Path = [string]$item.Path
+            WakeCount = [int]$item.WakeCount
+            WindowStartedAt = [string]$item.WindowStartedAt
+            LastWakeAt = [string]$item.LastWakeAt
+            LastObservedAt = [string]$item.LastObservedAt
+            LastPid = [int]$item.LastPid
+            ProtectUntil = [string]$item.ProtectUntil
+            FastWake = [bool]$item.FastWake
+        }
+    }
+    return $map
+}
+
+function Save-ForegroundSwitchMap {
+    param([hashtable]$Map)
+
+    if (-not $foregroundSwitchAccelerator) { return }
+    $items = @($Map.Values |
+        Sort-Object @{ Expression = { if ($_.LastObservedAt) { [string]$_.LastObservedAt } else { "" } }; Descending = $true } |
+        Select-Object -First 180)
+    Write-StateArray -Path $foregroundSwitchStatePath -Items $items
+}
+
+function Add-ForegroundSwitchObservation {
+    param(
+        [hashtable]$Map,
+        [string]$ProcessName,
+        [string]$Path,
+        [int]$ProcessId,
+        [switch]$ForceCount
+    )
+
+    if (-not $foregroundSwitchAccelerator) { return $null }
+    $key = Get-AppIdentityKeyFromText -ProcessName $ProcessName -Path $Path
+    if (-not $key) { return $null }
+    $now = Get-Date
+    $item = $null
+    if ($Map.ContainsKey($key)) {
+        $item = $Map[$key]
+    } else {
+        $item = [pscustomobject]@{
+            Key = $key
+            ProcessName = $ProcessName
+            Path = $Path
+            WakeCount = 0
+            WindowStartedAt = $now.ToString("o")
+            LastWakeAt = ""
+            LastObservedAt = ""
+            LastPid = 0
+            ProtectUntil = ""
+            FastWake = $false
+        }
+    }
+
+    $windowStarted = $now
+    try {
+        if ($item.WindowStartedAt) { $windowStarted = [DateTime]::Parse([string]$item.WindowStartedAt, $null, [Globalization.DateTimeStyles]::RoundtripKind) }
+    } catch { $windowStarted = $now }
+    if (($now - $windowStarted).TotalSeconds -gt $foregroundSwitchWindowSeconds) {
+        $item.WakeCount = 0
+        $item.WindowStartedAt = $now.ToString("o")
+    }
+
+    $lastObserved = $null
+    try {
+        if ($item.LastObservedAt) { $lastObserved = [DateTime]::Parse([string]$item.LastObservedAt, $null, [Globalization.DateTimeStyles]::RoundtripKind) }
+    } catch { $lastObserved = $null }
+    $duplicatePoll = (-not $ForceCount) -and $lastObserved -and ([int]$item.LastPid -eq $ProcessId) -and (($now - $lastObserved).TotalSeconds -lt 8)
+    if (-not $duplicatePoll) {
+        $item.WakeCount = [int]$item.WakeCount + 1
+        $item.LastWakeAt = $now.ToString("o")
+    }
+
+    $item.ProcessName = $ProcessName
+    $item.Path = $Path
+    $item.LastPid = $ProcessId
+    $item.LastObservedAt = $now.ToString("o")
+    $item.FastWake = ([int]$item.WakeCount -ge $foregroundSwitchMinWakes)
+    if ($item.FastWake) {
+        $item.ProtectUntil = $now.AddMinutes($foregroundSwitchProtectMinutes).ToString("o")
+    }
+    $Map[$key] = $item
+    return $item
+}
+
+function Get-ForegroundSwitchProfile {
+    param(
+        [string]$ProcessName,
+        [string]$Path
+    )
+
+    $key = Get-AppIdentityKeyFromText -ProcessName $ProcessName -Path $Path
+    if ($key -and $script:foregroundSwitchMap.ContainsKey($key)) {
+        return $script:foregroundSwitchMap[$key]
+    }
+    return $null
+}
+
+function Test-ForegroundSwitchProtected {
+    param([object]$Profile)
+
+    if (-not $foregroundSwitchAccelerator -or -not $Profile -or -not $Profile.ProtectUntil) { return $false }
+    try {
+        $until = [DateTime]::Parse([string]$Profile.ProtectUntil, $null, [Globalization.DateTimeStyles]::RoundtripKind)
+        return $until -gt (Get-Date)
+    } catch {
+        return $false
+    }
+}
+
+function Read-GameProfileMap {
+    $map = @{}
+    if (-not $perGameProfiles) { return $map }
+    foreach ($item in @(Read-StateArray -Path $gameProfileStatePath)) {
+        if (-not $item.Key) { continue }
+        $key = [string]$item.Key
+        $map[$key] = [pscustomobject]@{
+            Key = $key
+            Name = [string]$item.Name
+            Path = [string]$item.Path
+            Observations = [int]$item.Observations
+            AvgTargets = [double]$item.AvgTargets
+            AvgDeltaMB = [double]$item.AvgDeltaMB
+            AvgPressureScore = [double]$item.AvgPressureScore
+            AggressionBias = [int]$item.AggressionBias
+            LastSeen = [string]$item.LastSeen
+        }
+    }
+    return $map
+}
+
+function Save-GameProfileMap {
+    param([hashtable]$Map)
+
+    if (-not $perGameProfiles) { return }
+    $items = @($Map.Values |
+        Sort-Object @{ Expression = { if ($_.LastSeen) { [string]$_.LastSeen } else { "" } }; Descending = $true } |
+        Select-Object -First 80)
+    Write-StateArray -Path $gameProfileStatePath -Items $items
+}
+
+function Get-GameProfileKey {
+    param([object]$Intent)
+
+    if (-not $Intent -or [string]::IsNullOrWhiteSpace([string]$Intent.Name)) { return "" }
+    if ($Intent.Path) { return "path:" + ([string]$Intent.Path).ToLowerInvariant() }
+    return "name:" + ([string]$Intent.Name).ToLowerInvariant()
+}
+
+function Get-CurrentGameProfile {
+    if (-not $perGameProfiles -or -not $script:currentIntent -or [string]$script:currentIntent.Kind -ne "Gaming") { return $null }
+    $key = Get-GameProfileKey -Intent $script:currentIntent
+    if ($key -and $script:gameProfileMap.ContainsKey($key)) { return $script:gameProfileMap[$key] }
+    return $null
+}
+
+function Update-GameProfiles {
+    param([array]$Results)
+
+    if (-not $perGameProfiles -or -not $script:currentIntent -or [string]$script:currentIntent.Kind -ne "Gaming") { return }
+    $key = Get-GameProfileKey -Intent $script:currentIntent
+    if (-not $key) { return }
+    $now = (Get-Date).ToString("o")
+    $profile = $null
+    if ($script:gameProfileMap.ContainsKey($key)) {
+        $profile = $script:gameProfileMap[$key]
+    } else {
+        $profile = [pscustomobject]@{
+            Key = $key
+            Name = [string]$script:currentIntent.Name
+            Path = [string]$script:currentIntent.Path
+            Observations = 0
+            AvgTargets = 0.0
+            AvgDeltaMB = 0.0
+            AvgPressureScore = 0.0
+            AggressionBias = 0
+            LastSeen = $now
+        }
+    }
+
+    $targetCount = @($Results).Count
+    $delta = 0.0
+    foreach ($r in @($Results)) {
+        if ($r.WorkingSetBeforeMB -ne $null -and $r.WorkingSetAfterMB -ne $null) {
+            $d = [double]$r.WorkingSetBeforeMB - [double]$r.WorkingSetAfterMB
+            if ($d -gt 0) { $delta += $d }
+        }
+    }
+    $pressureScore = 0.0
+    if ([string]$script:currentMemoryPressure.Level -eq "Moderate") { $pressureScore = 1.0 }
+    if ([string]$script:currentMemoryPressure.Level -eq "Elevated") { $pressureScore = 2.0 }
+    if ([string]$script:currentMemoryPressure.Level -eq "Critical") { $pressureScore = 3.0 }
+
+    $profile.Observations = [int]$profile.Observations + 1
+    $profile.Name = [string]$script:currentIntent.Name
+    $profile.Path = [string]$script:currentIntent.Path
+    $profile.AvgTargets = Update-LearningAverage -OldValue ([double]$profile.AvgTargets) -NewValue ([double]$targetCount) -ObservationCount ([int]$profile.Observations)
+    $profile.AvgDeltaMB = Update-LearningAverage -OldValue ([double]$profile.AvgDeltaMB) -NewValue ([double]$delta) -ObservationCount ([int]$profile.Observations)
+    $profile.AvgPressureScore = Update-LearningAverage -OldValue ([double]$profile.AvgPressureScore) -NewValue ([double]$pressureScore) -ObservationCount ([int]$profile.Observations)
+    $bias = 0
+    if ([int]$profile.Observations -ge $gameProfileMinObservations -and [double]$profile.AvgPressureScore -ge 1.4 -and [double]$profile.AvgDeltaMB -ge 120.0) { $bias = 1 }
+    if ([int]$profile.Observations -ge ($gameProfileMinObservations + 2) -and [double]$profile.AvgPressureScore -ge 2.0 -and [double]$profile.AvgDeltaMB -ge 260.0) { $bias = 2 }
+    $profile.AggressionBias = $bias
+    $profile.LastSeen = $now
+    $script:gameProfileMap[$key] = $profile
+    Save-GameProfileMap -Map $script:gameProfileMap
 }
 
 function Read-LearningMap {
@@ -739,10 +1134,15 @@ function Get-SystemMemoryPressure {
 
     $usedPercent = if ($totalMB -gt 0) { (($totalMB - $freeMB) / $totalMB) * 100.0 } else { -1.0 }
     $level = "Normal"
-    if ($freeMB -le $learningAggressiveFreeMemoryMB -or $usedPercent -ge 88.0) {
+    $moderateThreshold = [math]::Max([double]$moderateFreeMemoryMB, [double]$learningElevatedFreeMemoryMB)
+    $elevatedThreshold = [math]::Max([double]$elevatedFreeMemoryMB, [double]$learningAggressiveFreeMemoryMB)
+    $criticalThreshold = [double]$criticalFreeMemoryMB
+    if ($freeMB -le $criticalThreshold -or $usedPercent -ge 88.0) {
         $level = "Critical"
-    } elseif ($freeMB -le $learningElevatedFreeMemoryMB -or $usedPercent -ge 78.0) {
+    } elseif ($freeMB -le $elevatedThreshold -or $usedPercent -ge 78.0) {
         $level = "Elevated"
+    } elseif ($freeMB -le $moderateThreshold -or $usedPercent -ge 70.0) {
+        $level = "Moderate"
     }
     return [pscustomobject]@{
         Level = $level
@@ -773,6 +1173,223 @@ function Get-LearningSessionContext {
         Kind = $kind
         Pressure = if ($Pressure) { [string]$Pressure.Level } else { "Unknown" }
     }
+}
+
+function Get-IntentContext {
+    param(
+        [object]$Foreground,
+        [object]$Pressure,
+        [array]$Processes,
+        [hashtable]$CpuMap
+    )
+
+    if (-not $intentEngine) {
+        return [pscustomobject]@{ Kind = "Desktop"; Name = ""; Path = ""; Confidence = 0; Signals = @("disabled"); Foreground = ""; ForegroundPid = 0 }
+    }
+
+    $signals = @()
+    $kind = "Desktop"
+    $name = if ($Foreground -and $Foreground.ProcessName) { [string]$Foreground.ProcessName } else { "" }
+    $path = if ($Foreground -and $Foreground.Path) { [string]$Foreground.Path } else { "" }
+    $confidence = 20
+
+    $fgRole = Get-ProcessRole -ProcessName $name -Path $path
+    if ($Foreground -and [bool]$Foreground.IsFullscreen) {
+        $signals += "fullscreen"
+        $confidence += 26
+        if ($fgRole -eq "GameCandidate") {
+            $signals += "known-game-path"
+            $confidence += 38
+            $kind = "Gaming"
+        } elseif ($fgRole -notin @("Browser", "Communication", "Media") -and -not (Test-PathContainsFragment -Path $path -Fragments @("\Windows\", "\Program Files\WindowsApps\"))) {
+            $signals += "exclusive-foreground"
+            $confidence += 24
+            $kind = "Gaming"
+        }
+    }
+
+    if ($fgRole -in @("Communication", "Media")) {
+        $signals += ("foreground-" + $fgRole.ToLowerInvariant())
+        $confidence = [math]::Max($confidence, 72)
+        $kind = "MediaCall"
+    }
+
+    $launcherActivity = 0
+    $mediaActivity = 0
+    foreach ($p in @($Processes)) {
+        $role = Get-ProcessRole -ProcessName $p.ProcessName -Path (Get-ProcessPathText -Process $p)
+        $cpu = 0.0
+        if ($CpuMap -and $CpuMap.ContainsKey([int]$p.Id)) { $cpu = [double]$CpuMap[[int]$p.Id] }
+        if ($role -eq "Launcher" -and $cpu -ge 0.35) { $launcherActivity++ }
+        if ($role -in @("Communication", "Media") -and $cpu -ge 0.15) { $mediaActivity++ }
+    }
+    if ($kind -eq "Desktop" -and $launcherActivity -gt 0) {
+        $kind = "DownloadInstall"
+        $signals += "launcher-activity"
+        $confidence = [math]::Max($confidence, 66)
+    }
+    if ($kind -eq "Desktop" -and $mediaActivity -gt 0) {
+        $kind = "MediaCall"
+        $signals += "media-activity"
+        $confidence = [math]::Max($confidence, 64)
+    }
+    if ($Pressure -and [string]$Pressure.Level -in @("Moderate", "Elevated", "Critical")) {
+        $signals += ("memory-" + ([string]$Pressure.Level).ToLowerInvariant())
+        if ($kind -eq "Desktop") { $kind = "MemoryPressure" }
+        if ([string]$Pressure.Level -eq "Moderate") { $confidence = [math]::Max($confidence, 56) }
+        if ([string]$Pressure.Level -eq "Elevated") { $confidence = [math]::Max($confidence, 70) }
+        if ([string]$Pressure.Level -eq "Critical") { $confidence = [math]::Max($confidence, 84) }
+    }
+    if ($kind -eq "Gaming" -and $confidence -lt $intentMinConfidence) {
+        $kind = "Desktop"
+        $signals += "gaming-confidence-below-threshold"
+    }
+    if ($confidence -gt 100) { $confidence = 100 }
+
+    [pscustomobject]@{
+        Kind = $kind
+        Name = $name
+        Path = $path
+        Confidence = [int]$confidence
+        Signals = @($signals | Select-Object -Unique)
+        Foreground = $name
+        ForegroundPid = if ($Foreground) { [int]$Foreground.Id } else { 0 }
+    }
+}
+
+function Get-GuardDecision {
+    param(
+        [string]$ProcessName,
+        [string]$Path,
+        [string]$Role,
+        [double]$CpuPercent,
+        [int]$BurstCount,
+        [object]$Foreground,
+        [object]$SwitchProfile
+    )
+
+    $isForeground = $Foreground -and $Foreground.ProcessName -and ($ProcessName -ieq [string]$Foreground.ProcessName)
+    if ($Path -and $Foreground -and $Foreground.Path) {
+        $isForeground = $isForeground -or $Path.Equals([string]$Foreground.Path, [System.StringComparison]::OrdinalIgnoreCase)
+    }
+    $fastWake = Test-ForegroundSwitchProtected -Profile $SwitchProfile
+    $protect = $false
+    $reason = ""
+    $confidence = 0
+
+    if ($mediaCallProtection -and $Role -in @("Communication", "Media")) {
+        if ($isForeground -or $fastWake -or $CpuPercent -ge 0.15 -or $BurstCount -gt 0) {
+            $protect = $true
+            $reason = if ($Role -eq "Communication") { "MediaCallGuard" } else { "MediaGuard" }
+            $confidence = 65
+            if ($isForeground) { $confidence += 20 }
+            if ($fastWake) { $confidence += 12 }
+            if ($CpuPercent -ge 0.5) { $confidence += 8 }
+        }
+    }
+
+    if (-not $protect -and $downloadLauncherGuard -and $Role -eq "Launcher") {
+        if ($CpuPercent -ge 0.35 -or $BurstCount -gt 0 -or $fastWake) {
+            $protect = $true
+            $reason = "LauncherActivityGuard"
+            $confidence = 62
+            if ($CpuPercent -ge 1.0) { $confidence += 14 }
+            if ($BurstCount -gt 0) { $confidence += 10 }
+            if ($fastWake) { $confidence += 8 }
+        }
+    }
+
+    if ($confidence -gt 100) { $confidence = 100 }
+    [pscustomobject]@{
+        Protect = $protect
+        Reason = $reason
+        Confidence = [int]$confidence
+        FastWake = [bool]$fastWake
+    }
+}
+
+function Get-EffectiveMaxTargets {
+    $max = [int]$maxTargetsPerPass
+    if (-not $memoryPressureGovernor) { return $max }
+    switch ([string]$script:currentMemoryPressure.Level) {
+        "Moderate" { return [math]::Min(100, $max + 10) }
+        "Elevated" { return [math]::Min(120, $max + 22) }
+        "Critical" { return [math]::Min(140, $max + 35) }
+        default { return $max }
+    }
+}
+
+function Get-PressureTrimMinimum {
+    param(
+        [double]$BaseMinimum,
+        [string]$Tier
+    )
+
+    if (-not $memoryPressureGovernor) { return $BaseMinimum }
+    $factor = 1.0
+    switch ([string]$script:currentMemoryPressure.Level) {
+        "Moderate" { $factor = 0.90 }
+        "Elevated" { $factor = 0.76 }
+        "Critical" { $factor = 0.62 }
+    }
+    if ($Tier -eq "Light") { $factor = [math]::Max($factor, 0.82) }
+    return [math]::Max(12.0, [math]::Round($BaseMinimum * $factor, 1))
+}
+
+function Write-IntentState {
+    if (-not $intentEngine -or -not $script:currentIntent) { return }
+    Write-StateObject -Path $intentStatePath -Value ([pscustomobject]@{
+        Timestamp = (Get-Date).ToString("o")
+        Kind = [string]$script:currentIntent.Kind
+        Name = [string]$script:currentIntent.Name
+        Path = [string]$script:currentIntent.Path
+        Confidence = [int]$script:currentIntent.Confidence
+        Signals = @($script:currentIntent.Signals)
+        MemoryPressure = [string]$script:currentMemoryPressure.Level
+        FreeMemoryMB = [double]$script:currentMemoryPressure.FreeMB
+    })
+}
+
+function Write-ContentionRadar {
+    param(
+        [array]$Rows,
+        [array]$Results
+    )
+
+    if (-not $contentionRadar) { return }
+    $resultById = @{}
+    foreach ($r in @($Results)) { $resultById[[int]$r.Id] = $r }
+    $items = @()
+    foreach ($row in @($Rows)) {
+        $severity = 0.0
+        $reason = @()
+        if ([double]$row.CpuPercent -ge 1.0) { $severity += ([double]$row.CpuPercent * 8.0); $reason += "cpu" }
+        if ([double]$row.WorkingSetMB -ge 300.0) { $severity += ([double]$row.WorkingSetMB / 16.0); $reason += "memory" }
+        if ([int]$row.BurstCount -gt 0) { $severity += ([int]$row.BurstCount * 8.0); $reason += "bursts" }
+        if ($row.GuardReason) { $severity *= 0.72; $reason += [string]$row.GuardReason }
+        if ($resultById.ContainsKey([int]$row.Id)) { $reason += "managed" }
+        if ($severity -lt 12.0) { continue }
+        $items += [pscustomobject]@{
+            Id = [int]$row.Id
+            ProcessName = [string]$row.ProcessName
+            Role = [string]$row.Role
+            Severity = [math]::Round($severity, 1)
+            CpuPercent = [double]$row.CpuPercent
+            WorkingSetMB = [double]$row.WorkingSetMB
+            BurstCount = [int]$row.BurstCount
+            Candidate = [bool]$row.Candidate
+            GuardReason = [string]$row.GuardReason
+            Reason = @($reason | Select-Object -Unique)
+        }
+    }
+    $items = @($items | Sort-Object Severity -Descending | Select-Object -First 18)
+    Write-StateObject -Path $radarStatePath -Depth 7 -Value ([pscustomobject]@{
+        Timestamp = (Get-Date).ToString("o")
+        IntentKind = [string]$script:currentIntent.Kind
+        IntentConfidence = [int]$script:currentIntent.Confidence
+        MemoryPressure = [string]$script:currentMemoryPressure.Level
+        Items = $items
+    })
 }
 
 function Resolve-LearningPreference {
@@ -1070,6 +1687,19 @@ function Get-CandidateWeight {
     param([object]$Row)
 
     $weight = ([double]$Row.WorkingSetMB * 1.0) + ([double]$Row.CpuPercent * 120.0) + ([int]$Row.BurstCount * 140.0)
+    if ($Row.GuardReason) {
+        $weight *= 0.18
+    }
+    if ([string]$Row.AppPolicy -eq "Protect") {
+        $weight = 0.0
+    } elseif ([string]$Row.AppPolicy -eq "Deep") {
+        $weight *= 1.25
+    } elseif ([string]$Row.AppPolicy -eq "Light") {
+        $weight *= 0.72
+    }
+    if ([bool]$Row.SwitchFastWake) {
+        $weight *= 0.58
+    }
     if ($realtimeFriendlyNames.Contains([string]$Row.ProcessName)) {
         $weight *= 0.62
     }
@@ -1083,6 +1713,16 @@ function Get-CandidateWeight {
     if ([bool]$Row.ForegroundFullscreen) {
         $weight *= 1.15
     }
+    if ($memoryPressureGovernor) {
+        switch ([string]$script:currentMemoryPressure.Level) {
+            "Moderate" { $weight *= 1.08 }
+            "Elevated" { $weight *= 1.22 }
+            "Critical" { $weight *= 1.38 }
+        }
+    }
+    if ($perGameProfiles -and [int]$Row.GameAggressionBias -gt 0 -and [string]$script:currentIntent.Kind -eq "Gaming") {
+        $weight *= (1.0 + ([int]$Row.GameAggressionBias * 0.12))
+    }
     return [math]::Round($weight, 3)
 }
 
@@ -1093,16 +1733,56 @@ function Get-NapPolicy {
     $reason = "steady-background"
     $deepMinimum = $deepNapMinimumMB
     $deepCpuLimit = $deepNapMaxCpuPercent
+    $policySource = "auto"
     if ([bool]$Row.ForegroundFullscreen) {
         $deepMinimum = [math]::Min($deepMinimum, 120.0)
         $deepCpuLimit = [math]::Max($deepCpuLimit, 0.75)
     }
+    if ($memoryPressureGovernor) {
+        switch ([string]$script:currentMemoryPressure.Level) {
+            "Moderate" {
+                $deepMinimum = [math]::Min($deepMinimum, 180.0)
+            }
+            "Elevated" {
+                $deepMinimum = [math]::Min($deepMinimum, 120.0)
+                $deepCpuLimit = [math]::Max($deepCpuLimit, 0.85)
+            }
+            "Critical" {
+                $deepMinimum = [math]::Min($deepMinimum, 80.0)
+                $deepCpuLimit = [math]::Max($deepCpuLimit, 1.05)
+            }
+        }
+    }
+    if ($perGameProfiles -and [int]$Row.GameAggressionBias -gt 0 -and [string]$script:currentIntent.Kind -eq "Gaming") {
+        $deepMinimum = [math]::Min($deepMinimum, 110.0)
+        $deepCpuLimit = [math]::Max($deepCpuLimit, 0.9)
+    }
 
     if (-not $adaptiveNap) {
         $reason = "fixed-policy"
+    } elseif ([string]$Row.AppPolicy -eq "Light") {
+        $tier = "Light"
+        $reason = "user-light-policy"
+        $policySource = "user"
+    } elseif ([string]$Row.AppPolicy -eq "Balanced") {
+        $tier = "Balanced"
+        $reason = "user-balanced-policy"
+        $policySource = "user"
+    } elseif ([string]$Row.AppPolicy -eq "Deep") {
+        if ([double]$Row.CpuPercent -le [math]::Max(1.0, $deepCpuLimit) -and -not [bool]$Row.SwitchFastWake -and -not $Row.GuardReason -and -not ($realtimeFriendlyNames.Contains([string]$Row.ProcessName))) {
+            $tier = "Deep"
+            $reason = "user-deep-policy"
+        } else {
+            $tier = "Balanced"
+            $reason = "user-deep-softened"
+        }
+        $policySource = "user"
     } elseif ($realtimeFriendlyNames.Contains([string]$Row.ProcessName)) {
         $tier = "Light"
         $reason = "realtime-friendly"
+    } elseif ([bool]$Row.SwitchFastWake) {
+        $tier = "Light"
+        $reason = "foreground-fast-wake"
     } elseif ($smartLearning -and [int]$Row.LearningObservations -ge $learningMinObservations -and [bool]$Row.LearningFastWake) {
         $tier = "Light"
         $reason = "learned-fast-wake"
@@ -1125,6 +1805,11 @@ function Get-NapPolicy {
         $tier = "Balanced"
         $reason = "bursty-background"
     }
+    if ($memoryPressureGovernor -and $tier -eq "Balanced" -and [string]$script:currentMemoryPressure.Level -eq "Critical" -and [double]$Row.WorkingSetMB -ge 220.0 -and [double]$Row.CpuPercent -le 0.4 -and -not [bool]$Row.SwitchFastWake -and -not $Row.GuardReason) {
+        $tier = "Deep"
+        $reason = "critical-memory-idle-heavy"
+        if ($policySource -eq "auto") { $policySource = "governor" }
+    }
 
     [pscustomobject]@{
         Tier = $tier
@@ -1132,7 +1817,8 @@ function Get-NapPolicy {
         PriorityClass = $napTierPriority[$tier]
         MemoryPriority = [int]$napTierMemory[$tier]
         IoPriority = [int]$napTierIo[$tier]
-        TrimMinimumMB = [double]$napTierTrimMinimum[$tier]
+        TrimMinimumMB = Get-PressureTrimMinimum -BaseMinimum ([double]$napTierTrimMinimum[$tier]) -Tier $tier
+        Source = $policySource
         LearningSummary = if ($smartLearning -and [int]$Row.LearningObservations -gt 0) { "L " + [string]$Row.LearningPreferredTier } else { "" }
     }
 }
@@ -1143,7 +1829,10 @@ function Get-SkipReason {
         [object]$Foreground,
         [double]$CpuPercent,
         [hashtable]$ProtectMap,
-        [double]$CpuProtectThreshold
+        [double]$CpuProtectThreshold,
+        [string]$Path,
+        [object]$AppPolicy,
+        [object]$GuardDecision
     )
 
     if ($Process.Id -eq $currentPid) { return "Self" }
@@ -1152,8 +1841,11 @@ function Get-SkipReason {
     if ($systemNames.Contains($Process.ProcessName)) { return "SystemProcess" }
     if ($protectedNames.Contains($Process.ProcessName)) { return "ProtectedTweakerOrTool" }
     if ($skipForegroundName -and $Foreground.ProcessName -and $Process.ProcessName -ieq $Foreground.ProcessName) { return "ForegroundApp" }
+    if ($AppPolicy -and [string]$AppPolicy.Policy -eq "Protect") { return "UserProtectPolicy" }
+    if ($GuardDecision -and [bool]$GuardDecision.Protect) { return [string]$GuardDecision.Reason }
 
-    $path = Get-ProcessPathText -Process $Process
+    $path = $Path
+    if (-not $path) { $path = Get-ProcessPathText -Process $Process }
     if (-not $path) { return "NoAccessiblePath" }
 
     if (Test-TemporaryProtected -Map $ProtectMap -Process $Process -Path $path) { return "TemporaryActiveApp" }
@@ -1202,6 +1894,10 @@ function Get-ProcessCpuPercentMap {
 
 function Get-BackgroundProcessRows {
     $foreground = Get-ForegroundInfo
+    $script:currentMemoryPressure = Get-SystemMemoryPressure
+    $script:foregroundSwitchMap = Read-ForegroundSwitchMap
+    $script:gameProfileMap = Read-GameProfileMap
+    $script:appPolicyMap = Read-AppPolicyMap
     if ($smartLearning) {
         $script:currentLearningSession = Get-LearningSessionContext -Foreground $foreground -Pressure $script:currentMemoryPressure
     }
@@ -1211,22 +1907,34 @@ function Get-BackgroundProcessRows {
         $effectiveHighCpuThreshold = $fullscreenHighCpuThreshold
         $effectiveTrimMinimumMB = $fullscreenTrimMinimumMB
     }
+    $effectiveTrimMinimumMB = Get-PressureTrimMinimum -BaseMinimum $effectiveTrimMinimumMB -Tier "Balanced"
 
     $protectMap = Read-TemporaryProtectMap
     $burstMap = Read-BurstMap
+
+    $foregroundSwitchItem = $null
+    if ($foregroundSwitchAccelerator -and $foreground.Id -gt 0 -and $foreground.ProcessName) {
+        $foregroundSwitchItem = Add-ForegroundSwitchObservation -Map $script:foregroundSwitchMap -ProcessName ([string]$foreground.ProcessName) -Path ([string]$foreground.Path) -ProcessId ([int]$foreground.Id)
+    }
 
     if ($smartAutoProtect -and $foreground.Id -gt 0) {
         $fgProc = Get-Process -Id $foreground.Id -ErrorAction SilentlyContinue
         if ($fgProc) {
             Add-TemporaryProtection -Map $protectMap -Process $fgProc -Path $foreground.Path -Reason "ForegroundWake" -Minutes $autoProtectForegroundMinutes
+            if ($foregroundSwitchItem -and (Test-ForegroundSwitchProtected -Profile $foregroundSwitchItem)) {
+                Add-TemporaryProtection -Map $protectMap -Process $fgProc -Path $foreground.Path -Reason "FastForegroundWake" -Minutes $foregroundSwitchProtectMinutes
+            }
         }
     }
 
     $cpuPercentByPid = @{}
-    if ($skipHighCpu) {
+    if ($skipHighCpu -or $intentEngine -or $downloadLauncherGuard -or $mediaCallProtection) {
         $cpuPercentByPid = Get-ProcessCpuPercentMap
     }
     $all = @(Get-Process -ErrorAction SilentlyContinue | Sort-Object ProcessName, Id)
+    $script:currentIntent = Get-IntentContext -Foreground $foreground -Pressure $script:currentMemoryPressure -Processes $all -CpuMap $cpuPercentByPid
+    Write-IntentState
+    $currentGameProfile = Get-CurrentGameProfile
     $rows = @()
 
     foreach ($p in $all) {
@@ -1235,6 +1943,9 @@ function Get-BackgroundProcessRows {
             $cpuPercent = [double]$cpuPercentByPid[[int]$p.Id]
         }
         $path = Get-ProcessPathText -Process $p
+        $role = Get-ProcessRole -ProcessName $p.ProcessName -Path $path
+        $switchProfile = Get-ForegroundSwitchProfile -ProcessName $p.ProcessName -Path $path
+        $appPolicy = Get-AppPolicyForText -ProcessName $p.ProcessName -Path $path
 
         if ($path -and $smartAutoProtect -and $skipHighCpu -and $cpuPercent -ge $effectiveHighCpuThreshold) {
             Add-TemporaryProtection -Map $protectMap -Process $p -Path $path -Reason "ActiveCpu" -Minutes $autoProtectHighCpuMinutes
@@ -1244,7 +1955,8 @@ function Get-BackgroundProcessRows {
         }
 
         $burstCount = if ($path) { Get-BurstCount -Map $burstMap -Process $p -Path $path } else { 0 }
-        $skip = Get-SkipReason -Process $p -Foreground $foreground -CpuPercent $cpuPercent -ProtectMap $protectMap -CpuProtectThreshold $effectiveHighCpuThreshold
+        $guardDecision = Get-GuardDecision -ProcessName $p.ProcessName -Path $path -Role $role -CpuPercent $cpuPercent -BurstCount $burstCount -Foreground $foreground -SwitchProfile $switchProfile
+        $skip = Get-SkipReason -Process $p -Foreground $foreground -CpuPercent $cpuPercent -ProtectMap $protectMap -CpuProtectThreshold $effectiveHighCpuThreshold -Path $path -AppPolicy $appPolicy -GuardDecision $guardDecision
         $learningProfile = $null
         if ($smartLearning) {
             $learningKey = Get-LearningKeyFromText -ProcessName $p.ProcessName -Path $path
@@ -1267,6 +1979,18 @@ function Get-BackgroundProcessRows {
             EffectiveTrimMinimumMB = $effectiveTrimMinimumMB
             SessionId = $p.SessionId
             Path = $path
+            AppKey = if ($appPolicy) { [string]$appPolicy.Key } else { Get-AppIdentityKeyFromText -ProcessName $p.ProcessName -Path $path }
+            Role = $role
+            AppPolicy = if ($appPolicy) { [string]$appPolicy.Policy } else { "Auto" }
+            GuardReason = if ($guardDecision) { [string]$guardDecision.Reason } else { "" }
+            GuardConfidence = if ($guardDecision) { [int]$guardDecision.Confidence } else { 0 }
+            SwitchFastWake = if ($switchProfile) { [bool]$switchProfile.FastWake } else { $false }
+            SwitchWakeCount = if ($switchProfile) { [int]$switchProfile.WakeCount } else { 0 }
+            IntentKind = if ($script:currentIntent) { [string]$script:currentIntent.Kind } else { "Desktop" }
+            IntentConfidence = if ($script:currentIntent) { [int]$script:currentIntent.Confidence } else { 0 }
+            GameProfileName = if ($currentGameProfile) { [string]$currentGameProfile.Name } else { "" }
+            GameProfileObservations = if ($currentGameProfile) { [int]$currentGameProfile.Observations } else { 0 }
+            GameAggressionBias = if ($currentGameProfile) { [int]$currentGameProfile.AggressionBias } else { 0 }
             LearningObservations = if ($learningProfile) { [int]$learningProfile.Observations } else { 0 }
             LearningWakeCount = if ($learningProfile) { [int]$learningProfile.WakeCount } else { 0 }
             LearningFastWake = if ($learningProfile) { [bool]$learningProfile.FastWake } else { $false }
@@ -1277,6 +2001,7 @@ function Get-BackgroundProcessRows {
 
     Save-TemporaryProtectMap -Map $protectMap
     Save-BurstMap -Map $burstMap
+    Save-ForegroundSwitchMap -Map $script:foregroundSwitchMap
     return $rows
 }
 
@@ -1338,7 +2063,11 @@ function Write-ApplySummaryLog {
     if ($smartLearning) {
         $learningText = " learning=on profiles={0} pressure={1} freeMB={2}" -f $script:learningMap.Count, ([string]$script:currentMemoryPressure.Level), ([math]::Round([double]$script:currentMemoryPressure.FreeMB, 0))
     }
-    $line = "{0} action=apply targets={1} beforeMB={2} afterMB={3} deltaMB={4} light={5} balanced={6} deep={7} trimmed={8} cooldown={9} fullscreen={10}{11}{12}" -f (Get-Date).ToString("s"), $count, ([math]::Round($before, 1)), ([math]::Round($after, 1)), ([math]::Round($delta, 1)), $light, $balanced, $deep, $trimmed, $cooldown, ([string]$fullscreen).ToLowerInvariant(), $topText, $learningText
+    $intentText = ""
+    if ($intentEngine -and $script:currentIntent) {
+        $intentText = " intent={0} confidence={1}" -f ([string]$script:currentIntent.Kind), ([int]$script:currentIntent.Confidence)
+    }
+    $line = "{0} action=apply targets={1} beforeMB={2} afterMB={3} deltaMB={4} light={5} balanced={6} deep={7} trimmed={8} cooldown={9} fullscreen={10}{11}{12}{13}" -f (Get-Date).ToString("s"), $count, ([math]::Round($before, 1)), ([math]::Round($after, 1)), ([math]::Round($delta, 1)), $light, $balanced, $deep, $trimmed, $cooldown, ([string]$fullscreen).ToLowerInvariant(), $topText, $learningText, $intentText
     Add-Content -LiteralPath $LogPath -Value $line -Encoding UTF8
 }
 
@@ -1374,6 +2103,19 @@ function Write-NapScore {
             LearningAggression = $_.LearningAggression
             LearningPressure = $_.LearningPressure
             ForegroundFullscreen = $_.ForegroundFullscreen
+            Role = $_.Role
+            AppKey = $_.AppKey
+            AppPolicy = $_.AppPolicy
+            PolicySource = $_.PolicySource
+            GuardReason = $_.GuardReason
+            GuardConfidence = $_.GuardConfidence
+            SwitchFastWake = $_.SwitchFastWake
+            SwitchWakeCount = $_.SwitchWakeCount
+            IntentKind = $_.IntentKind
+            IntentConfidence = $_.IntentConfidence
+            GameProfileName = $_.GameProfileName
+            GameProfileObservations = $_.GameProfileObservations
+            GameAggressionBias = $_.GameAggressionBias
             Path = $_.Path
         }
     })
@@ -1384,6 +2126,10 @@ function Write-NapScore {
         LearningProfiles = if ($smartLearning) { [int]$script:learningMap.Count } else { 0 }
         MemoryPressure = [string]$script:currentMemoryPressure.Level
         FreeMemoryMB = [double]$script:currentMemoryPressure.FreeMB
+        IntentKind = if ($script:currentIntent) { [string]$script:currentIntent.Kind } else { "Desktop" }
+        IntentName = if ($script:currentIntent) { [string]$script:currentIntent.Name } else { "" }
+        IntentConfidence = if ($script:currentIntent) { [int]$script:currentIntent.Confidence } else { 0 }
+        IntentSignals = if ($script:currentIntent) { @($script:currentIntent.Signals) } else { @() }
         Items = $items
     } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $scorePath -Encoding UTF8
 }
@@ -1397,10 +2143,11 @@ function Invoke-ApplyOnce {
     }
 
     $rows = @(Get-BackgroundProcessRows)
+    $targetLimit = Get-EffectiveMaxTargets
     $targets = @($rows |
         Where-Object { $_.Candidate } |
         Sort-Object @{Expression = { Get-CandidateWeight $_ }; Descending = $true}, @{Expression = "WorkingSetMB"; Descending = $true} |
-        Select-Object -First $maxTargetsPerPass)
+        Select-Object -First $targetLimit)
     $trimMap = Read-TrimMap
     $state = $null
     if ($SaveState) {
@@ -1467,11 +2214,24 @@ function Invoke-ApplyOnce {
             ProcessName = $row.ProcessName
             NapTier = $policy.Tier
             Decision = $policy.Reason
+            PolicySource = $policy.Source
             Learning = $policy.LearningSummary
             LearningObservations = $row.LearningObservations
             LearningWakeCount = $row.LearningWakeCount
             LearningAggression = $row.LearningAggression
             LearningPressure = [string]$script:currentMemoryPressure.Level
+            Role = $row.Role
+            AppKey = $row.AppKey
+            AppPolicy = $row.AppPolicy
+            GuardReason = $row.GuardReason
+            GuardConfidence = $row.GuardConfidence
+            SwitchFastWake = $row.SwitchFastWake
+            SwitchWakeCount = $row.SwitchWakeCount
+            IntentKind = $row.IntentKind
+            IntentConfidence = $row.IntentConfidence
+            GameProfileName = $row.GameProfileName
+            GameProfileObservations = $row.GameProfileObservations
+            GameAggressionBias = $row.GameAggressionBias
             Priority = $priorityStatus
             MemoryPriority = $memoryStatus
             IoPriority = $ioStatus
@@ -1489,6 +2249,7 @@ function Invoke-ApplyOnce {
     }
 
     Save-TrimMap -Map $trimMap
+    Write-ContentionRadar -Rows $rows -Results $results
     return $results
 }
 
@@ -1568,6 +2329,16 @@ function Invoke-ForegroundRestore {
     }
 
     $path = Get-ProcessPathText -Process $p
+    if ($foregroundSwitchAccelerator) {
+        $script:foregroundSwitchMap = Read-ForegroundSwitchMap
+        $switchItem = Add-ForegroundSwitchObservation -Map $script:foregroundSwitchMap -ProcessName $p.ProcessName -Path $path -ProcessId ([int]$p.Id) -ForceCount
+        Save-ForegroundSwitchMap -Map $script:foregroundSwitchMap
+        if ($switchItem -and (Test-ForegroundSwitchProtected -Profile $switchItem) -and $smartAutoProtect) {
+            $protectMapForWake = Read-TemporaryProtectMap
+            Add-TemporaryProtection -Map $protectMapForWake -Process $p -Path $path -Reason "FastForegroundWake" -Minutes $foregroundSwitchProtectMinutes
+            Save-TemporaryProtectMap -Map $protectMapForWake
+        }
+    }
     $currentPriority = Get-ProcessPriorityText -Process $p
     $currentIo = Get-ProcessIoPriorityText -Process $p
     $state = $null
@@ -1664,12 +2435,13 @@ if ($smartLearning) {
 switch ($Action) {
     "Status" {
         Get-BackgroundProcessRows |
-            Where-Object { $_.Candidate -or $_.SkipReason -in @("ForegroundApp", "ProtectedTweakerOrTool", "ProtectedPath", "ActiveCpu") } |
+            Where-Object { $_.Candidate -or $_.SkipReason -in @("ForegroundApp", "ProtectedTweakerOrTool", "ProtectedPath", "ActiveCpu", "UserProtectPolicy", "MediaCallGuard", "MediaGuard", "LauncherActivityGuard", "TemporaryActiveApp") } |
             Sort-Object @{ Expression = "Candidate"; Descending = $true }, @{ Expression = "WorkingSetMB"; Descending = $true }
     }
     "Apply" {
         $results = @(Invoke-ApplyOnce -SaveState:($StateMode -ne "None"))
         Update-LearningProfiles -Results $results
+        Update-GameProfiles -Results $results
         Write-ApplySummaryLog -Results $results
         Write-NapScore -Results $results
         if (-not $Quiet) {
@@ -1691,6 +2463,8 @@ switch ($Action) {
         while ((Get-Date) -lt $deadline) {
             $saveState = ($StateMode -ne "None") -and ($first -or $StateMode -eq "Latest")
             $results = @(Invoke-ApplyOnce -SaveState:$saveState)
+            Update-LearningProfiles -Results $results
+            Update-GameProfiles -Results $results
             Write-ApplySummaryLog -Results $results
             Write-NapScore -Results $results
             if (-not $Quiet) {

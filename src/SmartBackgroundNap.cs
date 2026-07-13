@@ -26,7 +26,7 @@ using Microsoft.Web.WebView2.Wpf;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.3.6";
+    private const string AppVersion = "0.4.0";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
@@ -52,6 +52,8 @@ internal static class SmartBackgroundNap
     private static string outputsPath;
     private static string logPath;
     private static string scorePath;
+    private static string appPolicyPath;
+    private static string radarPath;
     private static string safetyReportPath;
     private static bool usingLooseRuntime;
     private const uint ProcessSetInformation = 0x0200;
@@ -236,7 +238,7 @@ internal static class SmartBackgroundNap
         else
         {
             appRoot = GetWritableAppRoot();
-            string runtimeRoot = Path.Combine(appRoot, "runtime");
+            string runtimeRoot = Path.Combine(appRoot, "runtime-" + AppVersion);
             EnsureRuntimeFiles(runtimeRoot);
             looseRoot = runtimeRoot;
             usingLooseRuntime = false;
@@ -262,6 +264,8 @@ internal static class SmartBackgroundNap
         outputsPath = Path.Combine(appRoot, "outputs");
         logPath = Path.Combine(outputsPath, "background-nap-auto.log");
         scorePath = Path.Combine(outputsPath, "background-nap-score-latest.json");
+        appPolicyPath = Path.Combine(outputsPath, "background-nap-app-policies.json");
+        radarPath = Path.Combine(outputsPath, "background-nap-radar-latest.json");
         safetyReportPath = Path.Combine(outputsPath, "SmartBackgroundNap-SafetyReport.txt");
     }
 
@@ -2386,6 +2390,12 @@ internal static class SmartBackgroundNap
                         delegate { return SetSmartLearningEnabled(!learningEnabled); });
                     return;
                 }
+                if (String.Equals(action, "setAppPolicy", StringComparison.OrdinalIgnoreCase))
+                {
+                    SetAppPolicyFromMessage(message);
+                    SendState();
+                    return;
+                }
                 if (String.Equals(action, "runElevatedApply", StringComparison.OrdinalIgnoreCase))
                 {
                     RunUserAction("Requesting administrator permission...", "Elevated pass finished.", RunElevatedApply);
@@ -2402,6 +2412,97 @@ internal static class SmartBackgroundNap
             catch (Exception ex)
             {
                 WriteCrash(ex);
+            }
+        }
+
+        private void SetAppPolicyFromMessage(IDictionary<string, object> message)
+        {
+            string policy = GetString(message, "policy");
+            if (!String.Equals(policy, "Auto", StringComparison.OrdinalIgnoreCase) &&
+                !String.Equals(policy, "Protect", StringComparison.OrdinalIgnoreCase) &&
+                !String.Equals(policy, "Light", StringComparison.OrdinalIgnoreCase) &&
+                !String.Equals(policy, "Balanced", StringComparison.OrdinalIgnoreCase) &&
+                !String.Equals(policy, "Deep", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            policy = CultureInfo.InvariantCulture.TextInfo.ToTitleCase(policy.ToLowerInvariant());
+            string key = GetString(message, "key");
+            string processName = GetString(message, "processName");
+            string path = GetString(message, "path");
+            if (String.IsNullOrWhiteSpace(key))
+            {
+                if (!String.IsNullOrWhiteSpace(path))
+                {
+                    key = "path:" + path.ToLowerInvariant();
+                }
+                else if (!String.IsNullOrWhiteSpace(processName))
+                {
+                    key = "name:" + processName.ToLowerInvariant();
+                }
+            }
+            if (String.IsNullOrWhiteSpace(key)) { return; }
+
+            Directory.CreateDirectory(outputsPath);
+            List<Dictionary<string, object>> items = new List<Dictionary<string, object>>();
+            try
+            {
+                if (File.Exists(appPolicyPath))
+                {
+                    IDictionary<string, object> root = JsonCompat.DeserializeObject(File.ReadAllText(appPolicyPath, Encoding.UTF8));
+                    object existingItems = null;
+                    System.Collections.IEnumerable enumerable = root != null && root.TryGetValue("Items", out existingItems) ? existingItems as System.Collections.IEnumerable : null;
+                    if (enumerable != null && !(existingItems is string))
+                    {
+                        foreach (object item in enumerable)
+                        {
+                            IDictionary<string, object> map = item as IDictionary<string, object>;
+                            if (map == null) { continue; }
+                            string existingKey = GetString(map, "Key");
+                            if (String.Equals(existingKey, key, StringComparison.OrdinalIgnoreCase)) { continue; }
+                            string existingPolicy = GetString(map, "Policy");
+                            if (String.IsNullOrWhiteSpace(existingKey) || String.IsNullOrWhiteSpace(existingPolicy)) { continue; }
+                            Dictionary<string, object> copy = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                            copy["Key"] = existingKey;
+                            copy["ProcessName"] = GetString(map, "ProcessName");
+                            copy["Path"] = GetString(map, "Path");
+                            copy["Policy"] = existingPolicy;
+                            copy["UpdatedAt"] = GetString(map, "UpdatedAt");
+                            items.Add(copy);
+                        }
+                    }
+                }
+            }
+            catch
+            {
+            }
+
+            if (!String.Equals(policy, "Auto", StringComparison.OrdinalIgnoreCase))
+            {
+                Dictionary<string, object> entry = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                entry["Key"] = key;
+                entry["ProcessName"] = processName;
+                entry["Path"] = path;
+                entry["Policy"] = policy;
+                entry["UpdatedAt"] = DateTime.Now.ToString("o", CultureInfo.InvariantCulture);
+                items.Add(entry);
+            }
+
+            Dictionary<string, object> output = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            output["Timestamp"] = DateTime.Now.ToString("o", CultureInfo.InvariantCulture);
+            output["Items"] = items;
+            File.WriteAllText(appPolicyPath, JsonCompat.SerializeObject(output), Encoding.UTF8);
+
+            string label = String.IsNullOrWhiteSpace(processName) ? key : processName;
+            activeUiEventLine = DateTime.Now.ToString("HH:mm:ss", CultureInfo.CurrentCulture) + "  POLICY  " + label + " -> " + policy;
+            try
+            {
+                string safeLabel = label.Replace(' ', '_');
+                File.AppendAllText(logPath, DateTime.Now.ToString("s", CultureInfo.InvariantCulture) + " action=policy process=" + safeLabel + " policy=" + policy + Environment.NewLine, Encoding.UTF8);
+            }
+            catch
+            {
             }
         }
 
@@ -2579,6 +2680,12 @@ internal static class SmartBackgroundNap
             state.LearningProfiles = learningEnabled ? Math.Max(scoreMeta.LearningProfiles, GetLearningProfileCount()) : 0;
             state.MemoryPressure = String.IsNullOrWhiteSpace(scoreMeta.MemoryPressure) ? ExtractLogValue(line, "pressure") : scoreMeta.MemoryPressure;
             state.FreeMemoryMB = scoreMeta.FreeMemoryMB;
+            state.IntentKind = String.IsNullOrWhiteSpace(scoreMeta.IntentKind) ? ExtractLogValue(line, "intent") : scoreMeta.IntentKind;
+            state.IntentName = scoreMeta.IntentName;
+            state.IntentConfidence = scoreMeta.IntentConfidence;
+            state.IntentSignals = scoreMeta.IntentSignals;
+            state.RadarTop = scoreMeta.RadarTop;
+            state.RadarCount = scoreMeta.RadarCount;
             state.IsElevated = IsCurrentProcessElevated();
             state.PermissionDeniedCount = scoreMeta.PermissionDeniedCount;
             state.PermissionDeniedApps = scoreMeta.PermissionDeniedApps;
@@ -2608,16 +2715,20 @@ internal static class SmartBackgroundNap
             meta.PermissionDeniedApps = new List<string>();
             try
             {
-                if (!File.Exists(scorePath)) { return meta; }
+                if (!File.Exists(scorePath)) { LoadRadarMeta(meta); return meta; }
                 string json = File.ReadAllText(scorePath, Encoding.UTF8);
-                if (String.IsNullOrWhiteSpace(json)) { return meta; }
+                if (String.IsNullOrWhiteSpace(json)) { LoadRadarMeta(meta); return meta; }
                 IDictionary<string, object> root = JsonCompat.DeserializeObject(json);
-                if (root == null) { return meta; }
+                if (root == null) { LoadRadarMeta(meta); return meta; }
                 meta.LearningEnabled = GetBool(root, "LearningEnabled");
                 meta.LearningProfiles = GetInt(root, "LearningProfiles");
                 meta.MemoryPressure = GetString(root, "MemoryPressure");
                 meta.FreeMemoryMB = GetDouble(root, "FreeMemoryMB");
-                object items;
+                meta.IntentKind = GetString(root, "IntentKind");
+                meta.IntentName = GetString(root, "IntentName");
+                meta.IntentConfidence = GetInt(root, "IntentConfidence");
+                meta.IntentSignals = ReadStringList(root, "IntentSignals");
+                object items = null;
                 if (root.TryGetValue("Items", out items) && items != null)
                 {
                     System.Collections.IEnumerable enumerable = items as System.Collections.IEnumerable;
@@ -2640,7 +2751,40 @@ internal static class SmartBackgroundNap
             catch
             {
             }
+            LoadRadarMeta(meta);
             return meta;
+        }
+
+        private void LoadRadarMeta(ScoreMeta meta)
+        {
+            try
+            {
+                if (meta == null || !File.Exists(radarPath)) { return; }
+                IDictionary<string, object> root = JsonCompat.DeserializeObject(File.ReadAllText(radarPath, Encoding.UTF8));
+                object items = null;
+                System.Collections.IEnumerable enumerable = root != null && root.TryGetValue("Items", out items) ? items as System.Collections.IEnumerable : null;
+                if (enumerable == null || items is string) { return; }
+                int count = 0;
+                string top = "";
+                double topSeverity = -1.0;
+                foreach (object item in enumerable)
+                {
+                    IDictionary<string, object> map = item as IDictionary<string, object>;
+                    if (map == null) { continue; }
+                    count++;
+                    double severity = GetDouble(map, "Severity");
+                    if (severity > topSeverity)
+                    {
+                        topSeverity = severity;
+                        top = BuildProcessLabel(map);
+                    }
+                }
+                meta.RadarCount = count;
+                meta.RadarTop = top;
+            }
+            catch
+            {
+            }
         }
 
         private static bool HasPermissionDeniedStatus(IDictionary<string, object> map)
@@ -2824,6 +2968,16 @@ internal static class SmartBackgroundNap
                     row.Bursts = GetInt(map, "BurstCount").ToString(CultureInfo.CurrentCulture);
                     row.Action = BuildActionSummary(map);
                     row.PermissionDenied = HasPermissionDeniedStatus(map);
+                    row.Key = GetString(map, "AppKey");
+                    row.ProcessName = GetString(map, "ProcessName");
+                    row.Path = GetString(map, "Path");
+                    row.Role = GetString(map, "Role");
+                    row.Policy = String.IsNullOrWhiteSpace(GetString(map, "AppPolicy")) ? "Auto" : GetString(map, "AppPolicy");
+                    row.PolicySource = GetString(map, "PolicySource");
+                    row.Guard = GetString(map, "GuardReason");
+                    row.Intent = GetString(map, "IntentKind");
+                    row.IntentConfidence = GetInt(map, "IntentConfidence");
+                    row.SwitchFastWake = GetBool(map, "SwitchFastWake");
                     row.RawScore = GetDouble(map, "Score");
                     rows.Add(row);
                 }
@@ -2858,7 +3012,33 @@ internal static class SmartBackgroundNap
             string learning = GetString(map, "Learning");
             int observations = GetInt(map, "LearningObservations");
             int wakes = GetInt(map, "LearningWakeCount");
+            string policy = GetString(map, "AppPolicy");
+            string source = GetString(map, "PolicySource");
+            string role = GetString(map, "Role");
+            string guard = GetString(map, "GuardReason");
+            string intent = GetString(map, "IntentKind");
+            int intentConfidence = GetInt(map, "IntentConfidence");
             string summary = "Tier " + tier + " / P " + priority + " / M " + memory + " / IO " + io + " / T " + trim + " / Eco " + power;
+            if (!String.IsNullOrWhiteSpace(policy) && !String.Equals(policy, "Auto", StringComparison.OrdinalIgnoreCase))
+            {
+                summary += " / Policy " + policy;
+            }
+            else if (!String.IsNullOrWhiteSpace(source) && !String.Equals(source, "auto", StringComparison.OrdinalIgnoreCase))
+            {
+                summary += " / " + source;
+            }
+            if (!String.IsNullOrWhiteSpace(role) && !String.Equals(role, "App", StringComparison.OrdinalIgnoreCase))
+            {
+                summary += " / " + role;
+            }
+            if (!String.IsNullOrWhiteSpace(guard))
+            {
+                summary += " / Guard " + guard;
+            }
+            if (!String.IsNullOrWhiteSpace(intent) && !String.Equals(intent, "Desktop", StringComparison.OrdinalIgnoreCase))
+            {
+                summary += " / Intent " + intent + (intentConfidence > 0 ? " " + intentConfidence.ToString(CultureInfo.CurrentCulture) : "");
+            }
             if (!String.IsNullOrWhiteSpace(learning) || observations > 0 || wakes > 0)
             {
                 summary += " / Learn " + (String.IsNullOrWhiteSpace(learning) ? observations.ToString(CultureInfo.CurrentCulture) : learning);
@@ -2907,6 +3087,8 @@ internal static class SmartBackgroundNap
                 string learning = ExtractLogValue(line, "learning");
                 string pressure = ExtractLogValue(line, "pressure");
                 string profiles = ExtractLogValue(line, "profiles");
+                string intent = ExtractLogValue(line, "intent");
+                string confidence = ExtractLogValue(line, "confidence");
                 string text = time + "  APPLY";
                 if (!String.IsNullOrWhiteSpace(targets)) { text += "  " + targets + " apps"; }
                 if (!String.IsNullOrWhiteSpace(delta)) { text += "  " + delta + " MB"; }
@@ -2914,7 +3096,17 @@ internal static class SmartBackgroundNap
                 if (!String.IsNullOrWhiteSpace(trimmed)) { text += "  T " + trimmed; }
                 if (!String.IsNullOrWhiteSpace(cooldown) && cooldown != "0") { text += "  C " + cooldown; }
                 if (String.Equals(learning, "on", StringComparison.OrdinalIgnoreCase)) { text += "  LEARN " + BlankToZero(profiles) + " " + BlankToDash(pressure); }
+                if (!String.IsNullOrWhiteSpace(intent)) { text += "  INTENT " + intent + (String.IsNullOrWhiteSpace(confidence) ? "" : " " + confidence); }
                 if (!String.IsNullOrWhiteSpace(top)) { text += "  top " + top; }
+                return text;
+            }
+            if (String.Equals(action, "policy", StringComparison.OrdinalIgnoreCase))
+            {
+                string process = ExtractLogValue(line, "process");
+                string policy = ExtractLogValue(line, "policy");
+                string text = time + "  POLICY";
+                if (!String.IsNullOrWhiteSpace(process)) { text += "  " + process; }
+                if (!String.IsNullOrWhiteSpace(policy)) { text += " -> " + policy; }
                 return text;
             }
             if (String.Equals(action, "learning", StringComparison.OrdinalIgnoreCase))
@@ -3010,6 +3202,26 @@ internal static class SmartBackgroundNap
             object value;
             if (map == null || !map.TryGetValue(key, out value) || value == null) { return ""; }
             return Convert.ToString(value, CultureInfo.InvariantCulture);
+        }
+
+        private static List<string> ReadStringList(IDictionary<string, object> map, string key)
+        {
+            List<string> result = new List<string>();
+            object value;
+            if (map == null || !map.TryGetValue(key, out value) || value == null) { return result; }
+            System.Collections.IEnumerable enumerable = value as System.Collections.IEnumerable;
+            if (enumerable == null || value is string)
+            {
+                string single = Convert.ToString(value, CultureInfo.InvariantCulture);
+                if (!String.IsNullOrWhiteSpace(single)) { result.Add(single); }
+                return result;
+            }
+            foreach (object item in enumerable)
+            {
+                string text = Convert.ToString(item, CultureInfo.InvariantCulture);
+                if (!String.IsNullOrWhiteSpace(text)) { result.Add(text); }
+            }
+            return result;
         }
 
         private static int GetInt(IDictionary<string, object> map, string key)
@@ -3180,6 +3392,12 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public int LearningProfiles { get; set; }
             public string MemoryPressure { get; set; }
             public double FreeMemoryMB { get; set; }
+            public string IntentKind { get; set; }
+            public string IntentName { get; set; }
+            public int IntentConfidence { get; set; }
+            public List<string> IntentSignals { get; set; }
+            public string RadarTop { get; set; }
+            public int RadarCount { get; set; }
             public bool IsElevated { get; set; }
             public int PermissionDeniedCount { get; set; }
             public List<string> PermissionDeniedApps { get; set; }
@@ -3208,6 +3426,12 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public int LearningProfiles { get; set; }
             public string MemoryPressure { get; set; }
             public double FreeMemoryMB { get; set; }
+            public string IntentKind { get; set; }
+            public string IntentName { get; set; }
+            public int IntentConfidence { get; set; }
+            public List<string> IntentSignals { get; set; }
+            public string RadarTop { get; set; }
+            public int RadarCount { get; set; }
             public int PermissionDeniedCount { get; set; }
             public List<string> PermissionDeniedApps { get; set; }
         }
@@ -3215,11 +3439,21 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
         private sealed class WebManagerRow
         {
             public string Name { get; set; }
+            public string ProcessName { get; set; }
+            public string Key { get; set; }
+            public string Path { get; set; }
             public string Score { get; set; }
             public string Delta { get; set; }
             public string Cpu { get; set; }
             public string Bursts { get; set; }
             public string Action { get; set; }
+            public string Role { get; set; }
+            public string Policy { get; set; }
+            public string PolicySource { get; set; }
+            public string Guard { get; set; }
+            public string Intent { get; set; }
+            public int IntentConfidence { get; set; }
+            public bool SwitchFastWake { get; set; }
             public bool PermissionDenied { get; set; }
             public double RawScore { get; set; }
         }
@@ -4521,6 +4755,26 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             return Convert.ToString(value, CultureInfo.InvariantCulture);
         }
 
+        private static List<string> ReadStringList(IDictionary<string, object> map, string key)
+        {
+            List<string> result = new List<string>();
+            object value;
+            if (map == null || !map.TryGetValue(key, out value) || value == null) { return result; }
+            System.Collections.IEnumerable enumerable = value as System.Collections.IEnumerable;
+            if (enumerable == null || value is string)
+            {
+                string single = Convert.ToString(value, CultureInfo.InvariantCulture);
+                if (!String.IsNullOrWhiteSpace(single)) { result.Add(single); }
+                return result;
+            }
+            foreach (object item in enumerable)
+            {
+                string text = Convert.ToString(item, CultureInfo.InvariantCulture);
+                if (!String.IsNullOrWhiteSpace(text)) { result.Add(text); }
+            }
+            return result;
+        }
+
         private static int GetInt(IDictionary<string, object> map, string key)
         {
             object value;
@@ -5655,6 +5909,26 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                 return "";
             }
             return Convert.ToString(value, CultureInfo.InvariantCulture);
+        }
+
+        private static List<string> ReadStringList(IDictionary<string, object> map, string key)
+        {
+            List<string> result = new List<string>();
+            object value;
+            if (map == null || !map.TryGetValue(key, out value) || value == null) { return result; }
+            System.Collections.IEnumerable enumerable = value as System.Collections.IEnumerable;
+            if (enumerable == null || value is string)
+            {
+                string single = Convert.ToString(value, CultureInfo.InvariantCulture);
+                if (!String.IsNullOrWhiteSpace(single)) { result.Add(single); }
+                return result;
+            }
+            foreach (object item in enumerable)
+            {
+                string text = Convert.ToString(item, CultureInfo.InvariantCulture);
+                if (!String.IsNullOrWhiteSpace(text)) { result.Add(text); }
+            }
+            return result;
         }
 
         private static int GetInt(IDictionary<string, object> map, string key)

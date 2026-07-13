@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.0 - 2026-07-13
+
+- Added Intent Engine telemetry for Desktop, Gaming, Media/Call, Download/Install, and Memory Pressure sessions.
+- Added Foreground Switch Accelerator state to detect apps that are brought back often and protect fast-wake targets more intelligently.
+- Added per-game profile state so gaming sessions can learn pressure patterns without using broad power-plan or driver tweaks.
+- Added Contention Radar JSON output and dashboard telemetry for CPU, memory, burst, guard, and managed-process pressure.
+- Added Media/Call Protection and Download/Launcher Guard to avoid false positives on active voice, media, launcher, and install/update workloads.
+- Added Memory Pressure Governor 2.0 with Normal, Moderate, Elevated, and Critical thresholds.
+- Added per-app policies from the Live Manager: Auto, Protect, Light, Balanced, and Deep.
+- Added policy, role, guard, intent, and fast-wake badges to the WebView2 Live Manager.
+- Versioned the extracted runtime folder so updates can use a fresh engine even if an older runtime folder has restrictive permissions.
+- Fixed a PowerShell `$PID` collision in foreground switch tracking.
+- Improved status output so protected/guarded apps are visible during diagnostics.
+
 ## 0.3.6 - 2026-07-13
 
 - Rebuilt the GitHub README as a professional product overview with a clearer pitch, visual tour, trust model, and install flow.

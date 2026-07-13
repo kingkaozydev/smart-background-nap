@@ -17,7 +17,7 @@ Created by **KaozyKing**.
 
 Smart Background Nap is built around one idea: background apps should stay available, but they should not compete with what you are doing right now.
 
-Most optimization tools either ask you to close things, apply broad system tweaks, or leave a heavy service running. Smart Background Nap keeps the scope tighter. It applies process-level pressure reduction, writes a compact local log, and gets out of the way.
+Smart Background Nap keeps the scope tight. It applies process-level pressure reduction, writes compact local state, explains its decisions in the dashboard, and gets out of the way.
 
 ## What It Controls
 
@@ -48,12 +48,34 @@ It avoids the things that should stay awake:
 - **Tray indicator**: quick access to dashboard, optimize now, logs, config, restore, and exit.
 - **Automatic mode**: scheduled optimization passes after login and every few minutes.
 - **Start with Windows**: managed per-user startup copy under `%LOCALAPPDATA%\Programs\SmartBackgroundNap`.
+- **Intent Engine**: detects whether the session looks like desktop work, gaming, media/calls, downloads/installs, or real memory pressure.
+- **Contention Radar**: reports which apps are currently creating CPU, memory, burst, or guarded workload pressure.
+- **Per-app policy**: set apps to Auto, Protect, Light, Balanced, or Deep directly from the Live Manager.
 - **Foreground Wake Restore**: priority, memory priority, I/O priority, and EcoQoS are restored quickly when an app becomes active.
+- **Foreground Switch Accelerator**: apps you bring back repeatedly are protected from overly aggressive naps.
 - **Adaptive nap tiers**: Light, Balanced, and Deep decisions based on process behavior and session context.
+- **Media and launcher guards**: active calls, media, streams, game launchers, downloads, and installers are treated cautiously.
 - **Smart Learning**: optional local profiles that adapt nap strength when memory pressure rises.
 - **Permission Guard**: shows apps that denied changes and can request one administrator pass through UAC.
 - **Multilingual UI**: Portuguese BR, English, Russian, Spanish, French, and German.
 - **Safety report**: local report with executable path, SHA-256, runtime folder, task status, and behavior summary.
+
+## Intelligence Engine
+
+The engine works in layers. First it protects obvious no-go targets: Windows internals, session 0 services, protected paths, the foreground app, active high-CPU work, and user-protected apps.
+
+Then it scores the remaining background apps using memory footprint, CPU sample, burst history, foreground/fullscreen context, local learning, app role, and current memory pressure. The dashboard exposes those decisions as badges instead of hiding them in logs.
+
+The newer intelligence layer adds:
+
+- **Intent Engine** for session-level context.
+- **Foreground Switch Accelerator** for apps you return to often.
+- **Per-game profile state** for pressure patterns during gaming.
+- **Contention Radar** for visible CPU/RAM/burst pressure.
+- **Media/Call Protection** for voice, stream, recording, and playback workloads.
+- **Download/Launcher Guard** for game clients and installers.
+- **Memory Pressure Governor 2.0** for Normal, Moderate, Elevated, and Critical bands.
+- **One-click app policy** for manual control when you want it.
 
 ## Smart Learning And Permission Guard
 
@@ -99,6 +121,9 @@ The launcher includes:
 - Smart Learning toggle with explanation
 - Permission Guard with administrator request
 - Live Manager
+- One-click app policy controls
+- Intent Engine telemetry
+- Contention Radar telemetry
 - Event Stream
 - Engine Telemetry
 - Nap Score
@@ -160,6 +185,14 @@ Useful settings include:
 - `SmartMode.BurstWatcher`
 - `SmartMode.NapScore`
 - `SmartMode.LearningEnabled`
+- `SmartMode.IntentEngine`
+- `SmartMode.ForegroundSwitchAccelerator`
+- `SmartMode.PerGameProfiles`
+- `SmartMode.ContentionRadar`
+- `SmartMode.DownloadLauncherGuard`
+- `SmartMode.MediaCallProtection`
+- `SmartMode.MemoryPressureGovernor`
+- `SmartMode.UserAppPolicy`
 - `Automation.IntervalMinutes`
 - `Tray.RefreshSeconds`
 

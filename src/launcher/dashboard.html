@@ -64,8 +64,8 @@ button{font:inherit}
 .actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.btn{height:38px;border-radius:9px;border:1px solid #314967;background:#132238;color:#f4f8ff;font-size:13px;font-weight:900;cursor:pointer;transition:120ms ease;white-space:nowrap;padding:0 10px;min-width:0;overflow:hidden;text-overflow:ellipsis}.btn:hover{filter:brightness(1.08);transform:translateY(-1px)}.btn.primary{grid-column:1/-1;background:linear-gradient(180deg,#ffb13a,#ff9f21);border-color:#ffb13a;color:#121212}.btn.danger{background:linear-gradient(180deg,#ff6674,#eb3f51);border-color:#ff6674;color:#fff}
 .cards{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}.card{min-height:86px;border:1px solid #263a55;border-radius:12px;background:linear-gradient(145deg,#101d30,#0a1422);padding:13px;position:relative;overflow:hidden}.card:before{content:"";position:absolute;inset:0 auto auto 0;width:100%;height:3px;background:var(--blue)}.card:nth-child(2):before{background:var(--green)}.card:nth-child(3):before{background:var(--amber)}.card:nth-child(4):before{background:var(--violet)}.card:nth-child(5):before{background:var(--green)}.card small{display:block;color:#8ea0b8;font-size:11px;font-weight:800}.card b{display:block;margin-top:8px;font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .manager{min-height:0;padding:14px;display:grid;grid-template-rows:auto minmax(0,1fr);gap:10px}.panelTitle{display:flex;align-items:center;justify-content:space-between;gap:12px}.panelTitle h3{margin:0;font-size:18px}.panelTitle span{color:#71839b;font-size:11px;font-weight:800}
-.table{min-height:0;display:grid;grid-template-rows:30px minmax(0,1fr);border:1px solid #1d3048;border-radius:10px;overflow:hidden}.thead,.row{display:grid;grid-template-columns:2fr .6fr .85fr .6fr .6fr 3.35fr;align-items:center}.thead{background:#14243a;color:#9fb0c6;font-size:11px;font-weight:900}.row{min-height:32px;border-top:1px solid #1b2d44;background:#0b1524;color:#dde9f8;font-size:11px}.row:nth-child(even){background:#0e192a}.row span{padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#rows{min-height:0;overflow:auto;scrollbar-color:#2e4565 #09111e;scrollbar-width:thin}.actionsCell{display:flex;align-items:center;gap:4px;padding:0 8px!important;overflow:hidden}
-.badge{display:inline-flex;align-items:center;height:20px;border-radius:6px;border:1px solid #2b405e;background:#111f33;color:#cfe0f5;padding:0 6px;font-size:9px;font-weight:950;flex:0 0 auto}.badge.ok{border-color:#176649;background:#0c3225;color:var(--green)}.badge.cool{border-color:#6b5223;background:#2a2113;color:var(--amber)}.badge.skip{border-color:#40536d;color:#8fa1ba}.badge.deep{border-color:#8d5a18;background:#2b1d10;color:var(--amber)}.badge.balanced{border-color:#1a5d86;background:#0d263b;color:#58b9ff}.badge.light{border-color:#355178;background:#111f33;color:#b8c8dc}.goodtxt{color:var(--green);font-weight:900}.amber{color:var(--amber)}
+.table{min-height:0;display:grid;grid-template-rows:30px minmax(0,1fr);border:1px solid #1d3048;border-radius:10px;overflow:hidden}.thead,.row{display:grid;grid-template-columns:minmax(130px,1.55fr) 64px 82px 58px 58px minmax(430px,3.2fr);align-items:center}.thead{background:#14243a;color:#9fb0c6;font-size:11px;font-weight:900}.row{min-height:38px;border-top:1px solid #1b2d44;background:#0b1524;color:#dde9f8;font-size:11px}.row:nth-child(even){background:#0e192a}.row>span{padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#rows{min-height:0;overflow:auto;scrollbar-color:#2e4565 #09111e;scrollbar-width:thin}.actionsCell{display:flex;align-items:center;gap:4px;padding:6px 8px!important;overflow:visible!important;white-space:normal!important;flex-wrap:wrap;align-content:center}
+.badge{display:inline-flex;align-items:center;height:20px;border-radius:6px;border:1px solid #2b405e;background:#111f33;color:#cfe0f5;padding:0 6px;font-size:9px;font-weight:950;flex:0 0 auto}.badge.ok{border-color:#176649;background:#0c3225;color:var(--green)}.badge.cool{border-color:#6b5223;background:#2a2113;color:var(--amber)}.badge.skip{border-color:#40536d;color:#8fa1ba}.badge.deep{border-color:#8d5a18;background:#2b1d10;color:var(--amber)}.badge.balanced{border-color:#1a5d86;background:#0d263b;color:#58b9ff}.badge.light{border-color:#355178;background:#111f33;color:#b8c8dc}.badge.guard{border-color:#6a4cd4;background:#1b1633;color:#c9bbff}.policyButtons{display:inline-flex;align-items:center;gap:3px;margin-left:4px;padding-left:6px;border-left:1px solid rgba(255,255,255,.08)}.policyBtn{height:22px;min-width:23px;border-radius:6px;border:1px solid #2b405e;background:#0b1728;color:#93a8c2;font-size:9px;font-weight:950;cursor:pointer;padding:0 5px}.policyBtn:hover{border-color:var(--amber);color:#fff}.policyBtn.active{border-color:rgba(255,166,41,.75);background:rgba(255,166,41,.18);color:var(--amber)}.goodtxt{color:var(--green);font-weight:900}.amber{color:var(--amber)}
 .sidePanel{padding:14px;min-height:0;display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:12px}.focusBox{display:grid;grid-template-columns:1fr;gap:8px}.focusLine{border:1px solid #223650;border-radius:10px;background:#0a1728;padding:11px}.focusLine small{display:block;color:#71839b;font-size:10px;font-weight:900;text-transform:uppercase}.focusLine b{display:block;margin-top:4px;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .permissionBox{display:none;border:1px solid rgba(255,166,41,.42);border-radius:12px;background:linear-gradient(145deg,rgba(255,166,41,.14),rgba(12,23,38,.92));padding:12px}.permissionBox.show{display:grid;gap:8px}.permissionBox small{display:block;color:var(--amber);font-size:10px;font-weight:950;text-transform:uppercase}.permissionBox b{display:block;font-size:15px}.permissionBox p{margin:0;color:#afbfd2;font-size:11px;line-height:1.4}.permissionBox .btn{height:36px}
 .timeline{min-height:0;border:1px solid #1d3048;border-radius:10px;background:#08111d;padding:8px;overflow:auto;scrollbar-color:#2e4565 #09111e;scrollbar-width:thin}.eventLine{display:grid;grid-template-columns:58px minmax(0,1fr);gap:8px;border-bottom:1px solid rgba(255,255,255,.05);padding:7px 2px;color:#dce8f8;font-family:Consolas,monospace;font-size:11px;line-height:1.35}.eventLine:last-child{border-bottom:0}.eventLine time{color:var(--amber);font-weight:900}.eventLine span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -168,6 +168,8 @@ button{font:inherit}
               <div class="focusLine"><small data-i18n="reclaimedMemory">Reclaimed memory</small><b id="reclaimedValue">0 MB</b></div>
               <div class="focusLine"><small data-i18n="learnedProfiles">Learned profiles</small><b id="learnedProfiles">0</b></div>
               <div class="focusLine"><small data-i18n="memoryPressure">Memory pressure</small><b id="memoryPressure">-</b></div>
+              <div class="focusLine"><small data-i18n="intentState">Intent engine</small><b id="intentState">-</b></div>
+              <div class="focusLine"><small data-i18n="contentionRadar">Contention radar</small><b id="radarState">-</b></div>
             </div>
             <div class="permissionBox" id="permissionBox">
               <div><small data-i18n="permissionK">Permission guard</small><b data-i18n="permissionT">Some apps refused changes</b></div>
@@ -248,7 +250,7 @@ const LANGS = {
     detailArmed:"Fast wake armado. Apps em segundo plano sao ajustados por nivel.", detailPaused:"Pausado. Rode um passe manual ou retome o motor.",
     wakeGuard:"wake guard ativo", startupOffDetail:"startup off", working:"Trabalhando em segundo plano...",
     learningK:"Poder extra", learningT:"Smart Learning", learningD:"Aprende suas sessoes localmente e ajusta o nap quando a memoria aperta.",
-    smartLearning:"Smart Learning", learnedProfiles:"Perfis aprendidos", memoryPressure:"Pressao de memoria", enableLearning:"Ativar", disableLearning:"Desativar", learningOn:"Ligado", learningOff:"Desligado",
+    smartLearning:"Smart Learning", learnedProfiles:"Perfis aprendidos", memoryPressure:"Pressao de memoria", intentState:"Intent Engine", contentionRadar:"Radar de contencao", enableLearning:"Ativar", disableLearning:"Desativar", learningOn:"Ligado", learningOff:"Desligado",
     learningModalTitle:"Smart Learning", learningModalBody:"Modo opcional que aprende como seus apps se comportam e adapta os proximos passes sem enviar dados para lugar nenhum.",
     learningModalLocal:"Os perfis ficam neste PC e usam nome/caminho do processo, memoria, bursts de CPU e eventos de wake.",
     learningModalWake:"Apps que voce traz de volta com frequencia recebem um perfil mais leve de Fast Wake.",
@@ -280,7 +282,7 @@ const LANGS = {
     detailArmed:"Foreground wake is armed. Background apps are tuned by tier.", detailPaused:"Paused. Run a manual pass or resume the engine.",
     wakeGuard:"wake guard active", startupOffDetail:"startup off", working:"Working in the background...",
     learningK:"Optional power", learningT:"Smart Learning", learningD:"Learns sessions locally and adapts nap strength when memory pressure rises.",
-    smartLearning:"Smart Learning", learnedProfiles:"Learned profiles", memoryPressure:"Memory pressure", enableLearning:"Enable", disableLearning:"Disable", learningOn:"On", learningOff:"Off",
+    smartLearning:"Smart Learning", learnedProfiles:"Learned profiles", memoryPressure:"Memory pressure", intentState:"Intent Engine", contentionRadar:"Contention radar", enableLearning:"Enable", disableLearning:"Disable", learningOn:"On", learningOff:"Off",
     learningModalTitle:"Smart Learning", learningModalBody:"Optional mode that learns how your apps behave and adapts future passes without sending data anywhere.",
     learningModalLocal:"Profiles stay on this PC and use process name/path, memory use, CPU bursts, and wake events.",
     learningModalWake:"Apps you switch back to often receive a lighter Fast Wake profile.",
@@ -344,7 +346,7 @@ const LANGS = {
     detailArmed:"Fast wake armado. Las apps de fondo se ajustan por nivel.", detailPaused:"Pausado. Ejecuta un pase manual o retoma el motor.",
     wakeGuard:"wake guard activo", startupOffDetail:"startup off", working:"Trabajando en segundo plano...",
     learningK:"Poder extra", learningT:"Smart Learning", learningD:"Aprende sesiones localmente y adapta el nap cuando sube la presion de memoria.",
-    smartLearning:"Smart Learning", learnedProfiles:"Perfiles aprendidos", memoryPressure:"Presion de memoria", enableLearning:"Activar", disableLearning:"Desactivar", learningOn:"On", learningOff:"Off",
+    smartLearning:"Smart Learning", learnedProfiles:"Perfiles aprendidos", memoryPressure:"Presion de memoria", intentState:"Intent Engine", contentionRadar:"Radar de contencion", enableLearning:"Activar", disableLearning:"Desactivar", learningOn:"On", learningOff:"Off",
     learningModalTitle:"Smart Learning", learningModalBody:"Modo opcional que aprende como se comportan tus apps y adapta los proximos pases sin enviar datos.",
     learningModalLocal:"Los perfiles quedan en este PC y usan nombre/ruta del proceso, memoria, bursts de CPU y eventos wake.",
     learningModalWake:"Las apps a las que vuelves seguido reciben un perfil Fast Wake mas ligero.",
@@ -376,7 +378,7 @@ const LANGS = {
     detailArmed:"Fast wake est arme. Les apps en arriere-plan sont ajustees par niveau.", detailPaused:"En pause. Lancez un passage manuel ou relancez le moteur.",
     wakeGuard:"wake guard actif", startupOffDetail:"startup off", working:"Travail en arriere-plan...",
     learningK:"Pouvoir optionnel", learningT:"Smart Learning", learningD:"Apprend les sessions localement et adapte le nap quand la memoire se tend.",
-    smartLearning:"Smart Learning", learnedProfiles:"Profils appris", memoryPressure:"Pression memoire", enableLearning:"Activer", disableLearning:"Desactiver", learningOn:"On", learningOff:"Off",
+    smartLearning:"Smart Learning", learnedProfiles:"Profils appris", memoryPressure:"Pression memoire", intentState:"Intent Engine", contentionRadar:"Radar contention", enableLearning:"Activer", disableLearning:"Desactiver", learningOn:"On", learningOff:"Off",
     learningModalTitle:"Smart Learning", learningModalBody:"Mode optionnel qui apprend le comportement des apps et adapte les prochains passages sans envoyer de donnees.",
     learningModalLocal:"Les profils restent sur ce PC et utilisent nom/chemin du processus, memoire, pics CPU et evenements wake.",
     learningModalWake:"Les apps que vous rouvrez souvent recoivent un profil Fast Wake plus leger.",
@@ -408,7 +410,7 @@ const LANGS = {
     detailArmed:"Fast wake ist aktiv. Hintergrund-Apps werden nach Stufe angepasst.", detailPaused:"Pausiert. Starte einen manuellen Durchlauf oder den Motor.",
     wakeGuard:"wake guard aktiv", startupOffDetail:"startup off", working:"Arbeitet im Hintergrund...",
     learningK:"Optionaler Boost", learningT:"Smart Learning", learningD:"Lernt Sessions lokal und passt Nap-Staerke bei Speicherdruck an.",
-    smartLearning:"Smart Learning", learnedProfiles:"Gelernte Profile", memoryPressure:"Speicherdruck", enableLearning:"Aktivieren", disableLearning:"Deaktivieren", learningOn:"An", learningOff:"Aus",
+    smartLearning:"Smart Learning", learnedProfiles:"Gelernte Profile", memoryPressure:"Speicherdruck", intentState:"Intent Engine", contentionRadar:"Last-Radar", enableLearning:"Aktivieren", disableLearning:"Deaktivieren", learningOn:"An", learningOff:"Aus",
     learningModalTitle:"Smart Learning", learningModalBody:"Optionaler Modus, der App-Verhalten lernt und kuenftige Durchlaeufe anpasst, ohne Daten zu senden.",
     learningModalLocal:"Profile bleiben auf diesem PC und nutzen Prozessname/Pfad, Speicher, CPU-Bursts und Wake-Ereignisse.",
     learningModalWake:"Apps, zu denen du oft zurueckwechselst, bekommen ein leichteres Fast-Wake-Profil.",
@@ -423,6 +425,10 @@ const LANGS = {
     cancel:"Abbrechen"
   }
 };
+Object.keys(LANGS).forEach(k=>{
+  LANGS[k].intentState = LANGS[k].intentState || "Intent Engine";
+  LANGS[k].contentionRadar = LANGS[k].contentionRadar || "Contention radar";
+});
 const LANGUAGE_ORDER = ["pt-BR","en-US","ru-RU","es-ES","fr-FR","de-DE"];
 let currentLanguage = "pt-BR";
 let lastState = null;
@@ -569,6 +575,8 @@ function paintState(state){
   txt("learningDetail",s.Learning ? ((s.LearningProfiles || 0)+" "+t("learnedProfiles").toLowerCase()+" | "+t("memoryPressure")+": "+formatPressure(s.MemoryPressure,s.FreeMemoryMB)) : t("learningD"));
   txt("learnedProfiles",String(s.LearningProfiles || 0));
   txt("memoryPressure",formatPressure(s.MemoryPressure,s.FreeMemoryMB));
+  txt("intentState",formatIntent(s));
+  txt("radarState",formatRadar(s));
   updatePermissionGuard(s);
   $("apply").className=s.CanStop?"btn danger":"btn primary";
   cls("motor",s.AutoMode?"pill good":"pill warn");
@@ -593,6 +601,21 @@ function formatPressure(level,freeMB){
   const free=Number(freeMB||0);
   const freeText=free>0 ? " / "+Math.round(free)+" MB" : "";
   return pressure ? pressure+freeText : "-";
+}
+function formatIntent(s){
+  const kind=String((s&&s.IntentKind)||"").trim() || "Desktop";
+  const conf=Number((s&&s.IntentConfidence)||0);
+  const name=String((s&&s.IntentName)||"").trim();
+  const bits=[kind];
+  if(conf>0) bits.push(conf+"%");
+  if(name) bits.push(name);
+  return bits.join(" / ");
+}
+function formatRadar(s){
+  const count=Number((s&&s.RadarCount)||0);
+  const top=String((s&&s.RadarTop)||"").trim();
+  if(count<=0) return "-";
+  return count + (top ? " / " + top : "");
 }
 function updatePermissionGuard(s){
   const box=$("permissionBox");
@@ -620,7 +643,10 @@ function renderRows(rowsData){
   rowsData.forEach(row=>{
     const div=document.createElement("div");
     div.className="row";
-    div.innerHTML='<span>'+esc(row.Name)+'</span><span class="goodtxt">'+esc(row.Score)+'</span><span class="amber">'+esc(row.Delta)+'</span><span>'+esc(row.Cpu)+'</span><span>'+esc(row.Bursts)+'</span><span class="actionsCell">'+actionBadges(row.Action)+'</span>';
+    div.innerHTML='<span title="'+esc(row.Path || row.Name)+'">'+esc(row.Name)+'</span><span class="goodtxt">'+esc(row.Score)+'</span><span class="amber">'+esc(row.Delta)+'</span><span>'+esc(row.Cpu)+'</span><span>'+esc(row.Bursts)+'</span><span class="actionsCell"></span>';
+    const cell=div.querySelector(".actionsCell");
+    cell.innerHTML=metaBadges(row)+actionBadges(row.Action);
+    cell.appendChild(makePolicyButtons(row));
     rows.appendChild(div);
   });
   txt("managerStatus",t("tracking").replace("{count}",rowsData.length));
@@ -645,8 +671,38 @@ function translateEventBody(body){
   text=text.replace("motor automatico ativo; ciclos e foco protegidos",t("detailArmed"));
   return text.replace(/(\d+)\s+apps/g,"$1 "+t("apps"));
 }
+function metaBadges(row){
+  const out=[];
+  const role=String(row.Role||"");
+  const guard=String(row.Guard||"");
+  const intent=String(row.Intent||"");
+  if(role && role!=="App") out.push('<b class="badge guard">'+esc(role)+'</b>');
+  if(guard) out.push('<b class="badge cool">'+esc(guard.replace("Guard",""))+'</b>');
+  if(row.SwitchFastWake) out.push('<b class="badge light">Wake</b>');
+  if(intent && intent!=="Desktop") out.push('<b class="badge balanced">'+esc(intent)+' '+esc(row.IntentConfidence||"")+'</b>');
+  return out.join("");
+}
+function makePolicyButtons(row){
+  const wrap=document.createElement("span");
+  wrap.className="policyButtons";
+  const policies=[["Auto","A"],["Protect","P"],["Light","L"],["Balanced","B"],["Deep","D"]];
+  const current=String(row.Policy||"Auto");
+  policies.forEach(([policy,label])=>{
+    const btn=document.createElement("button");
+    btn.type="button";
+    btn.className="policyBtn"+(current.toLowerCase()===policy.toLowerCase()?" active":"");
+    btn.textContent=label;
+    btn.title=policy;
+    btn.addEventListener("click",(ev)=>{
+      ev.stopPropagation();
+      send("setAppPolicy",{policy:policy,key:row.Key||"",processName:row.ProcessName||"",path:row.Path||""});
+    });
+    wrap.appendChild(btn);
+  });
+  return wrap;
+}
 function actionBadges(value){
-  return String(value || "").split("/").map(x=>x.trim()).filter(Boolean).map(x=>{
+  return String(value || "").split("/").map(x=>x.trim()).filter(Boolean).slice(0,7).map(x=>{
     const low=x.toLowerCase();
     let clsName="badge";
     if(low.indexOf("tier deep")===0) clsName+=" deep";
