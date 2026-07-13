@@ -1,6 +1,6 @@
-# Smart Background Nap 0.1.3-test
+﻿# Smart Background Nap 0.1.3
 
-Local test build for smart wake/protect behavior.
+Native launcher update with smart wake/protect behavior.
 
 ## Highlights
 
@@ -38,7 +38,7 @@ Local test build for smart wake/protect behavior.
 SHA-256 for `SmartBackgroundNap.exe`:
 
 ```text
-TEST_BUILD_LOCAL_ONLY
+21388BB14227727BDD2CBDA508476DC201F5E134BAFAFF22D7C55E4A9EDC267B
 ```
 
 ## Trust Notes

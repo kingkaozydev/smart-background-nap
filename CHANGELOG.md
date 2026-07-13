@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.3-test - 2026-07-12
+## 0.1.3 - 2026-07-12
 
 - Added Foreground Wake Restore from the tray when the active window changes.
 - Added temporary protection for newly foreground and active high-CPU apps.
