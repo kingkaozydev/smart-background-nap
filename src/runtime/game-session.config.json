@@ -11,6 +11,7 @@
     "nvcontainer",
     "NVIDIA Overlay",
     "NVIDIA Share",
+    "msedgewebview2",
     "SmartBackgroundNap"
   ],
   "BrowserNap": {
@@ -64,6 +65,7 @@
       "pwsh",
       "WindowsTerminal",
       "conhost",
+      "msedgewebview2",
       "SmartBackgroundNap"
     ],
     "ProtectedPathFragments": [
@@ -114,6 +116,35 @@
     "BurstWindowMinutes": 15,
     "BurstRepeatCount": 2,
     "BurstTrimMinimumWorkingSetMB": 30,
+    "MaxTargetsPerPass": 80,
+    "TrimCooldownMinutes": 10,
+    "AdaptiveNap": true,
+    "DeepNapMinimumWorkingSetMB": 180,
+    "DeepNapMaxCpuPercent": 0.35,
+    "BalancedNapMinimumWorkingSetMB": 80,
+    "BalancedNapMaxCpuPercent": 2.5,
+    "LightNapTrimMinimumWorkingSetMB": 220,
+    "BalancedNapTrimMinimumWorkingSetMB": 80,
+    "DeepNapTrimMinimumWorkingSetMB": 45,
+    "LightNapPriorityClass": "BelowNormal",
+    "BalancedNapPriorityClass": "BelowNormal",
+    "DeepNapPriorityClass": "Idle",
+    "LightNapMemoryPriority": "BelowNormal",
+    "BalancedNapMemoryPriority": "Low",
+    "DeepNapMemoryPriority": "VeryLow",
+    "LightNapIoPriority": "Low",
+    "BalancedNapIoPriority": "Low",
+    "DeepNapIoPriority": "VeryLow",
+    "RealtimeFriendlyProcessNames": [
+      "Discord",
+      "Spotify",
+      "WhatsApp",
+      "Telegram",
+      "Slack",
+      "Teams",
+      "steam",
+      "steamwebhelper"
+    ],
     "NapScore": true
   },
   "Automation": {

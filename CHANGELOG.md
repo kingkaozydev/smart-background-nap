@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.3 - 2026-07-13
+
+- Migrated the main launcher to .NET 9 with a WebView2 dashboard.
+- Added a modern embedded web UI with live manager, telemetry, event stream, responsive layout, and language picker.
+- Added first-run and persistent UI language support for Portuguese BR, English, Russian, Spanish, French, and German.
+- Added adaptive nap tiers: Light, Balanced, and Deep.
+- Added foreground restore through a native fast path for priority, memory priority, I/O priority, and EcoQoS restore.
+- Reduced foreground wake latency for quicker app switching.
+- Added cooldown-aware working-set trimming to avoid repeatedly hammering the same process.
+- Improved fullscreen-aware and burst-aware scoring.
+- Released WebView2 resources when the dashboard is closed or minimized to tray so the background helper stays lighter during games.
+- Updated the single-EXE build path to `net9.0-windows`.
+
 ## 0.1.3 - 2026-07-12
 
 - Added Foreground Wake Restore from the tray when the active window changes.

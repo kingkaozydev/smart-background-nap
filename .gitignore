@@ -1,5 +1,10 @@
 outputs/
 bin/
+obj/
+.dotnet-sdk/
+.dotnet-home/
+.appdata/
+.nuget/
 *.WebView2/
 *.log
 *.tmp

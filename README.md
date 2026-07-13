@@ -46,24 +46,29 @@ Smart Background Nap gives those apps a softer background profile. Your apps sta
 
 ## Highlights
 
-- Desktop dashboard: open `SmartBackgroundNap.exe` and control the app from one clean surface.
+- .NET 9 / WebView2 dashboard: open `SmartBackgroundNap.exe` and control the app from one clean surface.
+- First-run language picker for Portuguese BR, English, Russian, Spanish, French, and German.
+- Live Manager, Event Stream, and Engine Telemetry views.
 - Start with Windows toggle for the tray indicator.
 - Run automatically toggle for scheduled background passes.
 - Built-in safety report with local integrity details.
 - Low I/O priority for safe background apps to reduce disk contention.
-- Foreground Wake Restore: apps wake back up when they become active again.
+- Native Foreground Wake Restore: apps wake back up quickly when they become active again.
 - Temporary active-app protection for newly active foreground or high-CPU apps.
 - Fullscreen-aware thresholds for gaming and borderless workloads.
+- Adaptive Light, Balanced, and Deep nap tiers.
+- Cooldown-aware RAM trim so the same process is not hammered repeatedly.
 - Burst watcher and Nap Score for repeated background spikes.
 - Automatic scheduled optimization every few minutes.
 - Tray icon with status, apply-now, log, folder, and README shortcuts.
 - No heavy always-running optimizer service.
+- WebView2 dashboard resources are released when the window is closed or minimized to tray.
 - Foreground app protection.
 - Active workload protection.
 - Configurable JSON rules.
 - Manual, automatic, watch, restore, and browser-only modes.
 - Auditable PowerShell core.
-- Lightweight compiled C# WinForms tray indicator.
+- Lightweight compiled C# tray/dashboard host.
 
 ![App dashboard](docs/images/app-dashboard.svg)
 
@@ -80,7 +85,7 @@ SmartBackgroundNap.exe
 Then click:
 
 ```text
-Run automatically
+Resume motor / Run automatically
 Start with Windows
 ```
 
@@ -128,11 +133,15 @@ SmartBackgroundNap.exe
 
 The dashboard includes:
 
-- Run automatically
+- Language selector
+- Live Manager
+- Event Stream
+- Engine Telemetry
+- Run automatically / pause motor
 - Start with Windows
 - Optimize now
 - Restore
-- Mais menu for logs, config, folder, safety report, security model, README, GitHub, and disabling background tasks
+- Shortcuts for logs, config, folder, safety report, README, GitHub, and local reports
 
 ## Trust, Privacy, And Windows Safety
 
@@ -160,7 +169,7 @@ Windows SmartScreen reputation is controlled by Microsoft and is heavily influen
 
 ## Configuration
 
-Open the app and use `Mais` -> `Open config`.
+Open the app and use the config shortcut.
 
 For the single-EXE release, the default config is embedded and copied into the internal runtime folder on first use.
 
@@ -190,11 +199,11 @@ Smart Background Nap writes logs and restore state under:
 SmartBackgroundNap internal runtime folder
 ```
 
-Open the app and use `Mais` -> `Open log` to inspect the latest pass.
+Open the app and use the log shortcut to inspect the latest pass.
 
 Use `Restore` in the dashboard to restore the latest snapshot for currently running processes.
 
-Open `Mais` -> `Nap score` to inspect the latest ranked optimization report.
+Open `Nap score` to inspect the latest ranked optimization report.
 
 ## Build The App
 
@@ -213,7 +222,7 @@ src\SmartBackgroundNapTray.cs
 Build it with:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\build\build.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\build\build-net9.ps1
 ```
 
 Generated output:

@@ -51,6 +51,7 @@ if (-not $LogPath) {
 New-Item -ItemType Directory -Path $outDir -Force | Out-Null
 $protectStatePath = Join-Path $outDir "background-nap-protect-latest.json"
 $burstStatePath = Join-Path $outDir "background-nap-burst-latest.json"
+$trimStatePath = Join-Path $outDir "background-nap-trim-latest.json"
 $scorePath = Join-Path $outDir "background-nap-score-latest.json"
 
 $priorityClass = [string]$nap.PriorityClass
@@ -80,6 +81,27 @@ $burstCpuThreshold = 1.5
 $burstWindowMinutes = 15
 $burstRepeatCount = 2
 $burstTrimMinimumMB = 30.0
+$maxTargetsPerPass = 80
+$trimCooldownMinutes = 10
+$adaptiveNap = $true
+$deepNapMinimumMB = 180.0
+$deepNapMaxCpuPercent = 0.35
+$balancedNapMinimumMB = 80.0
+$balancedNapMaxCpuPercent = 2.5
+$lightNapTrimMinimumMB = 220.0
+$balancedNapTrimMinimumMB = 80.0
+$deepNapTrimMinimumMB = 45.0
+$lightNapPriorityClassName = "BelowNormal"
+$balancedNapPriorityClassName = "BelowNormal"
+$deepNapPriorityClassName = "Idle"
+$lightNapMemoryPriorityName = "BelowNormal"
+$balancedNapMemoryPriorityName = "Low"
+$deepNapMemoryPriorityName = "VeryLow"
+$lightNapIoPriorityName = "Low"
+$balancedNapIoPriorityName = "Low"
+$deepNapIoPriorityName = "VeryLow"
+$realtimeFriendlyDefaults = @("Discord", "Spotify", "WhatsApp", "Telegram", "Slack", "Teams", "steam", "steamwebhelper")
+$realtimeFriendlyConfigured = $null
 
 if ($smart) {
     if ($smart.PSObject.Properties.Name -contains "ForegroundWakeRestore") { $smartForegroundWake = [bool]$smart.ForegroundWakeRestore }
@@ -94,12 +116,41 @@ if ($smart) {
     if ($smart.PSObject.Properties.Name -contains "BurstWindowMinutes") { $burstWindowMinutes = [int]$smart.BurstWindowMinutes }
     if ($smart.PSObject.Properties.Name -contains "BurstRepeatCount") { $burstRepeatCount = [int]$smart.BurstRepeatCount }
     if ($smart.PSObject.Properties.Name -contains "BurstTrimMinimumWorkingSetMB") { $burstTrimMinimumMB = [double]$smart.BurstTrimMinimumWorkingSetMB }
+    if ($smart.PSObject.Properties.Name -contains "MaxTargetsPerPass") { $maxTargetsPerPass = [int]$smart.MaxTargetsPerPass }
+    if ($smart.PSObject.Properties.Name -contains "TrimCooldownMinutes") { $trimCooldownMinutes = [int]$smart.TrimCooldownMinutes }
+    if ($smart.PSObject.Properties.Name -contains "AdaptiveNap") { $adaptiveNap = [bool]$smart.AdaptiveNap }
+    if ($smart.PSObject.Properties.Name -contains "DeepNapMinimumWorkingSetMB") { $deepNapMinimumMB = [double]$smart.DeepNapMinimumWorkingSetMB }
+    if ($smart.PSObject.Properties.Name -contains "DeepNapMaxCpuPercent") { $deepNapMaxCpuPercent = [double]$smart.DeepNapMaxCpuPercent }
+    if ($smart.PSObject.Properties.Name -contains "BalancedNapMinimumWorkingSetMB") { $balancedNapMinimumMB = [double]$smart.BalancedNapMinimumWorkingSetMB }
+    if ($smart.PSObject.Properties.Name -contains "BalancedNapMaxCpuPercent") { $balancedNapMaxCpuPercent = [double]$smart.BalancedNapMaxCpuPercent }
+    if ($smart.PSObject.Properties.Name -contains "LightNapTrimMinimumWorkingSetMB") { $lightNapTrimMinimumMB = [double]$smart.LightNapTrimMinimumWorkingSetMB }
+    if ($smart.PSObject.Properties.Name -contains "BalancedNapTrimMinimumWorkingSetMB") { $balancedNapTrimMinimumMB = [double]$smart.BalancedNapTrimMinimumWorkingSetMB }
+    if ($smart.PSObject.Properties.Name -contains "DeepNapTrimMinimumWorkingSetMB") { $deepNapTrimMinimumMB = [double]$smart.DeepNapTrimMinimumWorkingSetMB }
+    if ($smart.PSObject.Properties.Name -contains "LightNapPriorityClass") { $lightNapPriorityClassName = [string]$smart.LightNapPriorityClass }
+    if ($smart.PSObject.Properties.Name -contains "BalancedNapPriorityClass") { $balancedNapPriorityClassName = [string]$smart.BalancedNapPriorityClass }
+    if ($smart.PSObject.Properties.Name -contains "DeepNapPriorityClass") { $deepNapPriorityClassName = [string]$smart.DeepNapPriorityClass }
+    if ($smart.PSObject.Properties.Name -contains "LightNapMemoryPriority") { $lightNapMemoryPriorityName = [string]$smart.LightNapMemoryPriority }
+    if ($smart.PSObject.Properties.Name -contains "BalancedNapMemoryPriority") { $balancedNapMemoryPriorityName = [string]$smart.BalancedNapMemoryPriority }
+    if ($smart.PSObject.Properties.Name -contains "DeepNapMemoryPriority") { $deepNapMemoryPriorityName = [string]$smart.DeepNapMemoryPriority }
+    if ($smart.PSObject.Properties.Name -contains "LightNapIoPriority") { $lightNapIoPriorityName = [string]$smart.LightNapIoPriority }
+    if ($smart.PSObject.Properties.Name -contains "BalancedNapIoPriority") { $balancedNapIoPriorityName = [string]$smart.BalancedNapIoPriority }
+    if ($smart.PSObject.Properties.Name -contains "DeepNapIoPriority") { $deepNapIoPriorityName = [string]$smart.DeepNapIoPriority }
+    if ($smart.PSObject.Properties.Name -contains "RealtimeFriendlyProcessNames") { $realtimeFriendlyConfigured = @($smart.RealtimeFriendlyProcessNames) }
     if ($smart.PSObject.Properties.Name -contains "NapScore") { $smartNapScore = [bool]$smart.NapScore }
 }
 if ($autoProtectForegroundMinutes -lt 1) { $autoProtectForegroundMinutes = 1 }
 if ($autoProtectHighCpuMinutes -lt 1) { $autoProtectHighCpuMinutes = 1 }
 if ($burstWindowMinutes -lt 1) { $burstWindowMinutes = 1 }
 if ($burstRepeatCount -lt 1) { $burstRepeatCount = 1 }
+if ($maxTargetsPerPass -lt 1) { $maxTargetsPerPass = 1 }
+if ($trimCooldownMinutes -lt 1) { $trimCooldownMinutes = 1 }
+if ($deepNapMinimumMB -lt 1) { $deepNapMinimumMB = 1.0 }
+if ($balancedNapMinimumMB -lt 1) { $balancedNapMinimumMB = 1.0 }
+if ($deepNapMaxCpuPercent -lt 0) { $deepNapMaxCpuPercent = 0.0 }
+if ($balancedNapMaxCpuPercent -lt 0) { $balancedNapMaxCpuPercent = 0.0 }
+if ($lightNapTrimMinimumMB -lt 1) { $lightNapTrimMinimumMB = 1.0 }
+if ($balancedNapTrimMinimumMB -lt 1) { $balancedNapTrimMinimumMB = 1.0 }
+if ($deepNapTrimMinimumMB -lt 1) { $deepNapTrimMinimumMB = 1.0 }
 
 $protectedNames = New-Object "System.Collections.Generic.HashSet[string]" ([System.StringComparer]::OrdinalIgnoreCase)
 @($config.ProtectedProcessNames + $nap.ProtectedProcessNames) | Where-Object { $_ } | ForEach-Object { [void]$protectedNames.Add([string]$_) }
@@ -108,6 +159,10 @@ $protectedPathFragments = @($nap.ProtectedPathFragments | Where-Object { $_ } | 
 
 $systemNames = New-Object "System.Collections.Generic.HashSet[string]" ([System.StringComparer]::OrdinalIgnoreCase)
 @($nap.SystemProcessNames) | Where-Object { $_ } | ForEach-Object { [void]$systemNames.Add([string]$_) }
+
+$realtimeFriendlyNames = New-Object "System.Collections.Generic.HashSet[string]" ([System.StringComparer]::OrdinalIgnoreCase)
+$realtimeFriendlySource = if ($realtimeFriendlyConfigured -ne $null) { $realtimeFriendlyConfigured } else { $realtimeFriendlyDefaults }
+@($realtimeFriendlySource) | Where-Object { $_ } | ForEach-Object { [void]$realtimeFriendlyNames.Add([string]$_) }
 
 $memoryPriorityMap = @{
     VeryLow = 1
@@ -139,6 +194,63 @@ $normalIoPriority = [int]$ioPriorityMap["Normal"]
 $ioPriorityNameByValue = @{}
 foreach ($key in $ioPriorityMap.Keys) {
     $ioPriorityNameByValue[[int]$ioPriorityMap[$key]] = [string]$key
+}
+
+function Resolve-PriorityClass {
+    param(
+        [string]$Name,
+        [System.Diagnostics.ProcessPriorityClass]$Fallback
+    )
+    try {
+        if (-not [string]::IsNullOrWhiteSpace($Name)) {
+            return [System.Enum]::Parse([System.Diagnostics.ProcessPriorityClass], $Name, $true)
+        }
+    } catch {
+    }
+    return $Fallback
+}
+
+function Resolve-MemoryPriority {
+    param(
+        [string]$Name,
+        [int]$Fallback
+    )
+    if ($Name -and $memoryPriorityMap.ContainsKey($Name)) {
+        return [int]$memoryPriorityMap[$Name]
+    }
+    return $Fallback
+}
+
+function Resolve-IoPriority {
+    param(
+        [string]$Name,
+        [int]$Fallback
+    )
+    if ($Name -and $ioPriorityMap.ContainsKey($Name)) {
+        return [int]$ioPriorityMap[$Name]
+    }
+    return $Fallback
+}
+
+$napTierPriority = @{
+    Light = Resolve-PriorityClass -Name $lightNapPriorityClassName -Fallback $targetPriorityClass
+    Balanced = Resolve-PriorityClass -Name $balancedNapPriorityClassName -Fallback $targetPriorityClass
+    Deep = Resolve-PriorityClass -Name $deepNapPriorityClassName -Fallback $targetPriorityClass
+}
+$napTierMemory = @{
+    Light = Resolve-MemoryPriority -Name $lightNapMemoryPriorityName -Fallback $targetMemoryPriority
+    Balanced = Resolve-MemoryPriority -Name $balancedNapMemoryPriorityName -Fallback $targetMemoryPriority
+    Deep = Resolve-MemoryPriority -Name $deepNapMemoryPriorityName -Fallback $targetMemoryPriority
+}
+$napTierIo = @{
+    Light = Resolve-IoPriority -Name $lightNapIoPriorityName -Fallback $targetIoPriority
+    Balanced = Resolve-IoPriority -Name $balancedNapIoPriorityName -Fallback $targetIoPriority
+    Deep = Resolve-IoPriority -Name $deepNapIoPriorityName -Fallback $targetIoPriority
+}
+$napTierTrimMinimum = @{
+    Light = $lightNapTrimMinimumMB
+    Balanced = $balancedNapTrimMinimumMB
+    Deep = $deepNapTrimMinimumMB
 }
 
 $currentProcess = Get-Process -Id $PID
@@ -438,6 +550,18 @@ function Get-ProcessIdentityKey {
     return ("name:" + $Process.ProcessName.ToLowerInvariant())
 }
 
+function Get-TrimIdentityKey {
+    param(
+        [System.Diagnostics.Process]$Process,
+        [string]$Path
+    )
+
+    if ($Path) {
+        return ("pidpath:" + $Process.Id.ToString() + ":" + $Path.ToLowerInvariant())
+    }
+    return ("pidname:" + $Process.Id.ToString() + ":" + $Process.ProcessName.ToLowerInvariant())
+}
+
 function Read-StateArray {
     param([string]$Path)
 
@@ -608,6 +732,117 @@ function Get-BurstCount {
     $key = Get-ProcessIdentityKey -Process $Process -Path $Path
     if (-not $Map.ContainsKey($key)) { return 0 }
     return @($Map[$key]).Count
+}
+
+function Read-TrimMap {
+    $map = @{}
+    $cutoff = (Get-Date).AddMinutes(-1 * $trimCooldownMinutes)
+    foreach ($item in @(Read-StateArray -Path $trimStatePath)) {
+        if (-not $item.Key -or -not $item.TrimmedAt) { continue }
+        $key = [string]$item.Key
+        if (-not ($key.StartsWith("pidpath:") -or $key.StartsWith("pidname:"))) { continue }
+        try {
+            $trimmed = [DateTime]::Parse([string]$item.TrimmedAt, $null, [Globalization.DateTimeStyles]::RoundtripKind)
+            if ($trimmed -ge $cutoff) {
+                $map[$key] = [pscustomobject]@{
+                    Key = $key
+                    ProcessName = [string]$item.ProcessName
+                    Path = [string]$item.Path
+                    TrimmedAt = $trimmed.ToString("o")
+                }
+            }
+        } catch {
+        }
+    }
+    return $map
+}
+
+function Save-TrimMap {
+    param([hashtable]$Map)
+    Write-StateArray -Path $trimStatePath -Items @($Map.Values)
+}
+
+function Test-TrimCooldown {
+    param(
+        [hashtable]$Map,
+        [System.Diagnostics.Process]$Process,
+        [string]$Path
+    )
+
+    if (-not $Process) { return $false }
+    $key = Get-TrimIdentityKey -Process $Process -Path $Path
+    return $Map.ContainsKey($key)
+}
+
+function Set-TrimCooldown {
+    param(
+        [hashtable]$Map,
+        [System.Diagnostics.Process]$Process,
+        [string]$Path
+    )
+
+    if (-not $Process) { return }
+    $key = Get-TrimIdentityKey -Process $Process -Path $Path
+    $Map[$key] = [pscustomobject]@{
+        Key = $key
+        ProcessName = $Process.ProcessName
+        Path = $Path
+        TrimmedAt = (Get-Date).ToString("o")
+    }
+}
+
+function Get-CandidateWeight {
+    param([object]$Row)
+
+    $weight = ([double]$Row.WorkingSetMB * 1.0) + ([double]$Row.CpuPercent * 120.0) + ([int]$Row.BurstCount * 140.0)
+    if ($realtimeFriendlyNames.Contains([string]$Row.ProcessName)) {
+        $weight *= 0.62
+    }
+    if ([bool]$Row.ForegroundFullscreen) {
+        $weight *= 1.15
+    }
+    return [math]::Round($weight, 3)
+}
+
+function Get-NapPolicy {
+    param([object]$Row)
+
+    $tier = "Balanced"
+    $reason = "steady-background"
+    $deepMinimum = $deepNapMinimumMB
+    $deepCpuLimit = $deepNapMaxCpuPercent
+    if ([bool]$Row.ForegroundFullscreen) {
+        $deepMinimum = [math]::Min($deepMinimum, 120.0)
+        $deepCpuLimit = [math]::Max($deepCpuLimit, 0.75)
+    }
+
+    if (-not $adaptiveNap) {
+        $reason = "fixed-policy"
+    } elseif ($realtimeFriendlyNames.Contains([string]$Row.ProcessName)) {
+        $tier = "Light"
+        $reason = "realtime-friendly"
+    } elseif ([double]$Row.WorkingSetMB -ge $deepMinimum -and [double]$Row.CpuPercent -le $deepCpuLimit -and [int]$Row.BurstCount -eq 0) {
+        $tier = "Deep"
+        $reason = if ([bool]$Row.ForegroundFullscreen) { "fullscreen-idle-heavy" } else { "idle-heavy" }
+    } elseif ([double]$Row.WorkingSetMB -lt $balancedNapMinimumMB) {
+        $tier = "Light"
+        $reason = "small-footprint"
+    } elseif ([double]$Row.CpuPercent -gt $balancedNapMaxCpuPercent) {
+        $tier = "Light"
+        $reason = "activity-detected"
+    } elseif ([int]$Row.BurstCount -ge $burstRepeatCount) {
+        $tier = "Balanced"
+        $reason = "bursty-background"
+    }
+
+    [pscustomobject]@{
+        Tier = $tier
+        Reason = $reason
+        PriorityClass = $napTierPriority[$tier]
+        MemoryPriority = [int]$napTierMemory[$tier]
+        IoPriority = [int]$napTierIo[$tier]
+        TrimMinimumMB = [double]$napTierTrimMinimum[$tier]
+    }
 }
 
 function Get-SkipReason {
@@ -783,10 +1018,16 @@ function Write-ApplySummaryLog {
         if ($r.WorkingSetAfterMB -ne $null) { $after += [double]$r.WorkingSetAfterMB }
     }
     $delta = $before - $after
+    if ($delta -lt 0) { $delta = 0.0 }
+    $light = @($Results | Where-Object { $_.NapTier -eq "Light" }).Count
+    $balanced = @($Results | Where-Object { $_.NapTier -eq "Balanced" }).Count
+    $deep = @($Results | Where-Object { $_.NapTier -eq "Deep" }).Count
+    $trimmed = @($Results | Where-Object { $_.TrimWorkingSet -eq "OK" }).Count
+    $cooldown = @($Results | Where-Object { $_.TrimWorkingSet -eq "Cooldown" }).Count
     $fullscreen = @($Results | Where-Object { $_.ForegroundFullscreen } | Select-Object -First 1).Count -gt 0
     $top = @($Results | Sort-Object NapScore -Descending | Select-Object -First 1)
     $topText = if ($top.Count -gt 0 -and $top[0].ProcessName) { " top=$($top[0].ProcessName) score=$($top[0].NapScore)" } else { "" }
-    $line = "{0} action=apply targets={1} beforeMB={2} afterMB={3} deltaMB={4} fullscreen={5}{6}" -f (Get-Date).ToString("s"), $count, ([math]::Round($before, 1)), ([math]::Round($after, 1)), ([math]::Round($delta, 1)), ([string]$fullscreen).ToLowerInvariant(), $topText
+    $line = "{0} action=apply targets={1} beforeMB={2} afterMB={3} deltaMB={4} light={5} balanced={6} deep={7} trimmed={8} cooldown={9} fullscreen={10}{11}" -f (Get-Date).ToString("s"), $count, ([math]::Round($before, 1)), ([math]::Round($after, 1)), ([math]::Round($delta, 1)), $light, $balanced, $deep, $trimmed, $cooldown, ([string]$fullscreen).ToLowerInvariant(), $topText
     Add-Content -LiteralPath $LogPath -Value $line -Encoding UTF8
 }
 
@@ -795,6 +1036,11 @@ function Write-NapScore {
 
     if (-not $smartNapScore) { return }
     $items = @($Results | Sort-Object NapScore -Descending | Select-Object -First 25 | ForEach-Object {
+        $deltaMB = $null
+        if ($_.WorkingSetBeforeMB -ne $null -and $_.WorkingSetAfterMB -ne $null) {
+            $deltaMB = [math]::Round(([double]$_.WorkingSetBeforeMB - [double]$_.WorkingSetAfterMB), 1)
+            if ($deltaMB -lt 0) { $deltaMB = 0.0 }
+        }
         [pscustomobject]@{
             ProcessName = $_.ProcessName
             Id = $_.Id
@@ -803,11 +1049,14 @@ function Write-NapScore {
             BurstCount = $_.BurstCount
             WorkingSetBeforeMB = $_.WorkingSetBeforeMB
             WorkingSetAfterMB = $_.WorkingSetAfterMB
-            DeltaMB = if ($_.WorkingSetBeforeMB -ne $null -and $_.WorkingSetAfterMB -ne $null) { [math]::Round(([double]$_.WorkingSetBeforeMB - [double]$_.WorkingSetAfterMB), 1) } else { $null }
+            DeltaMB = $deltaMB
             Priority = $_.Priority
             MemoryPriority = $_.MemoryPriority
             IoPriority = $_.IoPriority
             PowerThrottling = $_.PowerThrottling
+            TrimWorkingSet = $_.TrimWorkingSet
+            NapTier = $_.NapTier
+            Decision = $_.Decision
             ForegroundFullscreen = $_.ForegroundFullscreen
             Path = $_.Path
         }
@@ -823,41 +1072,59 @@ function Invoke-ApplyOnce {
     param([bool]$SaveState = $true)
 
     $rows = @(Get-BackgroundProcessRows)
-    $targets = @($rows | Where-Object { $_.Candidate })
+    $targets = @($rows |
+        Where-Object { $_.Candidate } |
+        Sort-Object @{Expression = { Get-CandidateWeight $_ }; Descending = $true}, @{Expression = "WorkingSetMB"; Descending = $true} |
+        Select-Object -First $maxTargetsPerPass)
+    $trimMap = Read-TrimMap
     $state = $null
     if ($SaveState) {
         $state = New-StateSnapshot -Rows $rows
     }
 
-    foreach ($row in $targets) {
+    $results = foreach ($row in $targets) {
         $p = Get-Process -Id $row.Id -ErrorAction SilentlyContinue
         if (-not $p) {
             continue
         }
 
+        $policy = Get-NapPolicy -Row $row
         $priorityStatus = "OK"
         try {
-            $p.PriorityClass = $targetPriorityClass
+            $p.PriorityClass = $policy.PriorityClass
         } catch {
             $priorityStatus = "Error: $($_.Exception.Message)"
         }
 
-        $memoryStatus = Convert-Win32Result ([BackgroundNapNative]::SetMemoryPriority([int]$p.Id, [uint32]$targetMemoryPriority))
+        $memoryStatus = Convert-Win32Result ([BackgroundNapNative]::SetMemoryPriority([int]$p.Id, [uint32]$policy.MemoryPriority))
         $ioStatus = if ($useIoPriority) {
-            Convert-NtStatusResult ([BackgroundNapNative]::SetIoPriority([int]$p.Id, [uint32]$targetIoPriority))
+            Convert-NtStatusResult ([BackgroundNapNative]::SetIoPriority([int]$p.Id, [uint32]$policy.IoPriority))
         } else {
             "Disabled"
         }
         $powerStatus = Convert-Win32Result ([BackgroundNapNative]::SetPowerThrottling([int]$p.Id, $useEcoQos, $ignoreTimerResolution, $false))
 
         $trimThreshold = [double]$row.EffectiveTrimMinimumMB
+        if ($policy.Tier -eq "Deep") {
+            if ($policy.TrimMinimumMB -lt $trimThreshold) { $trimThreshold = $policy.TrimMinimumMB }
+        } else {
+            if ($policy.TrimMinimumMB -gt $trimThreshold) { $trimThreshold = $policy.TrimMinimumMB }
+        }
         if ($smartBurstWatcher -and [int]$row.BurstCount -ge $burstRepeatCount -and $burstTrimMinimumMB -lt $trimThreshold) {
             $trimThreshold = $burstTrimMinimumMB
         }
 
         $trimStatus = "SkippedBelowThreshold"
         if ($trimWorkingSet -and $row.WorkingSetMB -ge $trimThreshold) {
-            $trimStatus = Convert-Win32Result ([BackgroundNapNative]::TrimWorkingSet([int]$p.Id))
+            $trimOnCooldown = if ($row.Path) { Test-TrimCooldown -Map $trimMap -Process $p -Path $row.Path } else { $false }
+            if ($trimOnCooldown) {
+                $trimStatus = "Cooldown"
+            } else {
+                $trimStatus = Convert-Win32Result ([BackgroundNapNative]::TrimWorkingSet([int]$p.Id))
+                if ($trimStatus -eq "OK" -and $row.Path) {
+                    Set-TrimCooldown -Map $trimMap -Process $p -Path $row.Path
+                }
+            }
         } elseif (-not $trimWorkingSet) {
             $trimStatus = "Disabled"
         }
@@ -867,11 +1134,14 @@ function Invoke-ApplyOnce {
         $afterMB = if ($after) { [math]::Round($after.WorkingSet64 / 1MB, 1) } else { $null }
         $deltaMB = if ($afterMB -ne $null) { [double]$row.WorkingSetMB - [double]$afterMB } else { 0.0 }
         if ($deltaMB -lt 0) { $deltaMB = 0.0 }
-        $napScore = [math]::Round(($deltaMB * 0.4) + ([double]$row.CpuPercent * 15.0) + ([int]$row.BurstCount * 10.0), 1)
+        $tierWeight = if ($policy.Tier -eq "Deep") { 18.0 } elseif ($policy.Tier -eq "Balanced") { 9.0 } else { 3.0 }
+        $napScore = [math]::Round(($deltaMB * 0.4) + ([double]$row.CpuPercent * 15.0) + ([int]$row.BurstCount * 10.0) + $tierWeight, 1)
 
         [pscustomobject]@{
             Id = $row.Id
             ProcessName = $row.ProcessName
+            NapTier = $policy.Tier
+            Decision = $policy.Reason
             Priority = $priorityStatus
             MemoryPriority = $memoryStatus
             IoPriority = $ioStatus
@@ -887,6 +1157,9 @@ function Invoke-ApplyOnce {
             Path = $row.Path
         }
     }
+
+    Save-TrimMap -Map $trimMap
+    return $results
 }
 
 function Invoke-Restore {

@@ -10,14 +10,22 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Security.Principal;
 using System.Text;
-using System.Threading;
+#if NET9_0_OR_GREATER
+using System.Text.Json;
+#else
 using System.Web.Script.Serialization;
+#endif
+using System.Threading;
 using System.Windows.Forms;
+#if NET9_0_OR_GREATER
+using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.Wpf;
+#endif
 
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.1.3";
+    private const string AppVersion = "0.3.3";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
@@ -36,11 +44,35 @@ internal static class SmartBackgroundNap
     private static string iconPath;
     private static string logoPath;
     private static string heroPath;
+    private static string uiSettingsPath;
+    private static string uiLanguage;
     private static string outputsPath;
     private static string logPath;
     private static string scorePath;
     private static string safetyReportPath;
     private static bool usingLooseRuntime;
+    private const uint ProcessSetInformation = 0x0200;
+    private const uint ProcessQueryLimitedInformation = 0x1000;
+    private const int ProcessMemoryPriorityClass = 0;
+    private const int ProcessPowerThrottlingClass = 4;
+    private const int ProcessIoPriorityClass = 33;
+    private const uint ProcessPowerThrottlingCurrentVersion = 1;
+    private const uint ProcessPowerThrottlingExecutionSpeed = 0x1;
+    private const uint ProcessPowerThrottlingIgnoreTimerResolution = 0x4;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MemoryPriorityInformation
+    {
+        public uint MemoryPriority;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct ProcessPowerThrottlingState
+    {
+        public uint Version;
+        public uint ControlMask;
+        public uint StateMask;
+    }
     private static Mutex singleInstanceMutex;
     private static EventWaitHandle showDashboardEvent;
     private static ScoreWindow scoreWindow;
@@ -220,6 +252,8 @@ internal static class SmartBackgroundNap
         iconPath = Path.Combine(looseRoot, "assets\\smart-nap-logo.ico");
         logoPath = Path.Combine(looseRoot, "assets\\smart-nap-logo-v2.png");
         heroPath = Path.Combine(looseRoot, "assets\\smart-nap-hero-bg.png");
+        uiSettingsPath = Path.Combine(appRoot, "ui-settings.json");
+        uiLanguage = LoadUiLanguage();
         outputsPath = Path.Combine(appRoot, "outputs");
         logPath = Path.Combine(outputsPath, "background-nap-auto.log");
         scorePath = Path.Combine(outputsPath, "background-nap-score-latest.json");
@@ -234,6 +268,18 @@ internal static class SmartBackgroundNap
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool SetDllDirectory(string lpPathName);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr OpenProcess(uint desiredAccess, bool inheritHandle, int processId);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool CloseHandle(IntPtr handle);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool SetProcessInformation(IntPtr processHandle, int processInformationClass, IntPtr processInformation, uint processInformationSize);
+
+    [DllImport("ntdll.dll")]
+    private static extern int NtSetInformationProcess(IntPtr processHandle, int processInformationClass, ref uint processInformation, uint processInformationLength);
 
     private static int GetForegroundPid()
     {
@@ -279,6 +325,50 @@ internal static class SmartBackgroundNap
         }
 
         throw new UnauthorizedAccessException("Could not create a writable Smart Background Nap runtime folder.", last);
+    }
+
+    private static string NormalizeUiLanguage(string value)
+    {
+        if (String.IsNullOrWhiteSpace(value)) { return ""; }
+        string code = value.Trim().Replace('_', '-').ToLowerInvariant();
+        if (code.StartsWith("pt")) { return "pt-BR"; }
+        if (code.StartsWith("ru")) { return "ru-RU"; }
+        if (code.StartsWith("es")) { return "es-ES"; }
+        if (code.StartsWith("fr")) { return "fr-FR"; }
+        if (code.StartsWith("de")) { return "de-DE"; }
+        if (code.StartsWith("en")) { return "en-US"; }
+        return "";
+    }
+
+    private static string LoadUiLanguage()
+    {
+        try
+        {
+            if (String.IsNullOrWhiteSpace(uiSettingsPath) || !File.Exists(uiSettingsPath)) { return ""; }
+            IDictionary<string, object> settings = JsonCompat.DeserializeObject(File.ReadAllText(uiSettingsPath, Encoding.UTF8));
+            object value;
+            return NormalizeUiLanguage(settings != null && settings.TryGetValue("Language", out value) ? Convert.ToString(value, CultureInfo.InvariantCulture) : "");
+        }
+        catch
+        {
+            return "";
+        }
+    }
+
+    private static void SaveUiLanguage(string language)
+    {
+        string normalized = NormalizeUiLanguage(language);
+        if (String.IsNullOrWhiteSpace(normalized)) { return; }
+        uiLanguage = normalized;
+        try
+        {
+            Directory.CreateDirectory(appRoot);
+            File.WriteAllText(uiSettingsPath, "{ \"Language\": \"" + normalized + "\" }", Encoding.UTF8);
+        }
+        catch (Exception ex)
+        {
+            WriteCrash(ex);
+        }
     }
 
     private static void EnsureRuntimeFiles(string runtimeRoot)
@@ -932,7 +1022,11 @@ internal static class SmartBackgroundNap
     private sealed class SmartNapContext : ApplicationContext
     {
         private readonly NotifyIcon notifyIcon;
+#if NET9_0_OR_GREATER
+        private readonly WpfDashboardHost dashboardHost;
+#else
         private ModernMainWindow mainWindow;
+#endif
         private readonly Form dispatchForm;
         private readonly SynchronizationContext uiContext;
         private bool allowExit;
@@ -963,7 +1057,21 @@ internal static class SmartBackgroundNap
             dispatchForm.Text = "";
             dispatchForm.Show();
 
+#if NET9_0_OR_GREATER
+            dashboardHost = new WpfDashboardHost(delegate
+            {
+                if (uiContext != null)
+                {
+                    uiContext.Post(delegate { ShowTrayMessage("Still running in the tray."); }, null);
+                }
+                else
+                {
+                    ShowTrayMessage("Still running in the tray.");
+                }
+            });
+#else
             mainWindow = CreateMainWindow();
+#endif
 
             if (!trayOnly)
             {
@@ -1057,7 +1165,11 @@ internal static class SmartBackgroundNap
                 notifyIcon.Dispose();
                 try { dispatchForm.Close(); } catch { }
                 try { dispatchForm.Dispose(); } catch { }
+#if NET9_0_OR_GREATER
+                dashboardHost.Shutdown();
+#else
                 mainWindow.Close();
+#endif
                 Application.Exit();
             };
             menu.Items.Add(exit);
@@ -1078,7 +1190,7 @@ internal static class SmartBackgroundNap
                         bool posted = false;
                         try
                         {
-                            dispatchForm.BeginInvoke(new MethodInvoker(delegate { ShowMainWindow(); }));
+                            dispatchForm.BeginInvoke(new System.Windows.Forms.MethodInvoker(delegate { ShowMainWindow(); }));
                             posted = true;
                         }
                         catch
@@ -1106,7 +1218,7 @@ internal static class SmartBackgroundNap
         private void StartForegroundWakeTimer()
         {
             foregroundWakeTimer = new System.Windows.Forms.Timer();
-            foregroundWakeTimer.Interval = 2000;
+            foregroundWakeTimer.Interval = 180;
             foregroundWakeTimer.Tick += delegate { CheckForegroundWake(); };
             foregroundWakeTimer.Start();
         }
@@ -1118,7 +1230,7 @@ internal static class SmartBackgroundNap
             if (pid <= 0 || pid == lastForegroundPid) { return; }
 
             lastForegroundPid = pid;
-            if ((DateTime.UtcNow - lastForegroundRestoreAt).TotalSeconds < 2.5) { return; }
+            if ((DateTime.UtcNow - lastForegroundRestoreAt).TotalMilliseconds < 120) { return; }
 
             foregroundRestoreBusy = true;
             lastForegroundRestoreAt = DateTime.UtcNow;
@@ -1126,7 +1238,7 @@ internal static class SmartBackgroundNap
             {
                 try
                 {
-                    RunForegroundRestore(pid);
+                    RunFastForegroundRestore(pid);
                 }
                 finally
                 {
@@ -1137,6 +1249,9 @@ internal static class SmartBackgroundNap
 
         private void ShowMainWindow()
         {
+#if NET9_0_OR_GREATER
+            dashboardHost.Show();
+#else
             if (mainWindow == null)
             {
                 mainWindow = CreateMainWindow();
@@ -1151,6 +1266,7 @@ internal static class SmartBackgroundNap
                 mainWindow.WindowState = System.Windows.WindowState.Normal;
             }
             mainWindow.Activate();
+#endif
         }
 
         private void ShowTrayMessage(string text)
@@ -1163,7 +1279,11 @@ internal static class SmartBackgroundNap
         private void RunFromTray(string actionName, Func<RunResult> action)
         {
             RunResult result = action();
+#if NET9_0_OR_GREATER
+            dashboardHost.RefreshStatus();
+#else
             mainWindow.RefreshStatus();
+#endif
             ShowTrayMessage(result.ExitCode == 0 ? actionName + " finished." : actionName + " failed.");
             if (result.ExitCode != 0)
             {
@@ -1172,8 +1292,1416 @@ internal static class SmartBackgroundNap
         }
     }
 
+    private static RunResult RunFastForegroundRestore(int pid)
+    {
+        if (pid <= 0 || pid == Process.GetCurrentProcess().Id)
+        {
+            return new RunResult(0, "No foreground pid.");
+        }
+
+        try
+        {
+            Process process = Process.GetProcessById(pid);
+            if (process.SessionId != Process.GetCurrentProcess().SessionId)
+            {
+                return new RunResult(0, "Other session.");
+            }
+            if (IsProtectedForegroundProcess(process.ProcessName))
+            {
+                return new RunResult(0, "Protected foreground.");
+            }
+
+            string priority = "Keep";
+            try
+            {
+                ProcessPriorityClass current = process.PriorityClass;
+                if (current == ProcessPriorityClass.Idle || current == ProcessPriorityClass.BelowNormal)
+                {
+                    process.PriorityClass = ProcessPriorityClass.Normal;
+                    priority = "OK";
+                }
+            }
+            catch (Exception ex)
+            {
+                priority = "Error:" + ex.GetType().Name;
+            }
+
+            string memory = TrySetMemoryPriority(pid, 5) ? "OK" : "Skip";
+            string io = TrySetIoPriority(pid, 2) ? "OK" : "Skip";
+            string power = TryClearPowerThrottling(pid) ? "OK" : "Skip";
+            Directory.CreateDirectory(outputsPath);
+            string line = String.Format(
+                CultureInfo.InvariantCulture,
+                "{0} action=foreground-restore mode=fast pid={1} process={2} priority={3} memory={4} io={5} power={6}",
+                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
+                pid,
+                process.ProcessName,
+                priority,
+                memory,
+                io,
+                power);
+            File.AppendAllText(logPath, line + Environment.NewLine, Encoding.UTF8);
+            return new RunResult(0, line);
+        }
+        catch (Exception ex)
+        {
+            WriteCrash(ex);
+            return new RunResult(1, ex.Message);
+        }
+    }
+
+    private static bool IsProtectedForegroundProcess(string processName)
+    {
+        string[] protectedNames = new string[]
+        {
+            "ProcessLasso",
+            "ProcessGovernor",
+            "bitsumsessionagent",
+            "ThrottleStop",
+            "MSIAfterburner",
+            "RTSS",
+            "RTSSHooksLoader64",
+            "RivaTunerStatisticsServer",
+            "HWiNFO64",
+            "HWiNFO32",
+            "SmartBackgroundNap",
+            "msedgewebview2"
+        };
+        for (int i = 0; i < protectedNames.Length; i++)
+        {
+            if (String.Equals(processName, protectedNames[i], StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static bool TrySetMemoryPriority(int pid, uint memoryPriority)
+    {
+        IntPtr handle = OpenProcess(ProcessSetInformation | ProcessQueryLimitedInformation, false, pid);
+        if (handle == IntPtr.Zero) { return false; }
+        IntPtr ptr = IntPtr.Zero;
+        try
+        {
+            MemoryPriorityInformation info = new MemoryPriorityInformation();
+            info.MemoryPriority = memoryPriority;
+            ptr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(MemoryPriorityInformation)));
+            Marshal.StructureToPtr(info, ptr, false);
+            return SetProcessInformation(handle, ProcessMemoryPriorityClass, ptr, (uint)Marshal.SizeOf(typeof(MemoryPriorityInformation)));
+        }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            if (ptr != IntPtr.Zero) { Marshal.FreeHGlobal(ptr); }
+            CloseHandle(handle);
+        }
+    }
+
+    private static bool TrySetIoPriority(int pid, uint ioPriority)
+    {
+        IntPtr handle = OpenProcess(ProcessSetInformation | ProcessQueryLimitedInformation, false, pid);
+        if (handle == IntPtr.Zero) { return false; }
+        try
+        {
+            return NtSetInformationProcess(handle, ProcessIoPriorityClass, ref ioPriority, sizeof(uint)) == 0;
+        }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            CloseHandle(handle);
+        }
+    }
+
+    private static bool TryClearPowerThrottling(int pid)
+    {
+        IntPtr handle = OpenProcess(ProcessSetInformation | ProcessQueryLimitedInformation, false, pid);
+        if (handle == IntPtr.Zero) { return false; }
+        IntPtr ptr = IntPtr.Zero;
+        try
+        {
+            ProcessPowerThrottlingState state = new ProcessPowerThrottlingState();
+            state.Version = ProcessPowerThrottlingCurrentVersion;
+            state.ControlMask = ProcessPowerThrottlingExecutionSpeed | ProcessPowerThrottlingIgnoreTimerResolution;
+            state.StateMask = 0;
+            ptr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(ProcessPowerThrottlingState)));
+            Marshal.StructureToPtr(state, ptr, false);
+            return SetProcessInformation(handle, ProcessPowerThrottlingClass, ptr, (uint)Marshal.SizeOf(typeof(ProcessPowerThrottlingState)));
+        }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            if (ptr != IntPtr.Zero) { Marshal.FreeHGlobal(ptr); }
+            CloseHandle(handle);
+        }
+    }
+
+
+#if NET9_0_OR_GREATER
+    private interface IDashboardWindow
+    {
+        void RefreshStatus();
+    }
+
+    private sealed class WpfDashboardHost
+    {
+        private readonly Thread thread;
+        private readonly ManualResetEventSlim ready = new ManualResetEventSlim(false);
+        private readonly Action hiddenCallback;
+        private System.Windows.Threading.Dispatcher dispatcher;
+        private System.Windows.Window window;
+        private IDashboardWindow dashboardWindow;
+        private Exception startupException;
+        private volatile bool allowClose;
+
+        public WpfDashboardHost(Action hiddenCallback)
+        {
+            this.hiddenCallback = hiddenCallback;
+            thread = new Thread(new ThreadStart(Run));
+            thread.Name = "SmartBackgroundNap.WpfDashboard";
+            thread.IsBackground = true;
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+        }
+
+        public void Show()
+        {
+            if (!WaitUntilReady())
+            {
+                return;
+            }
+
+            dispatcher.BeginInvoke(new Action(delegate
+            {
+                EnsureWindow();
+                dashboardWindow.RefreshStatus();
+                if (!window.IsVisible)
+                {
+                    window.Show();
+                }
+                if (window.WindowState == System.Windows.WindowState.Minimized)
+                {
+                    window.WindowState = System.Windows.WindowState.Normal;
+                }
+                window.Activate();
+            }));
+        }
+
+        public void RefreshStatus()
+        {
+            if (!WaitUntilReady())
+            {
+                return;
+            }
+
+            dispatcher.BeginInvoke(new Action(delegate
+            {
+                if (window == null)
+                {
+                    return;
+                }
+                dashboardWindow.RefreshStatus();
+            }));
+        }
+
+        public void Shutdown()
+        {
+            allowClose = true;
+            if (ready.IsSet && dispatcher != null)
+            {
+                dispatcher.BeginInvoke(new Action(delegate
+                {
+                    try
+                    {
+                        if (window != null)
+                        {
+                            window.Close();
+                        }
+                    }
+                    finally
+                    {
+                        dispatcher.BeginInvokeShutdown(System.Windows.Threading.DispatcherPriority.Background);
+                    }
+                }));
+            }
+
+            try
+            {
+                if (thread.IsAlive)
+                {
+                    thread.Join(2000);
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        private bool WaitUntilReady()
+        {
+            ready.Wait(5000);
+            if (startupException != null)
+            {
+                throw new InvalidOperationException("WPF dashboard could not start.", startupException);
+            }
+            return dispatcher != null;
+        }
+
+        private void Run()
+        {
+            try
+            {
+                System.Windows.Application app = new System.Windows.Application();
+                app.ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown;
+                app.DispatcherUnhandledException += delegate(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+                {
+                    WriteCrash(e.Exception);
+                    e.Handled = true;
+                };
+                dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
+                ready.Set();
+                System.Windows.Threading.Dispatcher.Run();
+            }
+            catch (Exception ex)
+            {
+                startupException = ex;
+                WriteCrash(ex);
+                ready.Set();
+            }
+        }
+
+        private void EnsureWindow()
+        {
+            if (window != null)
+            {
+                return;
+            }
+
+            try
+            {
+                dashboardWindow = new WebViewDashboardWindow(delegate(Exception ex)
+                {
+                    WriteCrash(ex);
+                    dispatcher.BeginInvoke(new Action(delegate { ReplaceWithNativeDashboard(); }));
+                });
+                window = (System.Windows.Window)dashboardWindow;
+            }
+            catch (Exception ex)
+            {
+                WriteCrash(ex);
+                dashboardWindow = new ModernMainWindow();
+                window = (System.Windows.Window)dashboardWindow;
+            }
+            AttachHideInsteadOfClose(window);
+        }
+
+        private void AttachHideInsteadOfClose(System.Windows.Window target)
+        {
+            target.Closing += delegate(object sender, System.ComponentModel.CancelEventArgs e)
+            {
+                if (!allowClose)
+                {
+                    dashboardWindow = null;
+                    window = null;
+                    NotifyHidden();
+                }
+            };
+            target.StateChanged += delegate
+            {
+                if (!allowClose && target.WindowState == System.Windows.WindowState.Minimized)
+                {
+                    dispatcher.BeginInvoke(new Action(delegate { ReleaseDashboardWindow(target); }));
+                }
+            };
+        }
+
+        private void ReleaseDashboardWindow(System.Windows.Window target)
+        {
+            if (target == null || window != target)
+            {
+                return;
+            }
+
+            try
+            {
+                allowClose = true;
+                target.Close();
+            }
+            catch (Exception ex)
+            {
+                WriteCrash(ex);
+            }
+            finally
+            {
+                allowClose = false;
+                dashboardWindow = null;
+                window = null;
+                NotifyHidden();
+            }
+        }
+
+        private void ReplaceWithNativeDashboard()
+        {
+            try
+            {
+                bool shouldShow = window != null && window.IsVisible;
+                allowClose = true;
+                if (window != null)
+                {
+                    window.Close();
+                }
+                allowClose = false;
+
+                dashboardWindow = new ModernMainWindow();
+                window = (System.Windows.Window)dashboardWindow;
+                AttachHideInsteadOfClose(window);
+                if (shouldShow)
+                {
+                    window.Show();
+                    window.Activate();
+                }
+            }
+            catch (Exception ex)
+            {
+                WriteCrash(ex);
+            }
+        }
+
+        private void NotifyHidden()
+        {
+            if (hiddenCallback == null)
+            {
+                return;
+            }
+
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                try { hiddenCallback(); } catch { }
+            });
+        }
+    }
+
+    private sealed class WebViewDashboardWindow : System.Windows.Window, IDashboardWindow
+    {
+        private readonly Action<Exception> fallbackRequested;
+        private readonly WebView2 webView;
+        private readonly System.Windows.Threading.DispatcherTimer refreshTimer;
+        private readonly System.Windows.Threading.DispatcherTimer liveTimer;
+        private readonly System.Windows.Threading.DispatcherTimer actionTimer;
+        private RunControl activeRunControl;
+        private bool webReady;
+        private bool busy;
+        private bool activeRunCanStop;
+        private DateTime activeRunStartedAt;
+        private string activeUiEventLine;
+        private string activeTitle = "Control Center";
+        private string activeDetail = "Waiting for the next pass.";
+        private string runState = "READY";
+        private const int WmNcHitTest = 0x0084;
+        private const int HtClient = 1;
+        private const int HtCaption = 2;
+        private const int HtLeft = 10;
+        private const int HtRight = 11;
+        private const int HtTop = 12;
+        private const int HtTopLeft = 13;
+        private const int HtTopRight = 14;
+        private const int HtBottom = 15;
+        private const int HtBottomLeft = 16;
+        private const int HtBottomRight = 17;
+        private const double ResizeBorderSize = 18.0;
+        private const double DragBandHeight = 54.0;
+        private const double WindowButtonReserveWidth = 128.0;
+
+        public WebViewDashboardWindow(Action<Exception> fallbackRequested)
+        {
+            this.fallbackRequested = fallbackRequested;
+            Title = AppName;
+            Width = 1440;
+            Height = 780;
+            MinWidth = 900;
+            MinHeight = 560;
+            WindowStartupLocation = System.Windows.WindowStartupLocation.CenterScreen;
+            WindowStyle = System.Windows.WindowStyle.SingleBorderWindow;
+            ResizeMode = System.Windows.ResizeMode.CanResize;
+            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(5, 9, 15));
+            Icon = LoadWebViewWindowIcon(iconPath);
+            ApplyResponsiveWindowBounds();
+            SourceInitialized += delegate { InstallNativeWindowChrome(); };
+
+            webView = new WebView2();
+            Content = webView;
+
+            Loaded += async delegate
+            {
+                await InitializeAsync();
+            };
+            StateChanged += delegate
+            {
+                if (WindowState == System.Windows.WindowState.Minimized)
+                {
+                    return;
+                }
+            };
+            IsVisibleChanged += delegate
+            {
+                if (IsVisible)
+                {
+                    StartDashboardActivity();
+                    RefreshStatus();
+                }
+                else
+                {
+                    StopDashboardActivity();
+                }
+            };
+
+            refreshTimer = new System.Windows.Threading.DispatcherTimer();
+            refreshTimer.Interval = TimeSpan.FromSeconds(60);
+            refreshTimer.Tick += delegate { if (!busy) { RefreshStatus(); } };
+
+            liveTimer = new System.Windows.Threading.DispatcherTimer();
+            liveTimer.Interval = TimeSpan.FromSeconds(1);
+            liveTimer.Tick += delegate { SendState(); };
+
+            actionTimer = new System.Windows.Threading.DispatcherTimer();
+            actionTimer.Interval = TimeSpan.FromMilliseconds(250);
+            actionTimer.Tick += delegate { UpdateActiveRunVisuals(); };
+        }
+
+        private void ApplyResponsiveWindowBounds()
+        {
+            try
+            {
+                System.Windows.Rect workArea = System.Windows.SystemParameters.WorkArea;
+                double availableWidth = Math.Max(900.0, workArea.Width - 28.0);
+                double availableHeight = Math.Max(560.0, workArea.Height - 72.0);
+                MaxWidth = availableWidth;
+                MaxHeight = availableHeight;
+                Width = Math.Min(1440.0, availableWidth);
+                Height = Math.Min(780.0, availableHeight);
+                MinWidth = Math.Min(900.0, Width);
+                MinHeight = Math.Min(560.0, Height);
+            }
+            catch
+            {
+            }
+        }
+
+        private void InstallNativeWindowChrome()
+        {
+            try
+            {
+                if (WindowStyle == System.Windows.WindowStyle.None)
+                {
+                    System.Windows.Interop.HwndSource source = System.Windows.PresentationSource.FromVisual(this) as System.Windows.Interop.HwndSource;
+                    if (source != null)
+                    {
+                        source.AddHook(WndProc);
+                    }
+                }
+                ClampWindowToWorkArea();
+            }
+            catch
+            {
+            }
+        }
+
+        private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            if (msg != WmNcHitTest)
+            {
+                return IntPtr.Zero;
+            }
+
+            System.Windows.Point point = PointFromScreen(new System.Windows.Point(GetSignedLowWord(lParam), GetSignedHighWord(lParam)));
+            double width = ActualWidth > 0 ? ActualWidth : Width;
+            double height = ActualHeight > 0 ? ActualHeight : Height;
+
+            if (WindowState == System.Windows.WindowState.Normal && ResizeMode != System.Windows.ResizeMode.NoResize)
+            {
+                bool left = point.X >= 0 && point.X < ResizeBorderSize;
+                bool right = point.X <= width && point.X >= width - ResizeBorderSize;
+                bool top = point.Y >= 0 && point.Y < ResizeBorderSize;
+                bool bottom = point.Y <= height && point.Y >= height - ResizeBorderSize;
+
+                if (left && top) { handled = true; return new IntPtr(HtTopLeft); }
+                if (right && top) { handled = true; return new IntPtr(HtTopRight); }
+                if (left && bottom) { handled = true; return new IntPtr(HtBottomLeft); }
+                if (right && bottom) { handled = true; return new IntPtr(HtBottomRight); }
+                if (left) { handled = true; return new IntPtr(HtLeft); }
+                if (right) { handled = true; return new IntPtr(HtRight); }
+                if (top) { handled = true; return new IntPtr(HtTop); }
+                if (bottom) { handled = true; return new IntPtr(HtBottom); }
+            }
+
+            if (point.Y >= 0 && point.Y < DragBandHeight && point.X >= 0 && point.X < width - WindowButtonReserveWidth)
+            {
+                handled = true;
+                return new IntPtr(HtCaption);
+            }
+
+            handled = true;
+            return new IntPtr(HtClient);
+        }
+
+        private static int GetSignedLowWord(IntPtr value)
+        {
+            return (short)((long)value & 0xffff);
+        }
+
+        private static int GetSignedHighWord(IntPtr value)
+        {
+            return (short)(((long)value >> 16) & 0xffff);
+        }
+
+        private void ClampWindowToWorkArea()
+        {
+            try
+            {
+                System.Windows.Rect workArea = System.Windows.SystemParameters.WorkArea;
+                if (Width > workArea.Width) { Width = Math.Max(MinWidth, workArea.Width - 20.0); }
+                if (Height > workArea.Height) { Height = Math.Max(MinHeight, workArea.Height - 20.0); }
+                if (Left < workArea.Left + 8.0) { Left = workArea.Left + 8.0; }
+                if (Top < workArea.Top + 8.0) { Top = workArea.Top + 8.0; }
+                if (Left + Width > workArea.Right - 8.0) { Left = Math.Max(workArea.Left + 8.0, workArea.Right - Width - 8.0); }
+                if (Top + Height > workArea.Bottom - 8.0) { Top = Math.Max(workArea.Top + 8.0, workArea.Bottom - Height - 8.0); }
+            }
+            catch
+            {
+            }
+        }
+
+        private async System.Threading.Tasks.Task InitializeAsync()
+        {
+            try
+            {
+                string dataFolder = Path.Combine(appRoot, "WebView2");
+                Directory.CreateDirectory(dataFolder);
+                CoreWebView2EnvironmentOptions options = new CoreWebView2EnvironmentOptions(
+                    "--disable-features=msWebOOUI,msPdfOOUI --disable-background-networking");
+                CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(null, dataFolder, options);
+                await webView.EnsureCoreWebView2Async(environment);
+                webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
+                webView.CoreWebView2.Settings.AreDevToolsEnabled = false;
+                webView.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = false;
+                webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
+                webView.CoreWebView2.NavigationCompleted += delegate
+                {
+                    webReady = true;
+                    SendState();
+                };
+                webView.NavigateToString(BuildHtml());
+            }
+            catch (Exception ex)
+            {
+                if (fallbackRequested != null)
+                {
+                    fallbackRequested(ex);
+                }
+                else
+                {
+                    throw;
+                }
+            }
+        }
+
+        private static System.Windows.Media.ImageSource LoadWebViewWindowIcon(string path)
+        {
+            try
+            {
+                if (!File.Exists(path))
+                {
+                    return null;
+                }
+
+                System.Windows.Media.Imaging.BitmapImage image = new System.Windows.Media.Imaging.BitmapImage();
+                image.BeginInit();
+                image.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                image.UriSource = new Uri(path, UriKind.Absolute);
+                image.EndInit();
+                image.Freeze();
+                return image;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public void RefreshStatus()
+        {
+            if (!Dispatcher.CheckAccess())
+            {
+                Dispatcher.BeginInvoke(new Action(delegate { RefreshStatus(); }));
+                return;
+            }
+            SendState();
+        }
+
+        private void OnWebMessageReceived(object sender, CoreWebView2WebMessageReceivedEventArgs e)
+        {
+            try
+            {
+                IDictionary<string, object> message = JsonCompat.DeserializeObject(e.WebMessageAsJson);
+                string action = GetString(message, "action");
+                if (String.Equals(action, "ready", StringComparison.OrdinalIgnoreCase))
+                {
+                    webReady = true;
+                    SendState();
+                    return;
+                }
+                if (String.Equals(action, "setLanguage", StringComparison.OrdinalIgnoreCase))
+                {
+                    SaveUiLanguage(GetString(message, "language"));
+                    SendState();
+                    return;
+                }
+                if (String.Equals(action, "drag", StringComparison.OrdinalIgnoreCase))
+                {
+                    try { DragMove(); } catch { }
+                    return;
+                }
+                if (String.Equals(action, "minimize", StringComparison.OrdinalIgnoreCase))
+                {
+                    WindowState = System.Windows.WindowState.Minimized;
+                    return;
+                }
+                if (String.Equals(action, "close", StringComparison.OrdinalIgnoreCase))
+                {
+                    Close();
+                    return;
+                }
+                if (String.Equals(action, "apply", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (busy && activeRunCanStop) { StopCurrentActionWithFeedback(); } else { RunOptimizeNowActionWithFeedback(); }
+                    return;
+                }
+                if (String.Equals(action, "toggleMotor", StringComparison.OrdinalIgnoreCase))
+                {
+                    ToggleMotorFromButton();
+                    return;
+                }
+                if (String.Equals(action, "toggleStartup", StringComparison.OrdinalIgnoreCase))
+                {
+                    bool startupInstalled = IsTaskInstalled(TrayTaskName);
+                    RunUserAction(
+                        startupInstalled ? "Disabling tray startup..." : "Enabling tray startup...",
+                        startupInstalled ? "Tray startup is off." : "The tray will start with Windows.",
+                        startupInstalled ? (Func<RunResult>)UninstallStartup : InstallStartup);
+                    return;
+                }
+                if (String.Equals(action, "restore", StringComparison.OrdinalIgnoreCase)) { RunUserAction("Restoring latest snapshot...", "Restore finished.", RunRestore); return; }
+                if (String.Equals(action, "score", StringComparison.OrdinalIgnoreCase)) { OpenScore(); return; }
+                if (String.Equals(action, "log", StringComparison.OrdinalIgnoreCase)) { OpenLog(); return; }
+                if (String.Equals(action, "folder", StringComparison.OrdinalIgnoreCase)) { OpenFolder(); return; }
+                if (String.Equals(action, "config", StringComparison.OrdinalIgnoreCase)) { OpenConfig(); return; }
+                if (String.Equals(action, "safety", StringComparison.OrdinalIgnoreCase)) { OpenSafetyReport(); return; }
+                if (String.Equals(action, "github", StringComparison.OrdinalIgnoreCase)) { OpenGitHub(); return; }
+            }
+            catch (Exception ex)
+            {
+                WriteCrash(ex);
+            }
+        }
+
+        private void RunUserAction(string activeMessage, string successMessage, Func<RunResult> action)
+        {
+            if (busy) { return; }
+            busy = true;
+            activeRunCanStop = false;
+            activeTitle = activeMessage;
+            activeDetail = "Working in the background...";
+            runState = "WORKING";
+            activeUiEventLine = DateTime.Now.ToString("HH:mm:ss", CultureInfo.CurrentCulture) + "  NOW  " + CleanEventText(activeMessage);
+            SendState();
+
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                RunResult result = action();
+                Dispatcher.BeginInvoke(new Action(delegate
+                {
+                    busy = false;
+                    activeTitle = result.ExitCode == 0 ? successMessage : "Action failed";
+                    activeDetail = result.ExitCode == 0 ? BuildResultText() : ShortError(result.Output);
+                    runState = result.ExitCode == 0 ? "DONE" : "ERROR";
+                    activeUiEventLine = DateTime.Now.ToString("HH:mm:ss", CultureInfo.CurrentCulture) + (result.ExitCode == 0 ? "  OK   " + CleanEventText(successMessage) : "  FAIL " + CleanEventText(ShortError(result.Output)));
+                    SendState();
+                    if (result.ExitCode != 0)
+                    {
+                        System.Windows.MessageBox.Show(ShortError(result.Output), AppName, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                    }
+                }));
+            });
+        }
+
+        private void ToggleMotorFromButton()
+        {
+            if (busy) { return; }
+
+            bool installed = IsTaskInstalled(AutoTaskName);
+            RunUserAction(
+                installed ? "Pausing background motor..." : "Starting background motor...",
+                installed ? "Background motor paused." : "Background motor active.",
+                installed ? (Func<RunResult>)UninstallAutomatic : InstallAutomatic);
+        }
+
+        private void RunOptimizeNowActionWithFeedback()
+        {
+            if (busy) { return; }
+
+            RunControl control = new RunControl();
+            activeRunControl = control;
+            activeRunStartedAt = DateTime.Now;
+            busy = true;
+            activeRunCanStop = true;
+            activeTitle = "Agindo nos apps agora";
+            activeDetail = "Em execucao ha 0s: prioridade, IO, memoria e EcoQoS.";
+            runState = "RUNNING";
+            activeUiEventLine = DateTime.Now.ToString("HH:mm:ss", CultureInfo.CurrentCulture) + "  NOW  passe manual iniciado: prioridade, IO, memoria e EcoQoS";
+            if (actionTimer != null) { actionTimer.Start(); }
+            SendState();
+
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                RunResult result = RunApplyNow(control);
+                Dispatcher.BeginInvoke(new Action(delegate
+                {
+                    bool stopped = result.ExitCode == 130;
+                    if (actionTimer != null) { actionTimer.Stop(); }
+                    activeRunControl = null;
+                    busy = false;
+                    activeRunCanStop = false;
+                    activeTitle = stopped ? "Otimizacao parada" : (result.ExitCode == 0 ? "Otimizacao concluida" : "Action failed");
+                    activeDetail = stopped ? "O passe manual foi interrompido." : (result.ExitCode == 0 ? BuildResultText() : ShortError(result.Output));
+                    runState = stopped ? "STOPPED" : (result.ExitCode == 0 ? "DONE" : "ERROR");
+                    activeUiEventLine = DateTime.Now.ToString("HH:mm:ss", CultureInfo.CurrentCulture) + (stopped ? "  STOP passe manual interrompido" : (result.ExitCode == 0 ? "  OK   passe manual aplicado: " + BuildResultText() : "  FAIL passe manual falhou"));
+                    SendState();
+                    if (result.ExitCode != 0 && !stopped)
+                    {
+                        System.Windows.MessageBox.Show(ShortError(result.Output), AppName, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                    }
+                }));
+            });
+        }
+
+        private void StopCurrentActionWithFeedback()
+        {
+            if (!busy || activeRunControl == null)
+            {
+                return;
+            }
+
+            activeUiEventLine = DateTime.Now.ToString("HH:mm:ss", CultureInfo.CurrentCulture) + "  STOP solicitado pelo usuario";
+            activeTitle = "Parando otimizacao...";
+            activeDetail = "Encerrando o passe manual com seguranca.";
+            runState = "STOPPING";
+            activeRunControl.Cancel();
+            SendState();
+        }
+
+        private void UpdateActiveRunVisuals()
+        {
+            if (!busy || activeRunControl == null)
+            {
+                return;
+            }
+            int seconds = Math.Max(0, (int)Math.Round((DateTime.Now - activeRunStartedAt).TotalSeconds));
+            if (activeRunControl.CancelRequested)
+            {
+                activeTitle = "Parando otimizacao...";
+                activeDetail = "Parada solicitada ha " + seconds.ToString(CultureInfo.CurrentCulture) + "s.";
+                runState = "STOPPING";
+            }
+            else
+            {
+                activeTitle = "Agindo nos apps agora";
+                activeDetail = "Em execucao ha " + seconds.ToString(CultureInfo.CurrentCulture) + "s: prioridade, IO, memoria e EcoQoS.";
+                runState = "RUNNING";
+                activeUiEventLine = DateTime.Now.ToString("HH:mm:ss", CultureInfo.CurrentCulture) + "  NOW  passe manual em execucao (" + seconds.ToString(CultureInfo.CurrentCulture) + "s)";
+            }
+            SendState();
+        }
+
+        private void StartDashboardActivity()
+        {
+            if (refreshTimer != null && !refreshTimer.IsEnabled) { refreshTimer.Start(); }
+            if (liveTimer != null && !liveTimer.IsEnabled) { liveTimer.Start(); }
+        }
+
+        private void StopDashboardActivity()
+        {
+            if (refreshTimer != null) { refreshTimer.Stop(); }
+            if (liveTimer != null) { liveTimer.Stop(); }
+        }
+
+        private void SendState()
+        {
+            if (!webReady || webView.CoreWebView2 == null)
+            {
+                return;
+            }
+
+            try
+            {
+                string json = JsonSerializer.Serialize(BuildState());
+                webView.CoreWebView2.PostWebMessageAsJson(json);
+            }
+            catch (Exception ex)
+            {
+                WriteCrash(ex);
+            }
+        }
+
+        private WebDashboardState BuildState()
+        {
+            bool autoInstalled = IsTaskInstalled(AutoTaskName);
+            bool startupInstalled = IsTaskInstalled(TrayTaskName);
+            List<WebManagerRow> rows = LoadManagerRows();
+            string line = ReadLastApplyLogLine();
+            string targets = line == "No log yet." ? "" : ExtractLogValue(line, "targets");
+            string delta = line == "No log yet." ? "" : ExtractLogValue(line, "deltaMB");
+            string top = line == "No log yet." ? "" : ExtractLogValue(line, "top");
+            string heartbeat = DateTime.Now.ToString("HH:mm:ss", CultureInfo.CurrentCulture);
+            string lastEventAge = BuildLastEventAgeText();
+            string nextPass = BuildNextPassText(line, autoInstalled);
+
+            WebDashboardState state = new WebDashboardState();
+            state.AppVersion = AppVersion;
+            state.Creator = CreatorLine;
+            state.Language = String.IsNullOrWhiteSpace(uiLanguage) ? "" : uiLanguage;
+            state.FirstRun = String.IsNullOrWhiteSpace(uiLanguage);
+            state.AutoMode = autoInstalled;
+            state.Startup = startupInstalled;
+            state.Busy = busy;
+            state.CanStop = activeRunCanStop;
+            state.RunState = busy ? runState : (autoInstalled ? "MOTOR ACTIVE" : "MANUAL");
+            state.Title = busy ? activeTitle : (autoInstalled ? "Nap Engine" : "Manual Engine");
+            state.Detail = busy ? activeDetail : BuildStatusDetail(autoInstalled, startupInstalled);
+            state.LastRun = GetLastEventCardText();
+            state.Result = BuildResultText();
+            state.Managed = String.IsNullOrWhiteSpace(targets) ? rows.Count.ToString(CultureInfo.CurrentCulture) : targets;
+            state.Reclaimed = String.IsNullOrWhiteSpace(delta) ? "0" : delta;
+            state.TopApp = String.IsNullOrWhiteSpace(top) ? (rows.Count > 0 ? rows[0].Name : "-") : top;
+            state.Wake = autoInstalled ? "Fast wake" : "Manual";
+            state.Heartbeat = heartbeat;
+            state.LastEventAge = lastEventAge;
+            state.NextPass = nextPass;
+            state.Rows = rows;
+            state.Events = BuildEvents(autoInstalled, heartbeat, lastEventAge, nextPass);
+            state.Logo = GetLogoDataUri();
+            return state;
+        }
+
+        private string BuildStatusDetail(bool autoInstalled, bool startupInstalled)
+        {
+            string line = ReadLastLogLine();
+            if (line == "No log yet.")
+            {
+                return autoInstalled ? "Foreground wake is armed. Background apps are tuned by tier." : "Paused. Run a manual pass or resume the engine.";
+            }
+            return BuildResultText() + (startupInstalled ? " | wake guard active" : " | startup off");
+        }
+
+        private string GetLastEventCardText()
+        {
+            try
+            {
+                if (!File.Exists(logPath)) { return "-"; }
+                return File.GetLastWriteTime(logPath).ToString("HH:mm:ss", CultureInfo.CurrentCulture);
+            }
+            catch
+            {
+                return "-";
+            }
+        }
+
+        private string BuildResultText()
+        {
+            string line = ReadLastApplyLogLine();
+            if (line == "No log yet.")
+            {
+                return "No run yet";
+            }
+            string targets = ExtractLogValue(line, "targets");
+            string delta = ExtractLogValue(line, "deltaMB");
+            if (!String.IsNullOrWhiteSpace(targets))
+            {
+                string text = targets + " apps";
+                if (!String.IsNullOrWhiteSpace(delta))
+                {
+                    text += " / " + delta + " MB";
+                }
+                return text;
+            }
+            return line.Length > 32 ? line.Substring(0, 32) + "..." : line;
+        }
+
+        private List<string> BuildEvents(bool autoInstalled, string heartbeat, string lastEventAge, string nextPass)
+        {
+            List<string> events = new List<string>();
+            if (!String.IsNullOrWhiteSpace(activeUiEventLine))
+            {
+                events.Add(activeUiEventLine);
+            }
+            events.Add("LIVE " + heartbeat + "  event " + lastEventAge + "  next " + nextPass);
+            if (autoInstalled)
+            {
+                events.Add("WATCH motor automatico ativo; ciclos e foco protegidos");
+            }
+            List<string> lines = ReadLastLines(logPath, 10);
+            for (int i = lines.Count - 1; i >= 0; i--)
+            {
+                events.Add(FormatActivityLine(lines[i]));
+            }
+            return events;
+        }
+
+        private string BuildLastEventAgeText()
+        {
+            try
+            {
+                if (!File.Exists(logPath)) { return "no event"; }
+                TimeSpan age = DateTime.Now - File.GetLastWriteTime(logPath);
+                if (age.TotalSeconds < 0) { age = TimeSpan.Zero; }
+                return FormatCompactAge(age);
+            }
+            catch
+            {
+                return "unknown";
+            }
+        }
+
+        private string BuildNextPassText(string lastApplyLine, bool autoInstalled)
+        {
+            if (!autoInstalled) { return "paused"; }
+            int intervalMinutes = GetAutomationIntervalMinutes();
+            DateTime? lastApply = TryReadLogTimestamp(lastApplyLine);
+            if (!lastApply.HasValue) { return "waiting"; }
+            TimeSpan remaining = lastApply.Value.AddMinutes(intervalMinutes) - DateTime.Now;
+            if (remaining.TotalSeconds <= 0) { return "due now"; }
+            return FormatCompactCountdown(remaining);
+        }
+
+        private int GetAutomationIntervalMinutes()
+        {
+            const int fallbackIntervalMinutes = 5;
+            try
+            {
+                if (!File.Exists(configPath)) { return fallbackIntervalMinutes; }
+                IDictionary<string, object> root = JsonCompat.DeserializeObject(File.ReadAllText(configPath, Encoding.UTF8));
+                object automationObject;
+                if (root == null || !root.TryGetValue("Automation", out automationObject)) { return fallbackIntervalMinutes; }
+                IDictionary<string, object> automation = automationObject as IDictionary<string, object>;
+                int interval = GetInt(automation, "IntervalMinutes");
+                return interval >= 1 ? interval : fallbackIntervalMinutes;
+            }
+            catch
+            {
+                return fallbackIntervalMinutes;
+            }
+        }
+
+        private static DateTime? TryReadLogTimestamp(string line)
+        {
+            if (String.IsNullOrWhiteSpace(line) || line.Length < 19) { return null; }
+            DateTime parsed;
+            if (DateTime.TryParseExact(line.Substring(0, 19), "yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out parsed))
+            {
+                return parsed;
+            }
+            return null;
+        }
+
+        private static string FormatCompactCountdown(TimeSpan span)
+        {
+            if (span.TotalHours >= 1)
+            {
+                return ((int)span.TotalHours).ToString(CultureInfo.CurrentCulture) + "h " + span.Minutes.ToString("00", CultureInfo.CurrentCulture) + "m";
+            }
+            return span.Minutes.ToString("00", CultureInfo.CurrentCulture) + ":" + span.Seconds.ToString("00", CultureInfo.CurrentCulture);
+        }
+
+        private static string FormatCompactAge(TimeSpan age)
+        {
+            if (age.TotalSeconds < 2) { return "now"; }
+            if (age.TotalMinutes < 1) { return ((int)age.TotalSeconds).ToString(CultureInfo.CurrentCulture) + "s ago"; }
+            if (age.TotalHours < 1) { return ((int)age.TotalMinutes).ToString(CultureInfo.CurrentCulture) + "m ago"; }
+            return ((int)age.TotalHours).ToString(CultureInfo.CurrentCulture) + "h ago";
+        }
+
+        private List<WebManagerRow> LoadManagerRows()
+        {
+            List<WebManagerRow> rows = new List<WebManagerRow>();
+            try
+            {
+                if (!File.Exists(scorePath)) { return rows; }
+                string json = File.ReadAllText(scorePath, Encoding.UTF8);
+                if (String.IsNullOrWhiteSpace(json)) { return rows; }
+                IDictionary<string, object> root = JsonCompat.DeserializeObject(json);
+                if (root == null) { return rows; }
+                object items;
+                if (!root.TryGetValue("Items", out items) || items == null) { return rows; }
+                System.Collections.IEnumerable enumerable = items as System.Collections.IEnumerable;
+                if (enumerable == null || items is string) { return rows; }
+                foreach (object item in enumerable)
+                {
+                    IDictionary<string, object> map = item as IDictionary<string, object>;
+                    if (map == null) { continue; }
+                    WebManagerRow row = new WebManagerRow();
+                    row.Name = BuildProcessLabel(map);
+                    row.Score = FormatDecimal(GetDouble(map, "Score"));
+                    row.Delta = FormatDecimal(GetDouble(map, "DeltaMB")) + " MB";
+                    row.Cpu = FormatDecimal(GetDouble(map, "CpuPercent"));
+                    row.Bursts = GetInt(map, "BurstCount").ToString(CultureInfo.CurrentCulture);
+                    row.Action = BuildActionSummary(map);
+                    row.RawScore = GetDouble(map, "Score");
+                    rows.Add(row);
+                }
+                rows.Sort(delegate(WebManagerRow left, WebManagerRow right) { return right.RawScore.CompareTo(left.RawScore); });
+                if (rows.Count > 12)
+                {
+                    rows.RemoveRange(12, rows.Count - 12);
+                }
+            }
+            catch
+            {
+            }
+            return rows;
+        }
+
+        private string BuildProcessLabel(IDictionary<string, object> map)
+        {
+            string name = GetString(map, "ProcessName");
+            if (String.IsNullOrWhiteSpace(name)) { name = "Unknown"; }
+            int id = GetInt(map, "Id");
+            return id > 0 ? name + " (" + id.ToString(CultureInfo.CurrentCulture) + ")" : name;
+        }
+
+        private string BuildActionSummary(IDictionary<string, object> map)
+        {
+            string tier = BlankToDash(GetString(map, "NapTier"));
+            string priority = BlankToDash(GetString(map, "Priority"));
+            string memory = BlankToDash(GetString(map, "MemoryPriority"));
+            string io = BlankToDash(GetString(map, "IoPriority"));
+            string trim = BlankToDash(GetString(map, "TrimWorkingSet"));
+            string power = BlankToDash(GetString(map, "PowerThrottling"));
+            return "Tier " + tier + " / P " + priority + " / M " + memory + " / IO " + io + " / T " + trim + " / Eco " + power;
+        }
+
+        private List<string> ReadLastLines(string path, int maxLines)
+        {
+            List<string> result = new List<string>();
+            try
+            {
+                if (!File.Exists(path)) { return result; }
+                string[] lines = File.ReadAllLines(path, Encoding.UTF8);
+                int start = Math.Max(0, lines.Length - maxLines);
+                for (int i = start; i < lines.Length; i++)
+                {
+                    if (!String.IsNullOrWhiteSpace(lines[i])) { result.Add(lines[i]); }
+                }
+            }
+            catch
+            {
+            }
+            return result;
+        }
+
+        private string FormatActivityLine(string line)
+        {
+            string action = ExtractLogValue(line, "action");
+            string time = FormatActivityTime(line);
+            if (String.Equals(action, "apply", StringComparison.OrdinalIgnoreCase))
+            {
+                string targets = ExtractLogValue(line, "targets");
+                string delta = ExtractLogValue(line, "deltaMB");
+                string light = ExtractLogValue(line, "light");
+                string balanced = ExtractLogValue(line, "balanced");
+                string deep = ExtractLogValue(line, "deep");
+                string trimmed = ExtractLogValue(line, "trimmed");
+                string cooldown = ExtractLogValue(line, "cooldown");
+                string top = ExtractLogValue(line, "top");
+                string text = time + "  APPLY";
+                if (!String.IsNullOrWhiteSpace(targets)) { text += "  " + targets + " apps"; }
+                if (!String.IsNullOrWhiteSpace(delta)) { text += "  " + delta + " MB"; }
+                if (!String.IsNullOrWhiteSpace(light) || !String.IsNullOrWhiteSpace(balanced) || !String.IsNullOrWhiteSpace(deep)) { text += "  L/B/D " + BlankToZero(light) + "/" + BlankToZero(balanced) + "/" + BlankToZero(deep); }
+                if (!String.IsNullOrWhiteSpace(trimmed)) { text += "  T " + trimmed; }
+                if (!String.IsNullOrWhiteSpace(cooldown) && cooldown != "0") { text += "  C " + cooldown; }
+                if (!String.IsNullOrWhiteSpace(top)) { text += "  top " + top; }
+                return text;
+            }
+            if (String.Equals(action, "foreground-restore", StringComparison.OrdinalIgnoreCase))
+            {
+                string process = ExtractLogValue(line, "process");
+                string pid = ExtractLogValue(line, "pid");
+                string text = time + "  WAKE";
+                if (!String.IsNullOrWhiteSpace(process)) { text += "  " + process; }
+                if (!String.IsNullOrWhiteSpace(pid)) { text += " #" + pid; }
+                return text;
+            }
+            return line.Length > 120 ? line.Substring(0, 120) + "..." : line;
+        }
+
+        private string FormatActivityTime(string line)
+        {
+            if (String.IsNullOrWhiteSpace(line)) { return "--:--:--"; }
+            int end = line.IndexOf(' ');
+            string raw = end > 0 ? line.Substring(0, end) : line;
+            DateTime parsed;
+            if (DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out parsed))
+            {
+                return parsed.ToString("HH:mm:ss", CultureInfo.CurrentCulture);
+            }
+            return raw.Length > 8 ? raw.Substring(raw.Length - 8) : raw;
+        }
+
+        private string ExtractLogValue(string line, string key)
+        {
+            string marker = key + "=";
+            int start = line.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+            if (start < 0) { return ""; }
+            start += marker.Length;
+            int end = line.IndexOf(' ', start);
+            if (end < 0) { end = line.Length; }
+            return line.Substring(start, end - start).Trim();
+        }
+
+        private string CleanEventText(string text)
+        {
+            if (String.IsNullOrWhiteSpace(text)) { return "action"; }
+            text = text.Replace(Environment.NewLine, " ").Replace("\r", " ").Replace("\n", " ").Trim();
+            while (text.EndsWith(".", StringComparison.Ordinal)) { text = text.TrimEnd('.'); }
+            return text.Length > 120 ? text.Substring(0, 120) + "..." : text;
+        }
+
+        private string ShortError(string output)
+        {
+            if (String.IsNullOrWhiteSpace(output)) { return "No details were returned."; }
+            output = output.Trim();
+            return output.Length > 650 ? output.Substring(0, 650) + Environment.NewLine + "..." : output;
+        }
+
+        private string GetLogoDataUri()
+        {
+            try
+            {
+                if (File.Exists(logoPath))
+                {
+                    string ext = Path.GetExtension(logoPath);
+                    string mime = String.Equals(ext, ".ico", StringComparison.OrdinalIgnoreCase) ? "image/x-icon" : "image/png";
+                    return "data:" + mime + ";base64," + Convert.ToBase64String(File.ReadAllBytes(logoPath));
+                }
+            }
+            catch
+            {
+            }
+            return "";
+        }
+
+        private static string GetString(IDictionary<string, object> map, string key)
+        {
+            object value;
+            if (map == null || !map.TryGetValue(key, out value) || value == null) { return ""; }
+            return Convert.ToString(value, CultureInfo.InvariantCulture);
+        }
+
+        private static int GetInt(IDictionary<string, object> map, string key)
+        {
+            object value;
+            if (map == null || !map.TryGetValue(key, out value) || value == null) { return 0; }
+            try { return Convert.ToInt32(value, CultureInfo.InvariantCulture); }
+            catch
+            {
+                int parsed;
+                return Int32.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), NumberStyles.Integer, CultureInfo.InvariantCulture, out parsed) ? parsed : 0;
+            }
+        }
+
+        private static double GetDouble(IDictionary<string, object> map, string key)
+        {
+            object value;
+            if (map == null || !map.TryGetValue(key, out value) || value == null) { return 0; }
+            try { return Convert.ToDouble(value, CultureInfo.InvariantCulture); }
+            catch
+            {
+                double parsed;
+                return Double.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), NumberStyles.Float, CultureInfo.InvariantCulture, out parsed) ? parsed : 0;
+            }
+        }
+
+        private static string BlankToDash(string value)
+        {
+            return String.IsNullOrWhiteSpace(value) ? "-" : value;
+        }
+
+        private static string BlankToZero(string value)
+        {
+            return String.IsNullOrWhiteSpace(value) ? "0" : value;
+        }
+
+        private static string FormatDecimal(double value)
+        {
+            if (Double.IsNaN(value) || Double.IsInfinity(value)) { return "0.0"; }
+            return value.ToString("0.0", CultureInfo.CurrentCulture);
+        }
+
+        private string LoadDashboardHtml()
+        {
+            try
+            {
+                using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(ResourcePrefix + "dashboard_html"))
+                {
+                    if (stream == null) { return ""; }
+                    using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
+                    {
+                        return reader.ReadToEnd();
+                    }
+                }
+            }
+            catch
+            {
+                return "";
+            }
+        }
+
+        private string BuildHtml()
+        {
+            string dashboardHtml = LoadDashboardHtml();
+            if (!String.IsNullOrWhiteSpace(dashboardHtml))
+            {
+                return dashboardHtml;
+            }
+
+            return @"<!doctype html>
+<html>
+<head>
+<meta charset='utf-8'>
+<meta http-equiv='Content-Security-Policy' content=""default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline';"">
+<style>
+:root{color-scheme:dark;--bg:#05090f;--rail:#08101c;--panel:#0d1726;--panel2:#101d30;--line:#263851;--text:#f3f7fb;--soft:#93a5bd;--muted:#607086;--amber:#ffa12b;--green:#28d082;--blue:#4091ff;--red:#eb464e}
+*{box-sizing:border-box} body{margin:0;background:#05090f;color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden} button{font:inherit}
+.shell{height:100vh;min-height:0;border:1px solid var(--amber);display:grid;grid-template-rows:minmax(0,1fr);background:linear-gradient(135deg,#05090f,#07101d 55%,#080b12)}
+.chrome{display:none}.brand{display:flex;align-items:center;gap:10px;padding-left:20px}.brand img{width:31px;height:31px;object-fit:contain}.brand b{font-size:14px}.brand span{display:block;font-size:10px;color:#6c7e96;font-weight:700;margin-top:1px}.win{display:flex;align-items:center;gap:6px;padding-right:15px}.win button{width:34px;height:28px;border:1px solid transparent;background:#04080e;color:#9fb0c8;border-radius:5px;cursor:pointer}.win button:hover{border-color:#31445f;background:#101b2a;color:#fff}
+.body{display:grid;grid-template-columns:86px 1fr;min-height:0}.rail{background:var(--rail);padding-top:18px;display:flex;flex-direction:column;align-items:center;gap:12px;min-height:0}.nav{width:52px;height:48px;border-radius:8px;border:1px solid #17283f;background:#0a1422;color:#9eb0c8;display:grid;place-items:center;cursor:pointer}.nav.active{border-color:#6a4b1b;background:#211b13;color:var(--amber)}.nav:hover{border-color:#3b5679;color:#fff}.nav svg{width:21px;height:21px}.ver{margin-top:auto;margin-bottom:20px;color:#64768e;font-size:10px;font-weight:700}
+.main{padding:12px 22px 8px 22px;display:grid;grid-template-rows:54px 220px 88px minmax(0,1fr);gap:0;min-height:0}.top{display:grid;grid-template-columns:1fr auto;align-items:center}.title h1{margin:0;font-size:24px}.title p{margin:4px 0 0;color:var(--soft);font-size:13px}.pills{display:flex;align-items:center;gap:10px}.pill{border:1px solid #263a55;background:#101c2e;color:#aebdd0;border-radius:999px;padding:7px 11px;font-size:12px;font-weight:700}.pill.good{border-color:#1d674b;background:#113928;color:var(--green)}.pill.warn{border-color:#714323;background:#2c1d12;color:var(--amber)}
+.hero{position:relative;overflow:hidden;display:grid;grid-template-columns:1fr 420px;gap:18px;border-radius:8px;border:1px solid #253852;background:linear-gradient(135deg,#0d1726,#08111e 58%,#0b0e14);padding:18px 24px}.hero:before{content:'';position:absolute;inset:0;background:linear-gradient(115deg,rgba(255,161,43,.13),transparent 38%),linear-gradient(290deg,rgba(64,145,255,.14),transparent 45%);pointer-events:none}.hero>*{position:relative}.hero h2{margin:0;font-size:31px;line-height:1.06}.hero p{margin:8px 0 16px;color:var(--soft);font-size:14px}.chips{display:flex;gap:8px}.chip{border-radius:6px;background:#1c2a40;color:#dbe6f5;font-weight:800;font-size:11px;padding:7px 11px}.chip:nth-child(2){color:var(--amber)}.chip:nth-child(3){color:var(--green)}.chip:nth-child(4){color:#b28cff}
+.control{border:1px solid #324864;background:linear-gradient(160deg,rgba(12,21,35,.96),rgba(8,16,28,.94));border-radius:8px;padding:16px;box-shadow:0 18px 38px rgba(0,0,0,.26);display:grid;grid-template-rows:auto auto 1fr auto;gap:10px}.engineHead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}.control h3{font-size:22px;margin:0}.state{display:inline-flex;border-radius:999px;background:#123a2a;color:var(--green);font-weight:900;font-size:11px;padding:6px 10px;white-space:nowrap}.detail{color:var(--soft);font-size:12px;line-height:1.35;overflow:hidden}.engineStats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.engineStats div{border:1px solid #233650;background:#0b1728;border-radius:7px;padding:8px 9px;min-width:0}.engineStats small{display:block;color:#71839c;font-size:10px;font-weight:800;text-transform:uppercase}.engineStats b{display:block;margin-top:3px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bar{height:5px;border:1px solid #4a5e78;background:#17263a;overflow:hidden}.bar i{display:block;width:0;height:100%;background:var(--amber)}.busy .bar i{width:100%;animation:run 1.2s linear infinite;background:linear-gradient(90deg,var(--amber),var(--green),var(--blue))}@keyframes run{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.actions{display:grid;grid-template-columns:1.2fr 1fr .72fr;gap:8px}.btn{height:38px;border-radius:6px;border:1px solid #31445f;background:#142238;color:#f4f7fb;font-weight:800;cursor:pointer}.btn.primary{background:var(--amber);border-color:var(--amber);color:#151515}.btn.danger{background:var(--red);border-color:var(--red);color:#fff}.btn:hover{filter:brightness(1.08)}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:12px}.card{border:1px solid #263851;border-radius:8px;background:linear-gradient(135deg,#101d30,#0b1422);padding:9px 16px;position:relative;overflow:hidden}.card:before{content:'';position:absolute;left:0;top:0;width:100%;height:3px;background:var(--blue)}.card:nth-child(2):before{background:var(--green)}.card:nth-child(3):before{background:var(--amber)}.card:nth-child(4):before{background:var(--blue)}.card small{display:block;color:var(--soft);font-size:12px}.card b{display:block;margin-top:6px;font-size:19px}
+.live{display:grid;grid-template-columns:2.2fr 1fr;gap:14px;margin-top:12px;min-height:0}.panel{border:1px solid #263851;border-radius:8px;background:linear-gradient(135deg,#0f1b2c,#0a1320);padding:14px;min-height:0;overflow:hidden}.panel h3{margin:0 0 10px;font-size:18px}.table{height:calc(100% - 36px);display:grid;grid-template-rows:28px minmax(0,1fr);overflow:hidden;border:1px solid #1c3049;border-radius:7px}.thead,.row{display:grid;grid-template-columns:2fr .58fr .8fr .58fr .58fr 3.15fr;align-items:center}.thead{height:28px;background:#142238;color:#9db0c9;font-size:11px;font-weight:800}.row{min-height:30px;border-top:1px solid #1b2b42;font-size:11px;color:#dbe5f2}.row:nth-child(odd){background:#0b1524}.row span{padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#rows{min-height:0;overflow:auto;scrollbar-color:#2b405e #09111e;scrollbar-width:thin}.actionsCell{display:flex;align-items:center;gap:3px;padding:0 7px!important;overflow:hidden}.badge{display:inline-flex;align-items:center;height:20px;border-radius:5px;border:1px solid #2b405e;background:#111f33;color:#cfe0f5;padding:0 5px;font-size:9px;font-weight:900;flex:0 0 auto}.badge.ok{border-color:#166447;background:#0e3327;color:var(--green)}.badge.cool{border-color:#655023;background:#2a2113;color:var(--amber)}.badge.skip{border-color:#40536d;color:#8fa1ba}.badge.deep{border-color:#8d5a18;background:#2b1d10;color:var(--amber)}.badge.balanced{border-color:#1a5d86;background:#0d263b;color:#58b9ff}.badge.light{border-color:#355178;background:#111f33;color:#b8c8dc}.goodtxt{color:var(--green);font-weight:800}.amber{color:var(--amber)}.status{display:none}
+.feedbox{height:calc(100% - 36px);border:1px solid #1c3049;border-radius:7px;background:#09111e;padding:10px;overflow:auto;font-family:Consolas,monospace;font-size:11px;line-height:1.38;white-space:pre;color:#e5edf7;scrollbar-color:#2b405e #09111e;scrollbar-width:thin}.footer{display:none}
+</style>
+</head>
+<body>
+<div class='shell'>
+  <div class='chrome' onmousedown=""send('drag')"">
+    <div class='brand'><img id='logo'><div><b>SMART NAP</b><span>BACKGROUND CONTROL</span></div></div>
+    <div class='win'><button onclick=""send('minimize');event.stopPropagation()"">_</button><button onclick=""send('close');event.stopPropagation()"">X</button></div>
+  </div>
+  <div class='body'>
+    <aside class='rail'>
+      <button class='nav active' title='Dashboard'><svg viewBox='0 0 24 24'><path fill='currentColor' d='M3 11.5 12 4l9 7.5v8.5h-6v-5H9v5H3z'/></svg></button>
+      <button class='nav' title='Nap Score' onclick=""send('score')""><svg viewBox='0 0 24 24'><path fill='currentColor' d='M4 19h16v2H4zM6 10h3v7H6zm5-5h3v12h-3zm5 8h3v4h-3z'/></svg></button>
+      <button class='nav' title='Activity Log' onclick=""send('log')""><svg viewBox='0 0 24 24'><path fill='currentColor' d='M5 4h14v16H5zm3 4v2h8V8zm0 4v2h8v-2zm0 4v2h5v-2z'/></svg></button>
+      <button class='nav' title='Local Files' onclick=""send('folder')""><svg viewBox='0 0 24 24'><path fill='currentColor' d='M3 6h7l2 2h9v10H3z'/></svg></button>
+      <button class='nav' title='GitHub' onclick=""send('github')""><svg viewBox='0 0 24 24'><path fill='currentColor' d='M12 2a10 10 0 0 0-3 19c.5.1.7-.2.7-.5v-2c-3 .6-3.6-1.2-3.6-1.2-.5-1.1-1.1-1.4-1.1-1.4-.9-.6.1-.6.1-.6 1 .1 1.6 1.1 1.6 1.1.9 1.5 2.4 1.1 3 .8.1-.7.4-1.1.7-1.3-2.4-.3-4.9-1.2-4.9-5A3.9 3.9 0 0 1 6.5 7c-.1-.3-.5-1.4.1-2.8 0 0 .9-.3 3 1.1a10.3 10.3 0 0 1 5.4 0c2.1-1.4 3-1.1 3-1.1.6 1.4.2 2.5.1 2.8a3.9 3.9 0 0 1 1 2.7c0 3.9-2.5 4.8-4.9 5.1.4.3.8 1 .8 2v3c0 .3.2.6.8.5A10 10 0 0 0 12 2z'/></svg></button>
+      <div class='ver' id='version'>v0.0.0</div>
+    </aside>
+    <main class='main'>
+      <section class='top'><div class='title'><h1>Dashboard</h1><p>Smart Background Nap</p></div><div class='pills'><span class='pill' id='live'>LIVE</span><span class='pill' id='motor'>MOTOR</span><span class='pill' id='startup'>STARTUP</span></div></section>
+      <section class='hero'>
+        <div><h2>Background apps under control</h2><p>Open apps stay quiet while your active window keeps priority.</p><div class='chips'><span class='chip'>CPU</span><span class='chip'>RAM</span><span class='chip'>EcoQoS</span><span class='chip'>Wake restore</span></div></div>
+        <div class='control' id='control'><div class='engineHead'><h3 id='actionTitle'>Nap Engine</h3><span class='state' id='state'>READY</span></div><div class='detail' id='detail'>Waiting.</div><div class='engineStats'><div><small>Pass</small><b id='enginePass'>-</b></div><div><small>Next</small><b id='engineNext'>-</b></div><div><small>Event</small><b id='engineEvent'>-</b></div><div><small>UI</small><b id='engineBeat'>-</b></div></div><div class='bar'><i></i></div><div class='actions'><button class='btn primary' id='apply' onclick=""send('apply')"">Otimizar agora</button><button class='btn' id='motorBtn' onclick=""send('toggleMotor')"">Pausar motor</button><button class='btn' onclick=""send('restore')"">Restore</button></div></div>
+      </section>
+      <section class='cards'><div class='card'><small>Auto mode</small><b id='autoCard'>-</b></div><div class='card'><small>Startup</small><b id='startupCard'>-</b></div><div class='card'><small>Last event</small><b id='lastCard'>-</b></div><div class='card'><small>Last result</small><b id='resultCard'>-</b></div></section>
+      <section class='live'><div class='panel'><h3>Live Manager</h3><div class='table'><div class='thead'><span>App</span><span>Score</span><span>Delta</span><span>CPU</span><span>Bursts</span><span>Action</span></div><div id='rows'></div></div><div class='status' id='managerStatus'>Waiting for score data.</div></div><div class='panel'><h3>Event Stream</h3><div class='feedbox' id='events'></div><div class='status'><button class='btn' onclick=""send('toggleStartup')"">Startup</button> <button class='btn' onclick=""send('safety')"">Safety</button> <button class='btn' onclick=""send('config')"">Config</button></div></div></section>
+      <footer class='footer' id='creator'></footer>
+    </main>
+  </div>
+</div>
+<script>
+function send(action){ if(window.chrome&&chrome.webview){ chrome.webview.postMessage({action:action}); } }
+function txt(id,v){ const e=document.getElementById(id); if(e)e.textContent=v; }
+function cls(id,c){ const e=document.getElementById(id); if(e)e.className=c; }
+function smartNapUpdate(s){
+ document.body.classList.toggle('busy',!!s.Busy);
+ document.getElementById('control').classList.toggle('busy',!!s.Busy);
+ if(s.Logo){ document.getElementById('logo').src=s.Logo; }
+ txt('version','v'+s.AppVersion); txt('creator',s.Creator); txt('actionTitle',s.Title); txt('detail',s.Detail); txt('state',s.RunState);
+ txt('enginePass',s.Managed+' apps'); txt('engineNext',s.NextPass); txt('engineEvent',s.LastEventAge); txt('engineBeat',s.Heartbeat);
+ txt('autoCard',s.AutoMode?'On':'Off'); txt('startupCard',s.Startup?'On':'Off'); txt('lastCard',s.LastRun); txt('resultCard',s.Result);
+ txt('motorBtn',s.AutoMode?'Pausar motor':'Retomar motor'); txt('apply',s.CanStop?'Parar':'Otimizar agora');
+ document.getElementById('apply').className=s.CanStop?'btn danger':'btn primary';
+ cls('motor',s.AutoMode?'pill good':'pill warn'); txt('motor',s.AutoMode?'MOTOR ACTIVE':'MANUAL');
+ cls('startup',s.Startup?'pill good':'pill'); txt('startup',s.Startup?'STARTUP ON':'STARTUP OFF'); cls('live','pill good'); txt('live','LIVE '+s.Heartbeat);
+ const rows=document.getElementById('rows'); rows.innerHTML='';
+ (s.Rows||[]).forEach(r=>{ const d=document.createElement('div'); d.className='row'; d.innerHTML='<span>'+esc(r.Name)+'</span><span class=""goodtxt"">'+esc(r.Score)+'</span><span class=""amber"">'+esc(r.Delta)+'</span><span>'+esc(r.Cpu)+'</span><span>'+esc(r.Bursts)+'</span><span class=""actionsCell"">'+actionBadges(r.Action)+'</span>'; rows.appendChild(d); });
+ if(!s.Rows||s.Rows.length===0){ rows.innerHTML='<div class=""row""><span>No managed entries yet.</span><span></span><span></span><span></span><span></span><span></span></div>'; }
+ txt('managerStatus',(s.Rows&&s.Rows.length)?('Tracking latest pass: '+s.Rows.length+' managed entries.'):'Run a pass to populate live entries.');
+ txt('events',(s.Events||[]).join('\n'));
+}
+function esc(v){return String(v==null?'':v).replace(/[&<>""']/g,function(m){if(m==='&')return '&amp;';if(m==='<')return '&lt;';if(m==='>')return '&gt;';if(m==='""')return '&quot;';return '&#39;';});}
+function actionBadges(v){return String(v||'').split('/').map(x=>x.trim()).filter(Boolean).map(x=>{const low=x.toLowerCase();let c='badge';if(low.indexOf('tier deep')===0)c+=' deep';else if(low.indexOf('tier balanced')===0)c+=' balanced';else if(low.indexOf('tier light')===0)c+=' light';else if(low.indexOf(' ok')>=0)c+=' ok';else if(low.indexOf('cooldown')>=0)c+=' cool';else if(low.indexOf('skip')>=0||low.indexOf('disabled')>=0)c+=' skip';let label=x.replace('SkippedBelowThreshold','Skip').replace(/^Tier /,'').replace(/^Eco /,'E ');return '<b class=""'+c+'"">'+esc(label)+'</b>';}).join('');}
+if(window.chrome&&chrome.webview){ chrome.webview.addEventListener('message',e=>smartNapUpdate(e.data)); }
+window.addEventListener('DOMContentLoaded',()=>send('ready'));
+</script>
+</body>
+</html>";
+        }
+
+        private sealed class WebDashboardState
+        {
+            public string AppVersion { get; set; }
+            public string Creator { get; set; }
+            public string Language { get; set; }
+            public bool FirstRun { get; set; }
+            public bool AutoMode { get; set; }
+            public bool Startup { get; set; }
+            public bool Busy { get; set; }
+            public bool CanStop { get; set; }
+            public string RunState { get; set; }
+            public string Title { get; set; }
+            public string Detail { get; set; }
+            public string LastRun { get; set; }
+            public string Result { get; set; }
+            public string Managed { get; set; }
+            public string Reclaimed { get; set; }
+            public string TopApp { get; set; }
+            public string Wake { get; set; }
+            public string Heartbeat { get; set; }
+            public string LastEventAge { get; set; }
+            public string NextPass { get; set; }
+            public string Logo { get; set; }
+            public List<WebManagerRow> Rows { get; set; }
+            public List<string> Events { get; set; }
+        }
+
+        private sealed class WebManagerRow
+        {
+            public string Name { get; set; }
+            public string Score { get; set; }
+            public string Delta { get; set; }
+            public string Cpu { get; set; }
+            public string Bursts { get; set; }
+            public string Action { get; set; }
+            public double RawScore { get; set; }
+        }
+    }
+#endif
 
     private sealed class ModernMainWindow : System.Windows.Window
+#if NET9_0_OR_GREATER
+        , IDashboardWindow
+#endif
     {
         private static readonly System.Windows.Media.SolidColorBrush ShellBrush = MakeBrush(5, 9, 15);
         private static readonly System.Windows.Media.SolidColorBrush PanelBrush = MakeBrush(11, 18, 30);
@@ -1218,10 +2746,10 @@ internal static class SmartBackgroundNap
         public ModernMainWindow()
         {
             Title = AppName;
-            Width = 1240;
+            Width = 1280;
             Height = 760;
-            MinWidth = 1080;
-            MinHeight = 680;
+            MinWidth = 1140;
+            MinHeight = 620;
             WindowStartupLocation = System.Windows.WindowStartupLocation.CenterScreen;
             WindowStyle = System.Windows.WindowStyle.None;
             ResizeMode = System.Windows.ResizeMode.CanMinimize;
@@ -1313,10 +2841,11 @@ internal static class SmartBackgroundNap
             frame.BorderBrush = AccentBrush;
             frame.BorderThickness = new System.Windows.Thickness(1);
             frame.Background = ShellBrush;
+            frame.CornerRadius = new System.Windows.CornerRadius(8);
             Content = frame;
 
             System.Windows.Controls.Grid root = new System.Windows.Controls.Grid();
-            root.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = new System.Windows.GridLength(42) });
+            root.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = new System.Windows.GridLength(54) });
             root.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = new System.Windows.GridLength(1, System.Windows.GridUnitType.Star) });
             frame.Child = root;
 
@@ -1330,7 +2859,7 @@ internal static class SmartBackgroundNap
             System.Windows.Controls.StackPanel brand = new System.Windows.Controls.StackPanel();
             brand.Orientation = System.Windows.Controls.Orientation.Horizontal;
             brand.VerticalAlignment = System.Windows.VerticalAlignment.Center;
-            brand.Margin = new System.Windows.Thickness(18, 0, 0, 0);
+            brand.Margin = new System.Windows.Thickness(20, 0, 0, 0);
             chrome.Children.Add(brand);
 
             System.Windows.Controls.Image logo = new System.Windows.Controls.Image();
@@ -1340,20 +2869,25 @@ internal static class SmartBackgroundNap
             logo.Margin = new System.Windows.Thickness(0, 0, 9, 0);
             logo.Stretch = System.Windows.Media.Stretch.Uniform;
             brand.Children.Add(logo);
-            brand.Children.Add(CreateText("SMART", 13, System.Windows.FontWeights.Bold, TextBrush));
-            System.Windows.Controls.TextBlock nap = CreateText(" NAP", 13, System.Windows.FontWeights.Bold, AccentBrush);
-            brand.Children.Add(nap);
+            System.Windows.Controls.StackPanel brandCopy = new System.Windows.Controls.StackPanel();
+            brandCopy.VerticalAlignment = System.Windows.VerticalAlignment.Center;
+            brand.Children.Add(brandCopy);
+            System.Windows.Controls.TextBlock name = CreateText("SMART NAP", 14, System.Windows.FontWeights.Bold, TextBrush);
+            brandCopy.Children.Add(name);
+            System.Windows.Controls.TextBlock edition = CreateText("BACKGROUND CONTROL", 10, System.Windows.FontWeights.SemiBold, MakeBrush(106, 122, 145));
+            edition.Margin = new System.Windows.Thickness(0, 1, 0, 0);
+            brandCopy.Children.Add(edition);
 
             System.Windows.Controls.StackPanel windowButtons = new System.Windows.Controls.StackPanel();
             windowButtons.Orientation = System.Windows.Controls.Orientation.Horizontal;
-            windowButtons.Margin = new System.Windows.Thickness(0, 6, 14, 0);
+            windowButtons.Margin = new System.Windows.Thickness(0, 12, 16, 0);
             System.Windows.Controls.Grid.SetColumn(windowButtons, 1);
             chrome.Children.Add(windowButtons);
             windowButtons.Children.Add(CreateChromeButton("_", delegate { WindowState = System.Windows.WindowState.Minimized; }));
             windowButtons.Children.Add(CreateChromeButton("X", delegate { Close(); }));
 
             System.Windows.Controls.Grid body = new System.Windows.Controls.Grid();
-            body.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new System.Windows.GridLength(158) });
+            body.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new System.Windows.GridLength(86) });
             body.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new System.Windows.GridLength(1, System.Windows.GridUnitType.Star) });
             System.Windows.Controls.Grid.SetRow(body, 1);
             root.Children.Add(body);
@@ -1365,21 +2899,20 @@ internal static class SmartBackgroundNap
             body.Children.Add(rail);
             rail.Children.Add(CreateNavButton("\uE80F", "Dashboard", true, null));
             rail.Children.Add(CreateNavButton("\uE9D9", "Nap Score", false, delegate { OpenScore(); }));
-            rail.Children.Add(CreateNavButton("\uE8A5", "Activity Log", false, delegate { OpenLog(); }));
-            rail.Children.Add(CreateNavButton("\uE8A7", "Local Files", false, delegate { OpenFolder(); }));
+            rail.Children.Add(CreateNavButton("\uE81C", "Activity Log", false, delegate { OpenLog(); }));
+            rail.Children.Add(CreateNavButton("\uE8A5", "Local Files", false, delegate { OpenFolder(); }));
             rail.Children.Add(CreateNavButton("\uE8A1", "GitHub", false, delegate { OpenGitHub(); }));
 
             System.Windows.Controls.TextBlock version = CreateText("v" + AppVersion, 10, System.Windows.FontWeights.Bold, MakeBrush(96, 111, 132));
-            version.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
-            version.Margin = new System.Windows.Thickness(0, 210, 0, 0);
-            version.Padding = new System.Windows.Thickness(20, 0, 0, 0);
+            version.HorizontalAlignment = System.Windows.HorizontalAlignment.Center;
+            version.Margin = new System.Windows.Thickness(0, 218, 0, 0);
             rail.Children.Add(version);
 
             System.Windows.Controls.Grid content = new System.Windows.Controls.Grid();
             content.Margin = new System.Windows.Thickness(24, 18, 24, 18);
-            content.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = new System.Windows.GridLength(46) });
-            content.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = new System.Windows.GridLength(262) });
-            content.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = new System.Windows.GridLength(104) });
+            content.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = new System.Windows.GridLength(66) });
+            content.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = new System.Windows.GridLength(236) });
+            content.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = new System.Windows.GridLength(112) });
             content.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = new System.Windows.GridLength(1, System.Windows.GridUnitType.Star) });
             content.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = new System.Windows.GridLength(28) });
             System.Windows.Controls.Grid.SetColumn(content, 1);
@@ -2378,9 +3911,7 @@ internal static class SmartBackgroundNap
                 {
                     return rows;
                 }
-                JavaScriptSerializer serializer = new JavaScriptSerializer();
-                object parsed = serializer.DeserializeObject(json);
-                IDictionary<string, object> root = parsed as IDictionary<string, object>;
+                IDictionary<string, object> root = JsonCompat.DeserializeObject(json);
                 if (root == null)
                 {
                     return rows;
@@ -2436,8 +3967,9 @@ internal static class SmartBackgroundNap
             string priority = BlankToDash(GetString(map, "Priority"));
             string memory = BlankToDash(GetString(map, "MemoryPriority"));
             string io = BlankToDash(GetString(map, "IoPriority"));
+            string trim = BlankToDash(GetString(map, "TrimWorkingSet"));
             string power = BlankToDash(GetString(map, "PowerThrottling"));
-            return "P " + priority + " / M " + memory + " / IO " + io + " / Eco " + power;
+            return "P " + priority + " / M " + memory + " / IO " + io + " / T " + trim + " / Eco " + power;
         }
 
         private string ExtractLogValue(string line, string key)
@@ -3512,9 +5044,7 @@ internal static class SmartBackgroundNap
                     return rows;
                 }
 
-                JavaScriptSerializer serializer = new JavaScriptSerializer();
-                object parsed = serializer.DeserializeObject(json);
-                IDictionary<string, object> root = parsed as IDictionary<string, object>;
+                IDictionary<string, object> root = JsonCompat.DeserializeObject(json);
                 if (root == null)
                 {
                     return rows;
@@ -3579,8 +5109,9 @@ internal static class SmartBackgroundNap
             string priority = BlankToDash(GetString(map, "Priority"));
             string memory = BlankToDash(GetString(map, "MemoryPriority"));
             string io = BlankToDash(GetString(map, "IoPriority"));
+            string trim = BlankToDash(GetString(map, "TrimWorkingSet"));
             string power = BlankToDash(GetString(map, "PowerThrottling"));
-            string text = "P " + priority + " / M " + memory + " / IO " + io + " / Eco " + power;
+            string text = "P " + priority + " / M " + memory + " / IO " + io + " / T " + trim + " / Eco " + power;
             if (GetBool(map, "ForegroundFullscreen"))
             {
                 text += " / protected";
@@ -3728,7 +5259,7 @@ internal static class SmartBackgroundNap
             ThreadPool.QueueUserWorkItem(delegate
             {
                 RunResult result = action();
-                BeginInvoke(new MethodInvoker(delegate
+                BeginInvoke(new System.Windows.Forms.MethodInvoker(delegate
                 {
                     string title = result.ExitCode == 0 ? successMessage : "Action failed";
                     string detail = result.ExitCode == 0 ? BuildResultText() : ShortError(result.Output);
@@ -3785,7 +5316,7 @@ internal static class SmartBackgroundNap
             ThreadPool.QueueUserWorkItem(delegate
             {
                 RunResult result = RunApplyNow(control);
-                BeginInvoke(new MethodInvoker(delegate
+                BeginInvoke(new System.Windows.Forms.MethodInvoker(delegate
                 {
                     bool stopped = result.ExitCode == 130;
                     string title = stopped ? "OtimizaÃ§Ã£o parada" : (result.ExitCode == 0 ? "OtimizaÃ§Ã£o concluÃ­da" : "Action failed");
@@ -3831,7 +5362,7 @@ internal static class SmartBackgroundNap
             ThreadPool.QueueUserWorkItem(delegate
             {
                 RunResult result = RunApplyNow(control);
-                BeginInvoke(new MethodInvoker(delegate
+                BeginInvoke(new System.Windows.Forms.MethodInvoker(delegate
                 {
                     bool stopped = result.ExitCode == 130;
                     string title = stopped ? "Otimizacao parada" : (result.ExitCode == 0 ? "Otimizacao concluida" : "Action failed");
@@ -4187,30 +5718,35 @@ internal static class SmartBackgroundNap
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw | ControlStyles.UserPaint, true);
         }
 
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public ProgressBarStyle Style
         {
             get { return style; }
             set { style = value; Invalidate(); }
         }
 
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public int MarqueeAnimationSpeed
         {
             get { return marqueeAnimationSpeed; }
             set { marqueeAnimationSpeed = value; Invalidate(); }
         }
 
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public int Minimum
         {
             get { return minimum; }
             set { minimum = value; Invalidate(); }
         }
 
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public int Maximum
         {
             get { return maximum; }
             set { maximum = Math.Max(value, minimum + 1); Invalidate(); }
         }
 
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public int Value
         {
             get { return value; }
@@ -4544,9 +6080,7 @@ internal static class SmartBackgroundNap
                 return rows;
             }
 
-            JavaScriptSerializer serializer = new JavaScriptSerializer();
-            object parsed = serializer.DeserializeObject(json);
-            IDictionary<string, object> root = parsed as IDictionary<string, object>;
+            IDictionary<string, object> root = JsonCompat.DeserializeObject(json);
             if (root == null)
             {
                 timestampText = FormatFileTime();
@@ -4613,8 +6147,9 @@ internal static class SmartBackgroundNap
             string priority = BlankToDash(GetString(map, "Priority"));
             string memory = BlankToDash(GetString(map, "MemoryPriority"));
             string io = BlankToDash(GetString(map, "IoPriority"));
+            string trim = BlankToDash(GetString(map, "TrimWorkingSet"));
             string power = BlankToDash(GetString(map, "PowerThrottling"));
-            string text = "P " + priority + " / Mem " + memory + " / IO " + io + " / Eco " + power;
+            string text = "P " + priority + " / Mem " + memory + " / IO " + io + " / T " + trim + " / Eco " + power;
             if (GetBool(map, "ForegroundFullscreen"))
             {
                 text += " / fullscreen protected";
@@ -4747,7 +6282,7 @@ internal static class SmartBackgroundNap
                 RunResult result = RunApplyNow();
                 try
                 {
-                    BeginInvoke(new MethodInvoker(delegate
+                    BeginInvoke(new System.Windows.Forms.MethodInvoker(delegate
                     {
                         SetBusy(false);
                         RefreshScore();
@@ -4804,6 +6339,61 @@ internal static class SmartBackgroundNap
             public string Actions;
             public string Path;
         }
+    }
+
+    private static class JsonCompat
+    {
+        public static IDictionary<string, object> DeserializeObject(string json)
+        {
+#if NET9_0_OR_GREATER
+            using (JsonDocument document = JsonDocument.Parse(json))
+            {
+                return ConvertObject(document.RootElement) as IDictionary<string, object>;
+            }
+#else
+            JavaScriptSerializer serializer = new JavaScriptSerializer();
+            return serializer.DeserializeObject(json) as IDictionary<string, object>;
+#endif
+        }
+
+#if NET9_0_OR_GREATER
+        private static object ConvertObject(JsonElement element)
+        {
+            switch (element.ValueKind)
+            {
+                case JsonValueKind.Object:
+                    Dictionary<string, object> map = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                    foreach (JsonProperty property in element.EnumerateObject())
+                    {
+                        map[property.Name] = ConvertObject(property.Value);
+                    }
+                    return map;
+                case JsonValueKind.Array:
+                    List<object> list = new List<object>();
+                    foreach (JsonElement item in element.EnumerateArray())
+                    {
+                        list.Add(ConvertObject(item));
+                    }
+                    return list;
+                case JsonValueKind.String:
+                    return element.GetString();
+                case JsonValueKind.Number:
+                    long longValue;
+                    if (element.TryGetInt64(out longValue))
+                    {
+                        return longValue;
+                    }
+                    double doubleValue;
+                    return element.TryGetDouble(out doubleValue) ? (object)doubleValue : 0.0;
+                case JsonValueKind.True:
+                    return true;
+                case JsonValueKind.False:
+                    return false;
+                default:
+                    return null;
+            }
+        }
+#endif
     }
 
     private sealed class RunControl
