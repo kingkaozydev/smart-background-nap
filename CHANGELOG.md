@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.3-test - 2026-07-12
+
+- Added Foreground Wake Restore from the tray when the active window changes.
+- Added temporary protection for newly foreground and active high-CPU apps.
+- Added fullscreen-aware thresholds for safer aggressive passes during games or fullscreen workloads.
+- Added burst history for repeated background CPU spikes.
+- Added Nap Score JSON reports and app menu access.
+- Kept the watcher lightweight: no persistent PowerShell worker is left running.
+
 ## 0.1.2 - 2026-07-12
 
 - Removed external social references from the app, docs, license, SEO copy, release material, and dashboard preview image.

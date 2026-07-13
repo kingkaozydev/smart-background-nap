@@ -10,7 +10,8 @@
     "RivaTunerStatisticsServer",
     "nvcontainer",
     "NVIDIA Overlay",
-    "NVIDIA Share"
+    "NVIDIA Share",
+    "SmartBackgroundNap"
   ],
   "BrowserNap": {
     "Enabled": true,
@@ -62,7 +63,8 @@
       "powershell",
       "pwsh",
       "WindowsTerminal",
-      "conhost"
+      "conhost",
+      "SmartBackgroundNap"
     ],
     "ProtectedPathFragments": [
       "\\steamapps\\common\\",
@@ -98,6 +100,22 @@
       "WUDFHost"
     ]
   },
+  "SmartMode": {
+    "ForegroundWakeRestore": true,
+    "ForegroundPollSeconds": 2,
+    "AutoProtectActiveApps": true,
+    "AutoProtectForegroundMinutes": 2,
+    "AutoProtectHighCpuMinutes": 8,
+    "FullscreenAware": true,
+    "FullscreenTrimMinimumWorkingSetMB": 40,
+    "FullscreenHighCpuPercentThreshold": 10,
+    "BurstWatcher": true,
+    "BurstCpuPercentThreshold": 1.5,
+    "BurstWindowMinutes": 15,
+    "BurstRepeatCount": 2,
+    "BurstTrimMinimumWorkingSetMB": 30,
+    "NapScore": true
+  },
   "Automation": {
     "TaskName": "SmartBackgroundNap",
     "IntervalMinutes": 5,
@@ -108,6 +126,6 @@
   "Tray": {
     "TaskName": "SmartBackgroundNapTray",
     "RefreshSeconds": 30,
-    "IconPath": "assets\\smart-background-nap.ico"
+    "IconPath": "assets\\smart-nap-logo.ico"
   }
 }

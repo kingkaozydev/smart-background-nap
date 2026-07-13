@@ -1,10 +1,12 @@
 param(
-    [ValidateSet("Status", "Apply", "Restore", "Watch")]
+    [ValidateSet("Status", "Apply", "Restore", "Watch", "ForegroundRestore")]
     [string]$Action = "Status",
 
     [string]$ConfigPath = (Join-Path $PSScriptRoot "game-session.config.json"),
 
     [string]$StatePath,
+
+    [int]$TargetPid,
 
     [int]$WatchMinutes = 90,
 
@@ -33,6 +35,7 @@ $nap = $config.BackgroundNap
 if (-not $nap -or -not $nap.Enabled) {
     throw "BackgroundNap is disabled or missing in config."
 }
+$smart = $config.SmartMode
 
 if (-not $LogPath) {
     $workspace = $PSScriptRoot
@@ -46,6 +49,9 @@ if (-not $LogPath) {
     }
 }
 New-Item -ItemType Directory -Path $outDir -Force | Out-Null
+$protectStatePath = Join-Path $outDir "background-nap-protect-latest.json"
+$burstStatePath = Join-Path $outDir "background-nap-burst-latest.json"
+$scorePath = Join-Path $outDir "background-nap-score-latest.json"
 
 $priorityClass = [string]$nap.PriorityClass
 $targetPriorityClass = [System.Enum]::Parse([System.Diagnostics.ProcessPriorityClass], $priorityClass, $true)
@@ -60,6 +66,40 @@ if ($cpuSampleMilliseconds -lt 250) { $cpuSampleMilliseconds = 250 }
 $skipForegroundName = [bool]$nap.SkipForegroundProcessName -and -not $IncludeForeground
 $skipWindowsPath = [bool]$nap.SkipWindowsPath
 $skipSessionZero = [bool]$nap.SkipSessionZero
+
+$smartForegroundWake = $true
+$smartAutoProtect = $true
+$smartFullscreenAware = $true
+$smartBurstWatcher = $true
+$smartNapScore = $true
+$autoProtectForegroundMinutes = 2
+$autoProtectHighCpuMinutes = 8
+$fullscreenTrimMinimumMB = 40.0
+$fullscreenHighCpuThreshold = 10.0
+$burstCpuThreshold = 1.5
+$burstWindowMinutes = 15
+$burstRepeatCount = 2
+$burstTrimMinimumMB = 30.0
+
+if ($smart) {
+    if ($smart.PSObject.Properties.Name -contains "ForegroundWakeRestore") { $smartForegroundWake = [bool]$smart.ForegroundWakeRestore }
+    if ($smart.PSObject.Properties.Name -contains "AutoProtectActiveApps") { $smartAutoProtect = [bool]$smart.AutoProtectActiveApps }
+    if ($smart.PSObject.Properties.Name -contains "AutoProtectForegroundMinutes") { $autoProtectForegroundMinutes = [int]$smart.AutoProtectForegroundMinutes }
+    if ($smart.PSObject.Properties.Name -contains "AutoProtectHighCpuMinutes") { $autoProtectHighCpuMinutes = [int]$smart.AutoProtectHighCpuMinutes }
+    if ($smart.PSObject.Properties.Name -contains "FullscreenAware") { $smartFullscreenAware = [bool]$smart.FullscreenAware }
+    if ($smart.PSObject.Properties.Name -contains "FullscreenTrimMinimumWorkingSetMB") { $fullscreenTrimMinimumMB = [double]$smart.FullscreenTrimMinimumWorkingSetMB }
+    if ($smart.PSObject.Properties.Name -contains "FullscreenHighCpuPercentThreshold") { $fullscreenHighCpuThreshold = [double]$smart.FullscreenHighCpuPercentThreshold }
+    if ($smart.PSObject.Properties.Name -contains "BurstWatcher") { $smartBurstWatcher = [bool]$smart.BurstWatcher }
+    if ($smart.PSObject.Properties.Name -contains "BurstCpuPercentThreshold") { $burstCpuThreshold = [double]$smart.BurstCpuPercentThreshold }
+    if ($smart.PSObject.Properties.Name -contains "BurstWindowMinutes") { $burstWindowMinutes = [int]$smart.BurstWindowMinutes }
+    if ($smart.PSObject.Properties.Name -contains "BurstRepeatCount") { $burstRepeatCount = [int]$smart.BurstRepeatCount }
+    if ($smart.PSObject.Properties.Name -contains "BurstTrimMinimumWorkingSetMB") { $burstTrimMinimumMB = [double]$smart.BurstTrimMinimumWorkingSetMB }
+    if ($smart.PSObject.Properties.Name -contains "NapScore") { $smartNapScore = [bool]$smart.NapScore }
+}
+if ($autoProtectForegroundMinutes -lt 1) { $autoProtectForegroundMinutes = 1 }
+if ($autoProtectHighCpuMinutes -lt 1) { $autoProtectHighCpuMinutes = 1 }
+if ($burstWindowMinutes -lt 1) { $burstWindowMinutes = 1 }
+if ($burstRepeatCount -lt 1) { $burstRepeatCount = 1 }
 
 $protectedNames = New-Object "System.Collections.Generic.HashSet[string]" ([System.StringComparer]::OrdinalIgnoreCase)
 @($config.ProtectedProcessNames + $nap.ProtectedProcessNames) | Where-Object { $_ } | ForEach-Object { [void]$protectedNames.Add([string]$_) }
@@ -121,6 +161,7 @@ public static class BackgroundNapNative {
     private const UInt32 PROCESS_POWER_THROTTLING_CURRENT_VERSION = 1;
     private const UInt32 PROCESS_POWER_THROTTLING_EXECUTION_SPEED = 0x1;
     private const UInt32 PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION = 0x4;
+    private const UInt32 MONITOR_DEFAULTTONEAREST = 0x2;
 
     [StructLayout(LayoutKind.Sequential)]
     private struct MEMORY_PRIORITY_INFORMATION {
@@ -132,6 +173,22 @@ public static class BackgroundNapNative {
         public UInt32 Version;
         public UInt32 ControlMask;
         public UInt32 StateMask;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT {
+        public Int32 Left;
+        public Int32 Top;
+        public Int32 Right;
+        public Int32 Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MONITORINFO {
+        public UInt32 cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public UInt32 dwFlags;
     }
 
     [DllImport("kernel32.dll", SetLastError = true)]
@@ -158,6 +215,15 @@ public static class BackgroundNapNative {
     [DllImport("user32.dll")]
     private static extern UInt32 GetWindowThreadProcessId(IntPtr hWnd, out UInt32 lpdwProcessId);
 
+    [DllImport("user32.dll")]
+    private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromWindow(IntPtr hwnd, UInt32 dwFlags);
+
+    [DllImport("user32.dll")]
+    private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
     public static Int32 GetForegroundPid() {
         UInt32 pid;
         IntPtr hwnd = GetForegroundWindow();
@@ -166,6 +232,35 @@ public static class BackgroundNapNative {
         }
         GetWindowThreadProcessId(hwnd, out pid);
         return (Int32)pid;
+    }
+
+    public static bool IsForegroundFullscreen() {
+        IntPtr hwnd = GetForegroundWindow();
+        if (hwnd == IntPtr.Zero) {
+            return false;
+        }
+
+        RECT window;
+        if (!GetWindowRect(hwnd, out window)) {
+            return false;
+        }
+
+        IntPtr monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+        if (monitor == IntPtr.Zero) {
+            return false;
+        }
+
+        MONITORINFO info = new MONITORINFO();
+        info.cbSize = (UInt32)Marshal.SizeOf(typeof(MONITORINFO));
+        if (!GetMonitorInfo(monitor, ref info)) {
+            return false;
+        }
+
+        Int32 tolerance = 2;
+        return window.Left <= info.rcMonitor.Left + tolerance &&
+               window.Top <= info.rcMonitor.Top + tolerance &&
+               window.Right >= info.rcMonitor.Right - tolerance &&
+               window.Bottom >= info.rcMonitor.Bottom - tolerance;
     }
 
     public static Int32 SetMemoryPriority(Int32 pid, UInt32 memoryPriority) {
@@ -286,7 +381,8 @@ function Convert-Win32Result {
 function Convert-NtStatusResult {
     param([int]$Code)
     if ($Code -eq 0) { return "OK" }
-    return ("NtStatus=0x{0:X8}" -f ([uint32]$Code))
+    $unsigned = [BitConverter]::ToUInt32([BitConverter]::GetBytes([int]$Code), 0)
+    return ("NtStatus=0x{0:X8}" -f $unsigned)
 }
 
 function Get-ForegroundInfo {
@@ -299,6 +395,8 @@ function Get-ForegroundInfo {
     [pscustomobject]@{
         Id = $foregroundPid
         ProcessName = if ($proc) { $proc.ProcessName } else { $null }
+        IsFullscreen = if ($smartFullscreenAware) { [BackgroundNapNative]::IsForegroundFullscreen() } else { $false }
+        Path = if ($proc) { Get-ProcessPathText -Process $proc } else { $null }
     }
 }
 
@@ -328,11 +426,197 @@ function Get-ProcessIoPriorityText {
     }
 }
 
+function Get-ProcessIdentityKey {
+    param(
+        [System.Diagnostics.Process]$Process,
+        [string]$Path
+    )
+
+    if ($Path) {
+        return ("path:" + $Path.ToLowerInvariant())
+    }
+    return ("name:" + $Process.ProcessName.ToLowerInvariant())
+}
+
+function Read-StateArray {
+    param([string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return @()
+    }
+
+    try {
+        $data = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
+        if ($data -and $data.Items) {
+            return @($data.Items)
+        }
+    } catch {
+    }
+
+    return @()
+}
+
+function Write-StateArray {
+    param(
+        [string]$Path,
+        [array]$Items
+    )
+
+    $state = [pscustomobject]@{
+        Timestamp = (Get-Date).ToString("o")
+        Items = @($Items)
+    }
+    $state | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $Path -Encoding UTF8
+}
+
+function Read-TemporaryProtectMap {
+    $map = @{}
+    $now = Get-Date
+    foreach ($item in @(Read-StateArray -Path $protectStatePath)) {
+        if (-not $item.Key -or -not $item.ExpiresAt) { continue }
+        try {
+            $expires = [DateTime]::Parse([string]$item.ExpiresAt, $null, [Globalization.DateTimeStyles]::RoundtripKind)
+            if ($expires -gt $now) {
+                $map[[string]$item.Key] = [pscustomobject]@{
+                    Key = [string]$item.Key
+                    ProcessName = [string]$item.ProcessName
+                    Path = [string]$item.Path
+                    Reason = [string]$item.Reason
+                    ExpiresAt = $expires.ToString("o")
+                }
+            }
+        } catch {
+        }
+    }
+    return $map
+}
+
+function Save-TemporaryProtectMap {
+    param([hashtable]$Map)
+    Write-StateArray -Path $protectStatePath -Items @($Map.Values)
+}
+
+function Add-TemporaryProtection {
+    param(
+        [hashtable]$Map,
+        [System.Diagnostics.Process]$Process,
+        [string]$Path,
+        [string]$Reason,
+        [int]$Minutes
+    )
+
+    if (-not $smartAutoProtect -or -not $Process) { return }
+    $key = Get-ProcessIdentityKey -Process $Process -Path $Path
+    $expires = (Get-Date).AddMinutes($Minutes)
+    $existing = $Map[$key]
+    if ($existing -and $existing.ExpiresAt) {
+        try {
+            $existingExpires = [DateTime]::Parse([string]$existing.ExpiresAt, $null, [Globalization.DateTimeStyles]::RoundtripKind)
+            if ($existingExpires -gt $expires) {
+                $expires = $existingExpires
+            }
+        } catch {
+        }
+    }
+
+    $Map[$key] = [pscustomobject]@{
+        Key = $key
+        ProcessName = $Process.ProcessName
+        Path = $Path
+        Reason = $Reason
+        ExpiresAt = $expires.ToString("o")
+    }
+}
+
+function Test-TemporaryProtected {
+    param(
+        [hashtable]$Map,
+        [System.Diagnostics.Process]$Process,
+        [string]$Path
+    )
+
+    if (-not $smartAutoProtect -or -not $Process) { return $false }
+    $key = Get-ProcessIdentityKey -Process $Process -Path $Path
+    return $Map.ContainsKey($key)
+}
+
+function Read-BurstMap {
+    $map = @{}
+    $cutoff = (Get-Date).AddMinutes(-1 * $burstWindowMinutes)
+    foreach ($item in @(Read-StateArray -Path $burstStatePath)) {
+        if (-not $item.Key -or -not $item.SeenAt) { continue }
+        try {
+            $seen = [DateTime]::Parse([string]$item.SeenAt, $null, [Globalization.DateTimeStyles]::RoundtripKind)
+            if ($seen -ge $cutoff) {
+                if (-not $map.ContainsKey([string]$item.Key)) {
+                    $map[[string]$item.Key] = New-Object System.Collections.ArrayList
+                }
+                [void]$map[[string]$item.Key].Add([pscustomobject]@{
+                    Key = [string]$item.Key
+                    ProcessName = [string]$item.ProcessName
+                    Path = [string]$item.Path
+                    CpuPercent = [double]$item.CpuPercent
+                    SeenAt = $seen.ToString("o")
+                })
+            }
+        } catch {
+        }
+    }
+    return $map
+}
+
+function Save-BurstMap {
+    param([hashtable]$Map)
+    $items = @()
+    foreach ($list in $Map.Values) {
+        $items += @($list)
+    }
+    Write-StateArray -Path $burstStatePath -Items $items
+}
+
+function Add-BurstObservation {
+    param(
+        [hashtable]$Map,
+        [System.Diagnostics.Process]$Process,
+        [string]$Path,
+        [double]$CpuPercent
+    )
+
+    if (-not $smartBurstWatcher -or -not $Process) { return }
+    if ($CpuPercent -lt $burstCpuThreshold) { return }
+    $key = Get-ProcessIdentityKey -Process $Process -Path $Path
+    if (-not $Map.ContainsKey($key)) {
+        $Map[$key] = New-Object System.Collections.ArrayList
+    }
+    [void]$Map[$key].Add([pscustomobject]@{
+        Key = $key
+        ProcessName = $Process.ProcessName
+        Path = $Path
+        CpuPercent = $CpuPercent
+        SeenAt = (Get-Date).ToString("o")
+    })
+}
+
+function Get-BurstCount {
+    param(
+        [hashtable]$Map,
+        [System.Diagnostics.Process]$Process,
+        [string]$Path
+    )
+
+    if (-not $smartBurstWatcher -or -not $Process) { return 0 }
+    $key = Get-ProcessIdentityKey -Process $Process -Path $Path
+    if (-not $Map.ContainsKey($key)) { return 0 }
+    return @($Map[$key]).Count
+}
+
 function Get-SkipReason {
     param(
         [System.Diagnostics.Process]$Process,
         [object]$Foreground,
-        [double]$CpuPercent
+        [double]$CpuPercent,
+        [hashtable]$ProtectMap,
+        [double]$CpuProtectThreshold
     )
 
     if ($Process.Id -eq $currentPid) { return "Self" }
@@ -341,10 +625,12 @@ function Get-SkipReason {
     if ($systemNames.Contains($Process.ProcessName)) { return "SystemProcess" }
     if ($protectedNames.Contains($Process.ProcessName)) { return "ProtectedTweakerOrTool" }
     if ($skipForegroundName -and $Foreground.ProcessName -and $Process.ProcessName -ieq $Foreground.ProcessName) { return "ForegroundApp" }
-    if ($skipHighCpu -and $CpuPercent -ge $highCpuThreshold) { return "ActiveCpu" }
 
     $path = Get-ProcessPathText -Process $Process
     if (-not $path) { return "NoAccessiblePath" }
+
+    if (Test-TemporaryProtected -Map $ProtectMap -Process $Process -Path $path) { return "TemporaryActiveApp" }
+    if ($skipHighCpu -and $CpuPercent -ge $CpuProtectThreshold) { return "ActiveCpu" }
 
     foreach ($fragment in $protectedPathFragments) {
         if ($path.IndexOf($fragment, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
@@ -389,11 +675,29 @@ function Get-ProcessCpuPercentMap {
 
 function Get-BackgroundProcessRows {
     $foreground = Get-ForegroundInfo
+    $effectiveHighCpuThreshold = $highCpuThreshold
+    $effectiveTrimMinimumMB = $trimMinimumMB
+    if ($smartFullscreenAware -and $foreground.IsFullscreen) {
+        $effectiveHighCpuThreshold = $fullscreenHighCpuThreshold
+        $effectiveTrimMinimumMB = $fullscreenTrimMinimumMB
+    }
+
+    $protectMap = Read-TemporaryProtectMap
+    $burstMap = Read-BurstMap
+
+    if ($smartAutoProtect -and $foreground.Id -gt 0) {
+        $fgProc = Get-Process -Id $foreground.Id -ErrorAction SilentlyContinue
+        if ($fgProc) {
+            Add-TemporaryProtection -Map $protectMap -Process $fgProc -Path $foreground.Path -Reason "ForegroundWake" -Minutes $autoProtectForegroundMinutes
+        }
+    }
+
     $cpuPercentByPid = @{}
     if ($skipHighCpu) {
         $cpuPercentByPid = Get-ProcessCpuPercentMap
     }
     $all = @(Get-Process -ErrorAction SilentlyContinue | Sort-Object ProcessName, Id)
+    $rows = @()
 
     foreach ($p in $all) {
         $cpuPercent = 0.0
@@ -401,8 +705,17 @@ function Get-BackgroundProcessRows {
             $cpuPercent = [double]$cpuPercentByPid[[int]$p.Id]
         }
         $path = Get-ProcessPathText -Process $p
-        $skip = Get-SkipReason -Process $p -Foreground $foreground -CpuPercent $cpuPercent
-        [pscustomobject]@{
+
+        if ($path -and $smartAutoProtect -and $skipHighCpu -and $cpuPercent -ge $effectiveHighCpuThreshold) {
+            Add-TemporaryProtection -Map $protectMap -Process $p -Path $path -Reason "ActiveCpu" -Minutes $autoProtectHighCpuMinutes
+        }
+        if ($path -and $smartBurstWatcher -and $p.Id -ne $foreground.Id -and $cpuPercent -ge $burstCpuThreshold -and $cpuPercent -lt $effectiveHighCpuThreshold) {
+            Add-BurstObservation -Map $burstMap -Process $p -Path $path -CpuPercent $cpuPercent
+        }
+
+        $burstCount = if ($path) { Get-BurstCount -Map $burstMap -Process $p -Path $path } else { 0 }
+        $skip = Get-SkipReason -Process $p -Foreground $foreground -CpuPercent $cpuPercent -ProtectMap $protectMap -CpuProtectThreshold $effectiveHighCpuThreshold
+        $rows += [pscustomobject]@{
             Id = $p.Id
             ProcessName = $p.ProcessName
             Candidate = -not $skip
@@ -412,10 +725,17 @@ function Get-BackgroundProcessRows {
             WorkingSetMB = [math]::Round($p.WorkingSet64 / 1MB, 1)
             CpuSeconds = if ($p.CPU -ne $null) { [math]::Round($p.CPU, 1) } else { $null }
             CpuPercent = $cpuPercent
+            BurstCount = $burstCount
+            ForegroundFullscreen = [bool]$foreground.IsFullscreen
+            EffectiveTrimMinimumMB = $effectiveTrimMinimumMB
             SessionId = $p.SessionId
             Path = $path
         }
     }
+
+    Save-TemporaryProtectMap -Map $protectMap
+    Save-BurstMap -Map $burstMap
+    return $rows
 }
 
 function New-StateSnapshot {
@@ -463,8 +783,40 @@ function Write-ApplySummaryLog {
         if ($r.WorkingSetAfterMB -ne $null) { $after += [double]$r.WorkingSetAfterMB }
     }
     $delta = $before - $after
-    $line = "{0} action=apply targets={1} beforeMB={2} afterMB={3} deltaMB={4}" -f (Get-Date).ToString("s"), $count, ([math]::Round($before, 1)), ([math]::Round($after, 1)), ([math]::Round($delta, 1))
+    $fullscreen = @($Results | Where-Object { $_.ForegroundFullscreen } | Select-Object -First 1).Count -gt 0
+    $top = @($Results | Sort-Object NapScore -Descending | Select-Object -First 1)
+    $topText = if ($top.Count -gt 0 -and $top[0].ProcessName) { " top=$($top[0].ProcessName) score=$($top[0].NapScore)" } else { "" }
+    $line = "{0} action=apply targets={1} beforeMB={2} afterMB={3} deltaMB={4} fullscreen={5}{6}" -f (Get-Date).ToString("s"), $count, ([math]::Round($before, 1)), ([math]::Round($after, 1)), ([math]::Round($delta, 1)), ([string]$fullscreen).ToLowerInvariant(), $topText
     Add-Content -LiteralPath $LogPath -Value $line -Encoding UTF8
+}
+
+function Write-NapScore {
+    param([array]$Results)
+
+    if (-not $smartNapScore) { return }
+    $items = @($Results | Sort-Object NapScore -Descending | Select-Object -First 25 | ForEach-Object {
+        [pscustomobject]@{
+            ProcessName = $_.ProcessName
+            Id = $_.Id
+            Score = $_.NapScore
+            CpuPercent = $_.CpuPercent
+            BurstCount = $_.BurstCount
+            WorkingSetBeforeMB = $_.WorkingSetBeforeMB
+            WorkingSetAfterMB = $_.WorkingSetAfterMB
+            DeltaMB = if ($_.WorkingSetBeforeMB -ne $null -and $_.WorkingSetAfterMB -ne $null) { [math]::Round(([double]$_.WorkingSetBeforeMB - [double]$_.WorkingSetAfterMB), 1) } else { $null }
+            Priority = $_.Priority
+            MemoryPriority = $_.MemoryPriority
+            IoPriority = $_.IoPriority
+            PowerThrottling = $_.PowerThrottling
+            ForegroundFullscreen = $_.ForegroundFullscreen
+            Path = $_.Path
+        }
+    })
+
+    [pscustomobject]@{
+        Timestamp = (Get-Date).ToString("o")
+        Items = $items
+    } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $scorePath -Encoding UTF8
 }
 
 function Invoke-ApplyOnce {
@@ -498,8 +850,13 @@ function Invoke-ApplyOnce {
         }
         $powerStatus = Convert-Win32Result ([BackgroundNapNative]::SetPowerThrottling([int]$p.Id, $useEcoQos, $ignoreTimerResolution, $false))
 
+        $trimThreshold = [double]$row.EffectiveTrimMinimumMB
+        if ($smartBurstWatcher -and [int]$row.BurstCount -ge $burstRepeatCount -and $burstTrimMinimumMB -lt $trimThreshold) {
+            $trimThreshold = $burstTrimMinimumMB
+        }
+
         $trimStatus = "SkippedBelowThreshold"
-        if ($trimWorkingSet -and $row.WorkingSetMB -ge $trimMinimumMB) {
+        if ($trimWorkingSet -and $row.WorkingSetMB -ge $trimThreshold) {
             $trimStatus = Convert-Win32Result ([BackgroundNapNative]::TrimWorkingSet([int]$p.Id))
         } elseif (-not $trimWorkingSet) {
             $trimStatus = "Disabled"
@@ -508,6 +865,9 @@ function Invoke-ApplyOnce {
         Start-Sleep -Milliseconds 20
         $after = Get-Process -Id $p.Id -ErrorAction SilentlyContinue
         $afterMB = if ($after) { [math]::Round($after.WorkingSet64 / 1MB, 1) } else { $null }
+        $deltaMB = if ($afterMB -ne $null) { [double]$row.WorkingSetMB - [double]$afterMB } else { 0.0 }
+        if ($deltaMB -lt 0) { $deltaMB = 0.0 }
+        $napScore = [math]::Round(($deltaMB * 0.4) + ([double]$row.CpuPercent * 15.0) + ([int]$row.BurstCount * 10.0), 1)
 
         [pscustomobject]@{
             Id = $row.Id
@@ -519,6 +879,10 @@ function Invoke-ApplyOnce {
             TrimWorkingSet = $trimStatus
             WorkingSetBeforeMB = $row.WorkingSetMB
             WorkingSetAfterMB = $afterMB
+            CpuPercent = $row.CpuPercent
+            BurstCount = $row.BurstCount
+            NapScore = $napScore
+            ForegroundFullscreen = $row.ForegroundFullscreen
             StatePath = $state
             Path = $row.Path
         }
@@ -576,6 +940,110 @@ function Invoke-Restore {
     }
 }
 
+function Invoke-ForegroundRestore {
+    if (-not $smartForegroundWake) {
+        return [pscustomobject]@{ Action = "ForegroundRestore"; Status = "Disabled" }
+    }
+
+    $targetPid = $TargetPid
+    if ($targetPid -le 0) {
+        $targetPid = [BackgroundNapNative]::GetForegroundPid()
+    }
+    if ($targetPid -le 0 -or $targetPid -eq $currentPid) {
+        return [pscustomobject]@{ Action = "ForegroundRestore"; Status = "NoForeground" }
+    }
+
+    $p = Get-Process -Id $targetPid -ErrorAction SilentlyContinue
+    if (-not $p) {
+        return [pscustomobject]@{ Action = "ForegroundRestore"; Status = "ProcessMissing"; Id = $targetPid }
+    }
+    if ($p.SessionId -ne $currentSessionId) {
+        return [pscustomobject]@{ Action = "ForegroundRestore"; Status = "OtherSession"; Id = $targetPid; ProcessName = $p.ProcessName }
+    }
+    if ($systemNames.Contains($p.ProcessName) -or $protectedNames.Contains($p.ProcessName)) {
+        return [pscustomobject]@{ Action = "ForegroundRestore"; Status = "Protected"; Id = $targetPid; ProcessName = $p.ProcessName }
+    }
+
+    $path = Get-ProcessPathText -Process $p
+    $currentPriority = Get-ProcessPriorityText -Process $p
+    $currentIo = Get-ProcessIoPriorityText -Process $p
+    $state = $null
+    $statePathToUse = $StatePath
+    if (-not $statePathToUse) {
+        $latest = Get-ChildItem -LiteralPath $outDir -Filter "background-nap-state-*.json" -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+        if ($latest) { $statePathToUse = $latest.FullName }
+    }
+    if ($statePathToUse -and (Test-Path -LiteralPath $statePathToUse)) {
+        try { $state = Get-Content -LiteralPath $statePathToUse -Raw | ConvertFrom-Json } catch { $state = $null }
+    }
+
+    $item = $null
+    if ($state -and $state.Processes) {
+        $matches = @($state.Processes | Where-Object { [int]$_.Id -eq [int]$p.Id })
+        if ($path) {
+            $pathMatches = @($matches | Where-Object { $_.Path -and ([string]$_.Path).Equals($path, [System.StringComparison]::OrdinalIgnoreCase) })
+            if ($pathMatches.Count -gt 0) { $matches = $pathMatches }
+        }
+        if ($matches.Count -gt 0) {
+            $item = $matches[0]
+        }
+    }
+
+    $looksNapped = ($currentPriority -in @("Idle", "BelowNormal")) -or ($currentIo -in @("VeryLow", "Low"))
+    if (-not $item -and -not $looksNapped) {
+        return [pscustomobject]@{ Action = "ForegroundRestore"; Status = "Noop"; Id = $p.Id; ProcessName = $p.ProcessName; Priority = $currentPriority; IoPriority = $currentIo }
+    }
+
+    $targetPriority = "Normal"
+    if ($item -and $item.PriorityClass -and ([string]$item.PriorityClass) -notin @("Idle", "BelowNormal")) {
+        $targetPriority = [string]$item.PriorityClass
+    }
+
+    $targetIo = $normalIoPriority
+    if ($item -and $item.IoPriority -and $ioPriorityMap.ContainsKey([string]$item.IoPriority)) {
+        $savedIo = [string]$item.IoPriority
+        if ($savedIo -notin @("VeryLow", "Low")) {
+            $targetIo = [int]$ioPriorityMap[$savedIo]
+        }
+    }
+
+    $priorityStatus = "OK"
+    try {
+        $restorePriority = [System.Enum]::Parse([System.Diagnostics.ProcessPriorityClass], $targetPriority, $true)
+        $p.PriorityClass = $restorePriority
+    } catch {
+        $priorityStatus = "Error: $($_.Exception.Message)"
+    }
+
+    $memoryStatus = Convert-Win32Result ([BackgroundNapNative]::SetMemoryPriority([int]$p.Id, [uint32]$normalMemoryPriority))
+    $ioStatus = if ($useIoPriority) { Convert-NtStatusResult ([BackgroundNapNative]::SetIoPriority([int]$p.Id, [uint32]$targetIo)) } else { "Disabled" }
+    $powerStatus = Convert-Win32Result ([BackgroundNapNative]::SetPowerThrottling([int]$p.Id, $useEcoQos, $ignoreTimerResolution, $true))
+
+    if ($smartAutoProtect) {
+        $protectMap = Read-TemporaryProtectMap
+        Add-TemporaryProtection -Map $protectMap -Process $p -Path $path -Reason "ForegroundWake" -Minutes $autoProtectForegroundMinutes
+        Save-TemporaryProtectMap -Map $protectMap
+    }
+
+    $line = "{0} action=foreground-restore pid={1} process={2} priority={3} io={4}" -f (Get-Date).ToString("s"), $p.Id, $p.ProcessName, $priorityStatus, $ioStatus
+    Add-Content -LiteralPath $LogPath -Value $line -Encoding UTF8
+
+    [pscustomobject]@{
+        Action = "ForegroundRestore"
+        Status = "Restored"
+        Id = $p.Id
+        ProcessName = $p.ProcessName
+        TargetPriority = $targetPriority
+        Priority = $priorityStatus
+        MemoryPriority = $memoryStatus
+        IoPriority = $ioStatus
+        PowerThrottling = $powerStatus
+        StatePath = $statePathToUse
+    }
+}
+
 switch ($Action) {
     "Status" {
         Get-BackgroundProcessRows |
@@ -585,12 +1053,16 @@ switch ($Action) {
     "Apply" {
         $results = @(Invoke-ApplyOnce -SaveState:($StateMode -ne "None"))
         Write-ApplySummaryLog -Results $results
+        Write-NapScore -Results $results
         if (-not $Quiet) {
             $results
         }
     }
     "Restore" {
         Invoke-Restore
+    }
+    "ForegroundRestore" {
+        Invoke-ForegroundRestore
     }
     "Watch" {
         if ($WatchMinutes -lt 1) { $WatchMinutes = 1 }
@@ -602,6 +1074,7 @@ switch ($Action) {
             $saveState = ($StateMode -ne "None") -and ($first -or $StateMode -eq "Latest")
             $results = @(Invoke-ApplyOnce -SaveState:$saveState)
             Write-ApplySummaryLog -Results $results
+            Write-NapScore -Results $results
             if (-not $Quiet) {
                 $results
             }

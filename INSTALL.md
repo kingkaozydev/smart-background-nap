@@ -1,4 +1,4 @@
-# Installation
+﻿# Installation
 
 ## Quick Start
 
@@ -47,7 +47,7 @@ Open the dashboard. The top status cards show automatic mode, tray startup, last
 
 ## Uninstall
 
-Open `More` -> `Disable background tasks`.
+Open `Mais` -> `Disable background tasks`.
 
 ## Restore Process State
 

@@ -20,6 +20,10 @@ For selected background apps in the current user session, Smart Background Nap m
 - low process I/O priority;
 - Windows Power Throttling / EcoQoS where supported;
 - timer-resolution isolation for throttled background apps;
+- foreground wake restore when an app becomes active again;
+- temporary protection for recently active or high-CPU apps;
+- fullscreen-aware thresholds;
+- burst scoring for repeated background spikes;
 - one working-set trim when the process is above the configured RAM threshold.
 
 These changes are Windows process settings. They are not permanent patches to the app executable, Windows, drivers, or firmware.
@@ -61,6 +65,8 @@ Smart Background Nap writes only local operational files:
 - `game-session.config.json`;
 - compact logs;
 - restore snapshots for process settings;
+- temporary active-app and burst-state JSON files;
+- Nap Score JSON reports;
 - optional safety reports generated from the app.
 
 The app does not upload these files.

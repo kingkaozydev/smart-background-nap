@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="640" viewBox="0 0 1200 640" role="img" aria-labelledby="title desc">
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="640" viewBox="0 0 1200 640" role="img" aria-labelledby="title desc">
   <title id="title">Smart Background Nap app dashboard</title>
   <desc id="desc">Illustrative dashboard for the Smart Background Nap Windows app.</desc>
   <rect width="1200" height="640" fill="#f6f8fa"/>
@@ -31,7 +31,7 @@
     <rect x="184" width="112" height="48" rx="8" fill="#ffffff" stroke="#c8d2dc"/>
     <text x="212" y="31" fill="#263341" font-family="Segoe UI, Arial, sans-serif" font-size="16">Restore</text>
     <rect x="316" width="88" height="48" rx="8" fill="#ffffff" stroke="#c8d2dc"/>
-    <text x="342" y="31" fill="#263341" font-family="Segoe UI, Arial, sans-serif" font-size="16">More</text>
+    <text x="342" y="31" fill="#263341" font-family="Segoe UI, Arial, sans-serif" font-size="16">Mais</text>
   </g>
   <g transform="translate(150 452)">
     <rect width="20" height="20" rx="4" fill="#237053"/>

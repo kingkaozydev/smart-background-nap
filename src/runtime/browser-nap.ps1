@@ -322,7 +322,8 @@ function Convert-Win32Result {
 function Convert-NtStatusResult {
     param([int]$Code)
     if ($Code -eq 0) { return "OK" }
-    return ("NtStatus=0x{0:X8}" -f ([uint32]$Code))
+    $unsigned = [BitConverter]::ToUInt32([BitConverter]::GetBytes([int]$Code), 0)
+    return ("NtStatus=0x{0:X8}" -f $unsigned)
 }
 
 function Get-StatusRows {

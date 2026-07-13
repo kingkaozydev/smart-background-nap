@@ -1,12 +1,16 @@
-# Smart Background Nap 0.1.2
+# Smart Background Nap 0.1.3-test
 
-Cleaner public identity and a stronger background-pressure pass.
+Local test build for smart wake/protect behavior.
 
 ## Highlights
 
 - Single-file release: download and run `SmartBackgroundNap.exe`.
 - Runtime scripts, config, README text, and icon assets are embedded inside the EXE.
-- External social references removed from the app and repository.
+- Foreground Wake Restore from the tray.
+- Temporary active-app protection.
+- Fullscreen-aware thresholds.
+- Burst watcher state.
+- Nap Score report.
 - New low process I/O priority pass for safe background apps.
 - I/O priority snapshot/restore support.
 - Product/version metadata and an `asInvoker` Windows manifest.
@@ -34,7 +38,7 @@ Cleaner public identity and a stronger background-pressure pass.
 SHA-256 for `SmartBackgroundNap.exe`:
 
 ```text
-E36B51973D428FEBE1E3186034A128031BD93D327C3000803E1AE91097C79830
+TEST_BUILD_LOCAL_ONLY
 ```
 
 ## Trust Notes

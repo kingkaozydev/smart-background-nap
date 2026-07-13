@@ -1,4 +1,6 @@
 outputs/
+bin/
+*.WebView2/
 *.log
 *.tmp
 *.bak

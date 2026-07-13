@@ -23,7 +23,38 @@ if (-not $csc) {
     throw "csc.exe not found. Install .NET Framework developer tools or build with Visual Studio/MSBuild."
 }
 
-$icon = Join-Path $projectRoot "assets\smart-background-nap.ico"
+function Resolve-DotNetReference {
+    param([string]$Name)
+
+    $assemblyRoot = Join-Path $env:WINDIR "Microsoft.NET\assembly"
+    $found = Get-ChildItem -LiteralPath $assemblyRoot -Recurse -Filter $Name -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+    if ($found) {
+        return $found.FullName
+    }
+
+    $frameworkRoots = @(
+        (Join-Path $env:WINDIR "Microsoft.NET\Framework64\v4.0.30319"),
+        (Join-Path $env:WINDIR "Microsoft.NET\Framework\v4.0.30319")
+    )
+    foreach ($root in $frameworkRoots) {
+        $candidate = Join-Path $root $Name
+        if (Test-Path -LiteralPath $candidate) {
+            return $candidate
+        }
+    }
+
+    return $Name
+}
+
+$wpfReferences = @(
+    (Resolve-DotNetReference "PresentationCore.dll"),
+    (Resolve-DotNetReference "PresentationFramework.dll"),
+    (Resolve-DotNetReference "WindowsBase.dll"),
+    (Resolve-DotNetReference "System.Xaml.dll")
+)
+
+$icon = Join-Path $projectRoot "assets\smart-nap-logo.ico"
 $manifest = Join-Path $projectRoot "src\app.manifest"
 $assemblyInfo = Join-Path $projectRoot "src\AssemblyInfo.cs"
 
@@ -62,13 +93,18 @@ function Build-WinFormsExe {
         "/nologo",
         "/target:winexe",
         "/optimize+",
-        "/platform:anycpu",
+        "/platform:x64",
         "/out:$Output",
         "/reference:System.dll",
         "/reference:System.Drawing.dll",
-        "/reference:System.Windows.Forms.dll"
+        "/reference:System.Web.Extensions.dll",
+        "/reference:System.Windows.Forms.dll",
+        "/reference:$(Resolve-DotNetReference "System.ComponentModel.Primitives.dll")"
     )
 
+    foreach ($ref in $wpfReferences) {
+        $args += "/reference:$ref"
+    }
     if (Test-Path -LiteralPath $icon) {
         $args += "/win32icon:$icon"
     }
@@ -111,7 +147,9 @@ $mainResources = @(
     [pscustomobject]@{ Path = (Get-RuntimeFile "game-session.config.json"); Name = "SmartBackgroundNap.Resources.game_session_config_json" },
     [pscustomobject]@{ Path = (Join-Path $projectRoot "README.md"); Name = "SmartBackgroundNap.Resources.readme_md" },
     [pscustomobject]@{ Path = (Join-Path $projectRoot "docs\SECURITY_MODEL.md"); Name = "SmartBackgroundNap.Resources.security_model_md" },
-    [pscustomobject]@{ Path = (Join-Path $projectRoot "assets\smart-background-nap.ico"); Name = "SmartBackgroundNap.Resources.icon_ico" }
+    [pscustomobject]@{ Path = (Join-Path $projectRoot "assets\smart-nap-logo.ico"); Name = "SmartBackgroundNap.Resources.icon_ico" },
+    [pscustomobject]@{ Path = (Join-Path $projectRoot "assets\smart-nap-logo-v2.png"); Name = "SmartBackgroundNap.Resources.logo_png" },
+    [pscustomobject]@{ Path = (Join-Path $projectRoot "assets\smart-nap-hero-bg.png"); Name = "SmartBackgroundNap.Resources.hero_png" }
 )
 try {
     $results += Build-WinFormsExe -Source (Join-Path $projectRoot "src\SmartBackgroundNap.cs") -Output $mainOutput -Resources $mainResources
@@ -127,7 +165,6 @@ try {
         ReusedExisting = $true
     }
 }
-
 try {
     $results += Build-WinFormsExe -Source (Join-Path $projectRoot "src\SmartBackgroundNapTray.cs") -Output (Join-Path $binDir "SmartBackgroundNapTray.exe")
 } catch {

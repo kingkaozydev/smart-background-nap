@@ -1,4 +1,4 @@
-# Smart Background Nap
+﻿# Smart Background Nap
 
 ![Smart Background Nap overview](docs/images/hero.svg)
 
@@ -51,6 +51,10 @@ Smart Background Nap gives those apps a softer background profile. Your apps sta
 - Run automatically toggle for scheduled background passes.
 - Built-in safety report with local integrity details.
 - Low I/O priority for safe background apps to reduce disk contention.
+- Foreground Wake Restore: apps wake back up when they become active again.
+- Temporary active-app protection for newly active foreground or high-CPU apps.
+- Fullscreen-aware thresholds for gaming and borderless workloads.
+- Burst watcher and Nap Score for repeated background spikes.
 - Automatic scheduled optimization every few minutes.
 - Tray icon with status, apply-now, log, folder, and README shortcuts.
 - No heavy always-running optimizer service.
@@ -128,7 +132,7 @@ The dashboard includes:
 - Start with Windows
 - Optimize now
 - Restore
-- More menu for logs, config, folder, safety report, security model, README, GitHub, and disabling background tasks
+- Mais menu for logs, config, folder, safety report, security model, README, GitHub, and disabling background tasks
 
 ## Trust, Privacy, And Windows Safety
 
@@ -144,7 +148,7 @@ Smart Background Nap is intentionally local and boring in the places that matter
 - no app killing
 - no file deletion
 
-Open `More` -> `Safety report` inside the app to generate a local report with the executable path, SHA-256 hash, runtime folder, scheduled-task status, and a summary of what the app does and does not touch.
+Open `Mais` -> `Safety report` inside the app to generate a local report with the executable path, SHA-256 hash, runtime folder, scheduled-task status, and a summary of what the app does and does not touch.
 
 The repository includes the full security model in:
 
@@ -156,7 +160,7 @@ Windows SmartScreen reputation is controlled by Microsoft and is heavily influen
 
 ## Configuration
 
-Open the app and use `More` -> `Open config`.
+Open the app and use `Mais` -> `Open config`.
 
 For the single-EXE release, the default config is embedded and copied into the internal runtime folder on first use.
 
@@ -170,6 +174,11 @@ Useful settings:
 - `BackgroundNap.HighCpuPercentThreshold`
 - `BackgroundNap.ProtectedProcessNames`
 - `BackgroundNap.ProtectedPathFragments`
+- `SmartMode.ForegroundWakeRestore`
+- `SmartMode.AutoProtectActiveApps`
+- `SmartMode.FullscreenAware`
+- `SmartMode.BurstWatcher`
+- `SmartMode.NapScore`
 - `Automation.IntervalMinutes`
 - `Tray.RefreshSeconds`
 
@@ -181,9 +190,11 @@ Smart Background Nap writes logs and restore state under:
 SmartBackgroundNap internal runtime folder
 ```
 
-Open the app and use `More` -> `Open log` to inspect the latest pass.
+Open the app and use `Mais` -> `Open log` to inspect the latest pass.
 
 Use `Restore` in the dashboard to restore the latest snapshot for currently running processes.
+
+Open `Mais` -> `Nap score` to inspect the latest ranked optimization report.
 
 ## Build The App
 

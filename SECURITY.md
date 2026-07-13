@@ -34,3 +34,5 @@ At a glance:
 - no app killing or file deletion;
 - local logs and restore snapshots only.
 - background process I/O priority can be lowered and restored like the other process-level settings.
+- foreground wake restore only restores process-level settings for apps that become active.
+- temporary active-app protection is local JSON state under the app output folder.
