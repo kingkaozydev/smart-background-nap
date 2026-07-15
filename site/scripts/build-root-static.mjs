@@ -8,7 +8,7 @@ const b64 = (path) => readFileSync(path).toString("base64");
 await rm("dist", { recursive: true, force: true });
 await mkdir("dist/server", { recursive: true });
 await mkdir("dist/_appgen_meta", { recursive: true });
-await writeFile("dist/_appgen_meta/appgarden.json", JSON.stringify({ runtime: "worker", entrypoint: "server/index.js" }, null, 2), "utf8");
+await writeFile("dist/_appgen_meta/appgarden.json", "{}\n", "utf8");
 
 const html = text("site/index.html");
 const css = text("site/src/styles.css");
