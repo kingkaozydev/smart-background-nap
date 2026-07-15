@@ -180,11 +180,11 @@ function Render-SocialPreview {
     )
     $y = 252
     foreach ($row in $labels) {
-        FillRound $g 895 $y 170 43 10 (C "0F2136")
-        StrokeRound $g 895 $y 170 43 10 (C "35577F") 1
+        FillRound $g 895 $y 190 43 10 (C "0F2136")
+        StrokeRound $g 895 $y 190 43 10 (C "35577F") 1
         Text $g $row[0] 915 ($y + 13) 70 18 12 (C "8099B8") ([System.Drawing.FontStyle]::Bold)
         $col = if ($row[2] -eq "green") { C "25E690" } elseif ($row[2] -eq "amber") { C "FFAA2A" } else { C "7EB7FF" }
-        Text $g $row[1] 970 ($y + 10) 80 22 18 $col ([System.Drawing.FontStyle]::Bold) "Far"
+        Text $g $row[1] 958 ($y + 10) 112 22 17 $col ([System.Drawing.FontStyle]::Bold) "Far"
         $y += 60
     }
     Text $g "Fictional sample telemetry for documentation." 78 552 520 24 17 (C "9FB7D8")
@@ -211,7 +211,7 @@ function Render-AboutPanel {
         @("Fast wake", "blue", 126),
         @("Behavior engine", "green", 180)
     )
-    $x = 210
+    $x = 150
     foreach ($it in $items) {
         Pill $g $x 295 ([int]$it[2]) $it[0] $it[1]
         $x += [int]$it[2] + 16
@@ -303,4 +303,5 @@ if (Test-Path $siteDir) {
 }
 
 Write-Host "Rendered documentation images."
+
 
