@@ -2,6 +2,8 @@
 
 ![Smart Background Nap social preview](docs/images/smart-nap-social-preview.png)
 
+> All documentation screenshots use fictional sample app names, fictional telemetry, and generic hardware labels.
+
 **Smart Background Nap** is a local-first Windows performance companion for people who keep a lot of apps open while gaming, streaming, coding, recording, or multitasking.
 
 It does not close your apps or pretend to be a magic FPS button. It watches the current user session, identifies safe background processes, gives them a quieter profile, and restores responsiveness when you bring an app back to the foreground.

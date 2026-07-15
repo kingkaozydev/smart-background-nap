@@ -5,12 +5,11 @@ Hardware telemetry accuracy release: corrected GPU VRAM reporting, live effectiv
 ## Highlights
 
 - Single-file release: download and run `SmartBackgroundNap.exe`.
-- Fixed GPU VRAM detection by preferring the display driver's `HardwareInformation.qwMemorySize` value when WMI reports a capped `AdapterRAM` value.
+- Fixed GPU VRAM detection by preferring driver-reported video memory when Windows exposes capped adapter-memory values.
 - Fixed CPU frequency display so the dashboard shows base clock plus live effective clock from Windows processor performance counters.
-- Removed misleading frozen `max 2.5 GHz` style output when Windows only exposes base clock data.
-- The RTX 4060 class reading now resolves from 4 GB capped WMI output to the driver-reported ~8 GB value when exposed by Windows.
+- Removed misleading frozen base-clock style output when Windows only exposes static CPU clock data.
 - Fixed the native maximize button so the launcher fills the Windows work area instead of opening in a capped half-size state.
-- GPU driver detail now shows vendor-friendly labels, including NVIDIA package versions such as 595.79 instead of raw Windows WDDM versions such as 32.0.15.9579.
+- GPU driver detail now shows vendor-friendly labels when safely inferable instead of exposing raw OS driver identifiers as the primary display value.
 - The dark native WebView2 frame, grouped Live Manager, Smart Learning, Permission Guard, PC Profile, tray telemetry, and local-only trust model remain included.
 
 ## Included
@@ -23,7 +22,7 @@ Hardware telemetry accuracy release: corrected GPU VRAM reporting, live effectiv
 SHA-256 for `SmartBackgroundNap.exe`:
 
 ```text
-2CAD2E5444EB5D8A6DA91EC8A0E3C53011F7B7544C0BAD20BE444B8623E06F3F
+DB4C2AE4C235AF40BAE81302EC7A3459EEF998249B705CAB527A4BC09CF7B8D1
 ```
 
 ## Trust Notes

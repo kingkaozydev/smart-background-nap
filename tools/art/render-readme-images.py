@@ -151,8 +151,8 @@ def draw_dashboard(base: Image.Image, x: int, y: int, w: int, h: int):
     col_action = int(table_w * 0.76)
     for px2, label in [(col_app, "App"), (col_score, "Score"), (col_delta, "Delta"), (col_cpu, "CPU"), (col_action, "Action")]:
         text(d, (table[0] + px2, header_y + 10), label, 14, "#a9bad0", True)
-    rows = [("Discord", "164.6", "403.9 MB", "0.0", "Light / OK"),
-            ("zen", "148.8", "0.0 MB", "0.7", "Balanced")]
+    rows = [("Chat App", "164.6", "403.9 MB", "0.0", "Light / OK"),
+            ("Browser Demo", "148.8", "0.0 MB", "0.7", "Balanced")]
     for i, row in enumerate(rows):
         ry = header_y + 45 + i * 38
         d.line((table[0] + 22, ry + 30, table[2] - 22, ry + 30), fill=(43, 65, 92, 150))
@@ -252,11 +252,39 @@ def make_intelligence():
     img.save(DOC_IMAGES / "smart-nap-intelligence.png", quality=94)
 
 
+def make_social_preview():
+    img = canvas((1200, 630))
+    d = ImageDraw.Draw(img)
+    draw_logo_lockup(img, 70, 62, 0.72)
+    text(d, (74, 190), "Smart Background Nap", 58, bold=True)
+    text(d, (78, 262), "Keep apps open. Quiet the background.", 30, "#c1d5ec", True)
+    text(d, (80, 315), "Local-first Windows background optimizer for gaming and multitasking.", 24, "#94abc6")
+    px = 82
+    for label, color in [("No telemetry", "#2ee184"), ("No app killing", "#ffa629"), ("Fast wake", "#7db3ff")]:
+        px += pill(d, px, 376, label, color, bg=(13, 24, 40, 230)) + 12
+
+    panel = (720, 132, 1105, 500)
+    shadow_box(img, panel, 24, (9, 19, 34, 238), (73, 106, 145, 175))
+    text(d, (panel[0] + 30, panel[1] + 36), "Nap Engine", 32, bold=True)
+    d.rounded_rectangle((panel[2] - 155, panel[1] + 34, panel[2] - 30, panel[1] + 70), radius=18, fill=(13, 72, 48, 225), outline=(46, 225, 132, 120))
+    text(d, (panel[2] - 92, panel[1] + 45), "ACTIVE", 15, "#2ee184", True, "ma")
+    draw_ring(d, panel[0] + 88, panel[1] + 175, 54, 0.72, 16)
+    text(d, (panel[0] + 88, panel[1] + 164), "24", 31, bold=True, anchor="mm")
+    text(d, (panel[0] + 88, panel[1] + 195), "sample apps", 12, "#9eb8d6", anchor="mm")
+    for i, (k, v, col) in enumerate([("WAKE", "Fast", "#7db3ff"), ("MEMORY", "Normal", "#2ee184"), ("POLICY", "Adaptive", "#ffa629")]):
+        y = panel[1] + 120 + i * 60
+        d.rounded_rectangle((panel[0] + 170, y, panel[2] - 35, y + 42), radius=12, fill=(12, 26, 45, 235), outline=(47, 73, 108, 170))
+        text(d, (panel[0] + 190, y + 9), k, 11, "#8198b5", True)
+        text(d, (panel[0] + 282, y + 8), v, 16, col, True)
+    text(d, (80, 548), "Fictional sample telemetry shown for documentation.", 18, "#8fa6c2")
+    img.save(DOC_IMAGES / "smart-nap-social-preview.png", quality=94)
+
 def main():
     DOC_IMAGES.mkdir(parents=True, exist_ok=True)
     make_showcase()
     make_engine_story()
     make_intelligence()
+    make_social_preview()
 
 
 if __name__ == "__main__":
