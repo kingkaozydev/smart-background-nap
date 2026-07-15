@@ -28,7 +28,7 @@ using Microsoft.Web.WebView2.Wpf;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.4.12";
+    private const string AppVersion = "0.4.13";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
@@ -3698,34 +3698,105 @@ internal static class SmartBackgroundNap
                 }));
             });
         }
+        private static bool IsKnownAppPolicy(string policy, bool includeAuto)
+        {
+            if (String.IsNullOrWhiteSpace(policy)) { return false; }
+            if (includeAuto && String.Equals(policy, "Auto", StringComparison.OrdinalIgnoreCase)) { return true; }
+            return String.Equals(policy, "Protect", StringComparison.OrdinalIgnoreCase) ||
+                String.Equals(policy, "Light", StringComparison.OrdinalIgnoreCase) ||
+                String.Equals(policy, "Balanced", StringComparison.OrdinalIgnoreCase) ||
+                String.Equals(policy, "Deep", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string NormalizeAppPolicyName(string policy)
+        {
+            if (String.IsNullOrWhiteSpace(policy)) { return ""; }
+            if (String.Equals(policy, "Auto", StringComparison.OrdinalIgnoreCase)) { return "Auto"; }
+            if (String.Equals(policy, "Protect", StringComparison.OrdinalIgnoreCase)) { return "Protect"; }
+            if (String.Equals(policy, "Light", StringComparison.OrdinalIgnoreCase)) { return "Light"; }
+            if (String.Equals(policy, "Balanced", StringComparison.OrdinalIgnoreCase)) { return "Balanced"; }
+            if (String.Equals(policy, "Deep", StringComparison.OrdinalIgnoreCase)) { return "Deep"; }
+            return "";
+        }
+
+        private static string NormalizeAppPolicyKey(string key)
+        {
+            return String.IsNullOrWhiteSpace(key) ? "" : key.Trim().ToLowerInvariant();
+        }
+
+        private static void AddAppPolicyKey(List<string> keys, string key)
+        {
+            key = NormalizeAppPolicyKey(key);
+            if (String.IsNullOrWhiteSpace(key)) { return; }
+            foreach (string existing in keys)
+            {
+                if (String.Equals(existing, key, StringComparison.OrdinalIgnoreCase)) { return; }
+            }
+            keys.Add(key);
+        }
+
+        private static List<string> BuildAppPolicyKeys(string key, string processName, string path)
+        {
+            List<string> keys = new List<string>();
+            AddAppPolicyKey(keys, key);
+            if (!String.IsNullOrWhiteSpace(path)) { AddAppPolicyKey(keys, "path:" + path.Trim().ToLowerInvariant()); }
+            if (!String.IsNullOrWhiteSpace(processName)) { AddAppPolicyKey(keys, "name:" + processName.Trim().ToLowerInvariant()); }
+            return keys;
+        }
+
+        private static Dictionary<string, string> LoadAppPolicyMapForUi()
+        {
+            Dictionary<string, string> policies = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                if (String.IsNullOrWhiteSpace(appPolicyPath) || !File.Exists(appPolicyPath)) { return policies; }
+                IDictionary<string, object> root = JsonCompat.DeserializeObject(File.ReadAllText(appPolicyPath, Encoding.UTF8));
+                object existingItems = null;
+                System.Collections.IEnumerable enumerable = root != null && root.TryGetValue("Items", out existingItems) ? existingItems as System.Collections.IEnumerable : null;
+                if (enumerable == null || existingItems is string) { return policies; }
+                foreach (object item in enumerable)
+                {
+                    IDictionary<string, object> map = item as IDictionary<string, object>;
+                    if (map == null) { continue; }
+                    string policy = NormalizeAppPolicyName(GetString(map, "Policy"));
+                    if (!IsKnownAppPolicy(policy, true)) { continue; }
+                    foreach (string policyKey in BuildAppPolicyKeys(GetString(map, "Key"), GetString(map, "ProcessName"), GetString(map, "Path")))
+                    {
+                        policies[policyKey] = policy;
+                    }
+                }
+            }
+            catch
+            {
+            }
+            return policies;
+        }
+
+        private static void ApplyManualPolicyOverlay(WebManagerRow row, IDictionary<string, string> manualPolicies)
+        {
+            if (row == null || manualPolicies == null || manualPolicies.Count == 0) { return; }
+            foreach (string policyKey in BuildAppPolicyKeys(row.Key, row.ProcessName, row.Path))
+            {
+                string policy;
+                if (manualPolicies.TryGetValue(policyKey, out policy) && IsKnownAppPolicy(policy, true))
+                {
+                    row.Policy = policy;
+                    row.PolicySource = String.Equals(policy, "Auto", StringComparison.OrdinalIgnoreCase) ? "" : "user";
+                    return;
+                }
+            }
+        }
         private void SetAppPolicyFromMessage(IDictionary<string, object> message)
         {
-            string policy = GetString(message, "policy");
-            if (!String.Equals(policy, "Auto", StringComparison.OrdinalIgnoreCase) &&
-                !String.Equals(policy, "Protect", StringComparison.OrdinalIgnoreCase) &&
-                !String.Equals(policy, "Light", StringComparison.OrdinalIgnoreCase) &&
-                !String.Equals(policy, "Balanced", StringComparison.OrdinalIgnoreCase) &&
-                !String.Equals(policy, "Deep", StringComparison.OrdinalIgnoreCase))
-            {
-                return;
-            }
+            string policy = NormalizeAppPolicyName(GetString(message, "policy"));
+            if (!IsKnownAppPolicy(policy, true)) { return; }
 
-            policy = CultureInfo.InvariantCulture.TextInfo.ToTitleCase(policy.ToLowerInvariant());
             string key = GetString(message, "key");
             string processName = GetString(message, "processName");
             string path = GetString(message, "path");
-            if (String.IsNullOrWhiteSpace(key))
-            {
-                if (!String.IsNullOrWhiteSpace(path))
-                {
-                    key = "path:" + path.ToLowerInvariant();
-                }
-                else if (!String.IsNullOrWhiteSpace(processName))
-                {
-                    key = "name:" + processName.ToLowerInvariant();
-                }
-            }
-            if (String.IsNullOrWhiteSpace(key)) { return; }
+            List<string> targetKeys = BuildAppPolicyKeys(key, processName, path);
+            if (targetKeys.Count == 0) { return; }
+            HashSet<string> targetSet = new HashSet<string>(targetKeys, StringComparer.OrdinalIgnoreCase);
 
             Directory.CreateDirectory(outputsPath);
             List<Dictionary<string, object>> items = new List<Dictionary<string, object>>();
@@ -3743,11 +3814,16 @@ internal static class SmartBackgroundNap
                             IDictionary<string, object> map = item as IDictionary<string, object>;
                             if (map == null) { continue; }
                             string existingKey = GetString(map, "Key");
-                            if (String.Equals(existingKey, key, StringComparison.OrdinalIgnoreCase)) { continue; }
-                            string existingPolicy = GetString(map, "Policy");
-                            if (String.IsNullOrWhiteSpace(existingKey) || String.IsNullOrWhiteSpace(existingPolicy)) { continue; }
+                            string existingPolicy = NormalizeAppPolicyName(GetString(map, "Policy"));
+                            if (String.IsNullOrWhiteSpace(existingKey) || !IsKnownAppPolicy(existingPolicy, true)) { continue; }
+                            bool sameTarget = false;
+                            foreach (string existingAlias in BuildAppPolicyKeys(existingKey, GetString(map, "ProcessName"), GetString(map, "Path")))
+                            {
+                                if (targetSet.Contains(existingAlias)) { sameTarget = true; break; }
+                            }
+                            if (sameTarget) { continue; }
                             Dictionary<string, object> copy = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-                            copy["Key"] = existingKey;
+                            copy["Key"] = NormalizeAppPolicyKey(existingKey);
                             copy["ProcessName"] = GetString(map, "ProcessName");
                             copy["Path"] = GetString(map, "Path");
                             copy["Policy"] = existingPolicy;
@@ -3761,10 +3837,10 @@ internal static class SmartBackgroundNap
             {
             }
 
-            if (!String.Equals(policy, "Auto", StringComparison.OrdinalIgnoreCase))
+            foreach (string targetKey in targetKeys)
             {
                 Dictionary<string, object> entry = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-                entry["Key"] = key;
+                entry["Key"] = targetKey;
                 entry["ProcessName"] = processName;
                 entry["Path"] = path;
                 entry["Policy"] = policy;
@@ -3777,7 +3853,7 @@ internal static class SmartBackgroundNap
             output["Items"] = items;
             File.WriteAllText(appPolicyPath, JsonCompat.SerializeObject(output), Encoding.UTF8);
 
-            string label = String.IsNullOrWhiteSpace(processName) ? key : processName;
+            string label = String.IsNullOrWhiteSpace(processName) ? targetKeys[0] : processName;
             activeUiEventLine = DateTime.Now.ToString("HH:mm:ss", CultureInfo.CurrentCulture) + "  POLICY  " + label + " -> " + policy;
             try
             {
@@ -3788,7 +3864,6 @@ internal static class SmartBackgroundNap
             {
             }
         }
-
         private void RunUserAction(string activeMessage, string successMessage, Func<RunResult> action)
         {
             if (busy) { return; }
@@ -4275,6 +4350,7 @@ internal static class SmartBackgroundNap
                 if (!root.TryGetValue("Items", out items) || items == null) { return rows; }
                 System.Collections.IEnumerable enumerable = items as System.Collections.IEnumerable;
                 if (enumerable == null || items is string) { return rows; }
+                Dictionary<string, string> manualPolicies = LoadAppPolicyMapForUi();
                 Dictionary<string, WebManagerRow> grouped = new Dictionary<string, WebManagerRow>(StringComparer.OrdinalIgnoreCase);
                 foreach (object item in enumerable)
                 {
@@ -4303,6 +4379,7 @@ internal static class SmartBackgroundNap
                     row.BehaviorBias = GetInt(map, "BehaviorBias");
                     row.BehaviorTier = GetString(map, "BehaviorPreferredTier");
                     row.BehaviorReason = GetString(map, "BehaviorReason");
+                    ApplyManualPolicyOverlay(row, manualPolicies);
                     row.RawScore = GetDouble(map, "Score");
                     row.RepresentativeScore = row.RawScore;
                     row.RawDelta = GetDouble(map, "DeltaMB");
@@ -4323,6 +4400,7 @@ internal static class SmartBackgroundNap
                 rows.AddRange(grouped.Values);
                 foreach (WebManagerRow row in rows)
                 {
+                    ApplyManualPolicyOverlay(row, manualPolicies);
                     row.Name = BuildManagerDisplayName(row);
                     row.Score = FormatDecimal(row.RawScore);
                     row.Delta = FormatDecimal(row.RawDelta) + " MB";
@@ -8767,4 +8845,3 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
         }
     }
 }
-

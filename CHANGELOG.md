@@ -1,4 +1,10 @@
-﻿# Changelog
+# Changelog
+## 0.4.13 - 2026-07-15
+
+- Fixed Live Manager policy buttons so A/P/L/B/D update immediately after selection.
+- Made per-app policies match both executable path and process name, which improves behavior for browsers and multi-process apps.
+- Kept manual policy state visible in the dashboard before the next engine pass refreshes score data.
+
 ## 0.4.12 - 2026-07-15
 
 - Rebuilt the README and About artwork with clean, generic product visuals and no truncated labels.

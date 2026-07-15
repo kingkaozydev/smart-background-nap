@@ -756,18 +756,46 @@ function Test-PathContainsFragment {
     return $false
 }
 
+function Normalize-AppIdentityKey {
+    param([string]$Key)
+    if ([string]::IsNullOrWhiteSpace($Key)) { return "" }
+    return $Key.Trim().ToLowerInvariant()
+}
+
+function Add-AppIdentityKey {
+    param(
+        [System.Collections.ArrayList]$Keys,
+        [string]$Key
+    )
+    $normalized = Normalize-AppIdentityKey -Key $Key
+    if ([string]::IsNullOrWhiteSpace($normalized)) { return }
+    if (-not $Keys.Contains($normalized)) { [void]$Keys.Add($normalized) }
+}
+
+function Get-AppIdentityKeysFromText {
+    param(
+        [string]$ProcessName,
+        [string]$Path
+    )
+
+    $keys = New-Object System.Collections.ArrayList
+    if (-not [string]::IsNullOrWhiteSpace($Path)) {
+        Add-AppIdentityKey -Keys $keys -Key ("path:" + $Path)
+    }
+    if (-not [string]::IsNullOrWhiteSpace($ProcessName)) {
+        Add-AppIdentityKey -Keys $keys -Key ("name:" + $ProcessName)
+    }
+    return @($keys)
+}
+
 function Get-LearningKeyFromText {
     param(
         [string]$ProcessName,
         [string]$Path
     )
 
-    if ($Path) {
-        return ("path:" + $Path.ToLowerInvariant())
-    }
-    if ($ProcessName) {
-        return ("name:" + $ProcessName.ToLowerInvariant())
-    }
+    $keys = @(Get-AppIdentityKeysFromText -ProcessName $ProcessName -Path $Path)
+    if ($keys.Count -gt 0) { return [string]$keys[0] }
     return ""
 }
 
@@ -801,13 +829,20 @@ function Read-AppPolicyMap {
         if (-not $item.Key) { continue }
         $policy = [string]$item.Policy
         if ($policy -notin @("Protect", "Light", "Balanced", "Deep")) { continue }
-        $key = [string]$item.Key
-        $map[$key] = [pscustomobject]@{
-            Key = $key
-            ProcessName = [string]$item.ProcessName
-            Path = [string]$item.Path
-            Policy = $policy
-            UpdatedAt = [string]$item.UpdatedAt
+        $key = Normalize-AppIdentityKey -Key ([string]$item.Key)
+        $keys = New-Object System.Collections.ArrayList
+        Add-AppIdentityKey -Keys $keys -Key $key
+        foreach ($alias in @(Get-AppIdentityKeysFromText -ProcessName ([string]$item.ProcessName) -Path ([string]$item.Path))) {
+            Add-AppIdentityKey -Keys $keys -Key ([string]$alias)
+        }
+        foreach ($policyKey in @($keys)) {
+            $map[[string]$policyKey] = [pscustomobject]@{
+                Key = [string]$policyKey
+                ProcessName = [string]$item.ProcessName
+                Path = [string]$item.Path
+                Policy = $policy
+                UpdatedAt = [string]$item.UpdatedAt
+            }
         }
     }
     return $map
@@ -819,10 +854,13 @@ function Get-AppPolicyForText {
         [string]$Path
     )
 
-    $key = Get-AppIdentityKeyFromText -ProcessName $ProcessName -Path $Path
-    if ($key -and $script:appPolicyMap.ContainsKey($key)) {
-        return $script:appPolicyMap[$key]
+    $keys = @(Get-AppIdentityKeysFromText -ProcessName $ProcessName -Path $Path)
+    foreach ($key in $keys) {
+        if ($key -and $script:appPolicyMap.ContainsKey($key)) {
+            return $script:appPolicyMap[$key]
+        }
     }
+    $key = if ($keys.Count -gt 0) { [string]$keys[0] } else { "" }
     return [pscustomobject]@{
         Key = $key
         ProcessName = $ProcessName

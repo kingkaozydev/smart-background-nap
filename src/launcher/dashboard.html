@@ -1047,6 +1047,8 @@ function makePolicyButtons(row){
     btn.setAttribute("aria-label", policyTooltip(policy));
     btn.addEventListener("click",(ev)=>{
       ev.stopPropagation();
+      wrap.querySelectorAll(".policyBtn").forEach(x=>x.classList.remove("active"));
+      btn.classList.add("active");
       send("setAppPolicy",{policy:policy,key:row.Key||"",processName:row.ProcessName||"",path:row.Path||""});
     });
     wrap.appendChild(btn);
