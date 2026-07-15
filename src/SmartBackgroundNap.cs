@@ -27,7 +27,7 @@ using Microsoft.Web.WebView2.Wpf;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.4.4";
+    private const string AppVersion = "0.4.5";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
@@ -1051,10 +1051,9 @@ internal static class SmartBackgroundNap
         string free = hardware != null && hardware.AvailableMemoryMB > 0
             ? FormatMemoryBytes((ulong)(hardware.AvailableMemoryMB * 1024.0 * 1024.0))
             : "-";
-        return "Smart Nap" + Environment.NewLine +
-            "RAM livre: " + free + Environment.NewLine +
-            "Apps: " + targets + Environment.NewLine +
-            "Purga: " + delta + " MB";
+        return "Smart Nap " + DateTime.Now.ToString("HH:mm:ss", CultureInfo.CurrentCulture) + Environment.NewLine +
+            "RAM livre " + free + Environment.NewLine +
+            "Apps " + targets + " | Purga " + delta + " MB";
     }
 
     private static string LimitNotifyText(string text, int maxLength)
@@ -1175,6 +1174,7 @@ internal static class SmartBackgroundNap
         ExtractResource("security_model_md", Path.Combine(runtimeRoot, "SECURITY_MODEL.md"));
         ExtractResource("readme_showcase_png", Path.Combine(runtimeRoot, "docs\\images\\smart-nap-showcase.png"));
         ExtractResource("readme_social_preview_png", Path.Combine(runtimeRoot, "docs\\images\\smart-nap-social-preview.png"));
+        ExtractResource("readme_about_panel_png", Path.Combine(runtimeRoot, "docs\\images\\smart-nap-about-panel.png"));
         ExtractResource("readme_engine_story_png", Path.Combine(runtimeRoot, "docs\\images\\smart-nap-engine-story.png"));
         ExtractResource("readme_intelligence_png", Path.Combine(runtimeRoot, "docs\\images\\smart-nap-intelligence.png"));
         ExtractResource("icon_ico", Path.Combine(runtimeRoot, "assets\\smart-nap-logo.ico"));
@@ -1852,6 +1852,43 @@ internal static class SmartBackgroundNap
         }
     }
 
+    private static bool IsBehaviorEngineEnabled()
+    {
+        try
+        {
+            IDictionary<string, object> root = LoadConfigRoot();
+            object smartObject;
+            IDictionary<string, object> smart = root.TryGetValue("SmartMode", out smartObject) ? smartObject as IDictionary<string, object> : null;
+            object value;
+            if (smart == null || !smart.TryGetValue("BehaviorEngine", out value)) { return true; }
+            return Convert.ToBoolean(value, CultureInfo.InvariantCulture);
+        }
+        catch
+        {
+            return true;
+        }
+    }
+
+    private static int GetBehaviorProfileCount()
+    {
+        try
+        {
+            string path = Path.Combine(outputsPath, "background-nap-behavior-latest.json");
+            if (!File.Exists(path)) { return 0; }
+            IDictionary<string, object> root = JsonCompat.DeserializeObject(File.ReadAllText(path, Encoding.UTF8));
+            object items = null;
+            System.Collections.IEnumerable enumerable = root != null && root.TryGetValue("Items", out items) ? items as System.Collections.IEnumerable : null;
+            if (enumerable == null || items is string) { return 0; }
+            int count = 0;
+            foreach (object ignored in enumerable) { count++; }
+            return count;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
     private static string GetLaunchExecutablePath()
     {
         if (usingLooseRuntime)
@@ -2197,6 +2234,8 @@ internal static class SmartBackgroundNap
         private Thread showThread;
         private System.Windows.Forms.Timer foregroundWakeTimer;
         private System.Windows.Forms.Timer trayTelemetryTimer;
+        private DateTime lastTrayTelemetryRefreshAt = DateTime.MinValue;
+        private string lastTrayTelemetryText = "";
         private int lastForegroundPid;
         private bool foregroundRestoreBusy;
         private DateTime lastForegroundRestoreAt = DateTime.MinValue;
@@ -2208,8 +2247,12 @@ internal static class SmartBackgroundNap
             notifyIcon.Icon = LoadIcon();
             notifyIcon.Text = AppName + ": active";
             notifyIcon.Visible = true;
-            notifyIcon.ContextMenuStrip = BuildMenu();
+            ContextMenuStrip trayMenu = BuildMenu();
+            trayMenu.Opening += delegate { UpdateTrayTelemetryText(true); };
+            notifyIcon.ContextMenuStrip = trayMenu;
             notifyIcon.DoubleClick += delegate { ShowMainWindow(); };
+            notifyIcon.MouseMove += delegate { RefreshTrayTelemetryFromHover(); };
+            notifyIcon.MouseClick += delegate { UpdateTrayTelemetryText(true); };
 
             dispatchForm = new Form();
             dispatchForm.ShowInTaskbar = false;
@@ -2397,17 +2440,42 @@ internal static class SmartBackgroundNap
         private void StartTrayTelemetryTimer()
         {
             trayTelemetryTimer = new System.Windows.Forms.Timer();
-            trayTelemetryTimer.Interval = 10000;
-            trayTelemetryTimer.Tick += delegate { UpdateTrayTelemetryText(); };
+            trayTelemetryTimer.Interval = 5000;
+            trayTelemetryTimer.Tick += delegate { UpdateTrayTelemetryText(false); };
             trayTelemetryTimer.Start();
-            UpdateTrayTelemetryText();
+            UpdateTrayTelemetryText(true);
+        }
+
+        private void RefreshTrayTelemetryFromHover()
+        {
+            if ((DateTime.UtcNow - lastTrayTelemetryRefreshAt).TotalMilliseconds < 850.0)
+            {
+                return;
+            }
+            UpdateTrayTelemetryText(true);
         }
 
         private void UpdateTrayTelemetryText()
         {
+            UpdateTrayTelemetryText(false);
+        }
+
+        private void UpdateTrayTelemetryText(bool force)
+        {
             try
             {
-                notifyIcon.Text = LimitNotifyText(BuildTrayTelemetryText(), 63);
+                if (!force && (DateTime.UtcNow - lastTrayTelemetryRefreshAt).TotalMilliseconds < 1800.0)
+                {
+                    return;
+                }
+
+                string tooltipText = LimitNotifyText(BuildTrayTelemetryText(), 63);
+                if (force || !String.Equals(tooltipText, lastTrayTelemetryText, StringComparison.Ordinal))
+                {
+                    notifyIcon.Text = tooltipText;
+                    lastTrayTelemetryText = tooltipText;
+                }
+                lastTrayTelemetryRefreshAt = DateTime.UtcNow;
             }
             catch
             {
@@ -2898,6 +2966,13 @@ internal static class SmartBackgroundNap
         private string activeTitle = "Control Center";
         private string activeDetail = "Waiting for the next pass.";
         private string runState = "READY";
+        private bool manualMaximized;
+        private System.Windows.Rect restoreWindowRect;
+        private bool webDragActive;
+        private double webDragStartX;
+        private double webDragStartY;
+        private double webDragStartLeft;
+        private double webDragStartTop;
         private const int WmNcHitTest = 0x0084;
         private const int HtClient = 1;
         private const int HtCaption = 2;
@@ -2912,6 +2987,11 @@ internal static class SmartBackgroundNap
         private const double ResizeBorderSize = 18.0;
         private const double DragBandHeight = 54.0;
         private const double WindowButtonReserveWidth = 128.0;
+        [DllImport("user32.dll")]
+        private static extern bool ReleaseCaptureForDrag();
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessageForDrag(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
 
         public WebViewDashboardWindow(Action<Exception> fallbackRequested)
         {
@@ -2919,18 +2999,23 @@ internal static class SmartBackgroundNap
             Title = AppName;
             Width = 1440;
             Height = 780;
-            MinWidth = 900;
-            MinHeight = 560;
+            MinWidth = 760;
+            MinHeight = 500;
             WindowStartupLocation = System.Windows.WindowStartupLocation.CenterScreen;
-            WindowStyle = System.Windows.WindowStyle.SingleBorderWindow;
+            WindowStyle = System.Windows.WindowStyle.None;
             ResizeMode = System.Windows.ResizeMode.CanResize;
+            UseLayoutRounding = true;
+            SnapsToDevicePixels = true;
             Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(5, 9, 15));
             Icon = LoadWebViewWindowIcon(iconPath);
             ApplyResponsiveWindowBounds();
             SourceInitialized += delegate { InstallNativeWindowChrome(); };
 
             webView = new WebView2();
-            Content = webView;
+            System.Windows.Controls.Grid host = new System.Windows.Controls.Grid();
+            host.Children.Add(webView);
+            host.Children.Add(CreateDragOverlay());
+            Content = host;
 
             Loaded += async delegate
             {
@@ -2974,8 +3059,8 @@ internal static class SmartBackgroundNap
             try
             {
                 System.Windows.Rect workArea = System.Windows.SystemParameters.WorkArea;
-                double availableWidth = Math.Max(900.0, workArea.Width - 28.0);
-                double availableHeight = Math.Max(560.0, workArea.Height - 72.0);
+                double availableWidth = Math.Max(760.0, workArea.Width - 28.0);
+                double availableHeight = Math.Max(500.0, workArea.Height - 72.0);
 
                 // Do not cap MaxWidth/MaxHeight: WPF applies those caps when the native maximize button is clicked.
                 // Keeping them infinite lets Windows fill the full work area while preserving a sane first-open size.
@@ -2983,8 +3068,8 @@ internal static class SmartBackgroundNap
                 MaxHeight = Double.PositiveInfinity;
                 Width = Math.Min(1440.0, availableWidth);
                 Height = Math.Min(820.0, availableHeight);
-                MinWidth = Math.Min(900.0, Width);
-                MinHeight = Math.Min(560.0, Height);
+                MinWidth = Math.Min(760.0, Width);
+                MinHeight = Math.Min(500.0, Height);
             }
             catch
             {
@@ -3023,7 +3108,7 @@ internal static class SmartBackgroundNap
             double width = ActualWidth > 0 ? ActualWidth : Width;
             double height = ActualHeight > 0 ? ActualHeight : Height;
 
-            if (WindowState == System.Windows.WindowState.Normal && ResizeMode != System.Windows.ResizeMode.NoResize)
+            if (!manualMaximized && WindowState == System.Windows.WindowState.Normal && ResizeMode != System.Windows.ResizeMode.NoResize)
             {
                 bool left = point.X >= 0 && point.X < ResizeBorderSize;
                 bool right = point.X <= width && point.X >= width - ResizeBorderSize;
@@ -3077,6 +3162,126 @@ internal static class SmartBackgroundNap
             }
         }
 
+        private System.Windows.FrameworkElement CreateDragOverlay()
+        {
+            System.Windows.Controls.Border overlay = new System.Windows.Controls.Border();
+            overlay.Background = System.Windows.Media.Brushes.Transparent;
+            overlay.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
+            overlay.VerticalAlignment = System.Windows.VerticalAlignment.Top;
+            overlay.Margin = new System.Windows.Thickness(78.0, 0.0, 0.0, 0.0);
+            overlay.Width = 520.0;
+            overlay.Height = 86.0;
+            overlay.Cursor = System.Windows.Input.Cursors.SizeAll;
+            overlay.MouseLeftButtonDown += delegate(object sender, System.Windows.Input.MouseButtonEventArgs e)
+            {
+                e.Handled = true;
+                BeginNativeDrag();
+            };
+            return overlay;
+        }
+        private void BeginWebDrag(IDictionary<string, object> message)
+        {
+            try
+            {
+                if (WindowState == System.Windows.WindowState.Minimized)
+                {
+                    WindowState = System.Windows.WindowState.Normal;
+                }
+                if (manualMaximized)
+                {
+                    ToggleManualMaximize();
+                }
+
+                webDragActive = true;
+                webDragStartX = GetDouble(message, "x");
+                webDragStartY = GetDouble(message, "y");
+                webDragStartLeft = Left;
+                webDragStartTop = Top;
+            }
+            catch
+            {
+                webDragActive = false;
+            }
+        }
+
+        private void MoveWebDrag(IDictionary<string, object> message)
+        {
+            if (!webDragActive)
+            {
+                return;
+            }
+
+            try
+            {
+                double x = GetDouble(message, "x");
+                double y = GetDouble(message, "y");
+                double nextLeft = webDragStartLeft + (x - webDragStartX);
+                double nextTop = webDragStartTop + (y - webDragStartY);
+                System.Windows.Rect workArea = System.Windows.SystemParameters.WorkArea;
+                double minLeft = workArea.Left - Math.Max(0.0, Width - 96.0);
+                double maxLeft = workArea.Right - 96.0;
+                double minTop = workArea.Top;
+                double maxTop = workArea.Bottom - 48.0;
+                Left = Math.Max(minLeft, Math.Min(maxLeft, nextLeft));
+                Top = Math.Max(minTop, Math.Min(maxTop, nextTop));
+            }
+            catch
+            {
+                webDragActive = false;
+            }
+        }
+        private void BeginNativeDrag()
+        {
+            try
+            {
+                if (manualMaximized)
+                {
+                    ToggleManualMaximize();
+                }
+
+                System.Windows.Interop.WindowInteropHelper helper = new System.Windows.Interop.WindowInteropHelper(this);
+                ReleaseCaptureForDrag();
+                SendMessageForDrag(helper.Handle, 0xA1, new IntPtr(HtCaption), IntPtr.Zero);
+            }
+            catch
+            {
+                try { DragMove(); } catch { }
+            }
+        }
+        private void ToggleManualMaximize()
+        {
+            try
+            {
+                if (WindowState == System.Windows.WindowState.Minimized)
+                {
+                    WindowState = System.Windows.WindowState.Normal;
+                }
+
+                if (manualMaximized)
+                {
+                    manualMaximized = false;
+                    Left = restoreWindowRect.Left;
+                    Top = restoreWindowRect.Top;
+                    Width = Math.Max(MinWidth, restoreWindowRect.Width);
+                    Height = Math.Max(MinHeight, restoreWindowRect.Height);
+                    return;
+                }
+
+                double currentWidth = ActualWidth > 0.0 ? ActualWidth : Width;
+                double currentHeight = ActualHeight > 0.0 ? ActualHeight : Height;
+                restoreWindowRect = new System.Windows.Rect(Left, Top, currentWidth, currentHeight);
+                System.Windows.Rect workArea = System.Windows.SystemParameters.WorkArea;
+                manualMaximized = true;
+                WindowState = System.Windows.WindowState.Normal;
+                Left = workArea.Left;
+                Top = workArea.Top;
+                Width = workArea.Width;
+                Height = workArea.Height;
+            }
+            catch
+            {
+            }
+        }
         private async System.Threading.Tasks.Task InitializeAsync()
         {
             try
@@ -3162,14 +3367,33 @@ internal static class SmartBackgroundNap
                     SendState();
                     return;
                 }
-                if (String.Equals(action, "drag", StringComparison.OrdinalIgnoreCase))
+                if (String.Equals(action, "dragStart", StringComparison.OrdinalIgnoreCase))
                 {
-                    try { DragMove(); } catch { }
+                    BeginWebDrag(message);
+                    return;
+                }
+                if (String.Equals(action, "dragMove", StringComparison.OrdinalIgnoreCase))
+                {
+                    MoveWebDrag(message);
+                    return;
+                }
+                if (String.Equals(action, "dragEnd", StringComparison.OrdinalIgnoreCase))
+                {
+                    webDragActive = false;
+                    return;
+                }                if (String.Equals(action, "drag", StringComparison.OrdinalIgnoreCase))
+                {
+                    BeginNativeDrag();
                     return;
                 }
                 if (String.Equals(action, "minimize", StringComparison.OrdinalIgnoreCase))
                 {
                     WindowState = System.Windows.WindowState.Minimized;
+                    return;
+                }
+                if (String.Equals(action, "maximize", StringComparison.OrdinalIgnoreCase))
+                {
+                    ToggleManualMaximize();
                     return;
                 }
                 if (String.Equals(action, "close", StringComparison.OrdinalIgnoreCase))
@@ -3474,6 +3698,7 @@ internal static class SmartBackgroundNap
             bool autoInstalled = IsTaskInstalled(AutoTaskName);
             bool startupInstalled = IsTaskInstalled(TrayTaskName);
             bool learningEnabled = IsSmartLearningEnabled();
+            bool behaviorEnabled = IsBehaviorEngineEnabled();
             List<WebManagerRow> rows = LoadManagerRows();
             ScoreMeta scoreMeta = LoadScoreMeta();
             string line = ReadLastApplyLogLine();
@@ -3494,6 +3719,8 @@ internal static class SmartBackgroundNap
             state.Startup = startupInstalled;
             state.Learning = learningEnabled;
             state.LearningProfiles = learningEnabled ? Math.Max(scoreMeta.LearningProfiles, GetLearningProfileCount()) : 0;
+            state.Behavior = behaviorEnabled || scoreMeta.BehaviorEnabled;
+            state.BehaviorProfiles = state.Behavior ? Math.Max(scoreMeta.BehaviorProfiles, GetBehaviorProfileCount()) : 0;
             state.MemoryPressure = String.IsNullOrWhiteSpace(scoreMeta.MemoryPressure) ? ExtractLogValue(line, "pressure") : scoreMeta.MemoryPressure;
             state.FreeMemoryMB = scoreMeta.FreeMemoryMB;
             state.IntentKind = String.IsNullOrWhiteSpace(scoreMeta.IntentKind) ? ExtractLogValue(line, "intent") : scoreMeta.IntentKind;
@@ -3556,6 +3783,8 @@ internal static class SmartBackgroundNap
                 if (root == null) { LoadRadarMeta(meta); return meta; }
                 meta.LearningEnabled = GetBool(root, "LearningEnabled");
                 meta.LearningProfiles = GetInt(root, "LearningProfiles");
+                meta.BehaviorEnabled = GetBool(root, "BehaviorEnabled");
+                meta.BehaviorProfiles = GetInt(root, "BehaviorProfiles");
                 meta.MemoryPressure = GetString(root, "MemoryPressure");
                 meta.FreeMemoryMB = GetDouble(root, "FreeMemoryMB");
                 meta.IntentKind = GetString(root, "IntentKind");
@@ -3813,6 +4042,11 @@ internal static class SmartBackgroundNap
                     row.Intent = GetString(map, "IntentKind");
                     row.IntentConfidence = GetInt(map, "IntentConfidence");
                     row.SwitchFastWake = GetBool(map, "SwitchFastWake");
+                    row.BehaviorWakeCount = GetInt(map, "BehaviorWakeCount");
+                    row.BehaviorConfidence = GetInt(map, "BehaviorConfidence");
+                    row.BehaviorBias = GetInt(map, "BehaviorBias");
+                    row.BehaviorTier = GetString(map, "BehaviorPreferredTier");
+                    row.BehaviorReason = GetString(map, "BehaviorReason");
                     row.RawScore = GetDouble(map, "Score");
                     row.RepresentativeScore = row.RawScore;
                     row.RawDelta = GetDouble(map, "DeltaMB");
@@ -3894,6 +4128,14 @@ internal static class SmartBackgroundNap
                 target.IntentConfidence = source.IntentConfidence;
                 if (!String.IsNullOrWhiteSpace(source.Intent)) { target.Intent = source.Intent; }
             }
+            if (source.BehaviorConfidence > target.BehaviorConfidence)
+            {
+                target.BehaviorConfidence = source.BehaviorConfidence;
+                target.BehaviorBias = source.BehaviorBias;
+                if (source.BehaviorWakeCount > target.BehaviorWakeCount) { target.BehaviorWakeCount = source.BehaviorWakeCount; }
+                if (!String.IsNullOrWhiteSpace(source.BehaviorTier)) { target.BehaviorTier = source.BehaviorTier; }
+                if (!String.IsNullOrWhiteSpace(source.BehaviorReason)) { target.BehaviorReason = source.BehaviorReason; }
+            }
             if (String.IsNullOrWhiteSpace(target.Guard) && !String.IsNullOrWhiteSpace(source.Guard)) { target.Guard = source.Guard; }
             if ((String.IsNullOrWhiteSpace(target.Role) || String.Equals(target.Role, "App", StringComparison.OrdinalIgnoreCase)) && !String.IsNullOrWhiteSpace(source.Role)) { target.Role = source.Role; }
             if ((String.IsNullOrWhiteSpace(target.Policy) || String.Equals(target.Policy, "Auto", StringComparison.OrdinalIgnoreCase)) && !String.IsNullOrWhiteSpace(source.Policy)) { target.Policy = source.Policy; }
@@ -3943,6 +4185,10 @@ internal static class SmartBackgroundNap
             string guard = GetString(map, "GuardReason");
             string intent = GetString(map, "IntentKind");
             int intentConfidence = GetInt(map, "IntentConfidence");
+            int behaviorConfidence = GetInt(map, "BehaviorConfidence");
+            int behaviorBias = GetInt(map, "BehaviorBias");
+            int behaviorWakes = GetInt(map, "BehaviorWakeCount");
+            string behaviorTier = GetString(map, "BehaviorPreferredTier");
             string summary = "Tier " + tier + " / P " + priority + " / M " + memory + " / IO " + io + " / T " + trim + " / Eco " + power;
             if (!String.IsNullOrWhiteSpace(policy) && !String.Equals(policy, "Auto", StringComparison.OrdinalIgnoreCase))
             {
@@ -3963,6 +4209,12 @@ internal static class SmartBackgroundNap
             if (!String.IsNullOrWhiteSpace(intent) && !String.Equals(intent, "Desktop", StringComparison.OrdinalIgnoreCase))
             {
                 summary += " / Intent " + intent + (intentConfidence > 0 ? " " + intentConfidence.ToString(CultureInfo.CurrentCulture) : "");
+            }
+            if (behaviorConfidence > 0)
+            {
+                string behaviorLabel = behaviorBias < 0 ? "Guard" : (String.IsNullOrWhiteSpace(behaviorTier) ? "Auto" : behaviorTier);
+                summary += " / Behavior " + behaviorConfidence.ToString(CultureInfo.CurrentCulture) + " " + behaviorLabel;
+                if (behaviorWakes > 0) { summary += " / BWake " + behaviorWakes.ToString(CultureInfo.CurrentCulture); }
             }
             if (!String.IsNullOrWhiteSpace(learning) || observations > 0 || wakes > 0)
             {
@@ -4012,6 +4264,8 @@ internal static class SmartBackgroundNap
                 string learning = ExtractLogValue(line, "learning");
                 string pressure = ExtractLogValue(line, "pressure");
                 string profiles = ExtractLogValue(line, "profiles");
+                string behavior = ExtractLogValue(line, "behavior");
+                string behaviorProfiles = ExtractLogValue(line, "behaviorProfiles");
                 string intent = ExtractLogValue(line, "intent");
                 string confidence = ExtractLogValue(line, "confidence");
                 string text = time + "  APPLY";
@@ -4021,6 +4275,7 @@ internal static class SmartBackgroundNap
                 if (!String.IsNullOrWhiteSpace(trimmed)) { text += "  T " + trimmed; }
                 if (!String.IsNullOrWhiteSpace(cooldown) && cooldown != "0") { text += "  C " + cooldown; }
                 if (String.Equals(learning, "on", StringComparison.OrdinalIgnoreCase)) { text += "  LEARN " + BlankToZero(profiles) + " " + BlankToDash(pressure); }
+                if (String.Equals(behavior, "on", StringComparison.OrdinalIgnoreCase)) { text += "  BEHAVIOR " + BlankToZero(behaviorProfiles); }
                 if (!String.IsNullOrWhiteSpace(intent)) { text += "  INTENT " + intent + (String.IsNullOrWhiteSpace(confidence) ? "" : " " + confidence); }
                 if (!String.IsNullOrWhiteSpace(top)) { text += "  top " + top; }
                 return text;
@@ -4043,6 +4298,19 @@ internal static class SmartBackgroundNap
                 if (!String.IsNullOrWhiteSpace(enabled)) { text += "  " + (String.Equals(enabled, "true", StringComparison.OrdinalIgnoreCase) ? "enabled" : "disabled"); }
                 if (!String.IsNullOrWhiteSpace(process)) { text += "  " + process; }
                 if (!String.IsNullOrWhiteSpace(wakes)) { text += "  wakes " + wakes; }
+                return text;
+            }
+            if (String.Equals(action, "behavior", StringComparison.OrdinalIgnoreCase))
+            {
+                string process = ExtractLogValue(line, "process");
+                string wakes = ExtractLogValue(line, "wakes");
+                string confidence = ExtractLogValue(line, "confidence");
+                string tier = ExtractLogValue(line, "tier");
+                string text = time + "  BEHAVIOR";
+                if (!String.IsNullOrWhiteSpace(process)) { text += "  " + process; }
+                if (!String.IsNullOrWhiteSpace(wakes)) { text += "  wakes " + wakes; }
+                if (!String.IsNullOrWhiteSpace(confidence)) { text += "  conf " + confidence; }
+                if (!String.IsNullOrWhiteSpace(tier)) { text += "  " + tier; }
                 return text;
             }
             if (String.Equals(action, "elevated-apply", StringComparison.OrdinalIgnoreCase))
@@ -4315,6 +4583,8 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public bool Startup { get; set; }
             public bool Learning { get; set; }
             public int LearningProfiles { get; set; }
+            public bool Behavior { get; set; }
+            public int BehaviorProfiles { get; set; }
             public string MemoryPressure { get; set; }
             public double FreeMemoryMB { get; set; }
             public string IntentKind { get; set; }
@@ -4367,6 +4637,8 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
         {
             public bool LearningEnabled { get; set; }
             public int LearningProfiles { get; set; }
+            public bool BehaviorEnabled { get; set; }
+            public int BehaviorProfiles { get; set; }
             public string MemoryPressure { get; set; }
             public double FreeMemoryMB { get; set; }
             public string IntentKind { get; set; }
@@ -4396,6 +4668,11 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public string Guard { get; set; }
             public string Intent { get; set; }
             public int IntentConfidence { get; set; }
+            public int BehaviorConfidence { get; set; }
+            public int BehaviorWakeCount { get; set; }
+            public int BehaviorBias { get; set; }
+            public string BehaviorTier { get; set; }
+            public string BehaviorReason { get; set; }
             public bool SwitchFastWake { get; set; }
             public bool PermissionDenied { get; set; }
             public double RawScore { get; set; }
@@ -7069,7 +7346,7 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                 BeginInvoke(new System.Windows.Forms.MethodInvoker(delegate
                 {
                     bool stopped = result.ExitCode == 130;
-                    string title = stopped ? "OtimizaÃ§Ã£o parada" : (result.ExitCode == 0 ? "OtimizaÃ§Ã£o concluÃ­da" : "Action failed");
+                    string title = stopped ? "OtimizaÃƒÂ§ÃƒÂ£o parada" : (result.ExitCode == 0 ? "OtimizaÃƒÂ§ÃƒÂ£o concluÃƒÂ­da" : "Action failed");
                     string detail = stopped ? "O passe manual foi interrompido." : (result.ExitCode == 0 ? BuildResultText() : ShortError(result.Output));
                     activeRunControl = null;
                     busy = false;
@@ -7091,8 +7368,8 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                 return;
             }
 
-            actionTitle.Text = "Parando otimizaÃ§Ã£o...";
-            actionDetail.Text = "Encerrando o passe manual com seguranÃ§a.";
+            actionTitle.Text = "Parando otimizaÃƒÂ§ÃƒÂ£o...";
+            actionDetail.Text = "Encerrando o passe manual com seguranÃƒÂ§a.";
             optimizeButton.Enabled = false;
             activeRunControl.Cancel();
         }

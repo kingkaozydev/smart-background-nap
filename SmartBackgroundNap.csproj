@@ -53,6 +53,7 @@
     <EmbeddedResource Include="docs\SECURITY_MODEL.md" LogicalName="SmartBackgroundNap.Resources.security_model_md" />
     <EmbeddedResource Include="docs\images\smart-nap-showcase.png" LogicalName="SmartBackgroundNap.Resources.readme_showcase_png" />
     <EmbeddedResource Include="docs\images\smart-nap-social-preview.png" LogicalName="SmartBackgroundNap.Resources.readme_social_preview_png" />
+    <EmbeddedResource Include="docs\images\smart-nap-about-panel.png" LogicalName="SmartBackgroundNap.Resources.readme_about_panel_png" />
     <EmbeddedResource Include="docs\images\smart-nap-engine-story.png" LogicalName="SmartBackgroundNap.Resources.readme_engine_story_png" />
     <EmbeddedResource Include="docs\images\smart-nap-intelligence.png" LogicalName="SmartBackgroundNap.Resources.readme_intelligence_png" />
     <EmbeddedResource Include="assets\smart-nap-logo.ico" LogicalName="SmartBackgroundNap.Resources.icon_ico" />

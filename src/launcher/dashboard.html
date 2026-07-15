@@ -11,9 +11,9 @@
   --amber:#ffa629;--green:#2ee184;--blue:#4b93ff;--violet:#9a72ff;--red:#ff4d5e;
 }
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,sans-serif;overflow:hidden}
+html,body{height:100%;min-width:0;margin:0;background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,sans-serif;overflow:hidden}
 button{font:inherit}
-.app{height:100vh;min-height:0;display:grid;grid-template-columns:78px minmax(0,1fr);border:1px solid rgba(255,166,41,.9);background:radial-gradient(circle at 22% 0%,rgba(255,166,41,.12),transparent 28%),radial-gradient(circle at 85% 12%,rgba(75,147,255,.13),transparent 30%),linear-gradient(135deg,#05080d,#08111d 55%,#05080d)}
+.app{height:100vh;min-width:0;min-height:0;display:grid;grid-template-columns:78px minmax(0,1fr);border:1px solid rgba(255,166,41,.9);background:radial-gradient(circle at 22% 0%,rgba(255,166,41,.12),transparent 28%),radial-gradient(circle at 85% 12%,rgba(75,147,255,.13),transparent 30%),linear-gradient(135deg,#05080d,#08111d 55%,#05080d)}
 .rail{min-height:0;background:linear-gradient(180deg,#08101b,#050b13);border-right:1px solid rgba(255,255,255,.04);display:flex;flex-direction:column;align-items:center;padding:18px 0 14px;gap:14px}
 .brandMark{width:44px;height:44px;border-radius:14px;border:1px solid rgba(255,166,41,.32);background:linear-gradient(145deg,rgba(255,166,41,.16),rgba(75,147,255,.10));display:grid;place-items:center;box-shadow:0 12px 32px rgba(0,0,0,.28)}
 .brandMark img{width:31px;height:31px;object-fit:contain}
@@ -25,49 +25,64 @@ button{font:inherit}
 .version{margin-top:auto;color:#687b94;font-size:10px;font-weight:800}
 .workspace{min-height:0;overflow-y:auto;overflow-x:hidden;padding:18px 22px 16px;scrollbar-color:#2e4565 #080f19;scrollbar-width:thin}
 .workspaceInner{width:100%;min-height:100%;display:grid;grid-template-rows:auto minmax(0,1fr);gap:14px}
-.topbar{height:52px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.topbar{height:52px;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:16px}
 .titleBlock b{display:block;font-size:23px;line-height:1.1}
 .titleBlock span{display:block;margin-top:5px;color:#8fa1b8;font-size:12px;font-weight:600}
-.statusBar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-.pill{height:31px;border-radius:999px;border:1px solid #263a55;background:rgba(16,28,46,.86);color:#c3d0e2;padding:0 12px;display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:900;white-space:nowrap}
+.titleBlock{min-width:0}.titleBlock b,.titleBlock span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.statusBar{min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;padding-right:104px}
+.windowControls{position:fixed;z-index:8;right:12px;top:8px;display:flex;align-items:center;gap:5px}
+.chromeBtn{width:30px;height:28px;border-radius:8px;border:1px solid transparent;background:transparent;color:#a7b6c9;font-size:13px;font-weight:800;cursor:pointer;display:grid;place-items:center}
+.chromeBtn:hover{border-color:#263a55;background:#101d30;color:#fff}.chromeBtn.close:hover{border-color:rgba(255,77,94,.52);background:rgba(255,77,94,.16);color:#fff}
+.pill{height:31px;border-radius:999px;border:1px solid #263a55;background:rgba(16,28,46,.86);color:#c3d0e2;padding:0 12px;display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:800;white-space:nowrap;text-transform:none}
 .pill.good{border-color:rgba(46,225,132,.42);background:rgba(46,225,132,.13);color:var(--green)}
 .pill.warn{border-color:rgba(255,166,41,.42);background:rgba(255,166,41,.12);color:var(--amber)}
+.startupAction{height:31px;border-radius:999px;border:1px solid rgba(154,114,255,.46);background:rgba(154,114,255,.12);color:#d7ccff;padding:0 11px;font-size:11px;font-weight:950;cursor:pointer;white-space:nowrap;max-width:170px;overflow:hidden;text-overflow:ellipsis;transition:120ms ease}.startupAction.on{border-color:rgba(154,114,255,.58);background:rgba(154,114,255,.16);color:#efe8ff}.startupAction:hover{filter:brightness(1.12);transform:translateY(-1px);border-color:rgba(154,114,255,.72)}
 .langButton{height:31px;border-radius:999px;border:1px solid rgba(154,114,255,.46);background:rgba(154,114,255,.12);color:#d7ccff;padding:0 11px;font-size:11px;font-weight:950;cursor:pointer;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}
 .pulseDot{width:7px;height:7px;border-radius:999px;background:currentColor;box-shadow:0 0 0 0 currentColor;animation:pulse 1.5s infinite}
 @keyframes pulse{70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
-.dashboard{min-height:0;display:grid;grid-template-columns:minmax(720px,1fr) minmax(320px,360px);gap:14px}
+.dashboard{min-width:0;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,360px);gap:14px}
 .leftCol{min-height:0;display:grid;grid-template-rows:auto auto auto minmax(0,1fr);gap:14px}
 .rightCol{min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr);gap:14px}
 .panel{border:1px solid rgba(54,79,114,.78);background:linear-gradient(145deg,rgba(14,25,41,.96),rgba(8,15,26,.96));border-radius:12px;box-shadow:0 18px 38px rgba(0,0,0,.24);overflow:hidden}
-.command{display:grid;grid-template-columns:minmax(0,1fr) minmax(360px,400px);gap:16px;padding:18px}
+.command{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,400px);gap:16px;padding:18px}
 .commandHero{min-width:0;display:flex;flex-direction:column;gap:16px}
-.eyebrow{color:var(--amber);font-size:11px;font-weight:900;text-transform:uppercase}
 .headline{max-width:740px;margin:5px 0 0;font-size:clamp(30px,2.2vw,42px);line-height:1.02;font-weight:900}
 .subline{margin:8px 0 0;color:#a9b8ca;font-size:13px}
-.featureGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-width:760px}.feature{border:1px solid #233650;border-radius:12px;background:rgba(9,18,31,.72);padding:12px;min-width:0}.feature small{display:block;color:#71839b;font-size:10px;font-weight:900;text-transform:uppercase}.feature b{display:block;margin-top:5px;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.feature p{margin:5px 0 0;color:#8ea0b8;font-size:11px;line-height:1.35}
-.learningStrip{max-width:760px;border:1px solid rgba(154,114,255,.36);border-radius:14px;background:linear-gradient(135deg,rgba(154,114,255,.15),rgba(75,147,255,.08));padding:12px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center}.learningStrip small{display:block;color:#a88fff;font-size:10px;font-weight:950;text-transform:uppercase}.learningStrip b{display:block;margin-top:4px;font-size:15px}.learningStrip p{margin:4px 0 0;color:#a9b8ca;font-size:11px;line-height:1.35}.learningToggle{height:40px;min-width:132px;border-radius:999px;border:1px solid rgba(154,114,255,.5);background:#111b2d;color:#d7ccff;font-size:12px;font-weight:950;cursor:pointer}.learningToggle.on{border-color:rgba(46,225,132,.5);background:rgba(46,225,132,.15);color:var(--green)}
+.featureGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-width:760px}.feature{border:1px solid #233650;border-radius:12px;background:rgba(9,18,31,.72);padding:12px;min-width:0}.feature small{display:block;color:#71839b;font-size:10px;font-weight:850}.feature b{display:block;margin-top:5px;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.feature p{margin:5px 0 0;color:#8ea0b8;font-size:11px;line-height:1.35}
+.intelligencePanel{max-width:760px;border:1px solid rgba(55,82,120,.86);border-radius:16px;background:linear-gradient(135deg,rgba(14,27,45,.96),rgba(8,16,29,.96));padding:13px 14px;display:grid;gap:12px;position:relative;overflow:hidden}
+.intelligencePanel:before{content:"";position:absolute;inset:0 auto auto 0;width:100%;height:2px;background:linear-gradient(90deg,var(--green),var(--blue),var(--violet))}
+.intelTop{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 144px;gap:14px;align-items:center}
+.intelCopy small{display:block;color:var(--green);font-size:10px;font-weight:850}
+.intelCopy b{display:block;margin-top:4px;font-size:16px}
+.intelCopy p{margin:5px 0 0;color:#a8b8cc;font-size:12px;line-height:1.35}
+.intelStats{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.intelStats span{min-width:0;border-left:1px solid rgba(255,255,255,.08);padding-left:10px}
+.intelStats span:first-child{border-left:0;padding-left:0}
+.intelStats strong{display:block;color:#f6fbff;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.intelStats em{display:block;margin-top:3px;color:#7e91ab;font-size:10px;font-style:normal;font-weight:850}
+.learningToggle{height:38px;width:100%;min-width:0;border-radius:999px;border:1px solid rgba(154,114,255,.5);background:rgba(154,114,255,.10);color:#d7ccff;font-size:12px;font-weight:950;cursor:pointer}.learningToggle.on{border-color:rgba(46,225,132,.5);background:rgba(46,225,132,.15);color:var(--green)}
 .chipRow{display:flex;gap:8px;flex-wrap:wrap}
 .chip{height:28px;border-radius:8px;padding:0 10px;display:inline-flex;align-items:center;border:1px solid #263b57;background:#101d30;color:#d9e5f4;font-size:11px;font-weight:900}
 .chip.cpu{color:#7db3ff}.chip.ram{color:var(--amber)}.chip.eco{color:var(--green)}.chip.wake{color:var(--violet)}
 .engineCard{border:1px solid rgba(64,91,129,.9);border-radius:12px;background:linear-gradient(160deg,rgba(13,24,40,.98),rgba(9,17,30,.98));padding:14px;display:grid;grid-template-rows:auto auto auto auto auto;gap:11px;min-width:0}
 .engineHead{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.engineHead h2{margin:0;font-size:20px}.state{border-radius:999px;background:rgba(46,225,132,.14);border:1px solid rgba(46,225,132,.28);color:var(--green);font-size:10px;font-weight:950;padding:6px 9px;white-space:nowrap}
+.engineHead h2{margin:0;font-size:20px}.state{border-radius:999px;background:rgba(46,225,132,.14);border:1px solid rgba(46,225,132,.28);color:var(--green);font-size:10px;font-weight:850;padding:6px 9px;white-space:nowrap;text-transform:none}
 .detail{color:#9eb0c7;font-size:12px;line-height:1.35;min-height:32px}
 .meter{display:grid;grid-template-columns:86px minmax(0,1fr);gap:12px;align-items:center}
 .ring{position:relative;width:86px;height:86px;border-radius:999px;background:conic-gradient(var(--green) 0deg,var(--blue) var(--ring-deg,210deg),#1d2b3f var(--ring-deg,210deg));display:grid;place-items:center;box-shadow:0 0 24px rgba(46,225,132,.12);overflow:hidden}
 .ring:before{content:"";position:absolute;inset:10px;border-radius:999px;background:#0a1423;border:1px solid #243955}.ring>div{position:relative;z-index:1;text-align:center}.ring b{font-size:22px}.ring small{display:block;color:#8fa1b8;font-size:10px}
 .metricGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 .mini{border:1px solid #223650;border-radius:9px;background:#0a1728;padding:9px;min-width:0}
-.mini small{display:block;color:#71839b;font-size:10px;font-weight:900;text-transform:uppercase}.mini b{display:block;margin-top:3px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini small{display:block;color:#71839b;font-size:10px;font-weight:850}.mini b{display:block;margin-top:3px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bar{height:5px;border:1px solid #435a78;background:#152338;overflow:hidden}.bar i{display:block;height:100%;width:0;background:var(--amber)}.busy .bar i{width:100%;animation:slide 1s linear infinite;background:linear-gradient(90deg,var(--amber),var(--green),var(--blue))}
 @keyframes slide{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
 .actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.btn{height:38px;border-radius:9px;border:1px solid #314967;background:#132238;color:#f4f8ff;font-size:13px;font-weight:900;cursor:pointer;transition:120ms ease;white-space:nowrap;padding:0 10px;min-width:0;overflow:hidden;text-overflow:ellipsis}.btn:hover{filter:brightness(1.08);transform:translateY(-1px)}.btn.primary{grid-column:1/-1;background:linear-gradient(180deg,#ffb13a,#ff9f21);border-color:#ffb13a;color:#121212}.btn.danger{background:linear-gradient(180deg,#ff6674,#eb3f51);border-color:#ff6674;color:#fff}
-.cards{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}.card{min-height:86px;border:1px solid #263a55;border-radius:12px;background:linear-gradient(145deg,#101d30,#0a1422);padding:13px;position:relative;overflow:hidden}.card:before{content:"";position:absolute;inset:0 auto auto 0;width:100%;height:3px;background:var(--blue)}.card:nth-child(2):before{background:var(--green)}.card:nth-child(3):before{background:var(--amber)}.card:nth-child(4):before{background:var(--violet)}.card:nth-child(5):before{background:var(--green)}.card small{display:block;color:#8ea0b8;font-size:11px;font-weight:800}.card b{display:block;margin-top:8px;font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.systemPanel{padding:13px;display:grid;gap:10px}.systemGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.systemTile{min-width:0;border:1px solid #223650;border-radius:11px;background:linear-gradient(145deg,rgba(12,24,40,.95),rgba(7,14,25,.95));padding:11px;position:relative;overflow:hidden}.systemTile:before{content:"";position:absolute;inset:0 auto auto 0;width:100%;height:2px;background:linear-gradient(90deg,var(--amber),var(--blue))}.systemTile small{display:block;color:#7e91ab;font-size:10px;font-weight:950;text-transform:uppercase;letter-spacing:0}.systemTile b{display:block;margin-top:6px;color:#f6f9ff;font-size:14px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.systemTile p{margin:5px 0 0;color:#93a6bd;font-size:11px;line-height:1.35;min-height:43px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.systemTile.ram:before{background:linear-gradient(90deg,var(--green),var(--amber))}.systemTile.gpu:before{background:linear-gradient(90deg,var(--blue),var(--violet))}.systemTile.os:before{background:linear-gradient(90deg,var(--violet),var(--green))}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}.cardButton{text-align:left;color:inherit;font:inherit;cursor:pointer}.cardButton:hover{filter:brightness(1.08);transform:translateY(-1px)}.card{min-height:86px;border:1px solid #263a55;border-radius:12px;background:linear-gradient(145deg,#101d30,#0a1422);padding:13px;position:relative;overflow:hidden}.card:before{content:"";position:absolute;inset:0 auto auto 0;width:100%;height:3px;background:var(--blue)}.card:nth-child(2):before{background:var(--green)}.card:nth-child(3):before{background:var(--amber)}.card:nth-child(4):before{background:var(--violet)}.card:nth-child(5):before{background:var(--green)}.card small{display:block;color:#8ea0b8;font-size:11px;font-weight:800}.card b{display:block;margin-top:8px;font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.systemPanel{padding:13px;display:grid;gap:10px}.systemGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.systemTile{min-width:0;border:1px solid #223650;border-radius:11px;background:linear-gradient(145deg,rgba(12,24,40,.95),rgba(7,14,25,.95));padding:11px;position:relative;overflow:hidden}.systemTile:before{content:"";position:absolute;inset:0 auto auto 0;width:100%;height:2px;background:linear-gradient(90deg,var(--amber),var(--blue))}.systemTile small{display:block;color:#7e91ab;font-size:10px;font-weight:850;letter-spacing:0}.systemTile b{display:block;margin-top:6px;color:#f6f9ff;font-size:14px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.systemTile p{margin:5px 0 0;color:#93a6bd;font-size:11px;line-height:1.35;min-height:43px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.systemTile.ram:before{background:linear-gradient(90deg,var(--green),var(--amber))}.systemTile.gpu:before{background:linear-gradient(90deg,var(--blue),var(--violet))}.systemTile.os:before{background:linear-gradient(90deg,var(--violet),var(--green))}
 .manager{min-height:0;padding:14px;display:grid;grid-template-rows:auto minmax(0,1fr);gap:10px}.panelTitle{display:flex;align-items:center;justify-content:space-between;gap:12px}.panelTitle h3{margin:0;font-size:18px}.panelTitle span{color:#71839b;font-size:11px;font-weight:800}
-.table{min-height:0;display:grid;grid-template-rows:30px minmax(0,1fr);border:1px solid #1d3048;border-radius:10px;overflow:hidden}.thead,.row{display:grid;grid-template-columns:minmax(130px,1.55fr) 64px 82px 58px 58px minmax(430px,3.2fr);align-items:center}.thead{background:#14243a;color:#9fb0c6;font-size:11px;font-weight:900}.row{min-height:38px;border-top:1px solid #1b2d44;background:#0b1524;color:#dde9f8;font-size:11px}.row:nth-child(even){background:#0e192a}.row>span{padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#rows{min-height:0;overflow:auto;scrollbar-color:#2e4565 #09111e;scrollbar-width:thin}.actionsCell{display:flex;align-items:center;gap:4px;padding:6px 8px!important;overflow:visible!important;white-space:normal!important;flex-wrap:wrap;align-content:center}
+.table{min-height:0;display:grid;grid-template-rows:30px minmax(0,1fr);border:1px solid #1d3048;border-radius:10px;overflow:auto;scrollbar-color:#2e4565 #09111e;scrollbar-width:thin}.thead,.row{width:100%;min-width:780px;display:grid;grid-template-columns:minmax(125px,1.45fr) 60px 78px 54px 56px minmax(320px,2.8fr);align-items:center}.thead{position:sticky;top:0;z-index:1;background:#14243a;color:#9fb0c6;font-size:11px;font-weight:900}.row{min-height:38px;border-top:1px solid #1b2d44;background:#0b1524;color:#dde9f8;font-size:11px}.row:nth-child(even){background:#0e192a}.row>span{padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#rows{min-height:0;overflow:visible}.actionsCell{display:flex;align-items:center;gap:4px;padding:6px 8px!important;overflow:visible!important;white-space:normal!important;flex-wrap:wrap;align-content:center}
 .badge{display:inline-flex;align-items:center;height:20px;border-radius:6px;border:1px solid #2b405e;background:#111f33;color:#cfe0f5;padding:0 6px;font-size:9px;font-weight:950;flex:0 0 auto}.badge.ok{border-color:#176649;background:#0c3225;color:var(--green)}.badge.cool{border-color:#6b5223;background:#2a2113;color:var(--amber)}.badge.skip{border-color:#40536d;color:#8fa1ba}.badge.deep{border-color:#8d5a18;background:#2b1d10;color:var(--amber)}.badge.balanced{border-color:#1a5d86;background:#0d263b;color:#58b9ff}.badge.light{border-color:#355178;background:#111f33;color:#b8c8dc}.badge.guard{border-color:#6a4cd4;background:#1b1633;color:#c9bbff}.policyButtons{display:inline-flex;align-items:center;gap:3px;margin-left:4px;padding-left:6px;border-left:1px solid rgba(255,255,255,.08)}.policyBtn{height:22px;min-width:23px;border-radius:6px;border:1px solid #2b405e;background:#0b1728;color:#93a8c2;font-size:9px;font-weight:950;cursor:pointer;padding:0 5px}.policyBtn:hover{border-color:var(--amber);color:#fff}.policyBtn.active{border-color:rgba(255,166,41,.75);background:rgba(255,166,41,.18);color:var(--amber)}.goodtxt{color:var(--green);font-weight:900}.amber{color:var(--amber)}
-.sidePanel{padding:14px;min-height:0;display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:12px}.focusBox{display:grid;grid-template-columns:1fr;gap:8px}.focusLine{border:1px solid #223650;border-radius:10px;background:#0a1728;padding:11px}.focusLine small{display:block;color:#71839b;font-size:10px;font-weight:900;text-transform:uppercase}.focusLine b{display:block;margin-top:4px;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidePanel{padding:14px;min-height:0;display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:12px}.focusBox{display:grid;grid-template-columns:1fr;gap:8px}.focusLine{border:1px solid #223650;border-radius:10px;background:#0a1728;padding:11px}.focusLine small{display:block;color:#71839b;font-size:10px;font-weight:850}.focusLine b{display:block;margin-top:4px;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .permissionBox{display:none;border:1px solid rgba(255,166,41,.42);border-radius:12px;background:linear-gradient(145deg,rgba(255,166,41,.14),rgba(12,23,38,.92));padding:12px}.permissionBox.show{display:grid;gap:8px}.permissionBox small{display:block;color:var(--amber);font-size:10px;font-weight:950;text-transform:uppercase}.permissionBox b{display:block;font-size:15px}.permissionBox p{margin:0;color:#afbfd2;font-size:11px;line-height:1.4}.permissionBox .btn{height:36px}
 .timeline{min-height:0;border:1px solid #1d3048;border-radius:10px;background:#08111d;padding:8px;overflow:auto;scrollbar-color:#2e4565 #09111e;scrollbar-width:thin}.eventLine{display:grid;grid-template-columns:58px minmax(0,1fr);gap:8px;border-bottom:1px solid rgba(255,255,255,.05);padding:7px 2px;color:#dce8f8;font-family:Consolas,monospace;font-size:11px;line-height:1.35}.eventLine:last-child{border-bottom:0}.eventLine time{color:var(--amber);font-weight:900}.eventLine span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .feedbox{display:none}.status{display:none}.footer{display:none}
@@ -80,12 +95,19 @@ button{font:inherit}
 .infoOverlay.open{display:flex}
 .infoPanel{width:min(560px,calc(100vw - 48px));border:1px solid rgba(154,114,255,.42);border-radius:18px;background:radial-gradient(circle at 15% 0%,rgba(154,114,255,.20),transparent 38%),linear-gradient(145deg,#101b2c,#08111e);box-shadow:0 28px 80px rgba(0,0,0,.52);padding:20px}
 .infoPanel h2{margin:0;font-size:24px}.infoPanel p{margin:8px 0 14px;color:#a9b8ca;font-size:13px;line-height:1.45}.infoList{display:grid;gap:8px;margin:0 0 16px;padding:0;list-style:none}.infoList li{border:1px solid #223650;border-radius:11px;background:#0a1728;padding:10px;color:#dbe7f6;font-size:12px;line-height:1.35}.infoActions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.infoActions .btn{height:40px}
-@media(max-width:1280px){.dashboard{grid-template-columns:1fr}.rightCol{grid-template-rows:minmax(320px,420px)}.command{grid-template-columns:minmax(0,1fr) minmax(340px,380px)}.systemGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:900px){.app{grid-template-columns:64px minmax(0,1fr)}.rail{padding-top:12px}.nav{width:42px;height:42px}.brandMark{width:42px;height:42px}.workspace{padding:14px}.topbar{height:auto;align-items:flex-start;flex-direction:column}.statusBar{justify-content:flex-start}.command{grid-template-columns:1fr}.featureGrid,.cards,.systemGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard{grid-template-columns:1fr}.headline{font-size:30px}.languageGrid{grid-template-columns:1fr}}
+@media(max-width:1320px){.dashboard{grid-template-columns:1fr}.rightCol{grid-template-rows:minmax(320px,420px)}}
+@media(max-width:1120px){.command{grid-template-columns:1fr}.engineCard{max-width:none}.featureGrid{max-width:none}.intelligencePanel{max-width:none}}
+@media(max-width:900px){.app{grid-template-columns:64px minmax(0,1fr)}.rail{padding-top:12px}.nav{width:42px;height:42px}.brandMark{width:42px;height:42px}.workspace{padding:14px}.topbar{height:auto;align-items:flex-start;flex-direction:column}.statusBar{justify-content:flex-start;padding-right:104px}.featureGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard{grid-template-columns:1fr}.headline{font-size:30px}.languageGrid{grid-template-columns:1fr}}
+@media(max-width:720px){.app{grid-template-columns:56px minmax(0,1fr)}.workspace{padding:12px}.featureGrid,.cards,.systemGrid,.intelStats,.metricGrid{grid-template-columns:1fr}.intelTop{grid-template-columns:1fr}.intelStats span{border-left:0;border-top:1px solid rgba(255,255,255,.08);padding-left:0;padding-top:8px}.intelStats span:first-child{border-top:0;padding-top:0}.meter{grid-template-columns:1fr}.actions{grid-template-columns:1fr}.btn.primary{grid-column:auto}.table{max-width:calc(100vw - 92px)}}
 </style>
 </head>
 <body>
 <div class="app">
+  <div class="windowControls">
+    <button class="chromeBtn" title="Minimize" onclick="send('minimize')">-</button>
+    <button class="chromeBtn" title="Maximize" onclick="send('maximize')">&#9633;</button>
+    <button class="chromeBtn close" title="Close" onclick="send('close')">x</button>
+  </div>
   <aside class="rail">
     <div class="brandMark"><img id="logo" alt=""></div>
     <nav class="navStack">
@@ -103,9 +125,9 @@ button{font:inherit}
         <div class="titleBlock"><b data-i18n="appTitle">Smart Nap</b><span data-i18n="appSubtitle">Background control for gaming and multitasking</span></div>
         <div class="statusBar">
           <button class="langButton" id="languageButton" onclick="openLanguagePicker(false)">Language</button>
-          <span class="pill good" id="live"><i class="pulseDot"></i>LIVE</span>
-          <span class="pill" id="motor">MOTOR</span>
-          <span class="pill" id="startup">STARTUP</span>
+          <button class="startupAction" id="startup" type="button" onclick="send('toggleStartup')"><span id="startupText">Inicializacao</span></button>
+          <span class="pill good" id="live"><i class="pulseDot"></i>Atualizando</span>
+          <span class="pill" id="motor">Motor</span>
         </div>
       </section>
       <section class="dashboard">
@@ -113,7 +135,6 @@ button{font:inherit}
           <section class="panel command">
             <div class="commandHero">
               <div>
-                <div class="eyebrow" data-i18n="eyebrow">Nap Engine</div>
                 <h1 class="headline" data-i18n="headline">Background apps under control</h1>
                 <p class="subline" data-i18n="subline">Apps abertos ficam leves enquanto a janela ativa recupera prioridade instantaneamente.</p>
               </div>
@@ -122,16 +143,23 @@ button{font:inherit}
                 <div class="feature"><small data-i18n="feature2K">Memory</small><b data-i18n="feature2T">Adaptive trim</b><p data-i18n="feature2D">Reduz sobra de RAM com cooldown para evitar agressividade.</p></div>
                 <div class="feature"><small data-i18n="feature3K">Scheduler</small><b data-i18n="feature3T">Tiered nap</b><p data-i18n="feature3D">Light, Balanced e Deep conforme uso real do processo.</p></div>
               </div>
-              <div class="learningStrip" onclick="openLearningInfo()">
-                <div><small data-i18n="learningK">Optional power</small><b data-i18n="learningT">Smart Learning</b><p id="learningDetail" data-i18n="learningD">Learns your sessions locally and adapts nap strength when memory pressure rises.</p></div>
-                <button class="learningToggle" id="learningToggle" onclick="openLearningInfo();event.stopPropagation()">Enable</button>
+              <div class="intelligencePanel">
+                <div class="intelTop">
+                  <div class="intelCopy"><small data-i18n="intelK">Aprendizado</small><b data-i18n="intelT">Behavior-aware decisions</b><p id="intelDetail" data-i18n="intelD">The engine compares app response, memory return and wake history before choosing Light, Balanced or Deep.</p></div>
+                  <button class="learningToggle" id="learningToggle" onclick="openLearningInfo();event.stopPropagation()">Enable</button>
+                </div>
+                <div class="intelStats">
+                  <span><strong id="behaviorProfilesHero">0</strong><em data-i18n="behaviorProfilesLabel">Local profiles</em></span>
+                  <span><strong id="intelPressure">-</strong><em data-i18n="memoryPressure">Memory pressure</em></span>
+                  <span><strong id="intelLearning">-</strong><em data-i18n="smartLearning">Smart Learning</em></span>
+                </div>
               </div>
               <div class="chipRow">
                 <span class="chip cpu" data-i18n="chipCpu">CPU priority</span><span class="chip ram" data-i18n="chipRam">RAM trim</span><span class="chip eco">EcoQoS</span><span class="chip wake" data-i18n="chipWake">Fast wake</span>
               </div>
             </div>
             <div class="engineCard" id="control">
-              <div class="engineHead"><h2 id="actionTitle">Nap Engine</h2><span class="state" id="state">READY</span></div>
+              <div class="engineHead"><h2 id="actionTitle">Controle em tempo real</h2><span class="state" id="state">Pronto</span></div>
               <div class="detail" id="detail">Waiting.</div>
               <div class="meter">
                 <div class="ring" id="ring"><div><b id="ringValue">0</b><small id="ringLabel">apps</small></div></div>
@@ -139,7 +167,7 @@ button{font:inherit}
                   <div class="mini"><small data-i18n="nextCycle">Next cycle</small><b id="engineNext">-</b></div>
                   <div class="mini"><small data-i18n="lastEvent">Last event</small><b id="engineEvent">-</b></div>
                   <div class="mini"><small data-i18n="wake">Wake</small><b id="engineWake">-</b></div>
-                  <div class="mini"><small>UI</small><b id="engineBeat">-</b></div>
+                  <div class="mini"><small data-i18n="panelLabel">Painel</small><b id="engineBeat">-</b></div>
                 </div>
               </div>
               <div class="bar"><i></i></div>
@@ -148,7 +176,7 @@ button{font:inherit}
           </section>
           <section class="cards">
             <div class="card"><small data-i18n="autoMode">Auto mode</small><b id="autoCard">-</b></div>
-            <div class="card"><small data-i18n="startup">Startup</small><b id="startupCard">-</b></div>
+            <button class="card cardButton" id="startupCardShell" type="button" onclick="send('toggleStartup')"><small data-i18n="startup">Startup</small><b id="startupCard">-</b></button>
             <div class="card"><small data-i18n="smartLearning">Smart Learning</small><b id="learningCard">-</b></div>
             <div class="card"><small data-i18n="lastEvent">Last event</small><b id="lastCard">-</b></div>
             <div class="card"><small data-i18n="lastResult">Last result</small><b id="resultCard">-</b></div>
@@ -177,6 +205,7 @@ button{font:inherit}
               <div class="focusLine"><small data-i18n="topManaged">Top managed app</small><b id="engineTop">-</b></div>
               <div class="focusLine"><small data-i18n="reclaimedMemory">Reclaimed memory</small><b id="reclaimedValue">0 MB</b></div>
               <div class="focusLine"><small data-i18n="learnedProfiles">Learned profiles</small><b id="learnedProfiles">0</b></div>
+              <div class="focusLine"><small data-i18n="behaviorEngine">Behavior engine</small><b id="behaviorState">-</b></div>
               <div class="focusLine"><small data-i18n="memoryPressure">Memory pressure</small><b id="memoryPressure">-</b></div>
               <div class="focusLine"><small data-i18n="intentState">Intent engine</small><b id="intentState">-</b></div>
               <div class="focusLine"><small data-i18n="contentionRadar">Contention radar</small><b id="radarState">-</b></div>
@@ -199,12 +228,12 @@ button{font:inherit}
     <h2 data-i18n="languageTitle">Choose your language</h2>
     <p data-i18n="languageSubtitle">This only changes the launcher text. The optimizer keeps the same safe behavior in the background.</p>
     <div class="languageGrid" id="languageGrid">
-      <button class="locale" data-lang="pt-BR"><b>Português BR</b><span>Interface natural em português do Brasil.</span></button>
+      <button class="locale" data-lang="pt-BR"><b>PortuguÃªs BR</b><span>Interface natural em portuguÃªs do Brasil.</span></button>
       <button class="locale" data-lang="en-US"><b>English</b><span>Clean gaming and multitasking copy.</span></button>
-      <button class="locale" data-lang="ru-RU"><b>Русский</b><span>Аккуратная локализация интерфейса.</span></button>
-      <button class="locale" data-lang="es-ES"><b>Español</b><span>Texto claro para uso diario.</span></button>
-      <button class="locale" data-lang="fr-FR"><b>Français</b><span>Interface concise et lisible.</span></button>
-      <button class="locale" data-lang="de-DE"><b>Deutsch</b><span>Klare Oberfläche ohne Ballast.</span></button>
+      <button class="locale" data-lang="ru-RU"><b>Ð ÑƒÑÑÐºÐ¸Ð¹</b><span>ÐÐºÐºÑƒÑ€Ð°Ñ‚Ð½Ð°Ñ Ð»Ð¾ÐºÐ°Ð»Ð¸Ð·Ð°Ñ†Ð¸Ñ Ð¸Ð½Ñ‚ÐµÑ€Ñ„ÐµÐ¹ÑÐ°.</span></button>
+      <button class="locale" data-lang="es-ES"><b>EspaÃ±ol</b><span>Texto claro para uso diario.</span></button>
+      <button class="locale" data-lang="fr-FR"><b>FranÃ§ais</b><span>Interface concise et lisible.</span></button>
+      <button class="locale" data-lang="de-DE"><b>Deutsch</b><span>Klare OberflÃ¤che ohne Ballast.</span></button>
     </div>
   </div>
 </div>
@@ -243,24 +272,25 @@ button{font:inherit}
 const $ = (id) => document.getElementById(id);
 const LANGS = {
   "pt-BR": {
-    languageName:"Português BR", appTitle:"Smart Nap", appSubtitle:"Controle de apps em segundo plano para jogos e multitarefa",
-    navDashboard:"Dashboard", navScore:"Nap Score", navLog:"Log de atividade", navFiles:"Arquivos locais", navGithub:"GitHub",
-    eyebrow:"Nap Engine", headline:"Apps em segundo plano sob controle", subline:"Apps abertos ficam leves enquanto a janela ativa recupera prioridade instantaneamente.",
-    feature1K:"Janela ativa", feature1T:"Fast wake", feature1D:"Restaura prioridade assim que voce troca de janela.",
+    languageName:"PortuguÃªs BR", appTitle:"Smart Nap", appSubtitle:"Controle de apps em segundo plano para jogos e multitarefa",
+    navDashboard:"Dashboard", navScore:"Nap Score", navLog:"Log de atividade", navFiles:"Arquivos locais", navGithub:"GitHub", headline:"Apps em segundo plano sob controle", subline:"Apps abertos ficam leves enquanto a janela ativa recupera prioridade instantaneamente.",
+    feature1K:"Janela ativa", feature1T:"Retorno rapido", feature1D:"Restaura prioridade assim que voce troca de janela.",
     feature2K:"Memoria", feature2T:"Trim adaptativo", feature2D:"Reduz sobra de RAM com cooldown para evitar agressividade.",
     feature3K:"Agendador", feature3T:"Nap por nivel", feature3D:"Light, Balanced e Deep conforme o uso real do processo.",
-    chipCpu:"Prioridade CPU", chipRam:"Trim de RAM", chipWake:"Fast wake", nextCycle:"Proximo ciclo", lastEvent:"Ultimo evento", wake:"Wake",
-    autoMode:"Modo automatico", startup:"Inicializacao", lastResult:"Ultimo resultado", liveManager:"Live Manager", engineTelemetry:"Telemetria do motor",
-    topManaged:"App mais gerenciado", reclaimedMemory:"Memoria recuperada", colApp:"App", colScore:"Score", colBursts:"Bursts", colAction:"Acao",
+    chipCpu:"Prioridade CPU", chipRam:"Trim de RAM", chipWake:"Retorno rapido", nextCycle:"Proximo ciclo", lastEvent:"Ultimo evento", wake:"Retorno",
+    autoMode:"Modo automatico", startup:"Inicializacao", lastResult:"Ultimo resultado", liveManager:"Gerenciador ao vivo", engineTelemetry:"Atividade do motor",
+    topManaged:"Maior impacto agora", reclaimedMemory:"Memoria aliviada", colApp:"App", colScore:"Score", colBursts:"Picos", colAction:"Acao",
     languageTitle:"Escolha o idioma", languageSubtitle:"Isso muda apenas o texto do launcher. O otimizador continua com o mesmo comportamento seguro em segundo plano.",
-    apply:"Otimizar agora", stop:"Parar", pauseMotor:"Pausar motor", resumeMotor:"Retomar motor", restore:"Restore",
-    on:"On", off:"Off", live:"LIVE", motorActive:"MOTOR ACTIVE", manual:"MANUAL", startupOn:"STARTUP ON", startupOff:"STARTUP OFF",
+    apply:"Otimizar agora", stop:"Parar", pauseMotor:"Pausar motor", resumeMotor:"Retomar motor", restore:"Restaurar",
+    on:"Ligado", off:"Desligado", live:"Atualizando", motorActive:"Motor ativo", manual:"Manual", startupOn:"Inicia com Windows", startupOff:"Inicializacao off",
     apps:"apps", noEntries:"Nenhuma entrada gerenciada ainda.", runPass:"Rode um passe para preencher os dados ao vivo.", tracking:"Monitorando {count} entradas recentes",
-    noRun:"Nenhum passe ainda", fastWake:"Fast wake", manualWake:"Manual", event:"evento", next:"prox.", noEvent:"sem evento", now:"agora", ago:"atras", paused:"pausado", waiting:"aguardando", dueNow:"agora",
-    detailArmed:"Fast wake armado. Apps em segundo plano sao ajustados por nivel.", detailPaused:"Pausado. Rode um passe manual ou retome o motor.",
-    wakeGuard:"wake guard ativo", startupOffDetail:"startup off", working:"Trabalhando em segundo plano...",
-    learningK:"Poder extra", learningT:"Smart Learning", learningD:"Aprende suas sessoes localmente e ajusta o nap quando a memoria aperta.",
-    smartLearning:"Smart Learning", learnedProfiles:"Perfis aprendidos", memoryPressure:"Pressao de memoria", intentState:"Intent Engine", contentionRadar:"Radar de contencao", enableLearning:"Ativar", disableLearning:"Desativar", learningOn:"Ligado", learningOff:"Desligado",
+    nowShort:"Agora", passLabel:"Passe", watchLabel:"Motor", wakeLabel:"Retorno", behaviorLabel:"Perfil", learnLabel:"Aprendizado", adminLabel:"Admin", policyLabel:"Politica", tiersLabel:"niveis", trimLabel:"trim", cooldownLabel:"cooldown", panelLabel:"Painel",
+    noRun:"Nenhum passe ainda", fastWake:"Retorno rapido", manualWake:"Manual", event:"evento", next:"prox.", noEvent:"sem evento", now:"agora", ago:"atras", paused:"pausado", waiting:"aguardando", dueNow:"agora",
+    detailArmed:"Retorno rapido armado. Apps em segundo plano sao ajustados por nivel.", detailPaused:"Pausado. Rode um passe manual ou retome o motor.",
+    wakeGuard:"retorno protegido", startupOffDetail:"inicializacao off", working:"Trabalhando em segundo plano...",
+    intelK:"Aprendizado", intelT:"Decisao por comportamento", intelD:"O motor compara resposta, retorno de memoria e historico de wake antes de escolher Light, Balanced ou Deep.",
+    learningK:"Perfil opcional", learningT:"Smart Learning", learningD:"Aprende suas sessoes localmente e ajusta o nap quando a memoria aperta.",
+    smartLearning:"Smart Learning", learnedProfiles:"Perfis de sessao", memoryPressure:"Memoria do sistema", intentState:"Contexto atual", contentionRadar:"Pressao em segundo plano", enableLearning:"Ativar", disableLearning:"Desativar", learningOn:"Ligado", learningOff:"Desligado",
     learningModalTitle:"Smart Learning", learningModalBody:"Modo opcional que aprende como seus apps se comportam e adapta os proximos passes sem enviar dados para lugar nenhum.",
     learningModalLocal:"Os perfis ficam neste PC e usam nome/caminho do processo, memoria, bursts de CPU e eventos de wake.",
     learningModalWake:"Apps que voce traz de volta com frequencia recebem um perfil mais leve de Fast Wake.",
@@ -276,8 +306,7 @@ const LANGS = {
   },
   "en-US": {
     languageName:"English", appTitle:"Smart Nap", appSubtitle:"Background control for gaming and multitasking",
-    navDashboard:"Dashboard", navScore:"Nap Score", navLog:"Activity Log", navFiles:"Local Files", navGithub:"GitHub",
-    eyebrow:"Nap Engine", headline:"Background apps under control", subline:"Open apps stay light while your active window instantly regains priority.",
+    navDashboard:"Dashboard", navScore:"Nap Score", navLog:"Activity Log", navFiles:"Local Files", navGithub:"GitHub", headline:"Background apps under control", subline:"Open apps stay light while your active window instantly regains priority.",
     feature1K:"Foreground", feature1T:"Fast wake", feature1D:"Restores priority as soon as you switch windows.",
     feature2K:"Memory", feature2T:"Adaptive trim", feature2D:"Reduces spare RAM with cooldowns to avoid being aggressive.",
     feature3K:"Scheduler", feature3T:"Tiered nap", feature3D:"Light, Balanced and Deep based on real process behavior.",
@@ -286,12 +315,13 @@ const LANGS = {
     topManaged:"Top managed app", reclaimedMemory:"Reclaimed memory", colApp:"App", colScore:"Score", colBursts:"Bursts", colAction:"Action",
     languageTitle:"Choose your language", languageSubtitle:"This only changes launcher text. The optimizer keeps the same safe background behavior.",
     apply:"Optimize now", stop:"Stop", pauseMotor:"Pause motor", resumeMotor:"Resume motor", restore:"Restore",
-    on:"On", off:"Off", live:"LIVE", motorActive:"MOTOR ACTIVE", manual:"MANUAL", startupOn:"STARTUP ON", startupOff:"STARTUP OFF",
+    on:"On", off:"Off", live:"Updating", motorActive:"Engine active", manual:"Manual", startupOn:"Starts with Windows", startupOff:"Startup off",
     apps:"apps", noEntries:"No managed entries yet.", runPass:"Run a pass to populate live entries.", tracking:"Tracking {count} latest entries",
     noRun:"No run yet", fastWake:"Fast wake", manualWake:"Manual", event:"event", next:"next", noEvent:"no event", now:"now", ago:"ago", paused:"paused", waiting:"waiting", dueNow:"due now",
     detailArmed:"Foreground wake is armed. Background apps are tuned by tier.", detailPaused:"Paused. Run a manual pass or resume the engine.",
     wakeGuard:"wake guard active", startupOffDetail:"startup off", working:"Working in the background...",
-    learningK:"Optional power", learningT:"Smart Learning", learningD:"Learns sessions locally and adapts nap strength when memory pressure rises.",
+    intelK:"Learning", intelT:"Behavior-aware decisions", intelD:"The engine compares app response, memory return and wake history before choosing Light, Balanced or Deep.",
+    learningK:"Optional profile", learningT:"Smart Learning", learningD:"Learns sessions locally and adapts nap strength when memory pressure rises.",
     smartLearning:"Smart Learning", learnedProfiles:"Learned profiles", memoryPressure:"Memory pressure", intentState:"Intent Engine", contentionRadar:"Contention radar", enableLearning:"Enable", disableLearning:"Disable", learningOn:"On", learningOff:"Off",
     learningModalTitle:"Smart Learning", learningModalBody:"Optional mode that learns how your apps behave and adapts future passes without sending data anywhere.",
     learningModalLocal:"Profiles stay on this PC and use process name/path, memory use, CPU bursts, and wake events.",
@@ -307,41 +337,40 @@ const LANGS = {
     cancel:"Cancel"
   },
   "ru-RU": {
-    languageName:"Русский", appTitle:"Smart Nap", appSubtitle:"Контроль фоновых приложений для игр и многозадачности",
-    navDashboard:"Панель", navScore:"Nap Score", navLog:"Журнал", navFiles:"Файлы", navGithub:"GitHub",
-    eyebrow:"Nap Engine", headline:"Фоновые приложения под контролем", subline:"Открытые приложения становятся легче, а активное окно мгновенно возвращает приоритет.",
-    feature1K:"Активное окно", feature1T:"Быстрое пробуждение", feature1D:"Возвращает приоритет сразу после переключения окна.",
-    feature2K:"Память", feature2T:"Адаптивная очистка", feature2D:"Освобождает лишнюю RAM с паузами, чтобы не действовать слишком агрессивно.",
-    feature3K:"Планировщик", feature3T:"Уровни Nap", feature3D:"Light, Balanced и Deep по реальному поведению процесса.",
-    chipCpu:"Приоритет CPU", chipRam:"Очистка RAM", chipWake:"Fast wake", nextCycle:"Следующий цикл", lastEvent:"Последнее событие", wake:"Пробуждение",
-    autoMode:"Авто режим", startup:"Автозапуск", lastResult:"Последний результат", liveManager:"Живой менеджер", engineTelemetry:"Телеметрия движка",
-    topManaged:"Главное приложение", reclaimedMemory:"Освобождено памяти", colApp:"Приложение", colScore:"Оценка", colBursts:"Всплески", colAction:"Действие",
-    languageTitle:"Выберите язык", languageSubtitle:"Меняется только текст лаунчера. Оптимизатор продолжает работать безопасно в фоне.",
-    apply:"Оптимизировать", stop:"Стоп", pauseMotor:"Пауза", resumeMotor:"Запустить", restore:"Восстановить",
-    on:"Вкл", off:"Выкл", live:"LIVE", motorActive:"ДВИЖОК АКТИВЕН", manual:"РУЧНОЙ", startupOn:"АВТОЗАПУСК ВКЛ", startupOff:"АВТОЗАПУСК ВЫКЛ",
-    apps:"прил.", noEntries:"Пока нет управляемых записей.", runPass:"Запустите проход, чтобы заполнить живые данные.", tracking:"Отслеживается последних записей: {count}",
-    noRun:"Запусков еще нет", fastWake:"Быстро", manualWake:"Ручной", event:"событие", next:"след.", noEvent:"нет событий", now:"сейчас", ago:"назад", paused:"пауза", waiting:"ожидание", dueNow:"сейчас",
-    detailArmed:"Быстрое пробуждение включено. Фоновые приложения настраиваются по уровням.", detailPaused:"Пауза. Запустите ручной проход или включите движок.",
-    wakeGuard:"wake guard активен", startupOffDetail:"автозапуск выключен", working:"Работа в фоне...",
-    learningK:"Дополнительная сила", learningT:"Smart Learning", learningD:"Локально изучает сессии и усиливает nap при давлении на память.",
-    smartLearning:"Smart Learning", learnedProfiles:"Изученные профили", memoryPressure:"Давление памяти", enableLearning:"Включить", disableLearning:"Выключить", learningOn:"Вкл", learningOff:"Выкл",
-    learningModalTitle:"Smart Learning", learningModalBody:"Опциональный режим изучает поведение приложений и адаптирует будущие проходы без отправки данных.",
-    learningModalLocal:"Профили остаются на этом ПК и используют имя/путь процесса, память, всплески CPU и события wake.",
-    learningModalWake:"Приложения, к которым вы часто возвращаетесь, получают более легкий профиль Fast Wake.",
-    learningModalPressure:"Когда памяти мало, тяжелые бездействующие фоновые приложения могут получить более сильный nap.",
-    learningModalSafe:"Не закрывает приложения, не меняет драйверы, планы питания и не отправляет телеметрию.",
-    permissionK:"Разрешение", permissionT:"Приложения отказали", permissionBody:"{count} прилож. отказали: {apps}. Можно разрешить один запуск от администратора.",
-    requestAdmin:"Запросить admin", alreadyElevated:"Уже admin", adminModalTitle:"Запуск администратора", adminModalBody:"Некоторые приложения отказали, потому что Windows требует больше прав. Smart Nap может открыть UAC и выполнить один повышенный проход.",
-    adminModalScope:"Smart Nap не останется постоянно повышенным. Будет выполнен только один проход.",
-    adminModalNoService:"Не устанавливает драйверы, службы, расширения и не меняет планы питания.",
-    adminModalProtected:"Некоторые защищенные приложения могут отказать даже с правами администратора.",
-    openUac:"Открыть UAC",
-    cancel:"Отмена"
+    languageName:"Ð ÑƒÑÑÐºÐ¸Ð¹", appTitle:"Smart Nap", appSubtitle:"ÐšÐ¾Ð½Ñ‚Ñ€Ð¾Ð»ÑŒ Ñ„Ð¾Ð½Ð¾Ð²Ñ‹Ñ… Ð¿Ñ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ð¹ Ð´Ð»Ñ Ð¸Ð³Ñ€ Ð¸ Ð¼Ð½Ð¾Ð³Ð¾Ð·Ð°Ð´Ð°Ñ‡Ð½Ð¾ÑÑ‚Ð¸",
+    navDashboard:"ÐŸÐ°Ð½ÐµÐ»ÑŒ", navScore:"Nap Score", navLog:"Ð–ÑƒÑ€Ð½Ð°Ð»", navFiles:"Ð¤Ð°Ð¹Ð»Ñ‹", navGithub:"GitHub", headline:"Ð¤Ð¾Ð½Ð¾Ð²Ñ‹Ðµ Ð¿Ñ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ñ Ð¿Ð¾Ð´ ÐºÐ¾Ð½Ñ‚Ñ€Ð¾Ð»ÐµÐ¼", subline:"ÐžÑ‚ÐºÑ€Ñ‹Ñ‚Ñ‹Ðµ Ð¿Ñ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ñ ÑÑ‚Ð°Ð½Ð¾Ð²ÑÑ‚ÑÑ Ð»ÐµÐ³Ñ‡Ðµ, Ð° Ð°ÐºÑ‚Ð¸Ð²Ð½Ð¾Ðµ Ð¾ÐºÐ½Ð¾ Ð¼Ð³Ð½Ð¾Ð²ÐµÐ½Ð½Ð¾ Ð²Ð¾Ð·Ð²Ñ€Ð°Ñ‰Ð°ÐµÑ‚ Ð¿Ñ€Ð¸Ð¾Ñ€Ð¸Ñ‚ÐµÑ‚.",
+    feature1K:"ÐÐºÑ‚Ð¸Ð²Ð½Ð¾Ðµ Ð¾ÐºÐ½Ð¾", feature1T:"Ð‘Ñ‹ÑÑ‚Ñ€Ð¾Ðµ Ð¿Ñ€Ð¾Ð±ÑƒÐ¶Ð´ÐµÐ½Ð¸Ðµ", feature1D:"Ð’Ð¾Ð·Ð²Ñ€Ð°Ñ‰Ð°ÐµÑ‚ Ð¿Ñ€Ð¸Ð¾Ñ€Ð¸Ñ‚ÐµÑ‚ ÑÑ€Ð°Ð·Ñƒ Ð¿Ð¾ÑÐ»Ðµ Ð¿ÐµÑ€ÐµÐºÐ»ÑŽÑ‡ÐµÐ½Ð¸Ñ Ð¾ÐºÐ½Ð°.",
+    feature2K:"ÐŸÐ°Ð¼ÑÑ‚ÑŒ", feature2T:"ÐÐ´Ð°Ð¿Ñ‚Ð¸Ð²Ð½Ð°Ñ Ð¾Ñ‡Ð¸ÑÑ‚ÐºÐ°", feature2D:"ÐžÑÐ²Ð¾Ð±Ð¾Ð¶Ð´Ð°ÐµÑ‚ Ð»Ð¸ÑˆÐ½ÑŽÑŽ RAM Ñ Ð¿Ð°ÑƒÐ·Ð°Ð¼Ð¸, Ñ‡Ñ‚Ð¾Ð±Ñ‹ Ð½Ðµ Ð´ÐµÐ¹ÑÑ‚Ð²Ð¾Ð²Ð°Ñ‚ÑŒ ÑÐ»Ð¸ÑˆÐºÐ¾Ð¼ Ð°Ð³Ñ€ÐµÑÑÐ¸Ð²Ð½Ð¾.",
+    feature3K:"ÐŸÐ»Ð°Ð½Ð¸Ñ€Ð¾Ð²Ñ‰Ð¸Ðº", feature3T:"Ð£Ñ€Ð¾Ð²Ð½Ð¸ Nap", feature3D:"Light, Balanced Ð¸ Deep Ð¿Ð¾ Ñ€ÐµÐ°Ð»ÑŒÐ½Ð¾Ð¼Ñƒ Ð¿Ð¾Ð²ÐµÐ´ÐµÐ½Ð¸ÑŽ Ð¿Ñ€Ð¾Ñ†ÐµÑÑÐ°.",
+    chipCpu:"ÐŸÑ€Ð¸Ð¾Ñ€Ð¸Ñ‚ÐµÑ‚ CPU", chipRam:"ÐžÑ‡Ð¸ÑÑ‚ÐºÐ° RAM", chipWake:"Fast wake", nextCycle:"Ð¡Ð»ÐµÐ´ÑƒÑŽÑ‰Ð¸Ð¹ Ñ†Ð¸ÐºÐ»", lastEvent:"ÐŸÐ¾ÑÐ»ÐµÐ´Ð½ÐµÐµ ÑÐ¾Ð±Ñ‹Ñ‚Ð¸Ðµ", wake:"ÐŸÑ€Ð¾Ð±ÑƒÐ¶Ð´ÐµÐ½Ð¸Ðµ",
+    autoMode:"ÐÐ²Ñ‚Ð¾ Ñ€ÐµÐ¶Ð¸Ð¼", startup:"ÐÐ²Ñ‚Ð¾Ð·Ð°Ð¿ÑƒÑÐº", lastResult:"ÐŸÐ¾ÑÐ»ÐµÐ´Ð½Ð¸Ð¹ Ñ€ÐµÐ·ÑƒÐ»ÑŒÑ‚Ð°Ñ‚", liveManager:"Ð–Ð¸Ð²Ð¾Ð¹ Ð¼ÐµÐ½ÐµÐ´Ð¶ÐµÑ€", engineTelemetry:"Ð¢ÐµÐ»ÐµÐ¼ÐµÑ‚Ñ€Ð¸Ñ Ð´Ð²Ð¸Ð¶ÐºÐ°",
+    topManaged:"Ð“Ð»Ð°Ð²Ð½Ð¾Ðµ Ð¿Ñ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ðµ", reclaimedMemory:"ÐžÑÐ²Ð¾Ð±Ð¾Ð¶Ð´ÐµÐ½Ð¾ Ð¿Ð°Ð¼ÑÑ‚Ð¸", colApp:"ÐŸÑ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ðµ", colScore:"ÐžÑ†ÐµÐ½ÐºÐ°", colBursts:"Ð’ÑÐ¿Ð»ÐµÑÐºÐ¸", colAction:"Ð”ÐµÐ¹ÑÑ‚Ð²Ð¸Ðµ",
+    languageTitle:"Ð’Ñ‹Ð±ÐµÑ€Ð¸Ñ‚Ðµ ÑÐ·Ñ‹Ðº", languageSubtitle:"ÐœÐµÐ½ÑÐµÑ‚ÑÑ Ñ‚Ð¾Ð»ÑŒÐºÐ¾ Ñ‚ÐµÐºÑÑ‚ Ð»Ð°ÑƒÐ½Ñ‡ÐµÑ€Ð°. ÐžÐ¿Ñ‚Ð¸Ð¼Ð¸Ð·Ð°Ñ‚Ð¾Ñ€ Ð¿Ñ€Ð¾Ð´Ð¾Ð»Ð¶Ð°ÐµÑ‚ Ñ€Ð°Ð±Ð¾Ñ‚Ð°Ñ‚ÑŒ Ð±ÐµÐ·Ð¾Ð¿Ð°ÑÐ½Ð¾ Ð² Ñ„Ð¾Ð½Ðµ.",
+    apply:"ÐžÐ¿Ñ‚Ð¸Ð¼Ð¸Ð·Ð¸Ñ€Ð¾Ð²Ð°Ñ‚ÑŒ", stop:"Ð¡Ñ‚Ð¾Ð¿", pauseMotor:"ÐŸÐ°ÑƒÐ·Ð°", resumeMotor:"Ð—Ð°Ð¿ÑƒÑÑ‚Ð¸Ñ‚ÑŒ", restore:"Ð’Ð¾ÑÑÑ‚Ð°Ð½Ð¾Ð²Ð¸Ñ‚ÑŒ",
+    on:"Ð’ÐºÐ»", off:"Ð’Ñ‹ÐºÐ»", live:"LIVE", motorActive:"Ð”Ð’Ð˜Ð–ÐžÐš ÐÐšÐ¢Ð˜Ð’Ð•Ð", manual:"Ð Ð£Ð§ÐÐžÐ™", startupOn:"ÐÐ’Ð¢ÐžÐ—ÐÐŸÐ£Ð¡Ðš Ð’ÐšÐ›", startupOff:"ÐÐ’Ð¢ÐžÐ—ÐÐŸÐ£Ð¡Ðš Ð’Ð«ÐšÐ›",
+    apps:"Ð¿Ñ€Ð¸Ð».", noEntries:"ÐŸÐ¾ÐºÐ° Ð½ÐµÑ‚ ÑƒÐ¿Ñ€Ð°Ð²Ð»ÑÐµÐ¼Ñ‹Ñ… Ð·Ð°Ð¿Ð¸ÑÐµÐ¹.", runPass:"Ð—Ð°Ð¿ÑƒÑÑ‚Ð¸Ñ‚Ðµ Ð¿Ñ€Ð¾Ñ…Ð¾Ð´, Ñ‡Ñ‚Ð¾Ð±Ñ‹ Ð·Ð°Ð¿Ð¾Ð»Ð½Ð¸Ñ‚ÑŒ Ð¶Ð¸Ð²Ñ‹Ðµ Ð´Ð°Ð½Ð½Ñ‹Ðµ.", tracking:"ÐžÑ‚ÑÐ»ÐµÐ¶Ð¸Ð²Ð°ÐµÑ‚ÑÑ Ð¿Ð¾ÑÐ»ÐµÐ´Ð½Ð¸Ñ… Ð·Ð°Ð¿Ð¸ÑÐµÐ¹: {count}",
+    noRun:"Ð—Ð°Ð¿ÑƒÑÐºÐ¾Ð² ÐµÑ‰Ðµ Ð½ÐµÑ‚", fastWake:"Ð‘Ñ‹ÑÑ‚Ñ€Ð¾", manualWake:"Ð ÑƒÑ‡Ð½Ð¾Ð¹", event:"ÑÐ¾Ð±Ñ‹Ñ‚Ð¸Ðµ", next:"ÑÐ»ÐµÐ´.", noEvent:"Ð½ÐµÑ‚ ÑÐ¾Ð±Ñ‹Ñ‚Ð¸Ð¹", now:"ÑÐµÐ¹Ñ‡Ð°Ñ", ago:"Ð½Ð°Ð·Ð°Ð´", paused:"Ð¿Ð°ÑƒÐ·Ð°", waiting:"Ð¾Ð¶Ð¸Ð´Ð°Ð½Ð¸Ðµ", dueNow:"ÑÐµÐ¹Ñ‡Ð°Ñ",
+    detailArmed:"Ð‘Ñ‹ÑÑ‚Ñ€Ð¾Ðµ Ð¿Ñ€Ð¾Ð±ÑƒÐ¶Ð´ÐµÐ½Ð¸Ðµ Ð²ÐºÐ»ÑŽÑ‡ÐµÐ½Ð¾. Ð¤Ð¾Ð½Ð¾Ð²Ñ‹Ðµ Ð¿Ñ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ñ Ð½Ð°ÑÑ‚Ñ€Ð°Ð¸Ð²Ð°ÑŽÑ‚ÑÑ Ð¿Ð¾ ÑƒÑ€Ð¾Ð²Ð½ÑÐ¼.", detailPaused:"ÐŸÐ°ÑƒÐ·Ð°. Ð—Ð°Ð¿ÑƒÑÑ‚Ð¸Ñ‚Ðµ Ñ€ÑƒÑ‡Ð½Ð¾Ð¹ Ð¿Ñ€Ð¾Ñ…Ð¾Ð´ Ð¸Ð»Ð¸ Ð²ÐºÐ»ÑŽÑ‡Ð¸Ñ‚Ðµ Ð´Ð²Ð¸Ð¶Ð¾Ðº.",
+    wakeGuard:"wake guard Ð°ÐºÑ‚Ð¸Ð²ÐµÐ½", startupOffDetail:"Ð°Ð²Ñ‚Ð¾Ð·Ð°Ð¿ÑƒÑÐº Ð²Ñ‹ÐºÐ»ÑŽÑ‡ÐµÐ½", working:"Ð Ð°Ð±Ð¾Ñ‚Ð° Ð² Ñ„Ð¾Ð½Ðµ...",
+    intelK:"Ð›Ð¾ÐºÐ°Ð»ÑŒÐ½Ð¾Ðµ ÑÐ´Ñ€Ð¾", intelT:"Ð ÐµÑˆÐµÐ½Ð¸Ñ Ð¿Ð¾ Ð¿Ð¾Ð²ÐµÐ´ÐµÐ½Ð¸ÑŽ", intelD:"Ð”Ð²Ð¸Ð¶Ð¾Ðº ÑÑ€Ð°Ð²Ð½Ð¸Ð²Ð°ÐµÑ‚ Ð¾Ñ‚ÐºÐ»Ð¸Ðº, Ð²Ð¾Ð·Ð²Ñ€Ð°Ñ‚ Ð¿Ð°Ð¼ÑÑ‚Ð¸ Ð¸ wake-Ð¸ÑÑ‚Ð¾Ñ€Ð¸ÑŽ Ð¿ÐµÑ€ÐµÐ´ Ð²Ñ‹Ð±Ð¾Ñ€Ð¾Ð¼ Light, Balanced Ð¸Ð»Ð¸ Deep.",
+    learningK:"ÐžÐ¿Ñ†Ð¸Ð¾Ð½Ð°Ð»ÑŒÐ½Ñ‹Ð¹ Ð¿Ñ€Ð¾Ñ„Ð¸Ð»ÑŒ", learningT:"Smart Learning", learningD:"Ð›Ð¾ÐºÐ°Ð»ÑŒÐ½Ð¾ Ð¸Ð·ÑƒÑ‡Ð°ÐµÑ‚ ÑÐµÑÑÐ¸Ð¸ Ð¸ ÑƒÑÐ¸Ð»Ð¸Ð²Ð°ÐµÑ‚ nap Ð¿Ñ€Ð¸ Ð´Ð°Ð²Ð»ÐµÐ½Ð¸Ð¸ Ð½Ð° Ð¿Ð°Ð¼ÑÑ‚ÑŒ.",
+    smartLearning:"Smart Learning", learnedProfiles:"Ð˜Ð·ÑƒÑ‡ÐµÐ½Ð½Ñ‹Ðµ Ð¿Ñ€Ð¾Ñ„Ð¸Ð»Ð¸", memoryPressure:"Ð”Ð°Ð²Ð»ÐµÐ½Ð¸Ðµ Ð¿Ð°Ð¼ÑÑ‚Ð¸", enableLearning:"Ð’ÐºÐ»ÑŽÑ‡Ð¸Ñ‚ÑŒ", disableLearning:"Ð’Ñ‹ÐºÐ»ÑŽÑ‡Ð¸Ñ‚ÑŒ", learningOn:"Ð’ÐºÐ»", learningOff:"Ð’Ñ‹ÐºÐ»",
+    learningModalTitle:"Smart Learning", learningModalBody:"ÐžÐ¿Ñ†Ð¸Ð¾Ð½Ð°Ð»ÑŒÐ½Ñ‹Ð¹ Ñ€ÐµÐ¶Ð¸Ð¼ Ð¸Ð·ÑƒÑ‡Ð°ÐµÑ‚ Ð¿Ð¾Ð²ÐµÐ´ÐµÐ½Ð¸Ðµ Ð¿Ñ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ð¹ Ð¸ Ð°Ð´Ð°Ð¿Ñ‚Ð¸Ñ€ÑƒÐµÑ‚ Ð±ÑƒÐ´ÑƒÑ‰Ð¸Ðµ Ð¿Ñ€Ð¾Ñ…Ð¾Ð´Ñ‹ Ð±ÐµÐ· Ð¾Ñ‚Ð¿Ñ€Ð°Ð²ÐºÐ¸ Ð´Ð°Ð½Ð½Ñ‹Ñ….",
+    learningModalLocal:"ÐŸÑ€Ð¾Ñ„Ð¸Ð»Ð¸ Ð¾ÑÑ‚Ð°ÑŽÑ‚ÑÑ Ð½Ð° ÑÑ‚Ð¾Ð¼ ÐŸÐš Ð¸ Ð¸ÑÐ¿Ð¾Ð»ÑŒÐ·ÑƒÑŽÑ‚ Ð¸Ð¼Ñ/Ð¿ÑƒÑ‚ÑŒ Ð¿Ñ€Ð¾Ñ†ÐµÑÑÐ°, Ð¿Ð°Ð¼ÑÑ‚ÑŒ, Ð²ÑÐ¿Ð»ÐµÑÐºÐ¸ CPU Ð¸ ÑÐ¾Ð±Ñ‹Ñ‚Ð¸Ñ wake.",
+    learningModalWake:"ÐŸÑ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ñ, Ðº ÐºÐ¾Ñ‚Ð¾Ñ€Ñ‹Ð¼ Ð²Ñ‹ Ñ‡Ð°ÑÑ‚Ð¾ Ð²Ð¾Ð·Ð²Ñ€Ð°Ñ‰Ð°ÐµÑ‚ÐµÑÑŒ, Ð¿Ð¾Ð»ÑƒÑ‡Ð°ÑŽÑ‚ Ð±Ð¾Ð»ÐµÐµ Ð»ÐµÐ³ÐºÐ¸Ð¹ Ð¿Ñ€Ð¾Ñ„Ð¸Ð»ÑŒ Fast Wake.",
+    learningModalPressure:"ÐšÐ¾Ð³Ð´Ð° Ð¿Ð°Ð¼ÑÑ‚Ð¸ Ð¼Ð°Ð»Ð¾, Ñ‚ÑÐ¶ÐµÐ»Ñ‹Ðµ Ð±ÐµÐ·Ð´ÐµÐ¹ÑÑ‚Ð²ÑƒÑŽÑ‰Ð¸Ðµ Ñ„Ð¾Ð½Ð¾Ð²Ñ‹Ðµ Ð¿Ñ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ñ Ð¼Ð¾Ð³ÑƒÑ‚ Ð¿Ð¾Ð»ÑƒÑ‡Ð¸Ñ‚ÑŒ Ð±Ð¾Ð»ÐµÐµ ÑÐ¸Ð»ÑŒÐ½Ñ‹Ð¹ nap.",
+    learningModalSafe:"ÐÐµ Ð·Ð°ÐºÑ€Ñ‹Ð²Ð°ÐµÑ‚ Ð¿Ñ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ñ, Ð½Ðµ Ð¼ÐµÐ½ÑÐµÑ‚ Ð´Ñ€Ð°Ð¹Ð²ÐµÑ€Ñ‹, Ð¿Ð»Ð°Ð½Ñ‹ Ð¿Ð¸Ñ‚Ð°Ð½Ð¸Ñ Ð¸ Ð½Ðµ Ð¾Ñ‚Ð¿Ñ€Ð°Ð²Ð»ÑÐµÑ‚ Ñ‚ÐµÐ»ÐµÐ¼ÐµÑ‚Ñ€Ð¸ÑŽ.",
+    permissionK:"Ð Ð°Ð·Ñ€ÐµÑˆÐµÐ½Ð¸Ðµ", permissionT:"ÐŸÑ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ñ Ð¾Ñ‚ÐºÐ°Ð·Ð°Ð»Ð¸", permissionBody:"{count} Ð¿Ñ€Ð¸Ð»Ð¾Ð¶. Ð¾Ñ‚ÐºÐ°Ð·Ð°Ð»Ð¸: {apps}. ÐœÐ¾Ð¶Ð½Ð¾ Ñ€Ð°Ð·Ñ€ÐµÑˆÐ¸Ñ‚ÑŒ Ð¾Ð´Ð¸Ð½ Ð·Ð°Ð¿ÑƒÑÐº Ð¾Ñ‚ Ð°Ð´Ð¼Ð¸Ð½Ð¸ÑÑ‚Ñ€Ð°Ñ‚Ð¾Ñ€Ð°.",
+    requestAdmin:"Ð—Ð°Ð¿Ñ€Ð¾ÑÐ¸Ñ‚ÑŒ admin", alreadyElevated:"Ð£Ð¶Ðµ admin", adminModalTitle:"Ð—Ð°Ð¿ÑƒÑÐº Ð°Ð´Ð¼Ð¸Ð½Ð¸ÑÑ‚Ñ€Ð°Ñ‚Ð¾Ñ€Ð°", adminModalBody:"ÐÐµÐºÐ¾Ñ‚Ð¾Ñ€Ñ‹Ðµ Ð¿Ñ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ñ Ð¾Ñ‚ÐºÐ°Ð·Ð°Ð»Ð¸, Ð¿Ð¾Ñ‚Ð¾Ð¼Ñƒ Ñ‡Ñ‚Ð¾ Windows Ñ‚Ñ€ÐµÐ±ÑƒÐµÑ‚ Ð±Ð¾Ð»ÑŒÑˆÐµ Ð¿Ñ€Ð°Ð². Smart Nap Ð¼Ð¾Ð¶ÐµÑ‚ Ð¾Ñ‚ÐºÑ€Ñ‹Ñ‚ÑŒ UAC Ð¸ Ð²Ñ‹Ð¿Ð¾Ð»Ð½Ð¸Ñ‚ÑŒ Ð¾Ð´Ð¸Ð½ Ð¿Ð¾Ð²Ñ‹ÑˆÐµÐ½Ð½Ñ‹Ð¹ Ð¿Ñ€Ð¾Ñ…Ð¾Ð´.",
+    adminModalScope:"Smart Nap Ð½Ðµ Ð¾ÑÑ‚Ð°Ð½ÐµÑ‚ÑÑ Ð¿Ð¾ÑÑ‚Ð¾ÑÐ½Ð½Ð¾ Ð¿Ð¾Ð²Ñ‹ÑˆÐµÐ½Ð½Ñ‹Ð¼. Ð‘ÑƒÐ´ÐµÑ‚ Ð²Ñ‹Ð¿Ð¾Ð»Ð½ÐµÐ½ Ñ‚Ð¾Ð»ÑŒÐºÐ¾ Ð¾Ð´Ð¸Ð½ Ð¿Ñ€Ð¾Ñ…Ð¾Ð´.",
+    adminModalNoService:"ÐÐµ ÑƒÑÑ‚Ð°Ð½Ð°Ð²Ð»Ð¸Ð²Ð°ÐµÑ‚ Ð´Ñ€Ð°Ð¹Ð²ÐµÑ€Ñ‹, ÑÐ»ÑƒÐ¶Ð±Ñ‹, Ñ€Ð°ÑÑˆÐ¸Ñ€ÐµÐ½Ð¸Ñ Ð¸ Ð½Ðµ Ð¼ÐµÐ½ÑÐµÑ‚ Ð¿Ð»Ð°Ð½Ñ‹ Ð¿Ð¸Ñ‚Ð°Ð½Ð¸Ñ.",
+    adminModalProtected:"ÐÐµÐºÐ¾Ñ‚Ð¾Ñ€Ñ‹Ðµ Ð·Ð°Ñ‰Ð¸Ñ‰ÐµÐ½Ð½Ñ‹Ðµ Ð¿Ñ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ñ Ð¼Ð¾Ð³ÑƒÑ‚ Ð¾Ñ‚ÐºÐ°Ð·Ð°Ñ‚ÑŒ Ð´Ð°Ð¶Ðµ Ñ Ð¿Ñ€Ð°Ð²Ð°Ð¼Ð¸ Ð°Ð´Ð¼Ð¸Ð½Ð¸ÑÑ‚Ñ€Ð°Ñ‚Ð¾Ñ€Ð°.",
+    openUac:"ÐžÑ‚ÐºÑ€Ñ‹Ñ‚ÑŒ UAC",
+    cancel:"ÐžÑ‚Ð¼ÐµÐ½Ð°"
   },
   "es-ES": {
-    languageName:"Español", appTitle:"Smart Nap", appSubtitle:"Control de apps en segundo plano para juegos y multitarea",
-    navDashboard:"Panel", navScore:"Nap Score", navLog:"Registro", navFiles:"Archivos", navGithub:"GitHub",
-    eyebrow:"Nap Engine", headline:"Apps en segundo plano bajo control", subline:"Las apps abiertas quedan ligeras mientras la ventana activa recupera prioridad al instante.",
+    languageName:"EspaÃ±ol", appTitle:"Smart Nap", appSubtitle:"Control de apps en segundo plano para juegos y multitarea",
+    navDashboard:"Panel", navScore:"Nap Score", navLog:"Registro", navFiles:"Archivos", navGithub:"GitHub", headline:"Apps en segundo plano bajo control", subline:"Las apps abiertas quedan ligeras mientras la ventana activa recupera prioridad al instante.",
     feature1K:"Primer plano", feature1T:"Fast wake", feature1D:"Restaura prioridad en cuanto cambias de ventana.",
     feature2K:"Memoria", feature2T:"Trim adaptativo", feature2D:"Reduce RAM sobrante con cooldown para evitar agresividad.",
     feature3K:"Scheduler", feature3T:"Nap por nivel", feature3D:"Light, Balanced y Deep segun el uso real del proceso.",
@@ -350,12 +379,13 @@ const LANGS = {
     topManaged:"App mas gestionada", reclaimedMemory:"Memoria recuperada", colApp:"App", colScore:"Score", colBursts:"Rafagas", colAction:"Accion",
     languageTitle:"Elige tu idioma", languageSubtitle:"Solo cambia el texto del launcher. El optimizador mantiene el mismo comportamiento seguro en segundo plano.",
     apply:"Optimizar ahora", stop:"Parar", pauseMotor:"Pausar motor", resumeMotor:"Retomar motor", restore:"Restaurar",
-    on:"On", off:"Off", live:"LIVE", motorActive:"MOTOR ACTIVE", manual:"MANUAL", startupOn:"STARTUP ON", startupOff:"STARTUP OFF",
+    on:"On", off:"Off", live:"Actualizando", motorActive:"Motor activo", manual:"Manual", startupOn:"Inicia con Windows", startupOff:"Inicio off",
     apps:"apps", noEntries:"Aun no hay entradas gestionadas.", runPass:"Ejecuta un pase para llenar los datos en vivo.", tracking:"Monitoreando {count} entradas recientes",
     noRun:"Sin ejecuciones", fastWake:"Fast wake", manualWake:"Manual", event:"evento", next:"sig.", noEvent:"sin evento", now:"ahora", ago:"atras", paused:"pausado", waiting:"esperando", dueNow:"ahora",
     detailArmed:"Fast wake armado. Las apps de fondo se ajustan por nivel.", detailPaused:"Pausado. Ejecuta un pase manual o retoma el motor.",
     wakeGuard:"wake guard activo", startupOffDetail:"startup off", working:"Trabajando en segundo plano...",
-    learningK:"Poder extra", learningT:"Smart Learning", learningD:"Aprende sesiones localmente y adapta el nap cuando sube la presion de memoria.",
+    intelK:"Aprendizado", intelT:"Decision por comportamiento", intelD:"El motor compara respuesta, retorno de memoria e historial wake antes de elegir Light, Balanced o Deep.",
+    learningK:"Perfil opcional", learningT:"Smart Learning", learningD:"Aprende sesiones localmente y adapta el nap cuando sube la presion de memoria.",
     smartLearning:"Smart Learning", learnedProfiles:"Perfiles aprendidos", memoryPressure:"Presion de memoria", intentState:"Intent Engine", contentionRadar:"Radar de contencion", enableLearning:"Activar", disableLearning:"Desactivar", learningOn:"On", learningOff:"Off",
     learningModalTitle:"Smart Learning", learningModalBody:"Modo opcional que aprende como se comportan tus apps y adapta los proximos pases sin enviar datos.",
     learningModalLocal:"Los perfiles quedan en este PC y usan nombre/ruta del proceso, memoria, bursts de CPU y eventos wake.",
@@ -371,9 +401,8 @@ const LANGS = {
     cancel:"Cancelar"
   },
   "fr-FR": {
-    languageName:"Français", appTitle:"Smart Nap", appSubtitle:"Controle des apps en arriere-plan pour le jeu et le multitache",
-    navDashboard:"Tableau", navScore:"Nap Score", navLog:"Journal", navFiles:"Fichiers", navGithub:"GitHub",
-    eyebrow:"Nap Engine", headline:"Applications en arriere-plan sous controle", subline:"Les apps ouvertes restent legeres pendant que la fenetre active recupere sa priorite.",
+    languageName:"FranÃ§ais", appTitle:"Smart Nap", appSubtitle:"Controle des apps en arriere-plan pour le jeu et le multitache",
+    navDashboard:"Tableau", navScore:"Nap Score", navLog:"Journal", navFiles:"Fichiers", navGithub:"GitHub", headline:"Applications en arriere-plan sous controle", subline:"Les apps ouvertes restent legeres pendant que la fenetre active recupere sa priorite.",
     feature1K:"Premier plan", feature1T:"Fast wake", feature1D:"Retablit la priorite des que vous changez de fenetre.",
     feature2K:"Memoire", feature2T:"Trim adaptatif", feature2D:"Reduit la RAM excedentaire avec cooldown pour rester doux.",
     feature3K:"Planificateur", feature3T:"Nap par niveau", feature3D:"Light, Balanced et Deep selon le comportement reel du processus.",
@@ -382,12 +411,13 @@ const LANGS = {
     topManaged:"App la plus geree", reclaimedMemory:"Memoire recuperee", colApp:"App", colScore:"Score", colBursts:"Rafales", colAction:"Action",
     languageTitle:"Choisissez la langue", languageSubtitle:"Cela change seulement le texte du launcher. L'optimiseur garde le meme comportement sur en arriere-plan.",
     apply:"Optimiser", stop:"Stop", pauseMotor:"Pause moteur", resumeMotor:"Relancer", restore:"Restaurer",
-    on:"On", off:"Off", live:"LIVE", motorActive:"MOTEUR ACTIF", manual:"MANUEL", startupOn:"STARTUP ON", startupOff:"STARTUP OFF",
+    on:"On", off:"Off", live:"Actualisation", motorActive:"Moteur actif", manual:"Manuel", startupOn:"Demarre avec Windows", startupOff:"Demarrage off",
     apps:"apps", noEntries:"Aucune entree geree pour le moment.", runPass:"Lancez un passage pour remplir les donnees live.", tracking:"Suivi des {count} dernieres entrees",
     noRun:"Aucun passage", fastWake:"Fast wake", manualWake:"Manuel", event:"evenement", next:"proch.", noEvent:"aucun evenement", now:"maintenant", ago:"avant", paused:"pause", waiting:"attente", dueNow:"maintenant",
     detailArmed:"Fast wake est arme. Les apps en arriere-plan sont ajustees par niveau.", detailPaused:"En pause. Lancez un passage manuel ou relancez le moteur.",
     wakeGuard:"wake guard actif", startupOffDetail:"startup off", working:"Travail en arriere-plan...",
-    learningK:"Pouvoir optionnel", learningT:"Smart Learning", learningD:"Apprend les sessions localement et adapte le nap quand la memoire se tend.",
+    intelK:"Apprentissage", intelT:"Decision par comportement", intelD:"Le moteur compare reponse, retour memoire et historique wake avant de choisir Light, Balanced ou Deep.",
+    learningK:"Profil optionnel", learningT:"Smart Learning", learningD:"Apprend les sessions localement et adapte le nap quand la memoire se tend.",
     smartLearning:"Smart Learning", learnedProfiles:"Profils appris", memoryPressure:"Pression memoire", intentState:"Intent Engine", contentionRadar:"Radar contention", enableLearning:"Activer", disableLearning:"Desactiver", learningOn:"On", learningOff:"Off",
     learningModalTitle:"Smart Learning", learningModalBody:"Mode optionnel qui apprend le comportement des apps et adapte les prochains passages sans envoyer de donnees.",
     learningModalLocal:"Les profils restent sur ce PC et utilisent nom/chemin du processus, memoire, pics CPU et evenements wake.",
@@ -404,8 +434,7 @@ const LANGS = {
   },
   "de-DE": {
     languageName:"Deutsch", appTitle:"Smart Nap", appSubtitle:"Hintergrundkontrolle fuer Gaming und Multitasking",
-    navDashboard:"Dashboard", navScore:"Nap Score", navLog:"Aktivitaet", navFiles:"Dateien", navGithub:"GitHub",
-    eyebrow:"Nap Engine", headline:"Hintergrund-Apps unter Kontrolle", subline:"Offene Apps bleiben leicht, waehrend das aktive Fenster sofort Prioritaet zurueckbekommt.",
+    navDashboard:"Dashboard", navScore:"Nap Score", navLog:"Aktivitaet", navFiles:"Dateien", navGithub:"GitHub", headline:"Hintergrund-Apps unter Kontrolle", subline:"Offene Apps bleiben leicht, waehrend das aktive Fenster sofort Prioritaet zurueckbekommt.",
     feature1K:"Vordergrund", feature1T:"Fast wake", feature1D:"Stellt Prioritaet direkt beim Fensterwechsel wieder her.",
     feature2K:"Speicher", feature2T:"Adaptiver Trim", feature2D:"Reduziert freie RAM-Last mit Cooldowns gegen Aggressivitaet.",
     feature3K:"Scheduler", feature3T:"Nap-Stufen", feature3D:"Light, Balanced und Deep nach echtem Prozessverhalten.",
@@ -414,12 +443,13 @@ const LANGS = {
     topManaged:"Top-App", reclaimedMemory:"Freigegebener Speicher", colApp:"App", colScore:"Score", colBursts:"Bursts", colAction:"Aktion",
     languageTitle:"Sprache waehlen", languageSubtitle:"Das aendert nur den Text im Launcher. Der Optimierer arbeitet weiterhin sicher im Hintergrund.",
     apply:"Jetzt optimieren", stop:"Stoppen", pauseMotor:"Motor pausieren", resumeMotor:"Motor starten", restore:"Wiederherstellen",
-    on:"An", off:"Aus", live:"LIVE", motorActive:"MOTOR AKTIV", manual:"MANUELL", startupOn:"STARTUP AN", startupOff:"STARTUP AUS",
+    on:"An", off:"Aus", live:"Aktualisiert", motorActive:"Engine aktiv", manual:"Manuell", startupOn:"Startet mit Windows", startupOff:"Autostart aus",
     apps:"Apps", noEntries:"Noch keine verwalteten Eintraege.", runPass:"Starte einen Durchlauf, um Live-Daten zu fuellen.", tracking:"Verfolge {count} letzte Eintraege",
     noRun:"Noch kein Durchlauf", fastWake:"Fast wake", manualWake:"Manuell", event:"Ereignis", next:"naechst.", noEvent:"kein Ereignis", now:"jetzt", ago:"her", paused:"pausiert", waiting:"wartet", dueNow:"jetzt",
     detailArmed:"Fast wake ist aktiv. Hintergrund-Apps werden nach Stufe angepasst.", detailPaused:"Pausiert. Starte einen manuellen Durchlauf oder den Motor.",
     wakeGuard:"wake guard aktiv", startupOffDetail:"startup off", working:"Arbeitet im Hintergrund...",
-    learningK:"Optionaler Boost", learningT:"Smart Learning", learningD:"Lernt Sessions lokal und passt Nap-Staerke bei Speicherdruck an.",
+    intelK:"Lernen", intelT:"Verhaltensbasierte Entscheidung", intelD:"Die Engine vergleicht Reaktion, Speicher-Rueckkehr und Wake-Verlauf vor Light, Balanced oder Deep.",
+    learningK:"Optionales Profil", learningT:"Smart Learning", learningD:"Lernt Sessions lokal und passt Nap-Staerke bei Speicherdruck an.",
     smartLearning:"Smart Learning", learnedProfiles:"Gelernte Profile", memoryPressure:"Speicherdruck", intentState:"Intent Engine", contentionRadar:"Last-Radar", enableLearning:"Aktivieren", disableLearning:"Deaktivieren", learningOn:"An", learningOff:"Aus",
     learningModalTitle:"Smart Learning", learningModalBody:"Optionaler Modus, der App-Verhalten lernt und kuenftige Durchlaeufe anpasst, ohne Daten zu senden.",
     learningModalLocal:"Profile bleiben auf diesem PC und nutzen Prozessname/Pfad, Speicher, CPU-Bursts und Wake-Ereignisse.",
@@ -436,8 +466,55 @@ const LANGS = {
   }
 };
 Object.keys(LANGS).forEach(k=>{
+  LANGS[k].controlTitle = LANGS[k].controlTitle || "Live control";
+  LANGS[k].nowShort = LANGS[k].nowShort || "Now";
+  LANGS[k].passLabel = LANGS[k].passLabel || "Pass";
+  LANGS[k].watchLabel = LANGS[k].watchLabel || "Watch";
+  LANGS[k].wakeLabel = LANGS[k].wakeLabel || "Wake";
+  LANGS[k].behaviorLabel = LANGS[k].behaviorLabel || "Behavior";
+  LANGS[k].learnLabel = LANGS[k].learnLabel || "Learning";
+  LANGS[k].adminLabel = LANGS[k].adminLabel || "Admin";
+  LANGS[k].policyLabel = LANGS[k].policyLabel || "Policy";
+  LANGS[k].tiersLabel = LANGS[k].tiersLabel || "tiers";
+  LANGS[k].trimLabel = LANGS[k].trimLabel || "trim";
+  LANGS[k].cooldownLabel = LANGS[k].cooldownLabel || "cooldown";
+  LANGS[k].panelLabel = LANGS[k].panelLabel || "Panel";
+  LANGS[k].browserRole = LANGS[k].browserRole || "Browser";
+  LANGS[k].mediaCallRole = LANGS[k].mediaCallRole || "Media";
+  LANGS[k].behaviorGuardLabel = LANGS[k].behaviorGuardLabel || "Protected";
+  LANGS[k].cpuBadge = LANGS[k].cpuBadge || "CPU";
+  LANGS[k].memoryBadge = LANGS[k].memoryBadge || "RAM";
+  LANGS[k].ioBadge = LANGS[k].ioBadge || "I/O";
+  LANGS[k].trimBadge = LANGS[k].trimBadge || "Trim";
+  LANGS[k].ecoBadge = LANGS[k].ecoBadge || "Eco";
+  LANGS[k].cooldownBadge = LANGS[k].cooldownBadge || "Cooldown";
+  LANGS[k].trimSkipBadge = LANGS[k].trimSkipBadge || "Trim skip";
+  LANGS[k].adminNeededBadge = LANGS[k].adminNeededBadge || "Admin";
+  LANGS[k].intentDesktop = LANGS[k].intentDesktop || "Desktop";
+  LANGS[k].intentMemoryPressure = LANGS[k].intentMemoryPressure || "Memory pressure";
+  LANGS[k].intentMediaCall = LANGS[k].intentMediaCall || "Media or call";
+  LANGS[k].intentGaming = LANGS[k].intentGaming || "Gaming";
+  LANGS[k].intentDownloadInstall = LANGS[k].intentDownloadInstall || "Download/install";
   LANGS[k].intentState = LANGS[k].intentState || "Intent Engine";
   LANGS[k].contentionRadar = LANGS[k].contentionRadar || "Contention radar";
+  LANGS[k].behaviorEngine = LANGS[k].behaviorEngine || "Behavior engine";
+  LANGS[k].behaviorK = LANGS[k].behaviorK || "Core intelligence";
+  LANGS[k].behaviorT = LANGS[k].behaviorT || "Behavior Engine";
+  LANGS[k].behaviorProfilesLabel = LANGS[k].behaviorProfilesLabel || "Local profiles";
+  LANGS[k].behaviorD = LANGS[k].behaviorD || "Profiles apps locally by CPU, memory return, bursts and wake events.";
+  LANGS[k].intelK = LANGS[k].intelK || "Learning";
+  LANGS[k].intelT = LANGS[k].intelT || "Behavior-aware decisions";
+  LANGS[k].intelD = LANGS[k].intelD || "The engine compares app response, memory return and wake history before choosing Light, Balanced or Deep.";
+  LANGS[k].behaviorMode = LANGS[k].behaviorMode || "adaptive";
+  LANGS[k].behaviorAdaptive = LANGS[k].behaviorAdaptive || "adaptive";
+  LANGS[k].behaviorOn = LANGS[k].behaviorOn || "on";
+  LANGS[k].behaviorOff = LANGS[k].behaviorOff || "off";
+  LANGS[k].profilesShort = LANGS[k].profilesShort || "profiles";
+  LANGS[k].pressureNormal = LANGS[k].pressureNormal || "Normal";
+  LANGS[k].pressureModerate = LANGS[k].pressureModerate || "Moderate";
+  LANGS[k].pressureElevated = LANGS[k].pressureElevated || "Elevated";
+  LANGS[k].pressureCritical = LANGS[k].pressureCritical || "Critical";
+  LANGS[k].pressureUnknown = LANGS[k].pressureUnknown || "Unknown";
   LANGS[k].systemProfile = LANGS[k].systemProfile || "PC Profile";
   LANGS[k].cpuLabel = LANGS[k].cpuLabel || "CPU";
   LANGS[k].ramLabel = LANGS[k].ramLabel || "RAM";
@@ -448,18 +525,49 @@ Object.keys(LANGS).forEach(k=>{
   LANGS[k].ramShort = LANGS[k].ramShort || "RAM";
   LANGS[k].pagefileShort = LANGS[k].pagefileShort || "Pagefile";
   LANGS[k].loadShort = LANGS[k].loadShort || "load";
+  LANGS[k].startupHintOn = LANGS[k].startupHintOn || "Disable start with Windows";
+  LANGS[k].startupHintOff = LANGS[k].startupHintOff || "Enable start with Windows";
 });
-Object.assign(LANGS["pt-BR"],{systemProfile:"Perfil do PC",ramLabel:"Memoria RAM",systemLabel:"Sistema",gpuHint:"Adaptador grafico",localSnapshot:"snapshot vivo",freeNow:"{free} livre agora",ramShort:"RAM",pagefileShort:"Pagefile",loadShort:"carga"});
-Object.assign(LANGS["en-US"],{systemProfile:"PC Profile",ramLabel:"RAM",systemLabel:"System",gpuHint:"Graphics adapter",localSnapshot:"live snapshot",freeNow:"{free} free now",ramShort:"RAM",pagefileShort:"Pagefile",loadShort:"load"});
-Object.assign(LANGS["es-ES"],{systemProfile:"Perfil del PC",ramLabel:"RAM",systemLabel:"Sistema",gpuHint:"Adaptador grafico",localSnapshot:"snapshot vivo",freeNow:"{free} libre ahora",ramShort:"RAM",pagefileShort:"Pagefile",loadShort:"carga"});
-Object.assign(LANGS["fr-FR"],{systemProfile:"Profil PC",ramLabel:"RAM",systemLabel:"Systeme",gpuHint:"Adaptateur graphique",localSnapshot:"snapshot live",freeNow:"{free} libre maintenant",ramShort:"RAM",pagefileShort:"Pagefile",loadShort:"charge"});
-Object.assign(LANGS["de-DE"],{systemProfile:"PC Profil",ramLabel:"RAM",systemLabel:"System",gpuHint:"Grafikadapter",localSnapshot:"Live-Snapshot",freeNow:"{free} frei",ramShort:"RAM",pagefileShort:"Pagefile",loadShort:"Last"});
+Object.assign(LANGS["pt-BR"],{controlTitle:"Controle em tempo real",systemProfile:"Perfil do PC",ramLabel:"Memoria RAM",systemLabel:"Sistema",gpuHint:"Adaptador grafico",localSnapshot:"snapshot vivo",freeNow:"{free} livre agora",ramShort:"RAM",pagefileShort:"Pagefile",loadShort:"carga",behaviorEngine:"Aprendizado",behaviorK:"Aprendizado",behaviorT:"Motor comportamental",behaviorProfilesLabel:"Perfis locais",behaviorD:"Cria perfis locais por CPU, retorno de memoria, bursts e eventos de wake.",behaviorMode:"modo",behaviorAdaptive:"adaptativo",behaviorOn:"ligado",behaviorOff:"desligado",profilesShort:"perfis",pressureNormal:"Normal",pressureModerate:"Moderada",pressureElevated:"Elevada",pressureCritical:"Critica",pressureUnknown:"Desconhecida",intentDesktop:"Uso comum",intentMemoryPressure:"Memoria pressionada",intentMediaCall:"Midia ou chamada",intentGaming:"Jogo em foco",intentDownloadInstall:"Download ou instalacao",browserRole:"Navegador",mediaCallRole:"Midia",behaviorGuardLabel:"Protegido",cpuBadge:"CPU",memoryBadge:"RAM",ioBadge:"I/O",trimBadge:"Trim",ecoBadge:"Eco",cooldownBadge:"Cooldown",trimSkipBadge:"Trim skip",adminNeededBadge:"Admin",startupHintOn:"Desativar iniciar com Windows",startupHintOff:"Ativar iniciar com Windows"});
+Object.assign(LANGS["en-US"],{systemProfile:"PC Profile",ramLabel:"RAM",systemLabel:"System",gpuHint:"Graphics adapter",localSnapshot:"live snapshot",freeNow:"{free} free now",ramShort:"RAM",pagefileShort:"Pagefile",loadShort:"load",behaviorEngine:"Behavior Engine",behaviorK:"Core intelligence",behaviorT:"Behavior Engine",behaviorD:"Profiles apps locally by CPU, memory return, bursts and wake events.",behaviorMode:"mode",behaviorAdaptive:"adaptive",behaviorOn:"on",behaviorOff:"off",profilesShort:"profiles"});
+Object.assign(LANGS["ru-RU"],{behaviorEngine:"Behavior Engine",behaviorK:"ÃÅ¾Ã‘ÂÃÂ½ÃÂ¾ÃÂ²ÃÂ½ÃÂ¾ÃÂ¹ ÃÂ¸ÃÂ½Ã‘â€šÃÂµÃÂ»ÃÂ»ÃÂµÃÂºÃ‘â€š",behaviorT:"Behavior Engine",behaviorD:"Ãâ€ºÃÂ¾ÃÂºÃÂ°ÃÂ»Ã‘Å’ÃÂ½ÃÂ¾ Ã‘ÂÃ‘â€šÃ‘â‚¬ÃÂ¾ÃÂ¸Ã‘â€š ÃÂ¿Ã‘â‚¬ÃÂ¾Ã‘â€žÃÂ¸ÃÂ»ÃÂ¸ ÃÂ¿ÃÂ¾ CPU, ÃÂ¿ÃÂ°ÃÂ¼Ã‘ÂÃ‘â€šÃÂ¸, ÃÂ²Ã‘ÂÃÂ¿ÃÂ»ÃÂµÃ‘ÂÃÂºÃÂ°ÃÂ¼ ÃÂ¸ wake-Ã‘ÂÃÂ¾ÃÂ±Ã‘â€¹Ã‘â€šÃÂ¸Ã‘ÂÃÂ¼.",behaviorMode:"Ã‘â‚¬ÃÂµÃÂ¶ÃÂ¸ÃÂ¼",behaviorAdaptive:"ÃÂ°ÃÂ´ÃÂ°ÃÂ¿Ã‘â€šÃÂ¸ÃÂ²ÃÂ½Ã‘â€¹ÃÂ¹",behaviorOn:"ÃÂ²ÃÂºÃÂ»",behaviorOff:"ÃÂ²Ã‘â€¹ÃÂºÃÂ»",profilesShort:"ÃÂ¿Ã‘â‚¬ÃÂ¾Ã‘â€žÃÂ¸ÃÂ»ÃÂ¸",pressureNormal:"ÃÂÃÂ¾Ã‘â‚¬ÃÂ¼ÃÂ°",pressureModerate:"ÃÂ¡Ã‘â‚¬ÃÂµÃÂ´ÃÂ½Ã‘ÂÃ‘Â",pressureElevated:"ÃÅ¸ÃÂ¾ÃÂ²Ã‘â€¹Ã‘Ë†ÃÂµÃÂ½ÃÂ½ÃÂ°Ã‘Â",pressureCritical:"ÃÅ¡Ã‘â‚¬ÃÂ¸Ã‘â€šÃÂ¸Ã‘â€¡ÃÂ½ÃÂ°Ã‘Â",pressureUnknown:"ÃÂÃÂµÃÂ¸ÃÂ·ÃÂ²ÃÂµÃ‘ÂÃ‘â€šÃÂ½ÃÂ¾"});
+Object.assign(LANGS["es-ES"],{systemProfile:"Perfil del PC",ramLabel:"RAM",systemLabel:"Sistema",gpuHint:"Adaptador grafico",localSnapshot:"snapshot vivo",freeNow:"{free} libre ahora",ramShort:"RAM",pagefileShort:"Pagefile",loadShort:"carga",behaviorEngine:"Behavior Engine",behaviorK:"Inteligencia central",behaviorT:"Behavior Engine",behaviorD:"Crea perfiles locales por CPU, retorno de memoria, rafagas y eventos wake.",behaviorMode:"modo",behaviorAdaptive:"adaptativo",behaviorOn:"activo",behaviorOff:"apagado",profilesShort:"perfiles",pressureNormal:"Normal",pressureModerate:"Moderada",pressureElevated:"Elevada",pressureCritical:"Critica",pressureUnknown:"Desconocida"});
+Object.assign(LANGS["fr-FR"],{systemProfile:"Profil PC",ramLabel:"RAM",systemLabel:"Systeme",gpuHint:"Adaptateur graphique",localSnapshot:"snapshot live",freeNow:"{free} libre maintenant",ramShort:"RAM",pagefileShort:"Pagefile",loadShort:"charge",behaviorEngine:"Behavior Engine",behaviorK:"Intelligence centrale",behaviorT:"Behavior Engine",behaviorD:"Profile localement les apps par CPU, retour memoire, rafales et evenements wake.",behaviorMode:"mode",behaviorAdaptive:"adaptatif",behaviorOn:"actif",behaviorOff:"inactif",profilesShort:"profils",pressureNormal:"Normale",pressureModerate:"Moderee",pressureElevated:"Elevee",pressureCritical:"Critique",pressureUnknown:"Inconnue"});
+Object.assign(LANGS["de-DE"],{systemProfile:"PC Profil",ramLabel:"RAM",systemLabel:"System",gpuHint:"Grafikadapter",localSnapshot:"Live-Snapshot",freeNow:"{free} frei",ramShort:"RAM",pagefileShort:"Pagefile",loadShort:"Last",behaviorEngine:"Behavior Engine",behaviorK:"Kernintelligenz",behaviorT:"Behavior Engine",behaviorD:"Profile Apps lokal nach CPU, Speicher-Rueckkehr, Bursts und Wake-Ereignissen.",behaviorMode:"Modus",behaviorAdaptive:"adaptiv",behaviorOn:"an",behaviorOff:"aus",profilesShort:"Profile",pressureNormal:"Normal",pressureModerate:"Moderat",pressureElevated:"Erhoeht",pressureCritical:"Kritisch",pressureUnknown:"Unbekannt"});
 const LANGUAGE_ORDER = ["pt-BR","en-US","ru-RU","es-ES","fr-FR","de-DE"];
 let currentLanguage = "pt-BR";
 let lastState = null;
 let languagePromptClosed = false;
 function send(action,payload){ if(window.chrome&&chrome.webview){ chrome.webview.postMessage(Object.assign({action},payload||{})); } }
 function txt(id,value){ const el=$(id); if(el) el.textContent=value == null ? "" : String(value); }
+function shouldStartWindowDrag(ev){
+  if(!ev || ev.button !== 0) return false;
+  const target = ev.target;
+  if(!target || !target.closest) return false;
+  if(target.closest("button,a,input,select,textarea,.table,.timeline,.languageOverlay,.infoOverlay,.actions,.policyButtons,.chipRow,.engineCard,.intelligencePanel,.systemPanel,.manager,.sidePanel")) return false;
+  return ev.clientY < 86 || !!target.closest(".topbar,.titleBlock");
+}
+let windowDrag = null;
+document.addEventListener("pointerdown", ev=>{
+  if(!shouldStartWindowDrag(ev)) return;
+  ev.preventDefault();
+  windowDrag = { id: ev.pointerId };
+  try{ ev.target.setPointerCapture(ev.pointerId); }catch{}
+  send("dragStart",{x:ev.screenX,y:ev.screenY});
+});
+document.addEventListener("pointermove", ev=>{
+  if(!windowDrag || windowDrag.id !== ev.pointerId) return;
+  ev.preventDefault();
+  send("dragMove",{x:ev.screenX,y:ev.screenY});
+});
+function endWindowDrag(ev){
+  if(!windowDrag || (ev && ev.pointerId != null && windowDrag.id !== ev.pointerId)) return;
+  windowDrag = null;
+  send("dragEnd");
+}
+document.addEventListener("pointerup", endWindowDrag);
+document.addEventListener("pointercancel", endWindowDrag);
+document.addEventListener("lostpointercapture", endWindowDrag);
 function cls(id,value){ const el=$(id); if(el) el.className=value; }
 function esc(value){ return String(value == null ? "" : value).replace(/[&<>"']/g, ch => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[ch])); }
 function dict(){ return LANGS[currentLanguage] || LANGS["pt-BR"]; }
@@ -539,7 +647,7 @@ function translateSmallState(value){
 }
 function translateTitle(value){
   const raw=String(value||"");
-  if(raw==="Nap Engine"||raw==="Manual Engine") return t("eyebrow");
+  if(raw==="Nap Engine"||raw==="Manual Engine") return t("controlTitle");
   if(raw==="Agindo nos apps agora") return t("apply");
   if(raw==="Otimizacao parada") return t("stop");
   if(raw==="Otimizacao concluida") return t("lastResult");
@@ -606,8 +714,12 @@ function paintState(state){
   txt("learningToggle",s.Learning?t("disableLearning"):t("enableLearning"));
   txt("learningConfirm",s.Learning?t("disableLearning"):t("enableLearning"));
   $("learningToggle")?.classList.toggle("on",!!s.Learning);
-  txt("learningDetail",s.Learning ? ((s.LearningProfiles || 0)+" "+t("learnedProfiles").toLowerCase()+" | "+t("memoryPressure")+": "+formatPressure(s.MemoryPressure,s.FreeMemoryMB)) : t("learningD"));
+  txt("behaviorProfilesHero",(s.BehaviorProfiles || 0)+" "+t("profilesShort"));
+  txt("intelPressure",translatePressure(s.MemoryPressure || ""));
+  txt("intelLearning",s.Learning?t("learningOn"):t("learningOff"));
+  txt("intelDetail",s.Behavior ? t("intelD") : t("behaviorOff"));
   txt("learnedProfiles",String(s.LearningProfiles || 0));
+  txt("behaviorState",formatBehavior(s));
   txt("memoryPressure",formatPressure(s.MemoryPressure,s.FreeMemoryMB));
   txt("intentState",formatIntent(s));
   txt("radarState",formatRadar(s));
@@ -615,8 +727,13 @@ function paintState(state){
   $("apply").className=s.CanStop?"btn danger":"btn primary";
   cls("motor",s.AutoMode?"pill good":"pill warn");
   txt("motor",s.AutoMode?t("motorActive"):t("manual"));
-  cls("startup",s.Startup?"pill good":"pill");
+  cls("startup",s.Startup?"startupAction on":"startupAction");
   txt("startup",s.Startup?t("startupOn"):t("startupOff"));
+  const startupHint=s.Startup?t("startupHintOn"):t("startupHintOff");
+  const startupEl=$("startup");
+  if(startupEl){ startupEl.title=startupHint; startupEl.setAttribute("aria-pressed",s.Startup?"true":"false"); }
+  const startupCardShell=$("startupCardShell");
+  if(startupCardShell){ startupCardShell.title=startupHint; startupCardShell.setAttribute("aria-pressed",s.Startup?"true":"false"); }
   cls("live","pill good");
   $("live").innerHTML='<i class="pulseDot"></i>'+esc(t("live"))+' '+esc(s.Heartbeat || "");
   renderRows(s.Rows || []);
@@ -634,7 +751,16 @@ function formatPressure(level,freeMB){
   const pressure=String(level||"").trim();
   const free=Number(freeMB||0);
   const freeText=free>0 ? " / "+Math.round(free)+" MB" : "";
-  return pressure ? pressure+freeText : "-";
+  return pressure ? translatePressure(pressure)+freeText : "-";
+}
+function translatePressure(level){
+  const key=String(level||"").trim().toLowerCase();
+  if(key==="normal") return t("pressureNormal");
+  if(key==="moderate") return t("pressureModerate");
+  if(key==="elevated") return t("pressureElevated");
+  if(key==="critical") return t("pressureCritical");
+  if(key==="unknown") return t("pressureUnknown");
+  return level || "-";
 }
 function formatMb(value){
   const mb=Number(value||0);
@@ -667,16 +793,29 @@ function formatIntent(s){
   const kind=String((s&&s.IntentKind)||"").trim() || "Desktop";
   const conf=Number((s&&s.IntentConfidence)||0);
   const name=String((s&&s.IntentName)||"").trim();
-  const bits=[kind];
+  const bits=[translateIntentKind(kind)];
   if(conf>0) bits.push(conf+"%");
   if(name) bits.push(name);
   return bits.join(" / ");
+}
+function translateIntentKind(kind){
+  const raw=String(kind||"").trim();
+  if(raw==="Desktop") return t("intentDesktop");
+  if(raw==="MemoryPressure") return t("intentMemoryPressure");
+  if(raw==="MediaCall") return t("intentMediaCall");
+  if(raw==="Gaming") return t("intentGaming");
+  if(raw==="DownloadInstall") return t("intentDownloadInstall");
+  return raw || "-";
 }
 function formatRadar(s){
   const count=Number((s&&s.RadarCount)||0);
   const top=String((s&&s.RadarTop)||"").trim();
   if(count<=0) return "-";
   return count + (top ? " / " + top : "");
+}
+function formatBehavior(s){
+  if(!s || !s.Behavior) return t("behaviorOff");
+  return (Number(s.BehaviorProfiles||0))+" "+t("profilesShort")+" / "+t("behaviorOn");
 }
 function updatePermissionGuard(s){
   const box=$("permissionBox");
@@ -718,8 +857,9 @@ function renderEvents(events){
   feed.innerHTML="";
   events.slice(0,18).forEach(item=>{
     const line=String(item || "");
-    const time=/^\d\d:\d\d:\d\d/.test(line) ? line.slice(0,8) : (line.startsWith("LIVE") ? "LIVE" : "--:--");
-    const body=translateEventBody(time==="LIVE" ? line.replace(/^LIVE\s*/,"") : line.slice(time.length).trim());
+    const isLive=line.startsWith("LIVE");
+    const time=/^\d\d:\d\d:\d\d/.test(line) ? line.slice(0,8) : (isLive ? t("nowShort") : "--:--");
+    const body=translateEventBody(isLive ? line.replace(/^LIVE\s*/,"") : line.slice(/^\d\d:\d\d:\d\d/.test(line) ? 8 : 0).trim());
     const div=document.createElement("div");
     div.className="eventLine";
     div.innerHTML="<time>"+esc(time)+"</time><span>"+esc(body)+"</span>";
@@ -730,17 +870,42 @@ function translateEventBody(body){
   let text=String(body||"");
   text=text.replace(/\bevent\b/g,t("event")).replace(/\bnext\b/g,t("next"));
   text=text.replace("motor automatico ativo; ciclos e foco protegidos",t("detailArmed"));
+  text=text.replace(/\bWATCH\b/g,t("watchLabel")).replace(/\bAPPLY\b/g,t("passLabel")).replace(/\bWAKE\b/g,t("wakeLabel")).replace(/\bBEHAVIOR\b/g,t("behaviorLabel")).replace(/\bLEARN\b/g,t("learnLabel")).replace(/\bADMIN\b/g,t("adminLabel")).replace(/\bPOLICY\b/g,t("policyLabel"));
+  text=text.replace(/\bL\/B\/D\b/g,t("tiersLabel")).replace(/\bT\s+(?=\d)/g,t("trimLabel")+" ").replace(/\bC\s+(?=\d)/g,t("cooldownLabel")+" ").replace(/\btop\b/g,"principal").replace(/\bapps\b/g,t("apps"));
   return text.replace(/(\d+)\s+apps/g,"$1 "+t("apps"));
+}
+function translateRoleLabel(value){
+  const role=String(value||"");
+  if(role==="Browser") return t("browserRole");
+  if(role==="MediaCall") return t("mediaCallRole");
+  return role;
+}
+function formatGuardLabel(value){
+  return String(value||"").replace("Guard","").replace("MediaCall",t("mediaCallRole")).trim();
+}
+function cleanActionLabel(value){
+  let label=String(value||"").replace("SkippedBelowThreshold","Skip").replace(/^Tier /,"").replace(/^Eco /,"E ").replace("Admin needed",t("adminNeededBadge"));
+  const map={"P OK":t("cpuBadge"),"M OK":t("memoryBadge"),"IO OK":t("ioBadge"),"T OK":t("trimBadge"),"E OK":t("ecoBadge"),"T Cooldown":t("cooldownBadge"),"T Skip":t("trimSkipBadge"),"Wake":t("fastWake")};
+  return map[label] || label;
 }
 function metaBadges(row){
   const out=[];
   const role=String(row.Role||"");
   const guard=String(row.Guard||"");
   const intent=String(row.Intent||"");
-  if(role && role!=="App") out.push('<b class="badge guard">'+esc(role)+'</b>');
-  if(guard) out.push('<b class="badge cool">'+esc(guard.replace("Guard",""))+'</b>');
-  if(row.SwitchFastWake) out.push('<b class="badge light">Wake</b>');
-  if(intent && intent!=="Desktop") out.push('<b class="badge balanced">'+esc(intent)+' '+esc(row.IntentConfidence||"")+'</b>');
+  const behaviorConfidence=Number(row.BehaviorConfidence||0);
+  const behaviorWakes=Number(row.BehaviorWakeCount||0);
+  const behaviorBias=Number(row.BehaviorBias||0);
+  const behaviorTier=String(row.BehaviorTier||"");
+  if(role && role!=="App") out.push('<b class="badge guard">'+esc(translateRoleLabel(role))+'</b>');
+  if(guard) out.push('<b class="badge cool">'+esc(formatGuardLabel(guard))+'</b>');
+  if(row.SwitchFastWake) out.push('<b class="badge light">'+esc(t("fastWake"))+'</b>');
+  if(intent && intent!=="Desktop") out.push('<b class="badge balanced">'+esc(translateIntentKind(intent))+' '+esc(row.IntentConfidence||"")+'</b>');
+  if(behaviorConfidence>0){
+    const klass=behaviorBias<0?"light":(behaviorBias>1?"deep":"balanced");
+    const label=behaviorBias<0?(t("behaviorGuardLabel")+(behaviorWakes>0?" "+behaviorWakes:"")):(t("behaviorLabel")+" "+(behaviorTier||behaviorConfidence));
+    out.push('<b class="badge '+klass+'" title="Behavior confidence '+esc(behaviorConfidence)+'">'+esc(label)+'</b>');
+  }
   return out.join("");
 }
 function makePolicyButtons(row){
@@ -773,8 +938,7 @@ function actionBadges(value){
     else if(low.indexOf(" ok")>=0) clsName+=" ok";
     else if(low.indexOf("cooldown")>=0) clsName+=" cool";
     else if(low.indexOf("skip")>=0 || low.indexOf("disabled")>=0) clsName+=" skip";
-    let label=x.replace("SkippedBelowThreshold","Skip").replace(/^Tier /,"").replace(/^Eco /,"E ").replace("Admin needed","Admin");
-    label=label.replace("Light","Light").replace("Balanced","Balanced").replace("Deep","Deep");
+    let label=cleanActionLabel(x);
     return '<b class="'+clsName+'">'+esc(label)+'</b>';
   }).join("");
 }

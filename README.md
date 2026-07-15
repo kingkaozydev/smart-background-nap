@@ -1,6 +1,14 @@
 # Smart Background Nap
 
-![Smart Background Nap social preview](docs/images/smart-nap-social-preview.png)
+<p align="center">
+  <img src="docs/images/smart-nap-social-preview.png" alt="Smart Background Nap banner" width="100%">
+</p>
+<p align="center">
+  <img alt="Local-first" src="https://img.shields.io/badge/local--first-Windows-25E690?style=for-the-badge&labelColor=071729">
+  <img alt="No telemetry" src="https://img.shields.io/badge/no%20telemetry-private-4EA2FF?style=for-the-badge&labelColor=071729">
+  <img alt="Single EXE" src="https://img.shields.io/badge/single%20EXE-release-FFAA2A?style=for-the-badge&labelColor=071729">
+  <img alt=".NET 9" src="https://img.shields.io/badge/.NET-9-8C6CFF?style=for-the-badge&labelColor=071729">
+</p>
 
 > All documentation screenshots use fictional sample app names, fictional telemetry, and generic hardware labels.
 
@@ -14,6 +22,10 @@ Created by **KaozyKing**.
 - Latest release: [Download SmartBackgroundNap.exe](https://github.com/kingkaozydev/smart-background-nap/releases/latest)
 
 > Keep apps open. Quiet the background. Wake the foreground fast.
+
+<p align="center">
+  <img src="docs/images/smart-nap-about-panel.png" alt="Smart Background Nap overview" width="100%">
+</p>
 
 ## Why It Feels Different
 

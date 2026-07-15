@@ -57,6 +57,7 @@ $learningStatePath = Join-Path $outDir "background-nap-learning-latest.json"
 $intentStatePath = Join-Path $outDir "background-nap-intent-latest.json"
 $foregroundSwitchStatePath = Join-Path $outDir "background-nap-foreground-switch-latest.json"
 $gameProfileStatePath = Join-Path $outDir "background-nap-game-profiles-latest.json"
+$behaviorStatePath = Join-Path $outDir "background-nap-behavior-latest.json"
 $appPolicyStatePath = Join-Path $outDir "background-nap-app-policies.json"
 $radarStatePath = Join-Path $outDir "background-nap-radar-latest.json"
 
@@ -104,6 +105,14 @@ $foregroundSwitchMinWakes = 2
 $foregroundSwitchProtectMinutes = 5
 $perGameProfiles = $true
 $gameProfileMinObservations = 3
+$behaviorEngine = $true
+$behaviorMinObservations = 4
+$behaviorMaxProfiles = 220
+$behaviorDeepConfidence = 72
+$behaviorLightConfidence = 62
+$behaviorEfficientDeltaMB = 64.0
+$behaviorRefaultPenaltyMB = 96.0
+$behaviorStableCpuPercent = 0.8
 $contentionRadar = $true
 $downloadLauncherGuard = $true
 $mediaCallProtection = $true
@@ -169,6 +178,14 @@ if ($smart) {
     if ($smart.PSObject.Properties.Name -contains "ForegroundSwitchProtectMinutes") { $foregroundSwitchProtectMinutes = [int]$smart.ForegroundSwitchProtectMinutes }
     if ($smart.PSObject.Properties.Name -contains "PerGameProfiles") { $perGameProfiles = [bool]$smart.PerGameProfiles }
     if ($smart.PSObject.Properties.Name -contains "GameProfileMinObservations") { $gameProfileMinObservations = [int]$smart.GameProfileMinObservations }
+    if ($smart.PSObject.Properties.Name -contains "BehaviorEngine") { $behaviorEngine = [bool]$smart.BehaviorEngine }
+    if ($smart.PSObject.Properties.Name -contains "BehaviorMinObservations") { $behaviorMinObservations = [int]$smart.BehaviorMinObservations }
+    if ($smart.PSObject.Properties.Name -contains "BehaviorMaxProfiles") { $behaviorMaxProfiles = [int]$smart.BehaviorMaxProfiles }
+    if ($smart.PSObject.Properties.Name -contains "BehaviorDeepConfidence") { $behaviorDeepConfidence = [int]$smart.BehaviorDeepConfidence }
+    if ($smart.PSObject.Properties.Name -contains "BehaviorLightConfidence") { $behaviorLightConfidence = [int]$smart.BehaviorLightConfidence }
+    if ($smart.PSObject.Properties.Name -contains "BehaviorEfficientDeltaMB") { $behaviorEfficientDeltaMB = [double]$smart.BehaviorEfficientDeltaMB }
+    if ($smart.PSObject.Properties.Name -contains "BehaviorRefaultPenaltyMB") { $behaviorRefaultPenaltyMB = [double]$smart.BehaviorRefaultPenaltyMB }
+    if ($smart.PSObject.Properties.Name -contains "BehaviorStableCpuPercent") { $behaviorStableCpuPercent = [double]$smart.BehaviorStableCpuPercent }
     if ($smart.PSObject.Properties.Name -contains "ContentionRadar") { $contentionRadar = [bool]$smart.ContentionRadar }
     if ($smart.PSObject.Properties.Name -contains "DownloadLauncherGuard") { $downloadLauncherGuard = [bool]$smart.DownloadLauncherGuard }
     if ($smart.PSObject.Properties.Name -contains "MediaCallProtection") { $mediaCallProtection = [bool]$smart.MediaCallProtection }
@@ -217,6 +234,15 @@ if ($foregroundSwitchWindowSeconds -lt 15) { $foregroundSwitchWindowSeconds = 15
 if ($foregroundSwitchMinWakes -lt 1) { $foregroundSwitchMinWakes = 1 }
 if ($foregroundSwitchProtectMinutes -lt 1) { $foregroundSwitchProtectMinutes = 1 }
 if ($gameProfileMinObservations -lt 1) { $gameProfileMinObservations = 1 }
+if ($behaviorMinObservations -lt 2) { $behaviorMinObservations = 2 }
+if ($behaviorMaxProfiles -lt 40) { $behaviorMaxProfiles = 40 }
+if ($behaviorDeepConfidence -lt 0) { $behaviorDeepConfidence = 0 }
+if ($behaviorDeepConfidence -gt 100) { $behaviorDeepConfidence = 100 }
+if ($behaviorLightConfidence -lt 0) { $behaviorLightConfidence = 0 }
+if ($behaviorLightConfidence -gt 100) { $behaviorLightConfidence = 100 }
+if ($behaviorEfficientDeltaMB -lt 8.0) { $behaviorEfficientDeltaMB = 8.0 }
+if ($behaviorRefaultPenaltyMB -lt 16.0) { $behaviorRefaultPenaltyMB = 16.0 }
+if ($behaviorStableCpuPercent -lt 0.0) { $behaviorStableCpuPercent = 0.0 }
 if ($moderateFreeMemoryMB -lt 512) { $moderateFreeMemoryMB = 512.0 }
 if ($elevatedFreeMemoryMB -lt 512) { $elevatedFreeMemoryMB = 512.0 }
 if ($criticalFreeMemoryMB -lt 256) { $criticalFreeMemoryMB = 256.0 }
@@ -262,6 +288,7 @@ $script:currentLearningSession = [pscustomobject]@{ Name = ""; Kind = "Desktop";
 $script:currentIntent = [pscustomobject]@{ Kind = "Desktop"; Name = ""; Confidence = 0; Signals = @(); Foreground = "" }
 $script:foregroundSwitchMap = @{}
 $script:gameProfileMap = @{}
+$script:behaviorMap = @{}
 $script:appPolicyMap = @{}
 
 $memoryPriorityMap = @{
@@ -1114,6 +1141,297 @@ function Update-LearningAverage {
     return [math]::Round(($OldValue * 0.72) + ($NewValue * 0.28), 2)
 }
 
+function Read-BehaviorMap {
+    $map = @{}
+    if (-not $behaviorEngine) { return $map }
+
+    foreach ($item in @(Read-StateArray -Path $behaviorStatePath)) {
+        if (-not $item.Key) { continue }
+        $key = [string]$item.Key
+        $map[$key] = [pscustomobject]@{
+            Key = $key
+            ProcessName = [string]$item.ProcessName
+            Path = [string]$item.Path
+            Observations = [int]$item.Observations
+            TargetCount = [int]$item.TargetCount
+            TrimCount = [int]$item.TrimCount
+            RefaultCount = [int]$item.RefaultCount
+            CooldownCount = [int]$item.CooldownCount
+            WakeCount = [int]$item.WakeCount
+            AvgWorkingSetMB = [double]$item.AvgWorkingSetMB
+            AvgPrivateMemoryMB = [double]$item.AvgPrivateMemoryMB
+            AvgCpuPercent = [double]$item.AvgCpuPercent
+            AvgBurstCount = [double]$item.AvgBurstCount
+            AvgHandleCount = [double]$item.AvgHandleCount
+            AvgThreadCount = [double]$item.AvgThreadCount
+            AvgTrimDeltaMB = [double]$item.AvgTrimDeltaMB
+            AvgRefaultMB = [double]$item.AvgRefaultMB
+            WakeBias = [int]$item.WakeBias
+            Confidence = [int]$item.Confidence
+            AggressionBias = [int]$item.AggressionBias
+            PreferredTier = [string]$item.PreferredTier
+            LastReason = [string]$item.LastReason
+            LastSeen = [string]$item.LastSeen
+            LastWakeAt = [string]$item.LastWakeAt
+        }
+    }
+    return $map
+}
+
+function Save-BehaviorMap {
+    param([hashtable]$Map)
+
+    if (-not $behaviorEngine) { return }
+    $items = @($Map.Values |
+        Sort-Object @{ Expression = { if ($_.LastSeen) { [string]$_.LastSeen } else { "" } }; Descending = $true } |
+        Select-Object -First $behaviorMaxProfiles)
+    Write-StateArray -Path $behaviorStatePath -Items $items
+}
+
+function New-BehaviorProfile {
+    param(
+        [string]$Key,
+        [string]$ProcessName,
+        [string]$Path
+    )
+
+    [pscustomobject]@{
+        Key = $Key
+        ProcessName = $ProcessName
+        Path = $Path
+        Observations = 0
+        TargetCount = 0
+        TrimCount = 0
+        RefaultCount = 0
+        CooldownCount = 0
+        WakeCount = 0
+        AvgWorkingSetMB = 0.0
+        AvgPrivateMemoryMB = 0.0
+        AvgCpuPercent = 0.0
+        AvgBurstCount = 0.0
+        AvgHandleCount = 0.0
+        AvgThreadCount = 0.0
+        AvgTrimDeltaMB = 0.0
+        AvgRefaultMB = 0.0
+        WakeBias = 0
+        Confidence = 0
+        AggressionBias = 0
+        PreferredTier = "Balanced"
+        LastReason = "new"
+        LastSeen = (Get-Date).ToString("o")
+        LastWakeAt = ""
+    }
+}
+
+function Get-BehaviorProfile {
+    param(
+        [string]$ProcessName,
+        [string]$Path
+    )
+
+    if (-not $behaviorEngine) { return $null }
+    $key = Get-AppIdentityKeyFromText -ProcessName $ProcessName -Path $Path
+    if ($key -and $script:behaviorMap.ContainsKey($key)) {
+        return $script:behaviorMap[$key]
+    }
+    return $null
+}
+
+function Resolve-BehaviorPreference {
+    param([object]$Profile)
+
+    if (-not $Profile) { return }
+    $observations = [int]$Profile.Observations
+    $targets = [int]$Profile.TargetCount
+    $trimCount = [int]$Profile.TrimCount
+    $refaultCount = [int]$Profile.RefaultCount
+    $wakeCount = [int]$Profile.WakeCount
+    $avgCpu = [double]$Profile.AvgCpuPercent
+    $avgWorkingSet = [double]$Profile.AvgWorkingSetMB
+    $avgDelta = [double]$Profile.AvgTrimDeltaMB
+    $avgRefault = [double]$Profile.AvgRefaultMB
+    $avgBursts = [double]$Profile.AvgBurstCount
+
+    $confidence = [math]::Min(100, ($observations * 10) + ($targets * 3) + ($trimCount * 4) + ($refaultCount * 10) + ($wakeCount * 10))
+    if ($observations -lt $behaviorMinObservations) { $confidence = [math]::Min($confidence, 54) }
+    if ($wakeCount -ge 2) { $confidence = [math]::Max($confidence, 68) }
+
+    $wakeBias = [math]::Min(100, ($wakeCount * 18) + ([int][math]::Round(($avgRefault / [math]::Max(1.0, $behaviorRefaultPenaltyMB)) * 42.0)))
+    $bias = 0
+    $tier = "Balanced"
+    $reason = "behavior-learning"
+
+    if ($wakeCount -ge 2) {
+        $bias = -2
+        $tier = "Light"
+        $reason = "behavior-fast-wake"
+    } elseif ($observations -ge $behaviorMinObservations -and $avgRefault -ge $behaviorRefaultPenaltyMB) {
+        $bias = -2
+        $tier = "Light"
+        $reason = "behavior-refault-guard"
+    } elseif ($observations -ge $behaviorMinObservations -and ($avgRefault -ge ($behaviorRefaultPenaltyMB * 0.55))) {
+        $bias = -1
+        $tier = "Light"
+        $reason = "behavior-refault-guard"
+    } elseif ($observations -ge $behaviorMinObservations -and $avgWorkingSet -ge $deepNapMinimumMB -and $avgCpu -le $behaviorStableCpuPercent -and $avgBursts -le 1.2 -and $avgDelta -ge $behaviorEfficientDeltaMB -and $avgRefault -le ($behaviorRefaultPenaltyMB * 0.35)) {
+        $bias = 2
+        $tier = "Deep"
+        $reason = "behavior-proven-idle"
+    } elseif ($observations -ge $behaviorMinObservations -and $avgWorkingSet -ge $balancedNapMinimumMB -and $avgCpu -le $balancedNapMaxCpuPercent -and $avgDelta -ge ($behaviorEfficientDeltaMB * 0.35)) {
+        $bias = 1
+        $tier = "Balanced"
+        $reason = "behavior-proven-steady"
+    }
+
+    $Profile.WakeBias = [int]$wakeBias
+    $Profile.Confidence = [int]$confidence
+    $Profile.AggressionBias = [int]$bias
+    $Profile.PreferredTier = $tier
+    $Profile.LastReason = $reason
+}
+
+function Update-BehaviorProfiles {
+    param(
+        [array]$Rows,
+        [array]$Results
+    )
+
+    if (-not $behaviorEngine) { return }
+    $now = (Get-Date).ToString("o")
+    $resultById = @{}
+    foreach ($result in @($Results)) {
+        if ($result.Id -ne $null) { $resultById[[int]$result.Id] = $result }
+    }
+
+    $groups = @{}
+    foreach ($row in @($Rows | Where-Object { $_.Candidate -or $resultById.ContainsKey([int]$_.Id) })) {
+        $key = Get-AppIdentityKeyFromText -ProcessName ([string]$row.ProcessName) -Path ([string]$row.Path)
+        if (-not $key) { continue }
+        if (-not $groups.ContainsKey($key)) {
+            $groups[$key] = [pscustomobject]@{
+                Key = $key
+                ProcessName = [string]$row.ProcessName
+                Path = [string]$row.Path
+                RowCount = 0
+                WorkingSetMB = 0.0
+                PrivateMemoryMB = 0.0
+                CpuPercent = 0.0
+                BurstCount = 0
+                HandleCount = 0
+                ThreadCount = 0
+                Targeted = $false
+                Trimmed = $false
+                Cooldown = $false
+                DeltaMB = 0.0
+                RefaultMB = 0.0
+            }
+        }
+        $group = $groups[$key]
+        $group.RowCount = [int]$group.RowCount + 1
+        $group.WorkingSetMB = [double]$group.WorkingSetMB + [double]$row.WorkingSetMB
+        $group.PrivateMemoryMB = [double]$group.PrivateMemoryMB + [double]$row.PrivateMemoryMB
+        $group.CpuPercent = [double]$group.CpuPercent + [double]$row.CpuPercent
+        $group.BurstCount = [int]$group.BurstCount + [int]$row.BurstCount
+        $group.HandleCount = [int]$group.HandleCount + [int]$row.HandleCount
+        $group.ThreadCount = [int]$group.ThreadCount + [int]$row.ThreadCount
+
+        if ($resultById.ContainsKey([int]$row.Id)) {
+            $result = $resultById[[int]$row.Id]
+            $group.Targeted = $true
+            if ([string]$result.TrimWorkingSet -eq "OK") { $group.Trimmed = $true }
+            if ([string]$result.TrimWorkingSet -eq "Cooldown") { $group.Cooldown = $true }
+
+            if ($result.WorkingSetBeforeMB -ne $null -and $result.WorkingSetAfterMB -ne $null) {
+                $delta = [double]$result.WorkingSetBeforeMB - [double]$result.WorkingSetAfterMB
+                if ($delta -gt 0) { $group.DeltaMB = [double]$group.DeltaMB + $delta }
+            }
+
+            if ($result.WorkingSetAfterMB -ne $null) {
+                $current = Get-Process -Id ([int]$row.Id) -ErrorAction SilentlyContinue
+                if ($current) {
+                    $currentMB = [math]::Round($current.WorkingSet64 / 1MB, 1)
+                    $refault = [double]$currentMB - [double]$result.WorkingSetAfterMB
+                    if ($refault -gt 0) { $group.RefaultMB = [double]$group.RefaultMB + $refault }
+                }
+            }
+        }
+    }
+
+    foreach ($group in @($groups.Values)) {
+        $key = [string]$group.Key
+        $profile = $null
+        if ($script:behaviorMap.ContainsKey($key)) {
+            $profile = $script:behaviorMap[$key]
+        } else {
+            $profile = New-BehaviorProfile -Key $key -ProcessName ([string]$group.ProcessName) -Path ([string]$group.Path)
+        }
+
+        $profile.ProcessName = [string]$group.ProcessName
+        $profile.Path = [string]$group.Path
+        $profile.Observations = [int]$profile.Observations + 1
+        $profile.AvgWorkingSetMB = Update-LearningAverage -OldValue ([double]$profile.AvgWorkingSetMB) -NewValue ([double]$group.WorkingSetMB) -ObservationCount ([int]$profile.Observations)
+        $profile.AvgPrivateMemoryMB = Update-LearningAverage -OldValue ([double]$profile.AvgPrivateMemoryMB) -NewValue ([double]$group.PrivateMemoryMB) -ObservationCount ([int]$profile.Observations)
+        $profile.AvgCpuPercent = Update-LearningAverage -OldValue ([double]$profile.AvgCpuPercent) -NewValue ([double]$group.CpuPercent) -ObservationCount ([int]$profile.Observations)
+        $profile.AvgBurstCount = Update-LearningAverage -OldValue ([double]$profile.AvgBurstCount) -NewValue ([double]$group.BurstCount) -ObservationCount ([int]$profile.Observations)
+        $profile.AvgHandleCount = Update-LearningAverage -OldValue ([double]$profile.AvgHandleCount) -NewValue ([double]$group.HandleCount) -ObservationCount ([int]$profile.Observations)
+        $profile.AvgThreadCount = Update-LearningAverage -OldValue ([double]$profile.AvgThreadCount) -NewValue ([double]$group.ThreadCount) -ObservationCount ([int]$profile.Observations)
+
+        if ([bool]$group.Targeted) {
+            $profile.TargetCount = [int]$profile.TargetCount + 1
+            if ([bool]$group.Trimmed) { $profile.TrimCount = [int]$profile.TrimCount + 1 }
+            if ([bool]$group.Cooldown) { $profile.CooldownCount = [int]$profile.CooldownCount + 1 }
+            $profile.AvgTrimDeltaMB = Update-LearningAverage -OldValue ([double]$profile.AvgTrimDeltaMB) -NewValue ([double]$group.DeltaMB) -ObservationCount ([int]$profile.TargetCount)
+            if ([double]$group.RefaultMB -ge $behaviorRefaultPenaltyMB) { $profile.RefaultCount = [int]$profile.RefaultCount + 1 }
+            $profile.AvgRefaultMB = Update-LearningAverage -OldValue ([double]$profile.AvgRefaultMB) -NewValue ([double]$group.RefaultMB) -ObservationCount ([int]$profile.TargetCount)
+        }
+
+        Resolve-BehaviorPreference -Profile $profile
+        $profile.LastSeen = $now
+        $script:behaviorMap[$key] = $profile
+    }
+
+    foreach ($result in @($Results)) {
+        $key = Get-AppIdentityKeyFromText -ProcessName ([string]$result.ProcessName) -Path ([string]$result.Path)
+        if (-not $key -or -not $script:behaviorMap.ContainsKey($key)) { continue }
+        $profile = $script:behaviorMap[$key]
+        $result.BehaviorObservations = [int]$profile.Observations
+        $result.BehaviorWakeCount = [int]$profile.WakeCount
+        $result.BehaviorConfidence = [int]$profile.Confidence
+        $result.BehaviorBias = [int]$profile.AggressionBias
+        $result.BehaviorPreferredTier = [string]$profile.PreferredTier
+        $result.BehaviorReason = [string]$profile.LastReason
+        $result.BehaviorAvgRefaultMB = [double]$profile.AvgRefaultMB
+        $result.BehaviorAvgTrimDeltaMB = [double]$profile.AvgTrimDeltaMB
+    }
+
+    Save-BehaviorMap -Map $script:behaviorMap
+}
+
+function Add-BehaviorWake {
+    param(
+        [System.Diagnostics.Process]$Process,
+        [string]$Path
+    )
+
+    if (-not $behaviorEngine -or -not $Process) { return }
+    $key = Get-AppIdentityKeyFromText -ProcessName $Process.ProcessName -Path $Path
+    if (-not $key) { return }
+    $profile = $null
+    if ($script:behaviorMap.ContainsKey($key)) {
+        $profile = $script:behaviorMap[$key]
+    } else {
+        $profile = New-BehaviorProfile -Key $key -ProcessName $Process.ProcessName -Path $Path
+    }
+    $profile.ProcessName = $Process.ProcessName
+    $profile.Path = $Path
+    $profile.WakeCount = [int]$profile.WakeCount + 1
+    $profile.LastWakeAt = (Get-Date).ToString("o")
+    $profile.LastSeen = (Get-Date).ToString("o")
+    Resolve-BehaviorPreference -Profile $profile
+    $script:behaviorMap[$key] = $profile
+    Save-BehaviorMap -Map $script:behaviorMap
+}
+
 function Get-SystemMemoryPressure {
     $totalMB = -1.0
     $freeMB = -1.0
@@ -1710,6 +2028,17 @@ function Get-CandidateWeight {
             $weight *= (1.0 + ([int]$Row.LearningAggression * 0.18))
         }
     }
+    if ($behaviorEngine -and [int]$Row.BehaviorConfidence -ge 45) {
+        if ([int]$Row.BehaviorBias -le -2) {
+            $weight *= 0.48
+        } elseif ([int]$Row.BehaviorBias -eq -1) {
+            $weight *= 0.72
+        } elseif ([int]$Row.BehaviorBias -eq 1) {
+            $weight *= 1.12
+        } elseif ([int]$Row.BehaviorBias -ge 2) {
+            $weight *= 1.26
+        }
+    }
     if ([bool]$Row.ForegroundFullscreen) {
         $weight *= 1.15
     }
@@ -1786,6 +2115,18 @@ function Get-NapPolicy {
     } elseif ($smartLearning -and [int]$Row.LearningObservations -ge $learningMinObservations -and [bool]$Row.LearningFastWake) {
         $tier = "Light"
         $reason = "learned-fast-wake"
+    } elseif ($behaviorEngine -and [int]$Row.BehaviorConfidence -ge $behaviorLightConfidence -and [int]$Row.BehaviorBias -lt 0) {
+        $tier = "Light"
+        $reason = if ([string]$Row.BehaviorReason) { [string]$Row.BehaviorReason } else { "behavior-guard" }
+        $policySource = "behavior"
+    } elseif ($behaviorEngine -and [int]$Row.BehaviorObservations -ge $behaviorMinObservations -and [int]$Row.BehaviorConfidence -ge $behaviorDeepConfidence -and [int]$Row.BehaviorBias -ge 2 -and [double]$Row.CpuPercent -le [math]::Max(1.0, $deepCpuLimit) -and -not [bool]$Row.SwitchFastWake -and -not $Row.GuardReason -and -not ($realtimeFriendlyNames.Contains([string]$Row.ProcessName))) {
+        $tier = "Deep"
+        $reason = if ([string]$Row.BehaviorReason) { [string]$Row.BehaviorReason } else { "behavior-proven-idle" }
+        $policySource = "behavior"
+    } elseif ($behaviorEngine -and [int]$Row.BehaviorObservations -ge $behaviorMinObservations -and [int]$Row.BehaviorConfidence -ge $behaviorDeepConfidence -and [int]$Row.BehaviorBias -eq 1 -and [double]$Row.WorkingSetMB -ge $balancedNapMinimumMB) {
+        $tier = "Balanced"
+        $reason = if ([string]$Row.BehaviorReason) { [string]$Row.BehaviorReason } else { "behavior-proven-steady" }
+        $policySource = "behavior"
     } elseif ($smartLearning -and [int]$Row.LearningObservations -ge $learningMinObservations -and [int]$Row.LearningAggression -ge 2 -and ([string]$script:currentMemoryPressure.Level -in @("Elevated", "Critical")) -and [double]$Row.CpuPercent -le [math]::Max(1.0, $deepCpuLimit)) {
         $tier = "Deep"
         $reason = "learned-memory-pressure"
@@ -1897,6 +2238,7 @@ function Get-BackgroundProcessRows {
     $script:currentMemoryPressure = Get-SystemMemoryPressure
     $script:foregroundSwitchMap = Read-ForegroundSwitchMap
     $script:gameProfileMap = Read-GameProfileMap
+    $script:behaviorMap = Read-BehaviorMap
     $script:appPolicyMap = Read-AppPolicyMap
     if ($smartLearning) {
         $script:currentLearningSession = Get-LearningSessionContext -Foreground $foreground -Pressure $script:currentMemoryPressure
@@ -1928,7 +2270,7 @@ function Get-BackgroundProcessRows {
     }
 
     $cpuPercentByPid = @{}
-    if ($skipHighCpu -or $intentEngine -or $downloadLauncherGuard -or $mediaCallProtection) {
+    if ($skipHighCpu -or $intentEngine -or $downloadLauncherGuard -or $mediaCallProtection -or $behaviorEngine) {
         $cpuPercentByPid = Get-ProcessCpuPercentMap
     }
     $all = @(Get-Process -ErrorAction SilentlyContinue | Sort-Object ProcessName, Id)
@@ -1946,6 +2288,13 @@ function Get-BackgroundProcessRows {
         $role = Get-ProcessRole -ProcessName $p.ProcessName -Path $path
         $switchProfile = Get-ForegroundSwitchProfile -ProcessName $p.ProcessName -Path $path
         $appPolicy = Get-AppPolicyForText -ProcessName $p.ProcessName -Path $path
+        $behaviorProfile = Get-BehaviorProfile -ProcessName $p.ProcessName -Path $path
+        $privateMemoryMB = 0.0
+        $handleCount = 0
+        $threadCount = 0
+        try { $privateMemoryMB = [math]::Round($p.PrivateMemorySize64 / 1MB, 1) } catch { $privateMemoryMB = 0.0 }
+        try { $handleCount = [int]$p.HandleCount } catch { $handleCount = 0 }
+        try { $threadCount = @($p.Threads).Count } catch { $threadCount = 0 }
 
         if ($path -and $smartAutoProtect -and $skipHighCpu -and $cpuPercent -ge $effectiveHighCpuThreshold) {
             Add-TemporaryProtection -Map $protectMap -Process $p -Path $path -Reason "ActiveCpu" -Minutes $autoProtectHighCpuMinutes
@@ -1972,6 +2321,9 @@ function Get-BackgroundProcessRows {
             PriorityClass = Get-ProcessPriorityText -Process $p
             IoPriority = Get-ProcessIoPriorityText -Process $p
             WorkingSetMB = [math]::Round($p.WorkingSet64 / 1MB, 1)
+            PrivateMemoryMB = $privateMemoryMB
+            HandleCount = $handleCount
+            ThreadCount = $threadCount
             CpuSeconds = if ($p.CPU -ne $null) { [math]::Round($p.CPU, 1) } else { $null }
             CpuPercent = $cpuPercent
             BurstCount = $burstCount
@@ -1996,6 +2348,14 @@ function Get-BackgroundProcessRows {
             LearningFastWake = if ($learningProfile) { [bool]$learningProfile.FastWake } else { $false }
             LearningPreferredTier = if ($learningProfile -and $learningProfile.PreferredTier) { [string]$learningProfile.PreferredTier } else { "" }
             LearningAggression = if ($learningProfile) { [int]$learningProfile.Aggression } else { 0 }
+            BehaviorObservations = if ($behaviorProfile) { [int]$behaviorProfile.Observations } else { 0 }
+            BehaviorWakeCount = if ($behaviorProfile) { [int]$behaviorProfile.WakeCount } else { 0 }
+            BehaviorConfidence = if ($behaviorProfile) { [int]$behaviorProfile.Confidence } else { 0 }
+            BehaviorBias = if ($behaviorProfile) { [int]$behaviorProfile.AggressionBias } else { 0 }
+            BehaviorPreferredTier = if ($behaviorProfile -and $behaviorProfile.PreferredTier) { [string]$behaviorProfile.PreferredTier } else { "" }
+            BehaviorReason = if ($behaviorProfile -and $behaviorProfile.LastReason) { [string]$behaviorProfile.LastReason } else { "" }
+            BehaviorAvgRefaultMB = if ($behaviorProfile) { [double]$behaviorProfile.AvgRefaultMB } else { 0.0 }
+            BehaviorAvgTrimDeltaMB = if ($behaviorProfile) { [double]$behaviorProfile.AvgTrimDeltaMB } else { 0.0 }
         }
     }
 
@@ -2076,11 +2436,15 @@ function Write-ApplySummaryLog {
     if ($smartLearning) {
         $learningText = " learning=on profiles={0} pressure={1} freeMB={2}" -f $script:learningMap.Count, ([string]$script:currentMemoryPressure.Level), ([math]::Round([double]$script:currentMemoryPressure.FreeMB, 0))
     }
+    $behaviorText = ""
+    if ($behaviorEngine) {
+        $behaviorText = " behavior=on behaviorProfiles={0}" -f $script:behaviorMap.Count
+    }
     $intentText = ""
     if ($intentEngine -and $script:currentIntent) {
         $intentText = " intent={0} confidence={1}" -f ([string]$script:currentIntent.Kind), ([int]$script:currentIntent.Confidence)
     }
-    $line = "{0} action=apply targets={1} processes={2} beforeMB={3} afterMB={4} deltaMB={5} light={6} balanced={7} deep={8} trimmed={9} cooldown={10} fullscreen={11}{12}{13}{14}" -f (Get-Date).ToString("s"), $count, $processCount, ([math]::Round($before, 1)), ([math]::Round($after, 1)), ([math]::Round($delta, 1)), $light, $balanced, $deep, $trimmed, $cooldown, ([string]$fullscreen).ToLowerInvariant(), $topText, $learningText, $intentText
+    $line = "{0} action=apply targets={1} processes={2} beforeMB={3} afterMB={4} deltaMB={5} light={6} balanced={7} deep={8} trimmed={9} cooldown={10} fullscreen={11}{12}{13}{14}{15}" -f (Get-Date).ToString("s"), $count, $processCount, ([math]::Round($before, 1)), ([math]::Round($after, 1)), ([math]::Round($delta, 1)), $light, $balanced, $deep, $trimmed, $cooldown, ([string]$fullscreen).ToLowerInvariant(), $topText, $learningText, $behaviorText, $intentText
     Add-Content -LiteralPath $LogPath -Value $line -Encoding UTF8
 }
 
@@ -2140,6 +2504,14 @@ function Convert-NapResultGroupToScoreItem {
         LearningWakeCount = $p.LearningWakeCount
         LearningAggression = $p.LearningAggression
         LearningPressure = $p.LearningPressure
+        BehaviorObservations = $p.BehaviorObservations
+        BehaviorWakeCount = $p.BehaviorWakeCount
+        BehaviorConfidence = $p.BehaviorConfidence
+        BehaviorBias = $p.BehaviorBias
+        BehaviorPreferredTier = $p.BehaviorPreferredTier
+        BehaviorReason = $p.BehaviorReason
+        BehaviorAvgRefaultMB = $p.BehaviorAvgRefaultMB
+        BehaviorAvgTrimDeltaMB = $p.BehaviorAvgTrimDeltaMB
         ForegroundFullscreen = $p.ForegroundFullscreen
         Role = $p.Role
         AppKey = $p.AppKey
@@ -2178,6 +2550,8 @@ function Write-NapScore {
         ProcessCount = @($Results).Count
         LearningEnabled = [bool]$smartLearning
         LearningProfiles = if ($smartLearning) { [int]$script:learningMap.Count } else { 0 }
+        BehaviorEnabled = [bool]$behaviorEngine
+        BehaviorProfiles = if ($behaviorEngine) { [int]$script:behaviorMap.Count } else { 0 }
         MemoryPressure = [string]$script:currentMemoryPressure.Level
         FreeMemoryMB = [double]$script:currentMemoryPressure.FreeMB
         IntentKind = if ($script:currentIntent) { [string]$script:currentIntent.Kind } else { "Desktop" }
@@ -2239,6 +2613,13 @@ function Invoke-ApplyOnce {
         if ($smartBurstWatcher -and [int]$row.BurstCount -ge $burstRepeatCount -and $burstTrimMinimumMB -lt $trimThreshold) {
             $trimThreshold = $burstTrimMinimumMB
         }
+        if ($behaviorEngine -and [int]$row.BehaviorConfidence -ge 45) {
+            if ([int]$row.BehaviorBias -lt 0) {
+                $trimThreshold = [math]::Max($trimThreshold, ([double]$row.WorkingSetMB + 1.0))
+            } elseif ([int]$row.BehaviorBias -ge 2) {
+                $trimThreshold = [math]::Max(24.0, [math]::Round($trimThreshold * 0.82, 1))
+            }
+        }
 
         $trimStatus = "SkippedBelowThreshold"
         if ($trimWorkingSet -and $row.WorkingSetMB -ge $trimThreshold) {
@@ -2274,6 +2655,14 @@ function Invoke-ApplyOnce {
             LearningWakeCount = $row.LearningWakeCount
             LearningAggression = $row.LearningAggression
             LearningPressure = [string]$script:currentMemoryPressure.Level
+            BehaviorObservations = $row.BehaviorObservations
+            BehaviorWakeCount = $row.BehaviorWakeCount
+            BehaviorConfidence = $row.BehaviorConfidence
+            BehaviorBias = $row.BehaviorBias
+            BehaviorPreferredTier = $row.BehaviorPreferredTier
+            BehaviorReason = $row.BehaviorReason
+            BehaviorAvgRefaultMB = $row.BehaviorAvgRefaultMB
+            BehaviorAvgTrimDeltaMB = $row.BehaviorAvgTrimDeltaMB
             Role = $row.Role
             AppKey = $row.AppKey
             AppPolicy = $row.AppPolicy
@@ -2293,6 +2682,9 @@ function Invoke-ApplyOnce {
             TrimWorkingSet = $trimStatus
             WorkingSetBeforeMB = $row.WorkingSetMB
             WorkingSetAfterMB = $afterMB
+            PrivateMemoryMB = $row.PrivateMemoryMB
+            HandleCount = $row.HandleCount
+            ThreadCount = $row.ThreadCount
             CpuPercent = $row.CpuPercent
             BurstCount = $row.BurstCount
             NapScore = $napScore
@@ -2303,6 +2695,7 @@ function Invoke-ApplyOnce {
     }
 
     Save-TrimMap -Map $trimMap
+    Update-BehaviorProfiles -Rows $rows -Results $results
     Write-ContentionRadar -Rows $rows -Results $results
     return $results
 }
@@ -2466,6 +2859,14 @@ function Invoke-ForegroundRestore {
         $learnLine = "{0} action=learning event=wake process={1} wakes={2} fastWake={3}" -f (Get-Date).ToString("s"), $p.ProcessName, $wakeCount, ([string]($wakeCount -ge $learningFastWakeThreshold)).ToLowerInvariant()
         Add-Content -LiteralPath $LogPath -Value $learnLine -Encoding UTF8
     }
+    if ($behaviorEngine) {
+        Add-BehaviorWake -Process $p -Path $path
+        $behaviorWakeProfile = Get-BehaviorProfile -ProcessName $p.ProcessName -Path $path
+        if ($behaviorWakeProfile) {
+            $behaviorLine = "{0} action=behavior event=wake process={1} wakes={2} confidence={3} tier={4}" -f (Get-Date).ToString("s"), $p.ProcessName, ([int]$behaviorWakeProfile.WakeCount), ([int]$behaviorWakeProfile.Confidence), ([string]$behaviorWakeProfile.PreferredTier)
+            Add-Content -LiteralPath $LogPath -Value $behaviorLine -Encoding UTF8
+        }
+    }
 
     [pscustomobject]@{
         Action = "ForegroundRestore"
@@ -2484,6 +2885,9 @@ function Invoke-ForegroundRestore {
 if ($smartLearning) {
     $script:learningMap = Read-LearningMap
     $script:currentMemoryPressure = Get-SystemMemoryPressure
+}
+if ($behaviorEngine) {
+    $script:behaviorMap = Read-BehaviorMap
 }
 
 switch ($Action) {

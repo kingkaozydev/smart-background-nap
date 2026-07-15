@@ -1,4 +1,14 @@
 # Changelog
+## 0.4.5 - 2026-07-15
+
+- Added Behavior Engine, a local per-app profiler that learns from aggregate app behavior instead of treating every child process as a separate app.
+- Behavior profiles track CPU sample, memory footprint, private memory, handle/thread pressure, burst history, working-set trim result, refault after trim, and foreground wake events.
+- Nap tier decisions can now use behavior confidence to soften apps that wake often or refault memory, and to deepen apps proven to be idle and efficient to trim.
+- Fixed tray tooltip refresh so hovering/opening the tray menu requests fresh RAM/app/purge data instead of feeling frozen.
+- Added Behavior Engine telemetry and badges to the WebView2 launcher.
+- Refined the dashboard intelligence section so core behavior profiling and optional Smart Learning are presented clearly without crowding the control center.
+- Reworked the WebView2 launcher frame with a dark custom window surface, reliable native drag handling, responsive layout fixes, and a clearer clickable Start with Windows control.
+
 ## 0.4.4 - 2026-07-15
 
 - Fixed GPU VRAM detection by preferring driver-reported video memory when Windows exposes capped adapter-memory values.
