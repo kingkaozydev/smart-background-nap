@@ -27,7 +27,7 @@ using Microsoft.Web.WebView2.Wpf;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.4.3";
+    private const string AppVersion = "0.4.4";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
@@ -60,6 +60,9 @@ internal static class SmartBackgroundNap
     private static readonly object hardwareLock = new object();
     private static HardwareSnapshot hardwareSnapshotCache;
     private static DateTime hardwareSnapshotAtUtc = DateTime.MinValue;
+    private static readonly object cpuClockLock = new object();
+    private static CpuClockSnapshot cpuClockCache;
+    private static DateTime cpuClockSnapshotAtUtc = DateTime.MinValue;
     private const uint ProcessSetInformation = 0x0200;
     private const uint ProcessQueryLimitedInformation = 0x1000;
     private const int ProcessMemoryPriorityClass = 0;
@@ -124,6 +127,8 @@ internal static class SmartBackgroundNap
         public int CurrentMhz;
         public int MaxMhz;
         public int LimitMhz;
+        public int PerformancePercent;
+        public bool ReliableCurrent;
     }
 
     private sealed class RamModuleInfo
@@ -404,6 +409,29 @@ internal static class SmartBackgroundNap
     [DllImport("powrprof.dll", SetLastError = true)]
     private static extern uint CallNtPowerInformation(int informationLevel, IntPtr inputBuffer, uint inputBufferSize, IntPtr outputBuffer, uint outputBufferSize);
 
+    [DllImport("pdh.dll", CharSet = CharSet.Unicode)]
+    private static extern int PdhOpenQuery(string dataSource, UIntPtr userData, out IntPtr query);
+
+    [DllImport("pdh.dll", CharSet = CharSet.Unicode)]
+    private static extern int PdhAddEnglishCounter(IntPtr query, string fullCounterPath, UIntPtr userData, out IntPtr counter);
+
+    [DllImport("pdh.dll")]
+    private static extern int PdhCollectQueryData(IntPtr query);
+
+    [DllImport("pdh.dll")]
+    private static extern int PdhGetFormattedCounterValue(IntPtr counter, uint format, out uint counterType, out PdhFmtCounterValue value);
+
+    [DllImport("pdh.dll")]
+    private static extern int PdhCloseQuery(IntPtr query);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct PdhFmtCounterValue
+    {
+        public uint CStatus;
+        public double DoubleValue;
+    }
+
+    private const uint PdhFmtDouble = 0x00000200;
     private static int GetForegroundPid()
     {
         try
@@ -508,7 +536,9 @@ internal static class SmartBackgroundNap
                     ulong adapterRam = parts.Length > 1 ? ParseUInt64(parts[1], 0) : 0;
                     string driver = parts.Length > 2 ? CleanHardwareValue(parts[2]) : "";
                     string display = parts.Length > 3 ? CleanHardwareValue(parts[3]) : "";
-                    snapshot.GpuDetail = BuildGpuDetail(adapterRam, driver, display);
+                    ulong driverMemory = GetVideoMemoryBytes(snapshot.Gpu);
+                    if (driverMemory > adapterRam) { adapterRam = driverMemory; }
+                    snapshot.GpuDetail = BuildGpuDetail(snapshot.Gpu, adapterRam, driver, display);
                 }
                 else if (line.StartsWith("OS=", StringComparison.OrdinalIgnoreCase))
                 {
@@ -567,7 +597,7 @@ internal static class SmartBackgroundNap
             snapshot.SystemDetail = "-";
         }
         string baseCpuDetail = String.IsNullOrWhiteSpace(snapshot.CpuBaseDetail) ? snapshot.CpuDetail : snapshot.CpuBaseDetail;
-        snapshot.CpuDetail = EnrichCpuDetailWithLiveClock(baseCpuDetail, snapshot.CpuClockCurrentMhz, snapshot.CpuClockMaxMhz);
+        snapshot.CpuDetail = EnrichCpuDetailWithLiveClock(baseCpuDetail, cpuClock);
     }
 
     private static string BuildCpuDetail(int cores, int threads, int maxMhz)
@@ -583,28 +613,104 @@ internal static class SmartBackgroundNap
         }
         if (maxMhz > 0)
         {
-            parts.Add(FormatMhz(maxMhz));
+            parts.Add("base " + FormatMhz(maxMhz));
         }
         return parts.Count > 0 ? String.Join(" | ", parts.ToArray()) : "CPU detail unavailable";
     }
 
-    private static string EnrichCpuDetailWithLiveClock(string baseDetail, int currentMhz, int maxMhz)
+    private static string EnrichCpuDetailWithLiveClock(string baseDetail, CpuClockSnapshot clockSnapshot)
     {
         List<string> parts = new List<string>();
         if (!String.IsNullOrWhiteSpace(baseDetail))
         {
             parts.Add(baseDetail);
         }
-        if (currentMhz > 0)
+        if (clockSnapshot.ReliableCurrent && clockSnapshot.CurrentMhz > 0)
         {
-            string clock = "agora " + FormatMhz(currentMhz);
-            if (maxMhz > 0) { clock += " / max " + FormatMhz(maxMhz); }
+            string clock = "agora " + FormatMhz(clockSnapshot.CurrentMhz);
+            if (clockSnapshot.PerformancePercent > 0)
+            {
+                clock += " (" + clockSnapshot.PerformancePercent.ToString(CultureInfo.CurrentCulture) + "% perf)";
+            }
             parts.Add(clock);
         }
         return parts.Count > 0 ? String.Join(" | ", parts.ToArray()) : "CPU detail unavailable";
     }
 
     private static CpuClockSnapshot GetCpuClockSnapshot()
+    {
+        lock (cpuClockLock)
+        {
+            if ((DateTime.UtcNow - cpuClockSnapshotAtUtc).TotalSeconds < 2.0)
+            {
+                return cpuClockCache;
+            }
+
+            CpuClockSnapshot snapshot = GetPdhCpuClockSnapshot();
+            if (!snapshot.ReliableCurrent)
+            {
+                CpuClockSnapshot fallback = GetPowerInfoCpuClockSnapshot();
+                snapshot.MaxMhz = fallback.MaxMhz;
+                snapshot.LimitMhz = fallback.LimitMhz;
+            }
+            cpuClockCache = snapshot;
+            cpuClockSnapshotAtUtc = DateTime.UtcNow;
+            return snapshot;
+        }
+    }
+
+    private static CpuClockSnapshot GetPdhCpuClockSnapshot()
+    {
+        CpuClockSnapshot snapshot = new CpuClockSnapshot();
+        IntPtr query = IntPtr.Zero;
+        IntPtr performanceCounter = IntPtr.Zero;
+        IntPtr frequencyCounter = IntPtr.Zero;
+        try
+        {
+            if (PdhOpenQuery(null, UIntPtr.Zero, out query) != 0 || query == IntPtr.Zero) { return snapshot; }
+            if (PdhAddEnglishCounter(query, @"\Processor Information(_Total)\% Processor Performance", UIntPtr.Zero, out performanceCounter) != 0) { return snapshot; }
+            if (PdhAddEnglishCounter(query, @"\Processor Information(_Total)\Processor Frequency", UIntPtr.Zero, out frequencyCounter) != 0) { return snapshot; }
+            PdhCollectQueryData(query);
+            Thread.Sleep(80);
+            if (PdhCollectQueryData(query) != 0) { return snapshot; }
+
+            double performance = ReadPdhDouble(performanceCounter);
+            double baseFrequency = ReadPdhDouble(frequencyCounter);
+            if (performance > 0.0 && baseFrequency > 0.0)
+            {
+                snapshot.PerformancePercent = (int)Math.Round(performance);
+                snapshot.MaxMhz = (int)Math.Round(baseFrequency);
+                snapshot.CurrentMhz = (int)Math.Round(baseFrequency * performance / 100.0);
+                snapshot.ReliableCurrent = snapshot.CurrentMhz > 0;
+            }
+        }
+        catch
+        {
+        }
+        finally
+        {
+            if (query != IntPtr.Zero) { try { PdhCloseQuery(query); } catch { } }
+        }
+        return snapshot;
+    }
+
+    private static double ReadPdhDouble(IntPtr counter)
+    {
+        if (counter == IntPtr.Zero) { return 0.0; }
+        try
+        {
+            uint counterType;
+            PdhFmtCounterValue value;
+            int status = PdhGetFormattedCounterValue(counter, PdhFmtDouble, out counterType, out value);
+            return status == 0 && value.CStatus == 0 ? value.DoubleValue : 0.0;
+        }
+        catch
+        {
+            return 0.0;
+        }
+    }
+
+    private static CpuClockSnapshot GetPowerInfoCpuClockSnapshot()
     {
         CpuClockSnapshot snapshot = new CpuClockSnapshot();
         int count = Math.Max(1, Environment.ProcessorCount);
@@ -616,24 +722,16 @@ internal static class SmartBackgroundNap
             uint status = CallNtPowerInformation(11, IntPtr.Zero, 0, buffer, (uint)(itemSize * count));
             if (status != 0) { return snapshot; }
 
-            long currentSum = 0;
-            int currentCount = 0;
             int max = 0;
             int limit = 0;
             for (int i = 0; i < count; i++)
             {
                 IntPtr ptr = new IntPtr(buffer.ToInt64() + (long)i * itemSize);
                 ProcessorPowerInformation info = (ProcessorPowerInformation)Marshal.PtrToStructure(ptr, typeof(ProcessorPowerInformation));
-                if (info.CurrentMhz > 0)
-                {
-                    currentSum += info.CurrentMhz;
-                    currentCount++;
-                }
                 if (info.MaxMhz > max) { max = (int)info.MaxMhz; }
                 if (info.MhzLimit > limit) { limit = (int)info.MhzLimit; }
             }
 
-            if (currentCount > 0) { snapshot.CurrentMhz = (int)Math.Round(currentSum / (double)currentCount); }
             snapshot.MaxMhz = max;
             snapshot.LimitMhz = limit;
         }
@@ -647,7 +745,93 @@ internal static class SmartBackgroundNap
         return snapshot;
     }
 
-    private static string BuildGpuDetail(ulong adapterRam, string driver, string display)
+    private static ulong GetVideoMemoryBytes(string gpuName)
+    {
+        ulong bestAny = 0;
+        ulong bestMatch = 0;
+        try
+        {
+            using (RegistryKey root = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\Video"))
+            {
+                if (root == null) { return 0; }
+                foreach (string adapterKeyName in root.GetSubKeyNames())
+                {
+                    using (RegistryKey adapterKey = root.OpenSubKey(adapterKeyName))
+                    {
+                        if (adapterKey == null) { continue; }
+                        foreach (string childName in adapterKey.GetSubKeyNames())
+                        {
+                            if (!String.Equals(childName, "0000", StringComparison.OrdinalIgnoreCase) && !String.Equals(childName, "0001", StringComparison.OrdinalIgnoreCase)) { continue; }
+                            using (RegistryKey child = adapterKey.OpenSubKey(childName))
+                            {
+                                if (child == null) { continue; }
+                                ulong bytes = ReadRegistryUInt64(child.GetValue("HardwareInformation.qwMemorySize"));
+                                if (bytes == 0) { continue; }
+                                if (bytes > bestAny) { bestAny = bytes; }
+                                string driver = Convert.ToString(child.GetValue("DriverDesc"), CultureInfo.InvariantCulture);
+                                string adapter = Convert.ToString(child.GetValue("HardwareInformation.AdapterString"), CultureInfo.InvariantCulture);
+                                string chip = Convert.ToString(child.GetValue("HardwareInformation.ChipType"), CultureInfo.InvariantCulture);
+                                if (NamesLookRelated(gpuName, driver) || NamesLookRelated(gpuName, adapter) || NamesLookRelated(gpuName, chip))
+                                {
+                                    if (bytes > bestMatch) { bestMatch = bytes; }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch
+        {
+        }
+        return bestMatch > 0 ? bestMatch : bestAny;
+    }
+
+    private static ulong ReadRegistryUInt64(object value)
+    {
+        try
+        {
+            if (value == null) { return 0; }
+            if (value is ulong) { return (ulong)value; }
+            if (value is long) { return (ulong)Math.Max(0L, (long)value); }
+            if (value is uint) { return (uint)value; }
+            if (value is int) { return (ulong)Math.Max(0, (int)value); }
+            byte[] bytes = value as byte[];
+            if (bytes != null)
+            {
+                if (bytes.Length >= 8) { return BitConverter.ToUInt64(bytes, 0); }
+                if (bytes.Length >= 4) { return BitConverter.ToUInt32(bytes, 0); }
+            }
+            return ParseUInt64(Convert.ToString(value, CultureInfo.InvariantCulture), 0);
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    private static bool NamesLookRelated(string left, string right)
+    {
+        left = NormalizeHardwareName(left);
+        right = NormalizeHardwareName(right);
+        if (String.IsNullOrWhiteSpace(left) || String.IsNullOrWhiteSpace(right)) { return false; }
+        return left.IndexOf(right, StringComparison.OrdinalIgnoreCase) >= 0 || right.IndexOf(left, StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static string NormalizeHardwareName(string value)
+    {
+        if (String.IsNullOrWhiteSpace(value)) { return ""; }
+        string result = value.ToLowerInvariant();
+        string[] noise = new string[] { "(r)", "(tm)", "nvidia", "geforce", "intel", "amd", "radeon", "graphics", "gpu" };
+        foreach (string token in noise) { result = result.Replace(token, " "); }
+        StringBuilder builder = new StringBuilder();
+        foreach (char ch in result)
+        {
+            if (Char.IsLetterOrDigit(ch)) { builder.Append(ch); }
+        }
+        return builder.ToString();
+    }
+    private static string BuildGpuDetail(string gpuName, ulong adapterRam, string driver, string display)
     {
         List<string> parts = new List<string>();
         if (adapterRam > 0)
@@ -658,11 +842,61 @@ internal static class SmartBackgroundNap
         {
             parts.Add(display);
         }
-        if (!String.IsNullOrWhiteSpace(driver))
+
+        string driverLabel = BuildGpuDriverLabel(gpuName, driver);
+        if (!String.IsNullOrWhiteSpace(driverLabel))
         {
-            parts.Add("driver " + ShortenText(driver, 18));
+            parts.Add(driverLabel);
         }
         return parts.Count > 0 ? String.Join(" | ", parts.ToArray()) : "GPU detail unavailable";
+    }
+
+    private static string BuildGpuDriverLabel(string gpuName, string driverVersion)
+    {
+        driverVersion = CleanHardwareValue(driverVersion);
+        if (String.IsNullOrWhiteSpace(driverVersion)) { return ""; }
+
+        if (HardwareNameContains(gpuName, "nvidia") || HardwareNameContains(gpuName, "geforce") || HardwareNameContains(gpuName, "rtx") || HardwareNameContains(gpuName, "gtx"))
+        {
+            string nvidiaVersion = TryFormatNvidiaDriverVersion(driverVersion);
+            return "driver NVIDIA " + ShortenText(String.IsNullOrWhiteSpace(nvidiaVersion) ? driverVersion : nvidiaVersion, 18);
+        }
+        if (HardwareNameContains(gpuName, "amd") || HardwareNameContains(gpuName, "radeon"))
+        {
+            return "driver AMD " + ShortenText(driverVersion, 18);
+        }
+        if (HardwareNameContains(gpuName, "intel") || HardwareNameContains(gpuName, "arc") || HardwareNameContains(gpuName, "iris") || HardwareNameContains(gpuName, "uhd"))
+        {
+            return "driver Intel " + ShortenText(driverVersion, 18);
+        }
+        return "driver " + ShortenText(driverVersion, 18);
+    }
+
+    private static bool HardwareNameContains(string value, string token)
+    {
+        return !String.IsNullOrWhiteSpace(value) && !String.IsNullOrWhiteSpace(token) && value.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static string TryFormatNvidiaDriverVersion(string windowsDriverVersion)
+    {
+        try
+        {
+            string[] parts = (windowsDriverVersion ?? "").Split('.');
+            if (parts.Length < 4) { return ""; }
+            int branch;
+            int build;
+            if (!Int32.TryParse(parts[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out branch)) { return ""; }
+            if (!Int32.TryParse(parts[3], NumberStyles.Integer, CultureInfo.InvariantCulture, out build)) { return ""; }
+            if (build <= 0) { return ""; }
+
+            string packed = Math.Abs(branch % 10).ToString(CultureInfo.InvariantCulture) + build.ToString("D4", CultureInfo.InvariantCulture);
+            if (packed.Length < 3) { return ""; }
+            return packed.Substring(0, packed.Length - 2) + "." + packed.Substring(packed.Length - 2);
+        }
+        catch
+        {
+            return "";
+        }
     }
 
     private static string BuildSystemMemoryDetail(MemorySnapshot memory)
@@ -2742,10 +2976,13 @@ internal static class SmartBackgroundNap
                 System.Windows.Rect workArea = System.Windows.SystemParameters.WorkArea;
                 double availableWidth = Math.Max(900.0, workArea.Width - 28.0);
                 double availableHeight = Math.Max(560.0, workArea.Height - 72.0);
-                MaxWidth = availableWidth;
-                MaxHeight = availableHeight;
+
+                // Do not cap MaxWidth/MaxHeight: WPF applies those caps when the native maximize button is clicked.
+                // Keeping them infinite lets Windows fill the full work area while preserving a sane first-open size.
+                MaxWidth = Double.PositiveInfinity;
+                MaxHeight = Double.PositiveInfinity;
                 Width = Math.Min(1440.0, availableWidth);
-                Height = Math.Min(780.0, availableHeight);
+                Height = Math.Min(820.0, availableHeight);
                 MinWidth = Math.Min(900.0, Width);
                 MinHeight = Math.Min(560.0, Height);
             }

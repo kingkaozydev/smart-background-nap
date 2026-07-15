@@ -1,4 +1,12 @@
 # Changelog
+## 0.4.4 - 2026-07-15
+
+- Fixed GPU VRAM detection by reading the display driver's HardwareInformation.qwMemorySize registry value instead of trusting capped WMI AdapterRAM values.
+- Fixed CPU frequency display: the dashboard now labels base clock correctly and calculates live effective clock from processor performance counters when available.
+- Removed misleading max 2.5 GHz style output when Windows only exposes the CPU base clock.
+- Fixed the native maximize button so the WebView2 launcher fills the Windows work area instead of opening in a half-sized capped window.
+- GPU driver detail now shows vendor-friendly labels, including NVIDIA package versions such as 595.79 instead of raw Windows WDDM versions such as 32.0.15.9579.
+
 ## 0.4.3 - 2026-07-15
 
 - Added live CPU clock telemetry using native Windows power information so the dashboard no longer shows a frozen base frequency.

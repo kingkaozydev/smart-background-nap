@@ -1,16 +1,17 @@
-# Smart Background Nap 0.4.3
+# Smart Background Nap 0.4.4
 
-Launcher telemetry and social preview release: live CPU clock, richer PC profile data, and a polished GitHub banner.
+Hardware telemetry accuracy release: corrected GPU VRAM reporting, live effective CPU clock, and cleaner PC Profile data.
 
 ## Highlights
 
 - Single-file release: download and run `SmartBackgroundNap.exe`.
-- The PC Profile panel now shows live CPU clock using native Windows power information instead of a frozen base frequency.
-- GPU telemetry now includes model, VRAM, driver/display detail when Windows exposes it.
-- System telemetry now includes RAM free, pagefile availability, and memory load instead of only a plain free-RAM line.
-- Added a new GitHub social preview banner at `docs/images/smart-nap-social-preview.png` and updated the README hero image.
-- The new banner is embedded in the EXE runtime so the local README opens cleanly from the app.
-- The dark native WebView2 frame, grouped Live Manager, Smart Learning, Permission Guard, and local-only trust model remain included.
+- Fixed GPU VRAM detection by preferring the display driver's `HardwareInformation.qwMemorySize` value when WMI reports a capped `AdapterRAM` value.
+- Fixed CPU frequency display so the dashboard shows base clock plus live effective clock from Windows processor performance counters.
+- Removed misleading frozen `max 2.5 GHz` style output when Windows only exposes base clock data.
+- The RTX 4060 class reading now resolves from 4 GB capped WMI output to the driver-reported ~8 GB value when exposed by Windows.
+- Fixed the native maximize button so the launcher fills the Windows work area instead of opening in a capped half-size state.
+- GPU driver detail now shows vendor-friendly labels, including NVIDIA package versions such as 595.79 instead of raw Windows WDDM versions such as 32.0.15.9579.
+- The dark native WebView2 frame, grouped Live Manager, Smart Learning, Permission Guard, PC Profile, tray telemetry, and local-only trust model remain included.
 
 ## Included
 
@@ -22,7 +23,7 @@ Launcher telemetry and social preview release: live CPU clock, richer PC profile
 SHA-256 for `SmartBackgroundNap.exe`:
 
 ```text
-9FEE82622FC78E225F013E8A0796D981EA99BAE7336A990E31E1BD5CC00B700F
+2CAD2E5444EB5D8A6DA91EC8A0E3C53011F7B7544C0BAD20BE444B8623E06F3F
 ```
 
 ## Trust Notes
