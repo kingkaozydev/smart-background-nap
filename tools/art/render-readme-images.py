@@ -255,29 +255,55 @@ def make_intelligence():
 def make_social_preview():
     img = canvas((1200, 630))
     d = ImageDraw.Draw(img)
-    draw_logo_lockup(img, 70, 62, 0.72)
-    text(d, (74, 190), "Smart Background Nap", 58, bold=True)
-    text(d, (78, 262), "Keep apps open. Quiet the background.", 30, "#c1d5ec", True)
-    text(d, (80, 315), "Local-first Windows background optimizer for gaming and multitasking.", 24, "#94abc6")
-    px = 82
-    for label, color in [("No telemetry", "#2ee184"), ("No app killing", "#ffa629"), ("Fast wake", "#7db3ff")]:
-        px += pill(d, px, 376, label, color, bg=(13, 24, 40, 230)) + 12
 
-    panel = (720, 132, 1105, 500)
-    shadow_box(img, panel, 24, (9, 19, 34, 238), (73, 106, 145, 175))
-    text(d, (panel[0] + 30, panel[1] + 36), "Nap Engine", 32, bold=True)
-    d.rounded_rectangle((panel[2] - 155, panel[1] + 34, panel[2] - 30, panel[1] + 70), radius=18, fill=(13, 72, 48, 225), outline=(46, 225, 132, 120))
+    # Fixed editorial layout: left copy owns a hard column, right telemetry card owns another.
+    # This keeps the GitHub social preview legible at 1200x630 and prevents overlap.
+    left_x = 72
+    panel = (742, 116, 1118, 514)
+    safe_right = panel[0] - 56
+
+    draw_logo_lockup(img, left_x, 58, 0.66)
+
+    title_y = 184
+    text(d, (left_x, title_y), "Smart Background", 52, bold=True)
+    text(d, (left_x, title_y + 60), "Nap", 52, bold=True)
+    text(d, (left_x + 3, title_y + 130), "Keep apps open. Quiet the background.", 29, "#d7e4f2", True)
+    text(d, (left_x + 4, title_y + 181), "Local-first Windows optimizer for gaming,", 22, "#9fb5d0")
+    text(d, (left_x + 4, title_y + 212), "streaming, work, and heavy multitasking.", 22, "#9fb5d0")
+
+    px = left_x + 4
+    for label, color in [("No telemetry", "#2ee184"), ("No app killing", "#ffa629"), ("Fast wake", "#7db3ff")]:
+        width = pill(d, px, 450, label, color, bg=(13, 24, 40, 232))
+        px += width + 12
+        if px > safe_right - 120:
+            break
+
+    text(d, (left_x + 4, 566), "Fictional sample telemetry shown for documentation.", 18, "#8fa6c2")
+
+    shadow_box(img, panel, 24, (9, 19, 34, 240), (73, 106, 145, 178))
+    text(d, (panel[0] + 30, panel[1] + 38), "Nap Engine", 31, bold=True)
+    d.rounded_rectangle((panel[2] - 155, panel[1] + 34, panel[2] - 30, panel[1] + 72), radius=19, fill=(13, 72, 48, 225), outline=(46, 225, 132, 130))
     text(d, (panel[2] - 92, panel[1] + 45), "ACTIVE", 15, "#2ee184", True, "ma")
-    draw_ring(d, panel[0] + 88, panel[1] + 175, 54, 0.72, 16)
-    text(d, (panel[0] + 88, panel[1] + 164), "24", 31, bold=True, anchor="mm")
-    text(d, (panel[0] + 88, panel[1] + 195), "sample apps", 12, "#9eb8d6", anchor="mm")
+
+    ring_x = panel[0] + 88
+    ring_y = panel[1] + 196
+    draw_ring(d, ring_x, ring_y, 54, 0.72, 16)
+    text(d, (ring_x, ring_y - 10), "24", 31, bold=True, anchor="mm")
+    text(d, (ring_x, ring_y + 22), "sample apps", 12, "#9eb8d6", anchor="mm")
+
+    metric_x = panel[0] + 170
     for i, (k, v, col) in enumerate([("WAKE", "Fast", "#7db3ff"), ("MEMORY", "Normal", "#2ee184"), ("POLICY", "Adaptive", "#ffa629")]):
-        y = panel[1] + 120 + i * 60
-        d.rounded_rectangle((panel[0] + 170, y, panel[2] - 35, y + 42), radius=12, fill=(12, 26, 45, 235), outline=(47, 73, 108, 170))
-        text(d, (panel[0] + 190, y + 9), k, 11, "#8198b5", True)
-        text(d, (panel[0] + 282, y + 8), v, 16, col, True)
-    text(d, (80, 548), "Fictional sample telemetry shown for documentation.", 18, "#8fa6c2")
+        y = panel[1] + 120 + i * 61
+        d.rounded_rectangle((metric_x, y, panel[2] - 34, y + 44), radius=12, fill=(12, 26, 45, 238), outline=(47, 73, 108, 180))
+        text(d, (metric_x + 20, y + 10), k, 11, "#8198b5", True)
+        text(d, (metric_x + 112, y + 9), v, 16, col, True)
+
+    d.rounded_rectangle((panel[0] + 34, panel[3] - 66, panel[2] - 34, panel[3] - 28), radius=14, fill=(15, 31, 52, 230), outline=(47, 73, 108, 155))
+    text(d, (panel[0] + 58, panel[3] - 55), "Local control", 15, "#d7e4f2", True)
+    text(d, (panel[0] + 190, panel[3] - 55), "Generic demo data", 15, "#8fa6c2", True)
+
     img.save(DOC_IMAGES / "smart-nap-social-preview.png", quality=94)
+
 
 def main():
     DOC_IMAGES.mkdir(parents=True, exist_ok=True)
