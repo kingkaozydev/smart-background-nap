@@ -1,4 +1,8 @@
 # Changelog
+## 0.4.9 - 2026-07-15
+
+- Fixed update popup button alignment and prevented the automatic update toggle text from wrapping.
+
 ## 0.4.8 - 2026-07-15
 
 - Fixed the update popup JavaScript so the automatic update toggle can switch off/on correctly.
