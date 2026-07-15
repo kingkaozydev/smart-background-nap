@@ -1,4 +1,4 @@
-import { mkdir, rm, writeFile, copyFile } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { readFileSync, existsSync } from "node:fs";
 import { basename, extname } from "node:path";
 
@@ -7,8 +7,8 @@ const b64 = (path) => readFileSync(path).toString("base64");
 
 await rm("dist", { recursive: true, force: true });
 await mkdir("dist/server", { recursive: true });
-await mkdir("dist/.openai", { recursive: true });
-if (existsSync(".openai/hosting.json")) await copyFile(".openai/hosting.json", "dist/.openai/hosting.json");
+await mkdir("dist/_appgen_meta", { recursive: true });
+await writeFile("dist/_appgen_meta/appgarden.json", JSON.stringify({ runtime: "worker", entrypoint: "server/index.js" }, null, 2), "utf8");
 
 const html = text("site/index.html");
 const css = text("site/src/styles.css");
