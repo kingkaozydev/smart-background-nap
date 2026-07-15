@@ -1,4 +1,9 @@
-# Changelog
+﻿# Changelog
+## 0.4.12 - 2026-07-15
+
+- Rebuilt the README and About artwork with clean, generic product visuals and no truncated labels.
+- Refreshed embedded documentation images used by the local About view and public site.
+
 ## 0.4.11 - 2026-07-15
 
 - Fixed sidebar telemetry overflow for long current-context/app names and added hover titles for full values.
@@ -168,3 +173,4 @@ Initial public release.
 - Added icon assets.
 - Added browser-only fallback mode.
 - Added manual, automatic, watch, status, restore, install, and uninstall commands.
+

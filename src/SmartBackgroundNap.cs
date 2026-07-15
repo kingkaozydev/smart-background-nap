@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -28,7 +28,7 @@ using Microsoft.Web.WebView2.Wpf;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.4.11";
+    private const string AppVersion = "0.4.12";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
@@ -7612,7 +7612,7 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                 BeginInvoke(new System.Windows.Forms.MethodInvoker(delegate
                 {
                     bool stopped = result.ExitCode == 130;
-                    string title = stopped ? "OtimizaÃƒÂ§ÃƒÂ£o parada" : (result.ExitCode == 0 ? "OtimizaÃƒÂ§ÃƒÂ£o concluÃƒÂ­da" : "Action failed");
+                    string title = stopped ? "OtimizaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o parada" : (result.ExitCode == 0 ? "OtimizaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o concluÃƒÆ’Ã‚Â­da" : "Action failed");
                     string detail = stopped ? "O passe manual foi interrompido." : (result.ExitCode == 0 ? BuildResultText() : ShortError(result.Output));
                     activeRunControl = null;
                     busy = false;
@@ -7634,8 +7634,8 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                 return;
             }
 
-            actionTitle.Text = "Parando otimizaÃƒÂ§ÃƒÂ£o...";
-            actionDetail.Text = "Encerrando o passe manual com seguranÃƒÂ§a.";
+            actionTitle.Text = "Parando otimizaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o...";
+            actionDetail.Text = "Encerrando o passe manual com seguranÃƒÆ’Ã‚Â§a.";
             optimizeButton.Enabled = false;
             activeRunControl.Cancel();
         }
@@ -8767,3 +8767,4 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
         }
     }
 }
+
