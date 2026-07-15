@@ -19,6 +19,7 @@ It does not close your apps or pretend to be a magic FPS button. It watches the 
 Created by **KaozyKing**.
 
 - GitHub: [@kingkaozydev](https://github.com/kingkaozydev)
+- Official website: [smart-background-nap](https://kingkaozydev.github.io/smart-background-nap/)
 - Latest release: [Download SmartBackgroundNap.exe](https://github.com/kingkaozydev/smart-background-nap/releases/latest)
 
 > Keep apps open. Quiet the background. Wake the foreground fast.
