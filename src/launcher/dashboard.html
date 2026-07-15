@@ -36,7 +36,7 @@ button{font:inherit}
 .pulseDot{width:7px;height:7px;border-radius:999px;background:currentColor;box-shadow:0 0 0 0 currentColor;animation:pulse 1.5s infinite}
 @keyframes pulse{70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
 .dashboard{min-height:0;display:grid;grid-template-columns:minmax(720px,1fr) minmax(320px,360px);gap:14px}
-.leftCol{min-height:0;display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:14px}
+.leftCol{min-height:0;display:grid;grid-template-rows:auto auto auto minmax(0,1fr);gap:14px}
 .rightCol{min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr);gap:14px}
 .panel{border:1px solid rgba(54,79,114,.78);background:linear-gradient(145deg,rgba(14,25,41,.96),rgba(8,15,26,.96));border-radius:12px;box-shadow:0 18px 38px rgba(0,0,0,.24);overflow:hidden}
 .command{display:grid;grid-template-columns:minmax(0,1fr) minmax(360px,400px);gap:16px;padding:18px}
@@ -63,6 +63,7 @@ button{font:inherit}
 @keyframes slide{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
 .actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.btn{height:38px;border-radius:9px;border:1px solid #314967;background:#132238;color:#f4f8ff;font-size:13px;font-weight:900;cursor:pointer;transition:120ms ease;white-space:nowrap;padding:0 10px;min-width:0;overflow:hidden;text-overflow:ellipsis}.btn:hover{filter:brightness(1.08);transform:translateY(-1px)}.btn.primary{grid-column:1/-1;background:linear-gradient(180deg,#ffb13a,#ff9f21);border-color:#ffb13a;color:#121212}.btn.danger{background:linear-gradient(180deg,#ff6674,#eb3f51);border-color:#ff6674;color:#fff}
 .cards{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}.card{min-height:86px;border:1px solid #263a55;border-radius:12px;background:linear-gradient(145deg,#101d30,#0a1422);padding:13px;position:relative;overflow:hidden}.card:before{content:"";position:absolute;inset:0 auto auto 0;width:100%;height:3px;background:var(--blue)}.card:nth-child(2):before{background:var(--green)}.card:nth-child(3):before{background:var(--amber)}.card:nth-child(4):before{background:var(--violet)}.card:nth-child(5):before{background:var(--green)}.card small{display:block;color:#8ea0b8;font-size:11px;font-weight:800}.card b{display:block;margin-top:8px;font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.systemPanel{padding:13px;display:grid;gap:10px}.systemGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.systemTile{min-width:0;border:1px solid #223650;border-radius:11px;background:linear-gradient(145deg,rgba(12,24,40,.95),rgba(7,14,25,.95));padding:11px;position:relative;overflow:hidden}.systemTile:before{content:"";position:absolute;inset:0 auto auto 0;width:100%;height:2px;background:linear-gradient(90deg,var(--amber),var(--blue))}.systemTile small{display:block;color:#7e91ab;font-size:10px;font-weight:950;text-transform:uppercase;letter-spacing:0}.systemTile b{display:block;margin-top:6px;color:#f6f9ff;font-size:14px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.systemTile p{margin:5px 0 0;color:#93a6bd;font-size:11px;line-height:1.35;min-height:43px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.systemTile.ram:before{background:linear-gradient(90deg,var(--green),var(--amber))}.systemTile.gpu:before{background:linear-gradient(90deg,var(--blue),var(--violet))}.systemTile.os:before{background:linear-gradient(90deg,var(--violet),var(--green))}
 .manager{min-height:0;padding:14px;display:grid;grid-template-rows:auto minmax(0,1fr);gap:10px}.panelTitle{display:flex;align-items:center;justify-content:space-between;gap:12px}.panelTitle h3{margin:0;font-size:18px}.panelTitle span{color:#71839b;font-size:11px;font-weight:800}
 .table{min-height:0;display:grid;grid-template-rows:30px minmax(0,1fr);border:1px solid #1d3048;border-radius:10px;overflow:hidden}.thead,.row{display:grid;grid-template-columns:minmax(130px,1.55fr) 64px 82px 58px 58px minmax(430px,3.2fr);align-items:center}.thead{background:#14243a;color:#9fb0c6;font-size:11px;font-weight:900}.row{min-height:38px;border-top:1px solid #1b2d44;background:#0b1524;color:#dde9f8;font-size:11px}.row:nth-child(even){background:#0e192a}.row>span{padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#rows{min-height:0;overflow:auto;scrollbar-color:#2e4565 #09111e;scrollbar-width:thin}.actionsCell{display:flex;align-items:center;gap:4px;padding:6px 8px!important;overflow:visible!important;white-space:normal!important;flex-wrap:wrap;align-content:center}
 .badge{display:inline-flex;align-items:center;height:20px;border-radius:6px;border:1px solid #2b405e;background:#111f33;color:#cfe0f5;padding:0 6px;font-size:9px;font-weight:950;flex:0 0 auto}.badge.ok{border-color:#176649;background:#0c3225;color:var(--green)}.badge.cool{border-color:#6b5223;background:#2a2113;color:var(--amber)}.badge.skip{border-color:#40536d;color:#8fa1ba}.badge.deep{border-color:#8d5a18;background:#2b1d10;color:var(--amber)}.badge.balanced{border-color:#1a5d86;background:#0d263b;color:#58b9ff}.badge.light{border-color:#355178;background:#111f33;color:#b8c8dc}.badge.guard{border-color:#6a4cd4;background:#1b1633;color:#c9bbff}.policyButtons{display:inline-flex;align-items:center;gap:3px;margin-left:4px;padding-left:6px;border-left:1px solid rgba(255,255,255,.08)}.policyBtn{height:22px;min-width:23px;border-radius:6px;border:1px solid #2b405e;background:#0b1728;color:#93a8c2;font-size:9px;font-weight:950;cursor:pointer;padding:0 5px}.policyBtn:hover{border-color:var(--amber);color:#fff}.policyBtn.active{border-color:rgba(255,166,41,.75);background:rgba(255,166,41,.18);color:var(--amber)}.goodtxt{color:var(--green);font-weight:900}.amber{color:var(--amber)}
@@ -79,8 +80,8 @@ button{font:inherit}
 .infoOverlay.open{display:flex}
 .infoPanel{width:min(560px,calc(100vw - 48px));border:1px solid rgba(154,114,255,.42);border-radius:18px;background:radial-gradient(circle at 15% 0%,rgba(154,114,255,.20),transparent 38%),linear-gradient(145deg,#101b2c,#08111e);box-shadow:0 28px 80px rgba(0,0,0,.52);padding:20px}
 .infoPanel h2{margin:0;font-size:24px}.infoPanel p{margin:8px 0 14px;color:#a9b8ca;font-size:13px;line-height:1.45}.infoList{display:grid;gap:8px;margin:0 0 16px;padding:0;list-style:none}.infoList li{border:1px solid #223650;border-radius:11px;background:#0a1728;padding:10px;color:#dbe7f6;font-size:12px;line-height:1.35}.infoActions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.infoActions .btn{height:40px}
-@media(max-width:1280px){.dashboard{grid-template-columns:1fr}.rightCol{grid-template-rows:minmax(320px,420px)}.command{grid-template-columns:minmax(0,1fr) minmax(340px,380px)}}
-@media(max-width:900px){.app{grid-template-columns:64px minmax(0,1fr)}.rail{padding-top:12px}.nav{width:42px;height:42px}.brandMark{width:42px;height:42px}.workspace{padding:14px}.topbar{height:auto;align-items:flex-start;flex-direction:column}.statusBar{justify-content:flex-start}.command{grid-template-columns:1fr}.featureGrid,.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard{grid-template-columns:1fr}.headline{font-size:30px}.languageGrid{grid-template-columns:1fr}}
+@media(max-width:1280px){.dashboard{grid-template-columns:1fr}.rightCol{grid-template-rows:minmax(320px,420px)}.command{grid-template-columns:minmax(0,1fr) minmax(340px,380px)}.systemGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:900px){.app{grid-template-columns:64px minmax(0,1fr)}.rail{padding-top:12px}.nav{width:42px;height:42px}.brandMark{width:42px;height:42px}.workspace{padding:14px}.topbar{height:auto;align-items:flex-start;flex-direction:column}.statusBar{justify-content:flex-start}.command{grid-template-columns:1fr}.featureGrid,.cards,.systemGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard{grid-template-columns:1fr}.headline{font-size:30px}.languageGrid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -151,6 +152,15 @@ button{font:inherit}
             <div class="card"><small data-i18n="smartLearning">Smart Learning</small><b id="learningCard">-</b></div>
             <div class="card"><small data-i18n="lastEvent">Last event</small><b id="lastCard">-</b></div>
             <div class="card"><small data-i18n="lastResult">Last result</small><b id="resultCard">-</b></div>
+          </section>
+          <section class="panel systemPanel">
+            <div class="panelTitle"><h3 data-i18n="systemProfile">PC Profile</h3><span id="hardwareUpdated">local snapshot</span></div>
+            <div class="systemGrid">
+              <div class="systemTile cpu"><small data-i18n="cpuLabel">CPU</small><b id="hardwareCpu">-</b><p id="hardwareCpuDetail">-</p></div>
+              <div class="systemTile ram"><small data-i18n="ramLabel">RAM</small><b id="hardwareRam">-</b><p id="hardwareRamDetail">-</p></div>
+              <div class="systemTile gpu"><small>GPU</small><b id="hardwareGpu">-</b><p id="hardwareGpuDetail">Graphics adapter</p></div>
+              <div class="systemTile os"><small data-i18n="systemLabel">System</small><b id="hardwareOs">-</b><p id="hardwareMemory">-</p></div>
+            </div>
           </section>
           <section class="panel manager">
             <div class="panelTitle"><h3 data-i18n="liveManager">Live Manager</h3><span id="managerStatus">Waiting for score data.</span></div>
@@ -428,7 +438,22 @@ const LANGS = {
 Object.keys(LANGS).forEach(k=>{
   LANGS[k].intentState = LANGS[k].intentState || "Intent Engine";
   LANGS[k].contentionRadar = LANGS[k].contentionRadar || "Contention radar";
+  LANGS[k].systemProfile = LANGS[k].systemProfile || "PC Profile";
+  LANGS[k].cpuLabel = LANGS[k].cpuLabel || "CPU";
+  LANGS[k].ramLabel = LANGS[k].ramLabel || "RAM";
+  LANGS[k].systemLabel = LANGS[k].systemLabel || "System";
+  LANGS[k].gpuHint = LANGS[k].gpuHint || "Graphics adapter";
+  LANGS[k].localSnapshot = LANGS[k].localSnapshot || "local snapshot";
+  LANGS[k].freeNow = LANGS[k].freeNow || "{free} free now";
+  LANGS[k].ramShort = LANGS[k].ramShort || "RAM";
+  LANGS[k].pagefileShort = LANGS[k].pagefileShort || "Pagefile";
+  LANGS[k].loadShort = LANGS[k].loadShort || "load";
 });
+Object.assign(LANGS["pt-BR"],{systemProfile:"Perfil do PC",ramLabel:"Memoria RAM",systemLabel:"Sistema",gpuHint:"Adaptador grafico",localSnapshot:"snapshot vivo",freeNow:"{free} livre agora",ramShort:"RAM",pagefileShort:"Pagefile",loadShort:"carga"});
+Object.assign(LANGS["en-US"],{systemProfile:"PC Profile",ramLabel:"RAM",systemLabel:"System",gpuHint:"Graphics adapter",localSnapshot:"live snapshot",freeNow:"{free} free now",ramShort:"RAM",pagefileShort:"Pagefile",loadShort:"load"});
+Object.assign(LANGS["es-ES"],{systemProfile:"Perfil del PC",ramLabel:"RAM",systemLabel:"Sistema",gpuHint:"Adaptador grafico",localSnapshot:"snapshot vivo",freeNow:"{free} libre ahora",ramShort:"RAM",pagefileShort:"Pagefile",loadShort:"carga"});
+Object.assign(LANGS["fr-FR"],{systemProfile:"Profil PC",ramLabel:"RAM",systemLabel:"Systeme",gpuHint:"Adaptateur graphique",localSnapshot:"snapshot live",freeNow:"{free} libre maintenant",ramShort:"RAM",pagefileShort:"Pagefile",loadShort:"charge"});
+Object.assign(LANGS["de-DE"],{systemProfile:"PC Profil",ramLabel:"RAM",systemLabel:"System",gpuHint:"Grafikadapter",localSnapshot:"Live-Snapshot",freeNow:"{free} frei",ramShort:"RAM",pagefileShort:"Pagefile",loadShort:"Last"});
 const LANGUAGE_ORDER = ["pt-BR","en-US","ru-RU","es-ES","fr-FR","de-DE"];
 let currentLanguage = "pt-BR";
 let lastState = null;
@@ -566,6 +591,15 @@ function paintState(state){
   txt("learningCard",s.Learning?t("learningOn"):t("learningOff"));
   txt("lastCard",s.LastRun || "-");
   txt("resultCard",translateResult(s.Result || "-"));
+  txt("hardwareCpu",s.HardwareCpu || "-");
+  txt("hardwareCpuDetail",s.HardwareCpuDetail || "-");
+  txt("hardwareRam",formatHardwareRam(s));
+  txt("hardwareRamDetail",s.HardwareRamDetail || "-");
+  txt("hardwareGpu",s.HardwareGpu || "-");
+  txt("hardwareGpuDetail",s.HardwareGpuDetail || t("gpuHint"));
+  txt("hardwareOs",s.HardwareOs || "-");
+  txt("hardwareMemory",formatHardwareSystem(s));
+  txt("hardwareUpdated",t("localSnapshot"));
   txt("motorBtn",s.AutoMode?t("pauseMotor"):t("resumeMotor"));
   txt("apply",s.CanStop?t("stop"):t("apply"));
   txt("restoreBtn",t("restore"));
@@ -601,6 +635,33 @@ function formatPressure(level,freeMB){
   const free=Number(freeMB||0);
   const freeText=free>0 ? " / "+Math.round(free)+" MB" : "";
   return pressure ? pressure+freeText : "-";
+}
+function formatMb(value){
+  const mb=Number(value||0);
+  if(!Number.isFinite(mb)||mb<=0) return "";
+  if(mb>=972) return (mb/1024).toLocaleString(undefined,{maximumFractionDigits:1})+" GB";
+  return Math.round(mb).toLocaleString()+" MB";
+}
+function formatHardwareRam(s){
+  const total=formatMb(s.HardwareRamTotalMB);
+  const free=formatMb(s.HardwareRamFreeMB);
+  if(total&&free) return total+" / "+free;
+  return s.HardwareRam || "-";
+}
+function formatHardwareFree(s){
+  const free=formatMb(s.HardwareRamFreeMB);
+  if(free) return t("freeNow").replace("{free}",free);
+  return s.AvailableMemoryText || "-";
+}
+function formatHardwareSystem(s){
+  const ramFree=formatMb(s.HardwareRamFreeMB);
+  const pageFree=formatMb(s.HardwarePageFileFreeMB);
+  const load=Number(s.HardwareMemoryLoad||0);
+  const parts=[];
+  if(ramFree) parts.push(t("ramShort")+" "+ramFree);
+  if(pageFree) parts.push(t("pagefileShort")+" "+pageFree);
+  if(load>0) parts.push(load+"% "+t("loadShort"));
+  return parts.length ? parts.join(" | ") : (s.HardwareSystemDetail || formatHardwareFree(s));
 }
 function formatIntent(s){
   const kind=String((s&&s.IntentKind)||"").trim() || "Desktop";

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -11,6 +11,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Security.Principal;
 using System.Text;
+using Microsoft.Win32;
 #if NET9_0_OR_GREATER
 using System.Text.Json;
 #else
@@ -26,7 +27,7 @@ using Microsoft.Web.WebView2.Wpf;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.4.1";
+    private const string AppVersion = "0.4.3";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
@@ -56,6 +57,9 @@ internal static class SmartBackgroundNap
     private static string radarPath;
     private static string safetyReportPath;
     private static bool usingLooseRuntime;
+    private static readonly object hardwareLock = new object();
+    private static HardwareSnapshot hardwareSnapshotCache;
+    private static DateTime hardwareSnapshotAtUtc = DateTime.MinValue;
     private const uint ProcessSetInformation = 0x0200;
     private const uint ProcessQueryLimitedInformation = 0x1000;
     private const int ProcessMemoryPriorityClass = 0;
@@ -78,6 +82,106 @@ internal static class SmartBackgroundNap
         public uint ControlMask;
         public uint StateMask;
     }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    private sealed class MemoryStatusEx
+    {
+        public uint dwLength = (uint)Marshal.SizeOf(typeof(MemoryStatusEx));
+        public uint dwMemoryLoad;
+        public ulong ullTotalPhys;
+        public ulong ullAvailPhys;
+        public ulong ullTotalPageFile;
+        public ulong ullAvailPageFile;
+        public ulong ullTotalVirtual;
+        public ulong ullAvailVirtual;
+        public ulong ullAvailExtendedVirtual;
+    }
+
+    private struct MemorySnapshot
+    {
+        public ulong TotalPhysical;
+        public ulong AvailablePhysical;
+        public ulong TotalPageFile;
+        public ulong AvailablePageFile;
+        public ulong TotalVirtual;
+        public ulong AvailableVirtual;
+        public int MemoryLoad;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct ProcessorPowerInformation
+    {
+        public uint Number;
+        public uint MaxMhz;
+        public uint CurrentMhz;
+        public uint MhzLimit;
+        public uint MaxIdleState;
+        public uint CurrentIdleState;
+    }
+
+    private struct CpuClockSnapshot
+    {
+        public int CurrentMhz;
+        public int MaxMhz;
+        public int LimitMhz;
+    }
+
+    private sealed class RamModuleInfo
+    {
+        public string Manufacturer;
+        public string PartNumber;
+        public int SpeedMhz;
+        public ulong CapacityBytes;
+    }
+
+    private sealed class HardwareSnapshot
+    {
+        public string Cpu;
+        public string CpuDetail;
+        public string CpuBaseDetail;
+        public string Ram;
+        public string RamDetail;
+        public string Gpu;
+        public string GpuDetail;
+        public string Os;
+        public string AvailableMemoryText;
+        public string SystemDetail;
+        public double TotalMemoryMB;
+        public double AvailableMemoryMB;
+        public double PageFileTotalMB;
+        public double PageFileAvailableMB;
+        public double VirtualTotalMB;
+        public double VirtualAvailableMB;
+        public int MemoryLoad;
+        public int CpuClockCurrentMhz;
+        public int CpuClockMaxMhz;
+
+        public HardwareSnapshot Clone()
+        {
+            HardwareSnapshot clone = new HardwareSnapshot();
+            clone.Cpu = Cpu;
+            clone.CpuDetail = CpuDetail;
+            clone.CpuBaseDetail = CpuBaseDetail;
+            clone.Ram = Ram;
+            clone.RamDetail = RamDetail;
+            clone.Gpu = Gpu;
+            clone.GpuDetail = GpuDetail;
+            clone.Os = Os;
+            clone.AvailableMemoryText = AvailableMemoryText;
+            clone.SystemDetail = SystemDetail;
+            clone.TotalMemoryMB = TotalMemoryMB;
+            clone.AvailableMemoryMB = AvailableMemoryMB;
+            clone.PageFileTotalMB = PageFileTotalMB;
+            clone.PageFileAvailableMB = PageFileAvailableMB;
+            clone.VirtualTotalMB = VirtualTotalMB;
+            clone.VirtualAvailableMB = VirtualAvailableMB;
+            clone.MemoryLoad = MemoryLoad;
+            clone.CpuClockCurrentMhz = CpuClockCurrentMhz;
+            clone.CpuClockMaxMhz = CpuClockMaxMhz;
+            return clone;
+        }
+    }
+
     private static Mutex singleInstanceMutex;
     private static EventWaitHandle showDashboardEvent;
     private static ScoreWindow scoreWindow;
@@ -290,6 +394,16 @@ internal static class SmartBackgroundNap
     [DllImport("ntdll.dll")]
     private static extern int NtSetInformationProcess(IntPtr processHandle, int processInformationClass, ref uint processInformation, uint processInformationLength);
 
+    [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GlobalMemoryStatusEx([In, Out] MemoryStatusEx lpBuffer);
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
+
+    [DllImport("powrprof.dll", SetLastError = true)]
+    private static extern uint CallNtPowerInformation(int informationLevel, IntPtr inputBuffer, uint inputBufferSize, IntPtr outputBuffer, uint outputBufferSize);
+
     private static int GetForegroundPid()
     {
         try
@@ -303,6 +417,438 @@ internal static class SmartBackgroundNap
         catch
         {
             return 0;
+        }
+    }
+
+    private static HardwareSnapshot GetHardwareSnapshot()
+    {
+        MemorySnapshot memory = GetMemorySnapshot();
+        lock (hardwareLock)
+        {
+            bool expired = hardwareSnapshotCache == null || (DateTime.UtcNow - hardwareSnapshotAtUtc).TotalMinutes >= 10.0;
+            if (expired)
+            {
+                hardwareSnapshotCache = ProbeHardwareSnapshot(memory);
+                hardwareSnapshotAtUtc = DateTime.UtcNow;
+            }
+
+            HardwareSnapshot snapshot = hardwareSnapshotCache.Clone();
+            ApplyMemoryToHardwareSnapshot(snapshot, memory);
+            return snapshot;
+        }
+    }
+
+    private static MemorySnapshot GetMemorySnapshot()
+    {
+        MemorySnapshot snapshot = new MemorySnapshot();
+        try
+        {
+            MemoryStatusEx status = new MemoryStatusEx();
+            if (GlobalMemoryStatusEx(status))
+            {
+                snapshot.TotalPhysical = status.ullTotalPhys;
+                snapshot.AvailablePhysical = status.ullAvailPhys;
+                snapshot.TotalPageFile = status.ullTotalPageFile;
+                snapshot.AvailablePageFile = status.ullAvailPageFile;
+                snapshot.TotalVirtual = status.ullTotalVirtual;
+                snapshot.AvailableVirtual = status.ullAvailVirtual;
+                snapshot.MemoryLoad = (int)status.dwMemoryLoad;
+            }
+        }
+        catch
+        {
+        }
+        return snapshot;
+    }
+
+    private static HardwareSnapshot ProbeHardwareSnapshot(MemorySnapshot memory)
+    {
+        HardwareSnapshot snapshot = new HardwareSnapshot();
+        snapshot.Cpu = CleanHardwareValue(ReadRegistryString(@"HARDWARE\DESCRIPTION\System\CentralProcessor\0", "ProcessorNameString"));
+        int registryMhz = ReadRegistryInt(@"HARDWARE\DESCRIPTION\System\CentralProcessor\0", "~MHz");
+        int cores = 0;
+        int threads = Environment.ProcessorCount;
+        int maxMhz = registryMhz;
+        List<RamModuleInfo> ramModules = new List<RamModuleInfo>();
+
+        try
+        {
+            string script = "$ErrorActionPreference='SilentlyContinue';" +
+                "Get-CimInstance Win32_Processor | Select-Object -First 1 | ForEach-Object { Write-Output ('CPUINFO=' + $_.NumberOfCores + '|' + $_.NumberOfLogicalProcessors + '|' + $_.MaxClockSpeed) };" +
+                "Get-CimInstance Win32_PhysicalMemory | ForEach-Object { Write-Output ('RAMDIMM=' + $_.Manufacturer + '|' + $_.PartNumber + '|' + $_.ConfiguredClockSpeed + '|' + $_.Capacity) };" +
+                "Get-CimInstance Win32_VideoController | Sort-Object AdapterRAM -Descending | Select-Object -First 1 | ForEach-Object { Write-Output ('GPU=' + $_.Name + '|' + $_.AdapterRAM + '|' + $_.DriverVersion + '|' + $_.CurrentHorizontalResolution + 'x' + $_.CurrentVerticalResolution + '@' + $_.CurrentRefreshRate) };" +
+                "Get-CimInstance Win32_OperatingSystem | Select-Object -First 1 | ForEach-Object { Write-Output ('OS=' + $_.Caption + '|' + $_.Version + '|' + $_.OSArchitecture) };";
+            string encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(script));
+            RunResult result = RunHidden("powershell.exe", "-NoProfile -ExecutionPolicy Bypass -EncodedCommand " + encoded, 7000);
+            string[] lines = result.Output.Split(new string[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (string rawLine in lines)
+            {
+                string line = rawLine.Trim();
+                if (line.StartsWith("CPUINFO=", StringComparison.OrdinalIgnoreCase))
+                {
+                    string[] parts = line.Substring("CPUINFO=".Length).Split('|');
+                    if (parts.Length > 0) { cores = ParseInt(parts[0], cores); }
+                    if (parts.Length > 1) { threads = ParseInt(parts[1], threads); }
+                    if (parts.Length > 2) { maxMhz = ParseInt(parts[2], maxMhz); }
+                }
+                else if (line.StartsWith("RAMDIMM=", StringComparison.OrdinalIgnoreCase))
+                {
+                    string[] parts = line.Substring("RAMDIMM=".Length).Split('|');
+                    RamModuleInfo module = new RamModuleInfo();
+                    if (parts.Length > 0) { module.Manufacturer = CleanHardwareValue(parts[0]); }
+                    if (parts.Length > 1) { module.PartNumber = CleanHardwareValue(parts[1]); }
+                    if (parts.Length > 2) { module.SpeedMhz = ParseInt(parts[2], 0); }
+                    if (parts.Length > 3) { module.CapacityBytes = ParseUInt64(parts[3], 0); }
+                    ramModules.Add(module);
+                }
+                else if (line.StartsWith("GPU=", StringComparison.OrdinalIgnoreCase))
+                {
+                    string[] parts = line.Substring("GPU=".Length).Split('|');
+                    snapshot.Gpu = parts.Length > 0 ? CleanHardwareValue(parts[0]) : "";
+                    ulong adapterRam = parts.Length > 1 ? ParseUInt64(parts[1], 0) : 0;
+                    string driver = parts.Length > 2 ? CleanHardwareValue(parts[2]) : "";
+                    string display = parts.Length > 3 ? CleanHardwareValue(parts[3]) : "";
+                    snapshot.GpuDetail = BuildGpuDetail(adapterRam, driver, display);
+                }
+                else if (line.StartsWith("OS=", StringComparison.OrdinalIgnoreCase))
+                {
+                    string[] parts = line.Substring("OS=".Length).Split('|');
+                    string caption = parts.Length > 0 ? CleanHardwareValue(parts[0]) : "";
+                    string version = parts.Length > 1 ? CleanHardwareValue(parts[1]) : "";
+                    string architecture = parts.Length > 2 ? CleanHardwareValue(parts[2]) : "";
+                    snapshot.Os = caption;
+                    if (!String.IsNullOrWhiteSpace(version)) { snapshot.Os += " " + version; }
+                    if (!String.IsNullOrWhiteSpace(architecture)) { snapshot.Os += " " + architecture; }
+                    snapshot.Os = CleanHardwareValue(snapshot.Os);
+                }
+            }
+        }
+        catch
+        {
+        }
+
+        if (String.IsNullOrWhiteSpace(snapshot.Cpu)) { snapshot.Cpu = "CPU unavailable"; }
+        if (String.IsNullOrWhiteSpace(snapshot.Gpu)) { snapshot.Gpu = "GPU unavailable"; }
+        if (String.IsNullOrWhiteSpace(snapshot.GpuDetail)) { snapshot.GpuDetail = "GPU detail unavailable"; }
+        snapshot.CpuBaseDetail = BuildCpuDetail(cores, threads, maxMhz);
+        snapshot.CpuDetail = snapshot.CpuBaseDetail;
+        snapshot.RamDetail = BuildRamDetail(ramModules);
+        if (String.IsNullOrWhiteSpace(snapshot.Os)) { snapshot.Os = CleanHardwareValue(RuntimeInformation.OSDescription); }
+        if (Environment.Is64BitOperatingSystem && snapshot.Os.IndexOf("64", StringComparison.OrdinalIgnoreCase) < 0)
+        {
+            snapshot.Os += " x64";
+        }
+        return snapshot;
+    }
+
+    private static void ApplyMemoryToHardwareSnapshot(HardwareSnapshot snapshot, MemorySnapshot memory)
+    {
+        if (snapshot == null) { return; }
+        CpuClockSnapshot cpuClock = GetCpuClockSnapshot();
+        if (cpuClock.CurrentMhz > 0) { snapshot.CpuClockCurrentMhz = cpuClock.CurrentMhz; }
+        if (cpuClock.MaxMhz > 0) { snapshot.CpuClockMaxMhz = cpuClock.MaxMhz; }
+        snapshot.TotalMemoryMB = memory.TotalPhysical > 0 ? memory.TotalPhysical / 1024.0 / 1024.0 : 0.0;
+        snapshot.AvailableMemoryMB = memory.AvailablePhysical > 0 ? memory.AvailablePhysical / 1024.0 / 1024.0 : 0.0;
+        snapshot.PageFileTotalMB = memory.TotalPageFile > 0 ? memory.TotalPageFile / 1024.0 / 1024.0 : 0.0;
+        snapshot.PageFileAvailableMB = memory.AvailablePageFile > 0 ? memory.AvailablePageFile / 1024.0 / 1024.0 : 0.0;
+        snapshot.VirtualTotalMB = memory.TotalVirtual > 0 ? memory.TotalVirtual / 1024.0 / 1024.0 : 0.0;
+        snapshot.VirtualAvailableMB = memory.AvailableVirtual > 0 ? memory.AvailableVirtual / 1024.0 / 1024.0 : 0.0;
+        snapshot.MemoryLoad = memory.MemoryLoad;
+        if (memory.TotalPhysical > 0)
+        {
+            snapshot.Ram = FormatMemoryBytes(memory.TotalPhysical) + " total / " + FormatMemoryBytes(memory.AvailablePhysical) + " free";
+            snapshot.AvailableMemoryText = "RAM " + FormatMemoryBytes(memory.AvailablePhysical) + " free";
+            snapshot.SystemDetail = BuildSystemMemoryDetail(memory);
+        }
+        else
+        {
+            snapshot.Ram = "RAM unavailable";
+            snapshot.AvailableMemoryText = "-";
+            snapshot.SystemDetail = "-";
+        }
+        string baseCpuDetail = String.IsNullOrWhiteSpace(snapshot.CpuBaseDetail) ? snapshot.CpuDetail : snapshot.CpuBaseDetail;
+        snapshot.CpuDetail = EnrichCpuDetailWithLiveClock(baseCpuDetail, snapshot.CpuClockCurrentMhz, snapshot.CpuClockMaxMhz);
+    }
+
+    private static string BuildCpuDetail(int cores, int threads, int maxMhz)
+    {
+        List<string> parts = new List<string>();
+        if (cores > 0 && threads > 0)
+        {
+            parts.Add(cores.ToString(CultureInfo.CurrentCulture) + "C / " + threads.ToString(CultureInfo.CurrentCulture) + "T");
+        }
+        else if (threads > 0)
+        {
+            parts.Add(threads.ToString(CultureInfo.CurrentCulture) + " logical threads");
+        }
+        if (maxMhz > 0)
+        {
+            parts.Add(FormatMhz(maxMhz));
+        }
+        return parts.Count > 0 ? String.Join(" | ", parts.ToArray()) : "CPU detail unavailable";
+    }
+
+    private static string EnrichCpuDetailWithLiveClock(string baseDetail, int currentMhz, int maxMhz)
+    {
+        List<string> parts = new List<string>();
+        if (!String.IsNullOrWhiteSpace(baseDetail))
+        {
+            parts.Add(baseDetail);
+        }
+        if (currentMhz > 0)
+        {
+            string clock = "agora " + FormatMhz(currentMhz);
+            if (maxMhz > 0) { clock += " / max " + FormatMhz(maxMhz); }
+            parts.Add(clock);
+        }
+        return parts.Count > 0 ? String.Join(" | ", parts.ToArray()) : "CPU detail unavailable";
+    }
+
+    private static CpuClockSnapshot GetCpuClockSnapshot()
+    {
+        CpuClockSnapshot snapshot = new CpuClockSnapshot();
+        int count = Math.Max(1, Environment.ProcessorCount);
+        int itemSize = Marshal.SizeOf(typeof(ProcessorPowerInformation));
+        IntPtr buffer = IntPtr.Zero;
+        try
+        {
+            buffer = Marshal.AllocHGlobal(itemSize * count);
+            uint status = CallNtPowerInformation(11, IntPtr.Zero, 0, buffer, (uint)(itemSize * count));
+            if (status != 0) { return snapshot; }
+
+            long currentSum = 0;
+            int currentCount = 0;
+            int max = 0;
+            int limit = 0;
+            for (int i = 0; i < count; i++)
+            {
+                IntPtr ptr = new IntPtr(buffer.ToInt64() + (long)i * itemSize);
+                ProcessorPowerInformation info = (ProcessorPowerInformation)Marshal.PtrToStructure(ptr, typeof(ProcessorPowerInformation));
+                if (info.CurrentMhz > 0)
+                {
+                    currentSum += info.CurrentMhz;
+                    currentCount++;
+                }
+                if (info.MaxMhz > max) { max = (int)info.MaxMhz; }
+                if (info.MhzLimit > limit) { limit = (int)info.MhzLimit; }
+            }
+
+            if (currentCount > 0) { snapshot.CurrentMhz = (int)Math.Round(currentSum / (double)currentCount); }
+            snapshot.MaxMhz = max;
+            snapshot.LimitMhz = limit;
+        }
+        catch
+        {
+        }
+        finally
+        {
+            if (buffer != IntPtr.Zero) { Marshal.FreeHGlobal(buffer); }
+        }
+        return snapshot;
+    }
+
+    private static string BuildGpuDetail(ulong adapterRam, string driver, string display)
+    {
+        List<string> parts = new List<string>();
+        if (adapterRam > 0)
+        {
+            parts.Add("VRAM " + FormatMemoryBytes(adapterRam));
+        }
+        if (!String.IsNullOrWhiteSpace(display) && display.IndexOf("x@", StringComparison.OrdinalIgnoreCase) < 0 && display.IndexOf("@0", StringComparison.OrdinalIgnoreCase) < 0)
+        {
+            parts.Add(display);
+        }
+        if (!String.IsNullOrWhiteSpace(driver))
+        {
+            parts.Add("driver " + ShortenText(driver, 18));
+        }
+        return parts.Count > 0 ? String.Join(" | ", parts.ToArray()) : "GPU detail unavailable";
+    }
+
+    private static string BuildSystemMemoryDetail(MemorySnapshot memory)
+    {
+        List<string> parts = new List<string>();
+        if (memory.AvailablePhysical > 0) { parts.Add("RAM " + FormatMemoryBytes(memory.AvailablePhysical) + " free"); }
+        if (memory.AvailablePageFile > 0 && memory.TotalPageFile > 0)
+        {
+            parts.Add("pagefile " + FormatMemoryBytes(memory.AvailablePageFile) + " free");
+        }
+        if (memory.MemoryLoad > 0)
+        {
+            parts.Add("load " + memory.MemoryLoad.ToString(CultureInfo.CurrentCulture) + "%");
+        }
+        return parts.Count > 0 ? String.Join(" | ", parts.ToArray()) : "-";
+    }
+
+    private static string BuildRamDetail(List<RamModuleInfo> modules)
+    {
+        if (modules == null || modules.Count == 0)
+        {
+            return "DIMM details unavailable";
+        }
+
+        int count = modules.Count;
+        int maxSpeed = 0;
+        ulong installedBytes = 0;
+        string model = "";
+        foreach (RamModuleInfo module in modules)
+        {
+            if (module == null) { continue; }
+            if (module.SpeedMhz > maxSpeed) { maxSpeed = module.SpeedMhz; }
+            installedBytes += module.CapacityBytes;
+            if (String.IsNullOrWhiteSpace(model))
+            {
+                model = (module.Manufacturer + " " + module.PartNumber).Trim();
+            }
+        }
+
+        List<string> parts = new List<string>();
+        parts.Add(count.ToString(CultureInfo.CurrentCulture) + (count == 1 ? " module" : " modules"));
+        if (installedBytes > 0) { parts.Add(FormatMemoryBytes(installedBytes) + " installed"); }
+        if (maxSpeed > 0) { parts.Add(maxSpeed.ToString(CultureInfo.CurrentCulture) + " MHz"); }
+        if (!String.IsNullOrWhiteSpace(model)) { parts.Add(ShortenText(model, 42)); }
+        return String.Join(" | ", parts.ToArray());
+    }
+
+    private static string ReadRegistryString(string keyPath, string valueName)
+    {
+        try
+        {
+            using (RegistryKey key = Registry.LocalMachine.OpenSubKey(keyPath))
+            {
+                object value = key == null ? null : key.GetValue(valueName);
+                return value == null ? "" : Convert.ToString(value, CultureInfo.InvariantCulture);
+            }
+        }
+        catch
+        {
+            return "";
+        }
+    }
+
+    private static int ReadRegistryInt(string keyPath, string valueName)
+    {
+        try
+        {
+            using (RegistryKey key = Registry.LocalMachine.OpenSubKey(keyPath))
+            {
+                object value = key == null ? null : key.GetValue(valueName);
+                if (value is int) { return (int)value; }
+                return ParseInt(Convert.ToString(value, CultureInfo.InvariantCulture), 0);
+            }
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    private static string CleanHardwareValue(string value)
+    {
+        if (String.IsNullOrWhiteSpace(value)) { return ""; }
+        string clean = value.Trim();
+        while (clean.IndexOf("  ", StringComparison.Ordinal) >= 0)
+        {
+            clean = clean.Replace("  ", " ");
+        }
+        return ShortenText(clean, 88);
+    }
+
+    private static string ShortenText(string value, int maxLength)
+    {
+        if (String.IsNullOrWhiteSpace(value)) { return ""; }
+        if (maxLength < 4 || value.Length <= maxLength) { return value; }
+        return value.Substring(0, maxLength - 3).TrimEnd() + "...";
+    }
+
+    private static int ParseInt(string value, int fallback)
+    {
+        int result;
+        return Int32.TryParse((value ?? "").Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out result) ? result : fallback;
+    }
+
+    private static ulong ParseUInt64(string value, ulong fallback)
+    {
+        ulong result;
+        return UInt64.TryParse((value ?? "").Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out result) ? result : fallback;
+    }
+
+    private static string FormatMhz(int mhz)
+    {
+        if (mhz >= 1000)
+        {
+            return (mhz / 1000.0).ToString("0.##", CultureInfo.CurrentCulture) + " GHz";
+        }
+        return mhz.ToString(CultureInfo.CurrentCulture) + " MHz";
+    }
+
+    private static string FormatMemoryBytes(ulong bytes)
+    {
+        if (bytes <= 0) { return "0 MB"; }
+        double gb = bytes / 1024.0 / 1024.0 / 1024.0;
+        if (gb >= 0.95)
+        {
+            return gb.ToString("0.#", CultureInfo.CurrentCulture) + " GB";
+        }
+        double mb = bytes / 1024.0 / 1024.0;
+        return mb.ToString("0", CultureInfo.CurrentCulture) + " MB";
+    }
+
+    private static string ExtractLogField(string line, string key)
+    {
+        if (String.IsNullOrWhiteSpace(line) || String.IsNullOrWhiteSpace(key)) { return ""; }
+        string marker = key + "=";
+        int start = line.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        if (start < 0) { return ""; }
+        start += marker.Length;
+        int end = line.IndexOf(' ', start);
+        if (end < 0) { end = line.Length; }
+        return line.Substring(start, end - start).Trim();
+    }
+
+    private static string BuildTrayTelemetryText()
+    {
+        HardwareSnapshot hardware = GetHardwareSnapshot();
+        string line = ReadLastApplyLogLine();
+        string targets = ExtractLogField(line, "targets");
+        string delta = ExtractLogField(line, "deltaMB");
+        if (String.IsNullOrWhiteSpace(targets)) { targets = "0"; }
+        if (String.IsNullOrWhiteSpace(delta)) { delta = "0"; }
+        string free = hardware != null && hardware.AvailableMemoryMB > 0
+            ? FormatMemoryBytes((ulong)(hardware.AvailableMemoryMB * 1024.0 * 1024.0))
+            : "-";
+        return "Smart Nap" + Environment.NewLine +
+            "RAM livre: " + free + Environment.NewLine +
+            "Apps: " + targets + Environment.NewLine +
+            "Purga: " + delta + " MB";
+    }
+
+    private static string LimitNotifyText(string text, int maxLength)
+    {
+        if (String.IsNullOrWhiteSpace(text)) { return AppName; }
+        string normalized = text.Replace("\r\n", "\n").Replace("\r", "\n").Trim();
+        return normalized.Length <= maxLength ? normalized : normalized.Substring(0, Math.Max(1, maxLength - 1));
+    }
+
+    private static void ApplyDarkWindowFrame(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero) { return; }
+        int enabled = 1;
+        TryDwmSetWindowAttribute(hwnd, 20, enabled);
+        TryDwmSetWindowAttribute(hwnd, 19, enabled);
+        TryDwmSetWindowAttribute(hwnd, 35, ColorTranslator.ToWin32(Color.FromArgb(5, 9, 15)));
+        TryDwmSetWindowAttribute(hwnd, 36, ColorTranslator.ToWin32(Color.FromArgb(244, 247, 251)));
+        TryDwmSetWindowAttribute(hwnd, 34, ColorTranslator.ToWin32(Color.FromArgb(255, 166, 41)));
+    }
+
+    private static void TryDwmSetWindowAttribute(IntPtr hwnd, int attribute, int value)
+    {
+        try
+        {
+            DwmSetWindowAttribute(hwnd, attribute, ref value, Marshal.SizeOf(typeof(int)));
+        }
+        catch
+        {
         }
     }
 
@@ -394,6 +940,7 @@ internal static class SmartBackgroundNap
         ExtractResource("readme_md", Path.Combine(runtimeRoot, "README.md"));
         ExtractResource("security_model_md", Path.Combine(runtimeRoot, "SECURITY_MODEL.md"));
         ExtractResource("readme_showcase_png", Path.Combine(runtimeRoot, "docs\\images\\smart-nap-showcase.png"));
+        ExtractResource("readme_social_preview_png", Path.Combine(runtimeRoot, "docs\\images\\smart-nap-social-preview.png"));
         ExtractResource("readme_engine_story_png", Path.Combine(runtimeRoot, "docs\\images\\smart-nap-engine-story.png"));
         ExtractResource("readme_intelligence_png", Path.Combine(runtimeRoot, "docs\\images\\smart-nap-intelligence.png"));
         ExtractResource("icon_ico", Path.Combine(runtimeRoot, "assets\\smart-nap-logo.ico"));
@@ -1415,6 +1962,7 @@ internal static class SmartBackgroundNap
         private bool listenerStopping;
         private Thread showThread;
         private System.Windows.Forms.Timer foregroundWakeTimer;
+        private System.Windows.Forms.Timer trayTelemetryTimer;
         private int lastForegroundPid;
         private bool foregroundRestoreBusy;
         private DateTime lastForegroundRestoreAt = DateTime.MinValue;
@@ -1466,6 +2014,7 @@ internal static class SmartBackgroundNap
 
             StartShowListener();
             StartForegroundWakeTimer();
+            StartTrayTelemetryTimer();
         }
 
         private ModernMainWindow CreateMainWindow()
@@ -1542,6 +2091,12 @@ internal static class SmartBackgroundNap
                     foregroundWakeTimer.Dispose();
                     foregroundWakeTimer = null;
                 }
+                if (trayTelemetryTimer != null)
+                {
+                    trayTelemetryTimer.Stop();
+                    trayTelemetryTimer.Dispose();
+                    trayTelemetryTimer = null;
+                }
                 try { showDashboardEvent.Set(); } catch { }
                 notifyIcon.Visible = false;
                 notifyIcon.Dispose();
@@ -1603,6 +2158,27 @@ internal static class SmartBackgroundNap
             foregroundWakeTimer.Interval = 180;
             foregroundWakeTimer.Tick += delegate { CheckForegroundWake(); };
             foregroundWakeTimer.Start();
+        }
+
+        private void StartTrayTelemetryTimer()
+        {
+            trayTelemetryTimer = new System.Windows.Forms.Timer();
+            trayTelemetryTimer.Interval = 10000;
+            trayTelemetryTimer.Tick += delegate { UpdateTrayTelemetryText(); };
+            trayTelemetryTimer.Start();
+            UpdateTrayTelemetryText();
+        }
+
+        private void UpdateTrayTelemetryText()
+        {
+            try
+            {
+                notifyIcon.Text = LimitNotifyText(BuildTrayTelemetryText(), 63);
+            }
+            catch
+            {
+                try { notifyIcon.Text = AppName; } catch { }
+            }
         }
 
         private void CheckForegroundWake()
@@ -2182,6 +2758,8 @@ internal static class SmartBackgroundNap
         {
             try
             {
+                System.Windows.Interop.WindowInteropHelper helper = new System.Windows.Interop.WindowInteropHelper(this);
+                ApplyDarkWindowFrame(helper.Handle);
                 if (WindowStyle == System.Windows.WindowStyle.None)
                 {
                     System.Windows.Interop.HwndSource source = System.Windows.PresentationSource.FromVisual(this) as System.Windows.Interop.HwndSource;
@@ -2668,6 +3246,7 @@ internal static class SmartBackgroundNap
             string heartbeat = DateTime.Now.ToString("HH:mm:ss", CultureInfo.CurrentCulture);
             string lastEventAge = BuildLastEventAgeText();
             string nextPass = BuildNextPassText(line, autoInstalled);
+            HardwareSnapshot hardware = GetHardwareSnapshot();
 
             WebDashboardState state = new WebDashboardState();
             state.AppVersion = AppVersion;
@@ -2703,6 +3282,24 @@ internal static class SmartBackgroundNap
             state.Heartbeat = heartbeat;
             state.LastEventAge = lastEventAge;
             state.NextPass = nextPass;
+            state.HardwareCpu = hardware.Cpu;
+            state.HardwareCpuDetail = hardware.CpuDetail;
+            state.HardwareRam = hardware.Ram;
+            state.HardwareRamDetail = hardware.RamDetail;
+            state.HardwareGpu = hardware.Gpu;
+            state.HardwareGpuDetail = hardware.GpuDetail;
+            state.HardwareOs = hardware.Os;
+            state.AvailableMemoryText = hardware.AvailableMemoryText;
+            state.HardwareSystemDetail = hardware.SystemDetail;
+            state.HardwareRamTotalMB = hardware.TotalMemoryMB;
+            state.HardwareRamFreeMB = hardware.AvailableMemoryMB;
+            state.HardwarePageFileTotalMB = hardware.PageFileTotalMB;
+            state.HardwarePageFileFreeMB = hardware.PageFileAvailableMB;
+            state.HardwareVirtualTotalMB = hardware.VirtualTotalMB;
+            state.HardwareVirtualFreeMB = hardware.VirtualAvailableMB;
+            state.HardwareMemoryLoad = hardware.MemoryLoad;
+            state.HardwareCpuClockMhz = hardware.CpuClockCurrentMhz;
+            state.HardwareCpuMaxMhz = hardware.CpuClockMaxMhz;
             state.Rows = rows;
             state.Events = BuildEvents(autoInstalled, heartbeat, lastEventAge, nextPass);
             state.Logo = GetLogoDataUri();
@@ -3507,6 +4104,24 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public string LastEventAge { get; set; }
             public string NextPass { get; set; }
             public string Logo { get; set; }
+            public string HardwareCpu { get; set; }
+            public string HardwareCpuDetail { get; set; }
+            public string HardwareRam { get; set; }
+            public string HardwareRamDetail { get; set; }
+            public string HardwareGpu { get; set; }
+            public string HardwareGpuDetail { get; set; }
+            public string HardwareOs { get; set; }
+            public string AvailableMemoryText { get; set; }
+            public string HardwareSystemDetail { get; set; }
+            public double HardwareRamTotalMB { get; set; }
+            public double HardwareRamFreeMB { get; set; }
+            public double HardwarePageFileTotalMB { get; set; }
+            public double HardwarePageFileFreeMB { get; set; }
+            public double HardwareVirtualTotalMB { get; set; }
+            public double HardwareVirtualFreeMB { get; set; }
+            public int HardwareMemoryLoad { get; set; }
+            public int HardwareCpuClockMhz { get; set; }
+            public int HardwareCpuMaxMhz { get; set; }
             public List<WebManagerRow> Rows { get; set; }
             public List<string> Events { get; set; }
         }

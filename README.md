@@ -1,6 +1,6 @@
 # Smart Background Nap
 
-![Smart Background Nap product showcase](docs/images/c5bd70c1-e98f-493b-8cdc-176cb631ce17.png)
+![Smart Background Nap social preview](docs/images/smart-nap-social-preview.png)
 
 **Smart Background Nap** is a local-first Windows performance companion for people who keep a lot of apps open while gaming, streaming, coding, recording, or multitasking.
 

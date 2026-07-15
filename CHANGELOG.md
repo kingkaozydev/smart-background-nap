@@ -1,4 +1,18 @@
 # Changelog
+## 0.4.3 - 2026-07-15
+
+- Added live CPU clock telemetry using native Windows power information so the dashboard no longer shows a frozen base frequency.
+- Expanded the PC Profile panel with GPU VRAM, driver/display details, pagefile availability, memory load, and richer system memory summary.
+- Added a polished GitHub social preview banner at `docs/images/smart-nap-social-preview.png` and updated the README hero image.
+- Embedded the new social preview asset in the single EXE runtime so the local README view resolves correctly.
+
+## 0.4.2 - 2026-07-15
+
+- Added a dark native Windows frame for the WebView2 launcher so the title bar no longer appears as a bright white strip on dark systems.
+- Added a PC Profile panel with CPU, RAM, GPU, OS, installed memory, free memory, module count, RAM speed, and module model when Windows exposes those details.
+- Added a richer tray tooltip with free RAM, managed app count, and reclaimed memory from the last optimization pass.
+- Cached hardware discovery so the launcher can show system specs without keeping a heavy monitor running in the background.
+- Refined dashboard spacing for the new telemetry block while preserving native move/resize behavior.
 
 ## 0.4.1 - 2026-07-15
 
