@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.IO;
+using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -27,11 +28,13 @@ using Microsoft.Web.WebView2.Wpf;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.4.5";
+    private const string AppVersion = "0.4.6";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
     private const string GitHubUrl = "https://github.com/kingkaozydev/smart-background-nap";
+    private const string GitHubLatestReleaseApi = "https://api.github.com/repos/kingkaozydev/smart-background-nap/releases/latest";
+    private const string GitHubLatestDownloadUrl = "https://github.com/kingkaozydev/smart-background-nap/releases/latest/download/SmartBackgroundNap.exe";
     private const string MutexName = "Local\\SmartBackgroundNap.SingleInstance";
     private const string ShowDashboardEventName = "Local\\SmartBackgroundNap.ShowDashboard";
     private const string ResourcePrefix = "SmartBackgroundNap.Resources.";
@@ -1128,19 +1131,43 @@ internal static class SmartBackgroundNap
         return "";
     }
 
-    private static string LoadUiLanguage()
+    private static IDictionary<string, object> LoadUiSettings()
     {
         try
         {
-            if (String.IsNullOrWhiteSpace(uiSettingsPath) || !File.Exists(uiSettingsPath)) { return ""; }
+            if (String.IsNullOrWhiteSpace(uiSettingsPath) || !File.Exists(uiSettingsPath)) { return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase); }
             IDictionary<string, object> settings = JsonCompat.DeserializeObject(File.ReadAllText(uiSettingsPath, Encoding.UTF8));
-            object value;
-            return NormalizeUiLanguage(settings != null && settings.TryGetValue("Language", out value) ? Convert.ToString(value, CultureInfo.InvariantCulture) : "");
+            return settings ?? new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
         }
         catch
         {
-            return "";
+            return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
         }
+    }
+
+    private static void SaveUiSettings(IDictionary<string, object> settings)
+    {
+        try
+        {
+            Directory.CreateDirectory(appRoot);
+            File.WriteAllText(uiSettingsPath, JsonCompat.SerializeObject(settings ?? new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)), Encoding.UTF8);
+        }
+        catch (Exception ex)
+        {
+            WriteCrash(ex);
+        }
+    }
+
+    private static string GetUiSettingString(string key)
+    {
+        IDictionary<string, object> settings = LoadUiSettings();
+        object value;
+        return settings != null && settings.TryGetValue(key, out value) ? Convert.ToString(value, CultureInfo.InvariantCulture) : "";
+    }
+
+    private static string LoadUiLanguage()
+    {
+        return NormalizeUiLanguage(GetUiSettingString("Language"));
     }
 
     private static void SaveUiLanguage(string language)
@@ -1148,15 +1175,44 @@ internal static class SmartBackgroundNap
         string normalized = NormalizeUiLanguage(language);
         if (String.IsNullOrWhiteSpace(normalized)) { return; }
         uiLanguage = normalized;
-        try
+        IDictionary<string, object> settings = LoadUiSettings();
+        settings["Language"] = normalized;
+        SaveUiSettings(settings);
+    }
+
+    private static string LoadDismissedUpdateTag()
+    {
+        return Convert.ToString(GetUiSettingString("DismissedUpdateTag"), CultureInfo.InvariantCulture).Trim();
+    }
+
+    private static void SaveDismissedUpdateTag(string tag)
+    {
+        if (String.IsNullOrWhiteSpace(tag)) { return; }
+        IDictionary<string, object> settings = LoadUiSettings();
+        settings["DismissedUpdateTag"] = tag.Trim();
+        settings["DismissedUpdateAt"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+        SaveUiSettings(settings);
+    }
+
+    private static bool LoadAutoUpdateChecks()
+    {
+        string value = GetUiSettingString("AutoUpdateChecks").Trim();
+        if (String.Equals(value, "false", StringComparison.OrdinalIgnoreCase) ||
+            String.Equals(value, "off", StringComparison.OrdinalIgnoreCase) ||
+            String.Equals(value, "0", StringComparison.OrdinalIgnoreCase) ||
+            String.Equals(value, "no", StringComparison.OrdinalIgnoreCase))
         {
-            Directory.CreateDirectory(appRoot);
-            File.WriteAllText(uiSettingsPath, "{ \"Language\": \"" + normalized + "\" }", Encoding.UTF8);
+            return false;
         }
-        catch (Exception ex)
-        {
-            WriteCrash(ex);
-        }
+        return true;
+    }
+
+    private static void SaveAutoUpdateChecks(bool enabled)
+    {
+        IDictionary<string, object> settings = LoadUiSettings();
+        settings["AutoUpdateChecks"] = enabled ? "true" : "false";
+        settings["AutoUpdateChecksChangedAt"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+        SaveUiSettings(settings);
     }
 
     private static void EnsureRuntimeFiles(string runtimeRoot)
@@ -2007,7 +2063,7 @@ internal static class SmartBackgroundNap
         report.AppendLine("Startup registry key: no.");
         report.AppendLine();
         report.AppendLine("Data and network posture");
-        report.AppendLine("Network access: none by design.");
+        report.AppendLine("Network access: optional official GitHub Releases check for update notifications; no telemetry or user data upload.");
         report.AppendLine("Telemetry: none.");
         report.AppendLine("Accounts, passwords, cookies, browser profiles, documents, and game files: not read.");
         report.AppendLine("Local files written: config, compact logs, restore snapshots, embedded runtime files, this report.");
@@ -2199,6 +2255,148 @@ internal static class SmartBackgroundNap
         OpenExternal(GitHubUrl);
     }
 
+    private static void OpenLatestRelease()
+    {
+        OpenExternal(GitHubUrl + "/releases/latest");
+    }
+
+    private static void OpenLatestDownload()
+    {
+        OpenExternal(GitHubLatestDownloadUrl);
+    }
+
+    private static ReleaseUpdateInfo CheckForOfficialUpdate()
+    {
+        ReleaseUpdateInfo info = new ReleaseUpdateInfo();
+        info.Checked = true;
+        info.LatestTag = "";
+        info.LatestVersion = "";
+        info.ReleaseUrl = GitHubUrl + "/releases/latest";
+        info.DownloadUrl = GitHubLatestDownloadUrl;
+
+        try
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.Timeout = TimeSpan.FromSeconds(7);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("SmartBackgroundNap/" + AppVersion);
+                client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+                string json = client.GetStringAsync(GitHubLatestReleaseApi).GetAwaiter().GetResult();
+                IDictionary<string, object> root = JsonCompat.DeserializeObject(json);
+                if (root == null) { throw new InvalidOperationException("Invalid GitHub release response."); }
+
+                info.LatestTag = ReadMapString(root, "tag_name");
+                info.LatestVersion = NormalizeVersionLabel(info.LatestTag);
+                info.ReleaseName = ReadMapString(root, "name");
+                info.ReleaseUrl = FirstNonEmpty(ReadMapString(root, "html_url"), GitHubUrl + "/releases/latest");
+                info.PublishedAt = ReadMapString(root, "published_at");
+                info.DownloadUrl = FirstNonEmpty(FindReleaseAssetUrl(root, "SmartBackgroundNap.exe"), GitHubLatestDownloadUrl);
+
+                bool newer = IsRemoteVersionNewer(info.LatestTag, AppVersion);
+                bool dismissed = String.Equals(LoadDismissedUpdateTag(), info.LatestTag, StringComparison.OrdinalIgnoreCase);
+                info.Ignored = newer && dismissed;
+                info.Available = newer && !dismissed;
+            }
+        }
+        catch (Exception ex)
+        {
+            info.Error = ex.Message;
+            info.Available = false;
+        }
+
+        return info;
+    }
+
+    private static string FindReleaseAssetUrl(IDictionary<string, object> root, string assetName)
+    {
+        object assetsObject;
+        if (root == null || !root.TryGetValue("assets", out assetsObject)) { return ""; }
+        System.Collections.IEnumerable assets = assetsObject as System.Collections.IEnumerable;
+        if (assets == null || assetsObject is string) { return ""; }
+        foreach (object item in assets)
+        {
+            IDictionary<string, object> map = item as IDictionary<string, object>;
+            if (map == null) { continue; }
+            if (String.Equals(ReadMapString(map, "name"), assetName, StringComparison.OrdinalIgnoreCase))
+            {
+                return ReadMapString(map, "browser_download_url");
+            }
+        }
+        return "";
+    }
+
+    private static string ReadMapString(IDictionary<string, object> map, string key)
+    {
+        object value;
+        return map != null && map.TryGetValue(key, out value) ? Convert.ToString(value, CultureInfo.InvariantCulture) : "";
+    }
+
+    private static string FirstNonEmpty(string first, string fallback)
+    {
+        return String.IsNullOrWhiteSpace(first) ? fallback : first;
+    }
+
+    private static string NormalizeVersionLabel(string value)
+    {
+        if (String.IsNullOrWhiteSpace(value)) { return ""; }
+        return value.Trim().TrimStart('v', 'V');
+    }
+
+    private static bool IsRemoteVersionNewer(string remoteTag, string currentVersion)
+    {
+        int[] remote = ParseVersionParts(remoteTag);
+        int[] current = ParseVersionParts(currentVersion);
+        for (int i = 0; i < 3; i++)
+        {
+            if (remote[i] > current[i]) { return true; }
+            if (remote[i] < current[i]) { return false; }
+        }
+        return false;
+    }
+
+    private static int[] ParseVersionParts(string value)
+    {
+        int[] parts = new int[] { 0, 0, 0 };
+        if (String.IsNullOrWhiteSpace(value)) { return parts; }
+        string clean = NormalizeVersionLabel(value);
+        string[] tokens = clean.Split(new char[] { '.', '-', '+', '_' }, StringSplitOptions.RemoveEmptyEntries);
+        for (int i = 0; i < Math.Min(3, tokens.Length); i++)
+        {
+            int parsed;
+            parts[i] = Int32.TryParse(tokens[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out parsed) ? parsed : 0;
+        }
+        return parts;
+    }
+
+    private sealed class ReleaseUpdateInfo
+    {
+        public bool Checked { get; set; }
+        public bool Checking { get; set; }
+        public bool Available { get; set; }
+        public bool Ignored { get; set; }
+        public string LatestTag { get; set; }
+        public string LatestVersion { get; set; }
+        public string ReleaseName { get; set; }
+        public string ReleaseUrl { get; set; }
+        public string DownloadUrl { get; set; }
+        public string PublishedAt { get; set; }
+        public string Error { get; set; }
+
+        public static ReleaseUpdateInfo Idle()
+        {
+            ReleaseUpdateInfo info = new ReleaseUpdateInfo();
+            info.ReleaseUrl = GitHubUrl + "/releases/latest";
+            info.DownloadUrl = GitHubLatestDownloadUrl;
+            return info;
+        }
+
+        public static ReleaseUpdateInfo InProgress()
+        {
+            ReleaseUpdateInfo info = Idle();
+            info.Checking = true;
+            return info;
+        }
+    }
     private static void OpenExternal(string target)
     {
         try
@@ -2966,6 +3164,9 @@ internal static class SmartBackgroundNap
         private string activeTitle = "Control Center";
         private string activeDetail = "Waiting for the next pass.";
         private string runState = "READY";
+        private ReleaseUpdateInfo updateInfo = ReleaseUpdateInfo.Idle();
+        private bool updateCheckRunning;
+        private DateTime updateCheckedAtUtc = DateTime.MinValue;
         private bool manualMaximized;
         private System.Windows.Rect restoreWindowRect;
         private bool webDragActive;
@@ -3034,6 +3235,7 @@ internal static class SmartBackgroundNap
                 {
                     StartDashboardActivity();
                     RefreshStatus();
+                    BeginUpdateCheck(false);
                 }
                 else
                 {
@@ -3358,6 +3560,7 @@ internal static class SmartBackgroundNap
                 if (String.Equals(action, "ready", StringComparison.OrdinalIgnoreCase))
                 {
                     webReady = true;
+                    BeginUpdateCheck(false);
                     SendState();
                     return;
                 }
@@ -3447,13 +3650,54 @@ internal static class SmartBackgroundNap
                 if (String.Equals(action, "config", StringComparison.OrdinalIgnoreCase)) { OpenConfig(); return; }
                 if (String.Equals(action, "safety", StringComparison.OrdinalIgnoreCase)) { OpenSafetyReport(); return; }
                 if (String.Equals(action, "github", StringComparison.OrdinalIgnoreCase)) { OpenGitHub(); return; }
-            }
+                if (String.Equals(action, "setUpdateAuto", StringComparison.OrdinalIgnoreCase))
+                {
+                    SaveAutoUpdateChecks(GetBool(message, "enabled"));
+                    SendState();
+                    return;
+                }
+                if (String.Equals(action, "checkUpdate", StringComparison.OrdinalIgnoreCase)) { BeginUpdateCheck(true); return; }
+                if (String.Equals(action, "openUpdate", StringComparison.OrdinalIgnoreCase)) { OpenExternal(String.IsNullOrWhiteSpace(updateInfo.DownloadUrl) ? GitHubLatestDownloadUrl : updateInfo.DownloadUrl); return; }
+                if (String.Equals(action, "dismissUpdate", StringComparison.OrdinalIgnoreCase))
+                {
+                    string tag = updateInfo == null ? "" : updateInfo.LatestTag;
+                    if (!String.IsNullOrWhiteSpace(tag)) { SaveDismissedUpdateTag(tag); }
+                    if (updateInfo != null) { updateInfo.Available = false; updateInfo.Ignored = true; }
+                    SendState();
+                    return;
+                }            }
             catch (Exception ex)
             {
                 WriteCrash(ex);
             }
         }
 
+        private void BeginUpdateCheck(bool force)
+        {
+            if (updateCheckRunning) { return; }
+            if (!force && !LoadAutoUpdateChecks()) { return; }
+            if (!force && updateInfo != null && updateInfo.Checked && (DateTime.UtcNow - updateCheckedAtUtc) < TimeSpan.FromHours(6)) { return; }
+
+            updateCheckRunning = true;
+            updateInfo = ReleaseUpdateInfo.InProgress();
+            SendState();
+
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                ReleaseUpdateInfo result = CheckForOfficialUpdate();
+                Dispatcher.BeginInvoke(new Action(delegate
+                {
+                    updateInfo = result ?? ReleaseUpdateInfo.Idle();
+                    updateCheckedAtUtc = DateTime.UtcNow;
+                    updateCheckRunning = false;
+                    if (updateInfo.Available)
+                    {
+                        activeUiEventLine = DateTime.Now.ToString("HH:mm:ss", CultureInfo.CurrentCulture) + "  UPDATE  " + updateInfo.LatestTag + " disponivel";
+                    }
+                    SendState();
+                }));
+            });
+        }
         private void SetAppPolicyFromMessage(IDictionary<string, object> message)
         {
             string policy = GetString(message, "policy");
@@ -3766,6 +4010,18 @@ internal static class SmartBackgroundNap
             state.HardwareCpuMaxMhz = hardware.CpuClockMaxMhz;
             state.Rows = rows;
             state.Events = BuildEvents(autoInstalled, heartbeat, lastEventAge, nextPass);
+            ReleaseUpdateInfo currentUpdate = updateInfo ?? ReleaseUpdateInfo.Idle();
+            state.UpdateAutoChecks = LoadAutoUpdateChecks();
+            state.UpdateChecking = updateCheckRunning || currentUpdate.Checking;
+            state.UpdateAvailable = currentUpdate.Available;
+            state.UpdateIgnored = currentUpdate.Ignored;
+            state.UpdateLatestTag = currentUpdate.LatestTag;
+            state.UpdateLatestVersion = currentUpdate.LatestVersion;
+            state.UpdateReleaseName = currentUpdate.ReleaseName;
+            state.UpdateReleaseUrl = currentUpdate.ReleaseUrl;
+            state.UpdateDownloadUrl = currentUpdate.DownloadUrl;
+            state.UpdatePublishedAt = currentUpdate.PublishedAt;
+            state.UpdateError = currentUpdate.Error;
             state.Logo = GetLogoDataUri();
             return state;
         }
@@ -4631,7 +4887,17 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public int HardwareCpuMaxMhz { get; set; }
             public List<WebManagerRow> Rows { get; set; }
             public List<string> Events { get; set; }
-        }
+            public bool UpdateAutoChecks { get; set; }
+            public bool UpdateChecking { get; set; }
+            public bool UpdateAvailable { get; set; }
+            public bool UpdateIgnored { get; set; }
+            public string UpdateLatestTag { get; set; }
+            public string UpdateLatestVersion { get; set; }
+            public string UpdateReleaseName { get; set; }
+            public string UpdateReleaseUrl { get; set; }
+            public string UpdateDownloadUrl { get; set; }
+            public string UpdatePublishedAt { get; set; }
+            public string UpdateError { get; set; }        }
 
         private sealed class ScoreMeta
         {

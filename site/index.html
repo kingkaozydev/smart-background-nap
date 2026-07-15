@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Background Nap | Otimizador local para Windows</title>
+    <meta name="description" content="Smart Background Nap mantém seus apps abertos enquanto reduz pressão segura de CPU, RAM, I/O e EcoQoS em segundo plano. Criado por KaozyKing." />
+    <meta name="keywords" content="Smart Background Nap, Windows optimizer, background apps, gaming performance, RAM optimizer, EcoQoS, process priority, KaozyKing" />
+    <meta property="og:title" content="Smart Background Nap" />
+    <meta property="og:description" content="Keep apps open. Quiet the background. Wake the foreground fast." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/smart-nap-social-preview.png" />
+    <meta name="theme-color" content="#05080d" />
+    <link rel="icon" href="/smart-nap-logo.png" />
+    <link rel="stylesheet" href="/src/styles.css" />
+    <script type="module" src="/src/main.js"></script>
+  </head>
+  <body>
+    <div class="ambient" aria-hidden="true">
+      <span></span><span></span><span></span>
+    </div>
+
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="Smart Background Nap">
+        <img src="/smart-nap-logo.png" alt="" />
+        <span><strong>Smart Nap</strong><small>Background Control</small></span>
+      </a>
+      <nav>
+        <a href="#engine">Motor</a>
+        <a href="#releases">Releases</a>
+        <a href="#trust">Confiança</a>
+        <a class="nav-cta" id="navDownload" href="https://github.com/kingkaozydev/smart-background-nap/releases/latest/download/SmartBackgroundNap.exe">Download</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero section-shell">
+        <div class="hero-copy">
+          <p class="eyebrow">Local-first Windows optimizer</p>
+          <h1>Keep apps open.<br />Quiet the background.</h1>
+          <p class="hero-subtitle">Smart Background Nap reduz pressão segura de apps em segundo plano sem fechar nada, preservando a resposta da janela ativa para jogos, criação, estudo e multitarefa pesada.</p>
+          <div class="creator-card">
+            <span>Criado por</span>
+            <a href="https://github.com/kingkaozydev" target="_blank" rel="noreferrer">KaozyKing <em>@kingkaozydev</em></a>
+          </div>
+          <div class="hero-actions">
+            <a class="button primary" id="heroDownload" href="https://github.com/kingkaozydev/smart-background-nap/releases/latest/download/SmartBackgroundNap.exe">Baixar agora</a>
+            <a class="button ghost" href="https://github.com/kingkaozydev/smart-background-nap" target="_blank" rel="noreferrer">Ver no GitHub</a>
+          </div>
+          <div class="release-strip" id="releaseStrip">
+            <span>Release oficial</span>
+            <strong id="releaseVersion">carregando...</strong>
+            <small id="releaseMeta">buscando GitHub Releases</small>
+          </div>
+        </div>
+
+        <div class="hero-console" aria-label="Nap Engine preview">
+          <div class="console-top"><span></span><span></span><span></span><b>Nap Engine</b></div>
+          <div class="engine-orb">
+            <svg viewBox="0 0 160 160" role="img" aria-label="engine load">
+              <circle cx="80" cy="80" r="58" class="orb-base" />
+              <circle cx="80" cy="80" r="58" class="orb-blue" />
+              <circle cx="80" cy="80" r="58" class="orb-green" />
+            </svg>
+            <div><strong id="heroApps">24</strong><small>apps sample</small></div>
+          </div>
+          <div class="telemetry-grid">
+            <article><span>Wake</span><strong>Fast</strong></article>
+            <article><span>Memory</span><strong>Adaptive</strong></article>
+            <article><span>Policy</span><strong>Local</strong></article>
+            <article><span>Telemetry</span><strong>None</strong></article>
+          </div>
+          <div class="stream">
+            <p><time>now</time><span>Foreground restored instantly</span></p>
+            <p><time>+02s</time><span>Background apps moved to quiet profile</span></p>
+            <p><time>+05s</time><span>EcoQoS applied where supported</span></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="proof-bar">
+        <span>Process priority</span>
+        <span>Memory priority</span>
+        <span>I/O priority</span>
+        <span>EcoQoS</span>
+        <span>Fast wake</span>
+        <span>No app killing</span>
+      </section>
+
+      <section class="section-shell split" id="engine">
+        <div>
+          <p class="eyebrow">Motor de comportamento</p>
+          <h2>Otimização que respeita o que você está fazendo.</h2>
+          <p>O app observa a sessão local, protege a janela ativa e aplica perfis Light, Balanced ou Deep apenas onde faz sentido. A ideia não é prometer milagre: é reduzir ruído de fundo com decisões visíveis e reversíveis.</p>
+        </div>
+        <div class="feature-cards">
+          <article><b>01</b><strong>Wake rápido</strong><p>Quando você volta para um app, prioridade, I/O, memória e EcoQoS são restaurados.</p></article>
+          <article><b>02</b><strong>Perfis locais</strong><p>Smart Learning aprende padrões no próprio PC e não envia dados para ninguém.</p></article>
+          <article><b>03</b><strong>Sem matar apps</strong><p>O objetivo é deixar apps quietos, não encerrar o que o usuário abriu.</p></article>
+          <article><b>04</b><strong>Controle visível</strong><p>Dashboard, tray, logs, Permission Guard e Live Manager mostram o que foi mexido.</p></article>
+        </div>
+      </section>
+
+      <section class="section-shell showcase">
+        <img src="/smart-nap-about-panel.png" alt="Smart Background Nap overview" />
+        <div class="showcase-copy">
+          <p class="eyebrow">UX clara</p>
+          <h2>Feito para ficar aberto no tray e sair da frente.</h2>
+          <p>O launcher existe para explicar o motor, não para consumir o que ele tenta economizar. Ao minimizar, a interface pausa atualizações visuais pesadas e o controle segue pelo tray.</p>
+        </div>
+      </section>
+
+      <section class="section-shell release-panel" id="releases">
+        <div class="release-main">
+          <p class="eyebrow">Atualiza sozinho pelo GitHub</p>
+          <h2>Release mais recente</h2>
+          <p id="releaseBody">Carregando notas oficiais da última release...</p>
+          <a class="button primary" id="releaseDownload" href="https://github.com/kingkaozydev/smart-background-nap/releases/latest/download/SmartBackgroundNap.exe">Baixar última versão</a>
+        </div>
+        <div class="changes-card">
+          <div class="card-head"><span>Últimas mudanças</span><a href="https://github.com/kingkaozydev/smart-background-nap/commits/main" target="_blank" rel="noreferrer">commits</a></div>
+          <ol id="commitList"><li>Buscando atividade do GitHub...</li></ol>
+        </div>
+      </section>
+
+      <section class="section-shell compare">
+        <div class="compare-card before"><small>Antes</small><strong>Apps disputando RAM, I/O e prioridade em silêncio.</strong><div class="bars"><i></i><i></i><i></i></div></div>
+        <div class="compare-arrow">→</div>
+        <div class="compare-card after"><small>Depois</small><strong>Fundo em perfil quieto, foreground acordando rápido.</strong><div class="bars"><i></i><i></i><i></i></div></div>
+      </section>
+
+      <section class="section-shell trust" id="trust">
+        <div>
+          <p class="eyebrow">Confiança local</p>
+          <h2>Sem telemetria, sem conta, sem driver.</h2>
+        </div>
+        <ul>
+          <li>Não lê documentos, cookies, contas ou arquivos de jogos.</li>
+          <li>Não instala driver, serviço do Windows ou troca plano de energia.</li>
+          <li>Consulta apenas o GitHub oficial para release/update quando necessário.</li>
+          <li>As decisões ficam visíveis no dashboard, logs e relatório de segurança.</li>
+        </ul>
+      </section>
+
+      <section class="final-cta section-shell">
+        <p class="eyebrow">Pronto para testar</p>
+        <h2>Baixe o EXE, deixe no tray e mantenha seus apps abertos sem deixar o fundo mandar no PC.</h2>
+        <div class="hero-actions centered">
+          <a class="button primary big" id="finalDownload" href="https://github.com/kingkaozydev/smart-background-nap/releases/latest/download/SmartBackgroundNap.exe">Download oficial</a>
+          <a class="button ghost" href="https://github.com/kingkaozydev" target="_blank" rel="noreferrer">Perfil do criador</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>Smart Background Nap</span>
+      <a href="https://github.com/kingkaozydev/smart-background-nap" target="_blank" rel="noreferrer">GitHub</a>
+      <a href="https://github.com/kingkaozydev" target="_blank" rel="noreferrer">KaozyKing</a>
+    </footer>
+  </body>
+</html>

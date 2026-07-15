@@ -36,12 +36,12 @@ button{font:inherit}
 .pill{height:31px;border-radius:999px;border:1px solid #263a55;background:rgba(16,28,46,.86);color:#c3d0e2;padding:0 12px;display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:800;white-space:nowrap;text-transform:none}
 .pill.good{border-color:rgba(46,225,132,.42);background:rgba(46,225,132,.13);color:var(--green)}
 .pill.warn{border-color:rgba(255,166,41,.42);background:rgba(255,166,41,.12);color:var(--amber)}
-.startupAction{height:31px;border-radius:999px;border:1px solid rgba(154,114,255,.46);background:rgba(154,114,255,.12);color:#d7ccff;padding:0 11px;font-size:11px;font-weight:950;cursor:pointer;white-space:nowrap;max-width:170px;overflow:hidden;text-overflow:ellipsis;transition:120ms ease}.startupAction.on{border-color:rgba(154,114,255,.58);background:rgba(154,114,255,.16);color:#efe8ff}.startupAction:hover{filter:brightness(1.12);transform:translateY(-1px);border-color:rgba(154,114,255,.72)}
+.startupAction{height:31px;border-radius:999px;border:1px solid rgba(154,114,255,.46);background:rgba(154,114,255,.12);color:#d7ccff;padding:0 11px;font-size:11px;font-weight:950;cursor:pointer;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis;transition:120ms ease}.startupAction.on{border-color:rgba(154,114,255,.58);background:rgba(154,114,255,.16);color:#efe8ff}.startupAction.off{opacity:.78}.startupAction:hover{filter:brightness(1.12);transform:translateY(-1px);border-color:rgba(154,114,255,.72)}.updateAction{max-width:190px}
 .langButton{height:31px;border-radius:999px;border:1px solid rgba(154,114,255,.46);background:rgba(154,114,255,.12);color:#d7ccff;padding:0 11px;font-size:11px;font-weight:950;cursor:pointer;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}
 .pulseDot{width:7px;height:7px;border-radius:999px;background:currentColor;box-shadow:0 0 0 0 currentColor;animation:pulse 1.5s infinite}
 @keyframes pulse{70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
 .dashboard{min-width:0;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,360px);gap:14px}
-.leftCol{min-height:0;display:grid;grid-template-rows:auto auto auto minmax(0,1fr);gap:14px}
+.leftCol{min-height:0;display:grid;grid-template-rows:auto auto auto auto minmax(0,1fr);gap:14px}
 .rightCol{min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr);gap:14px}
 .panel{border:1px solid rgba(54,79,114,.78);background:linear-gradient(145deg,rgba(14,25,41,.96),rgba(8,15,26,.96));border-radius:12px;box-shadow:0 18px 38px rgba(0,0,0,.24);overflow:hidden}
 .command{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,400px);gap:16px;padding:18px}
@@ -78,6 +78,7 @@ button{font:inherit}
 @keyframes slide{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
 .actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.btn{height:38px;border-radius:9px;border:1px solid #314967;background:#132238;color:#f4f8ff;font-size:13px;font-weight:900;cursor:pointer;transition:120ms ease;white-space:nowrap;padding:0 10px;min-width:0;overflow:hidden;text-overflow:ellipsis}.btn:hover{filter:brightness(1.08);transform:translateY(-1px)}.btn.primary{grid-column:1/-1;background:linear-gradient(180deg,#ffb13a,#ff9f21);border-color:#ffb13a;color:#121212}.btn.danger{background:linear-gradient(180deg,#ff6674,#eb3f51);border-color:#ff6674;color:#fff}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}.cardButton{text-align:left;color:inherit;font:inherit;cursor:pointer}.cardButton:hover{filter:brightness(1.08);transform:translateY(-1px)}.card{min-height:86px;border:1px solid #263a55;border-radius:12px;background:linear-gradient(145deg,#101d30,#0a1422);padding:13px;position:relative;overflow:hidden}.card:before{content:"";position:absolute;inset:0 auto auto 0;width:100%;height:3px;background:var(--blue)}.card:nth-child(2):before{background:var(--green)}.card:nth-child(3):before{background:var(--amber)}.card:nth-child(4):before{background:var(--violet)}.card:nth-child(5):before{background:var(--green)}.card small{display:block;color:#8ea0b8;font-size:11px;font-weight:800}.card b{display:block;margin-top:8px;font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.updatePanel{display:none;border:1px solid rgba(255,170,42,.34);border-radius:14px;background:linear-gradient(135deg,rgba(255,170,42,.14),rgba(10,22,38,.96));padding:14px;gap:12px;grid-template-columns:minmax(0,1fr) auto;align-items:center;position:relative;overflow:hidden}.updatePanel.show{display:grid}.updatePanel:before{content:"";position:absolute;inset:0 auto auto 0;width:100%;height:3px;background:linear-gradient(90deg,var(--amber),var(--green),var(--blue))}.updateCopy{position:relative;min-width:0}.updateCopy small{display:block;color:var(--amber);font-size:10px;font-weight:950;text-transform:uppercase}.updateCopy b{display:block;margin-top:5px;font-size:16px}.updateCopy p{margin:5px 0 0;color:#aabbd0;font-size:12px;line-height:1.4}.updateActions{position:relative;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.updateActions .btn{height:34px}.btn.subtle{background:rgba(14,28,47,.76);color:#c8d7ea;border-color:#2a405f}
 .systemPanel{padding:13px;display:grid;gap:10px}.systemGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.systemTile{min-width:0;border:1px solid #223650;border-radius:11px;background:linear-gradient(145deg,rgba(12,24,40,.95),rgba(7,14,25,.95));padding:11px;position:relative;overflow:hidden}.systemTile:before{content:"";position:absolute;inset:0 auto auto 0;width:100%;height:2px;background:linear-gradient(90deg,var(--amber),var(--blue))}.systemTile small{display:block;color:#7e91ab;font-size:10px;font-weight:850;letter-spacing:0}.systemTile b{display:block;margin-top:6px;color:#f6f9ff;font-size:14px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.systemTile p{margin:5px 0 0;color:#93a6bd;font-size:11px;line-height:1.35;min-height:43px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.systemTile.ram:before{background:linear-gradient(90deg,var(--green),var(--amber))}.systemTile.gpu:before{background:linear-gradient(90deg,var(--blue),var(--violet))}.systemTile.os:before{background:linear-gradient(90deg,var(--violet),var(--green))}
 .manager{min-height:0;padding:14px;display:grid;grid-template-rows:auto minmax(0,1fr);gap:10px}.panelTitle{display:flex;align-items:center;justify-content:space-between;gap:12px}.panelTitle h3{margin:0;font-size:18px}.panelTitle span{color:#71839b;font-size:11px;font-weight:800}
 .table{min-height:0;display:grid;grid-template-rows:30px minmax(0,1fr);border:1px solid #1d3048;border-radius:10px;overflow:auto;scrollbar-color:#2e4565 #09111e;scrollbar-width:thin}.thead,.row{width:100%;min-width:780px;display:grid;grid-template-columns:minmax(125px,1.45fr) 60px 78px 54px 56px minmax(320px,2.8fr);align-items:center}.thead{position:sticky;top:0;z-index:1;background:#14243a;color:#9fb0c6;font-size:11px;font-weight:900}.row{min-height:38px;border-top:1px solid #1b2d44;background:#0b1524;color:#dde9f8;font-size:11px}.row:nth-child(even){background:#0e192a}.row>span{padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#rows{min-height:0;overflow:visible}.actionsCell{display:flex;align-items:center;gap:4px;padding:6px 8px!important;overflow:visible!important;white-space:normal!important;flex-wrap:wrap;align-content:center}
@@ -94,11 +95,11 @@ button{font:inherit}
 .infoOverlay{position:fixed;inset:0;z-index:21;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(1,5,10,.66);backdrop-filter:blur(12px)}
 .infoOverlay.open{display:flex}
 .infoPanel{width:min(560px,calc(100vw - 48px));border:1px solid rgba(154,114,255,.42);border-radius:18px;background:radial-gradient(circle at 15% 0%,rgba(154,114,255,.20),transparent 38%),linear-gradient(145deg,#101b2c,#08111e);box-shadow:0 28px 80px rgba(0,0,0,.52);padding:20px}
-.infoPanel h2{margin:0;font-size:24px}.infoPanel p{margin:8px 0 14px;color:#a9b8ca;font-size:13px;line-height:1.45}.infoList{display:grid;gap:8px;margin:0 0 16px;padding:0;list-style:none}.infoList li{border:1px solid #223650;border-radius:11px;background:#0a1728;padding:10px;color:#dbe7f6;font-size:12px;line-height:1.35}.infoActions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.infoActions .btn{height:40px}
+.infoPanel h2{margin:0;font-size:24px}.infoPanel p{margin:8px 0 14px;color:#a9b8ca;font-size:13px;line-height:1.45}.infoList{display:grid;gap:8px;margin:0 0 16px;padding:0;list-style:none}.infoList li{border:1px solid #223650;border-radius:11px;background:#0a1728;padding:10px;color:#dbe7f6;font-size:12px;line-height:1.35}.infoActions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.infoActions .btn{height:40px}.updatePref{display:grid;grid-template-columns:minmax(0,1fr) 132px;gap:12px;align-items:center;border:1px solid #223650;border-radius:12px;background:#0a1728;padding:12px;margin:0 0 14px}.updatePref b{display:block;font-size:14px}.updatePref span{display:block;margin-top:4px;color:#8fa1b8;font-size:11px;line-height:1.35}.updatePref button{height:36px;border-radius:999px;border:1px solid rgba(154,114,255,.5);background:rgba(154,114,255,.13);color:#efe8ff;font-weight:950;cursor:pointer}.updateStatus{border:1px solid #223650;border-radius:11px;background:#091523;padding:11px;color:#dbe7f6;font-size:12px;line-height:1.35;margin-bottom:14px}
 @media(max-width:1320px){.dashboard{grid-template-columns:1fr}.rightCol{grid-template-rows:minmax(320px,420px)}}
 @media(max-width:1120px){.command{grid-template-columns:1fr}.engineCard{max-width:none}.featureGrid{max-width:none}.intelligencePanel{max-width:none}}
 @media(max-width:900px){.app{grid-template-columns:64px minmax(0,1fr)}.rail{padding-top:12px}.nav{width:42px;height:42px}.brandMark{width:42px;height:42px}.workspace{padding:14px}.topbar{height:auto;align-items:flex-start;flex-direction:column}.statusBar{justify-content:flex-start;padding-right:104px}.featureGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard{grid-template-columns:1fr}.headline{font-size:30px}.languageGrid{grid-template-columns:1fr}}
-@media(max-width:720px){.app{grid-template-columns:56px minmax(0,1fr)}.workspace{padding:12px}.featureGrid,.cards,.systemGrid,.intelStats,.metricGrid{grid-template-columns:1fr}.intelTop{grid-template-columns:1fr}.intelStats span{border-left:0;border-top:1px solid rgba(255,255,255,.08);padding-left:0;padding-top:8px}.intelStats span:first-child{border-top:0;padding-top:0}.meter{grid-template-columns:1fr}.actions{grid-template-columns:1fr}.btn.primary{grid-column:auto}.table{max-width:calc(100vw - 92px)}}
+@media(max-width:720px){.updatePanel{grid-template-columns:1fr}.updateActions{justify-content:stretch}.updateActions .btn{flex:1 1 130px}.app{grid-template-columns:56px minmax(0,1fr)}.workspace{padding:12px}.featureGrid,.cards,.systemGrid,.intelStats,.metricGrid{grid-template-columns:1fr}.intelTop{grid-template-columns:1fr}.intelStats span{border-left:0;border-top:1px solid rgba(255,255,255,.08);padding-left:0;padding-top:8px}.intelStats span:first-child{border-top:0;padding-top:0}.meter{grid-template-columns:1fr}.actions{grid-template-columns:1fr}.btn.primary{grid-column:auto}.table{max-width:calc(100vw - 92px)}}
 </style>
 </head>
 <body>
@@ -126,6 +127,7 @@ button{font:inherit}
         <div class="statusBar">
           <button class="langButton" id="languageButton" onclick="openLanguagePicker(false)">Language</button>
           <button class="startupAction" id="startup" type="button" onclick="send('toggleStartup')"><span id="startupText">Inicializacao</span></button>
+          <button class="startupAction updateAction" id="updateAction" type="button" onclick="openUpdateInfo()"><span id="updateActionText">Procurar atualizações</span></button>
           <span class="pill good" id="live"><i class="pulseDot"></i>Atualizando</span>
           <span class="pill" id="motor">Motor</span>
         </div>
@@ -181,6 +183,18 @@ button{font:inherit}
             <div class="card"><small data-i18n="lastEvent">Last event</small><b id="lastCard">-</b></div>
             <div class="card"><small data-i18n="lastResult">Last result</small><b id="resultCard">-</b></div>
           </section>
+          <section class="updatePanel" id="updatePanel">
+            <div class="updateCopy">
+              <small id="updateK">Update oficial</small>
+              <b id="updateTitle">Nova versão disponível</b>
+              <p id="updateBody">Baixe a versão mais recente publicada no GitHub oficial.</p>
+            </div>
+            <div class="updateActions">
+              <button class="btn primary" id="updateDownload" onclick="send('openUpdate')">Atualizar</button>
+              <button class="btn subtle" id="updateDismiss" onclick="send('dismissUpdate')">Não lembrar esta versão</button>
+              <button class="btn subtle" id="updateCheck" onclick="send('checkUpdate')">Checar</button>
+            </div>
+          </section>
           <section class="panel systemPanel">
             <div class="panelTitle"><h3 data-i18n="systemProfile">PC Profile</h3><span id="hardwareUpdated">local snapshot</span></div>
             <div class="systemGrid">
@@ -228,12 +242,27 @@ button{font:inherit}
     <h2 data-i18n="languageTitle">Choose your language</h2>
     <p data-i18n="languageSubtitle">This only changes the launcher text. The optimizer keeps the same safe behavior in the background.</p>
     <div class="languageGrid" id="languageGrid">
-      <button class="locale" data-lang="pt-BR"><b>PortuguÃªs BR</b><span>Interface natural em portuguÃªs do Brasil.</span></button>
+      <button class="locale" data-lang="pt-BR"><b>Portugu&ecirc;s BR</b><span>Interface natural em portugu&ecirc;s do Brasil.</span></button>
       <button class="locale" data-lang="en-US"><b>English</b><span>Clean gaming and multitasking copy.</span></button>
-      <button class="locale" data-lang="ru-RU"><b>Ð ÑƒÑÑÐºÐ¸Ð¹</b><span>ÐÐºÐºÑƒÑ€Ð°Ñ‚Ð½Ð°Ñ Ð»Ð¾ÐºÐ°Ð»Ð¸Ð·Ð°Ñ†Ð¸Ñ Ð¸Ð½Ñ‚ÐµÑ€Ñ„ÐµÐ¹ÑÐ°.</span></button>
-      <button class="locale" data-lang="es-ES"><b>EspaÃ±ol</b><span>Texto claro para uso diario.</span></button>
-      <button class="locale" data-lang="fr-FR"><b>FranÃ§ais</b><span>Interface concise et lisible.</span></button>
-      <button class="locale" data-lang="de-DE"><b>Deutsch</b><span>Klare OberflÃ¤che ohne Ballast.</span></button>
+      <button class="locale" data-lang="ru-RU"><b>&#1056;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081;</b><span>&#1040;&#1082;&#1082;&#1091;&#1088;&#1072;&#1090;&#1085;&#1072;&#1103; &#1083;&#1086;&#1082;&#1072;&#1083;&#1080;&#1079;&#1072;&#1094;&#1080;&#1103; &#1080;&#1085;&#1090;&#1077;&#1088;&#1092;&#1077;&#1081;&#1089;&#1072;.</span></button>
+      <button class="locale" data-lang="es-ES"><b>Espa&ntilde;ol</b><span>Texto claro para uso diario.</span></button>
+      <button class="locale" data-lang="fr-FR"><b>Fran&ccedil;ais</b><span>Interface concise et lisible.</span></button>
+      <button class="locale" data-lang="de-DE"><b>Deutsch</b><span>Klare Oberfl&auml;che ohne Ballast.</span></button>
+    </div>
+  </div>
+</div>
+<div class="infoOverlay" id="updateOverlay" role="dialog" aria-modal="true">
+  <div class="infoPanel">
+    <h2 data-i18n="updateModalTitle">Updates</h2>
+    <p data-i18n="updateModalBody">Check the official GitHub release channel and choose whether Smart Nap can check automatically.</p>
+    <div class="updatePref">
+      <div><b data-i18n="updateAuto">Automatic update checks</b><span data-i18n="updateAutoHint">When enabled, Smart Nap checks GitHub Releases occasionally and only shows a reminder.</span></div>
+      <button id="updateAutoToggle" onclick="toggleUpdateAuto()">On</button>
+    </div>
+    <div class="updateStatus" id="updateModalStatus">Ready.</div>
+    <div class="infoActions">
+      <button class="btn" data-i18n="cancel" onclick="closeUpdateInfo()">Cancel</button>
+      <button class="btn primary" id="updateModalCheck" onclick="send('checkUpdate')">Check now</button>
     </div>
   </div>
 </div>
@@ -272,7 +301,7 @@ button{font:inherit}
 const $ = (id) => document.getElementById(id);
 const LANGS = {
   "pt-BR": {
-    languageName:"PortuguÃªs BR", appTitle:"Smart Nap", appSubtitle:"Controle de apps em segundo plano para jogos e multitarefa",
+    languageName:"Português BR", appTitle:"Smart Nap", appSubtitle:"Controle de apps em segundo plano para jogos e multitarefa",
     navDashboard:"Dashboard", navScore:"Nap Score", navLog:"Log de atividade", navFiles:"Arquivos locais", navGithub:"GitHub", headline:"Apps em segundo plano sob controle", subline:"Apps abertos ficam leves enquanto a janela ativa recupera prioridade instantaneamente.",
     feature1K:"Janela ativa", feature1T:"Retorno rapido", feature1D:"Restaura prioridade assim que voce troca de janela.",
     feature2K:"Memoria", feature2T:"Trim adaptativo", feature2D:"Reduz sobra de RAM com cooldown para evitar agressividade.",
@@ -369,7 +398,7 @@ const LANGS = {
     cancel:"ÐžÑ‚Ð¼ÐµÐ½Ð°"
   },
   "es-ES": {
-    languageName:"EspaÃ±ol", appTitle:"Smart Nap", appSubtitle:"Control de apps en segundo plano para juegos y multitarea",
+    languageName:"Español", appTitle:"Smart Nap", appSubtitle:"Control de apps en segundo plano para juegos y multitarea",
     navDashboard:"Panel", navScore:"Nap Score", navLog:"Registro", navFiles:"Archivos", navGithub:"GitHub", headline:"Apps en segundo plano bajo control", subline:"Las apps abiertas quedan ligeras mientras la ventana activa recupera prioridad al instante.",
     feature1K:"Primer plano", feature1T:"Fast wake", feature1D:"Restaura prioridad en cuanto cambias de ventana.",
     feature2K:"Memoria", feature2T:"Trim adaptativo", feature2D:"Reduce RAM sobrante con cooldown para evitar agresividad.",
@@ -401,7 +430,7 @@ const LANGS = {
     cancel:"Cancelar"
   },
   "fr-FR": {
-    languageName:"FranÃ§ais", appTitle:"Smart Nap", appSubtitle:"Controle des apps en arriere-plan pour le jeu et le multitache",
+    languageName:"Français", appTitle:"Smart Nap", appSubtitle:"Controle des apps en arriere-plan pour le jeu et le multitache",
     navDashboard:"Tableau", navScore:"Nap Score", navLog:"Journal", navFiles:"Fichiers", navGithub:"GitHub", headline:"Applications en arriere-plan sous controle", subline:"Les apps ouvertes restent legeres pendant que la fenetre active recupere sa priorite.",
     feature1K:"Premier plan", feature1T:"Fast wake", feature1D:"Retablit la priorite des que vous changez de fenetre.",
     feature2K:"Memoire", feature2T:"Trim adaptatif", feature2D:"Reduit la RAM excedentaire avec cooldown pour rester doux.",
@@ -527,13 +556,20 @@ Object.keys(LANGS).forEach(k=>{
   LANGS[k].loadShort = LANGS[k].loadShort || "load";
   LANGS[k].startupHintOn = LANGS[k].startupHintOn || "Disable start with Windows";
   LANGS[k].startupHintOff = LANGS[k].startupHintOff || "Enable start with Windows";
+  LANGS[k].updateK = LANGS[k].updateK || "Official update";
+  LANGS[k].updateTitle = LANGS[k].updateTitle || "New version available";
+  LANGS[k].updateBody = LANGS[k].updateBody || "Version {version} is available from the official GitHub release.";
+  LANGS[k].updateDownload = LANGS[k].updateDownload || "Update";
+  LANGS[k].updateDismiss = LANGS[k].updateDismiss || "Do not remind this version";
+  LANGS[k].updateCheck = LANGS[k].updateCheck || "Check";
 });
-Object.assign(LANGS["pt-BR"],{controlTitle:"Controle em tempo real",systemProfile:"Perfil do PC",ramLabel:"Memoria RAM",systemLabel:"Sistema",gpuHint:"Adaptador grafico",localSnapshot:"snapshot vivo",freeNow:"{free} livre agora",ramShort:"RAM",pagefileShort:"Pagefile",loadShort:"carga",behaviorEngine:"Aprendizado",behaviorK:"Aprendizado",behaviorT:"Motor comportamental",behaviorProfilesLabel:"Perfis locais",behaviorD:"Cria perfis locais por CPU, retorno de memoria, bursts e eventos de wake.",behaviorMode:"modo",behaviorAdaptive:"adaptativo",behaviorOn:"ligado",behaviorOff:"desligado",profilesShort:"perfis",pressureNormal:"Normal",pressureModerate:"Moderada",pressureElevated:"Elevada",pressureCritical:"Critica",pressureUnknown:"Desconhecida",intentDesktop:"Uso comum",intentMemoryPressure:"Memoria pressionada",intentMediaCall:"Midia ou chamada",intentGaming:"Jogo em foco",intentDownloadInstall:"Download ou instalacao",browserRole:"Navegador",mediaCallRole:"Midia",behaviorGuardLabel:"Protegido",cpuBadge:"CPU",memoryBadge:"RAM",ioBadge:"I/O",trimBadge:"Trim",ecoBadge:"Eco",cooldownBadge:"Cooldown",trimSkipBadge:"Trim skip",adminNeededBadge:"Admin",startupHintOn:"Desativar iniciar com Windows",startupHintOff:"Ativar iniciar com Windows"});
+Object.assign(LANGS["pt-BR"],{controlTitle:"Controle em tempo real",systemProfile:"Perfil do PC",ramLabel:"Memoria RAM",systemLabel:"Sistema",gpuHint:"Adaptador grafico",localSnapshot:"snapshot vivo",freeNow:"{free} livre agora",ramShort:"RAM",pagefileShort:"Pagefile",loadShort:"carga",behaviorEngine:"Aprendizado",behaviorK:"Aprendizado",behaviorT:"Motor comportamental",behaviorProfilesLabel:"Perfis locais",behaviorD:"Cria perfis locais por CPU, retorno de memoria, bursts e eventos de wake.",behaviorMode:"modo",behaviorAdaptive:"adaptativo",behaviorOn:"ligado",behaviorOff:"desligado",profilesShort:"perfis",pressureNormal:"Normal",pressureModerate:"Moderada",pressureElevated:"Elevada",pressureCritical:"Critica",pressureUnknown:"Desconhecida",intentDesktop:"Uso comum",intentMemoryPressure:"Memoria pressionada",intentMediaCall:"Midia ou chamada",intentGaming:"Jogo em foco",intentDownloadInstall:"Download ou instalacao",browserRole:"Navegador",mediaCallRole:"Midia",behaviorGuardLabel:"Protegido",cpuBadge:"CPU",memoryBadge:"RAM",ioBadge:"I/O",trimBadge:"Trim",ecoBadge:"Eco",cooldownBadge:"Cooldown",trimSkipBadge:"Trim skip",adminNeededBadge:"Admin",startupHintOn:"Desativar iniciar com Windows",startupHintOff:"Ativar iniciar com Windows",updateK:"Atualização oficial",updateTitle:"Nova versão disponível",updateBody:"A versão {version} saiu no GitHub oficial. Baixe o EXE mais novo quando quiser atualizar.",updateDownload:"Atualizar",updateDismiss:"Não lembrar esta versão",updateCheck:"Checar",updateAction:"Procurar atualizações",updateModalTitle:"Atualizações",updateModalBody:"Verifique o canal oficial do GitHub e escolha se o Smart Nap pode procurar novas versões automaticamente.",updateAuto:"Atualização automática",updateAutoHint:"Quando ligado, o Smart Nap consulta o GitHub Releases de tempos em tempos e só mostra um lembrete.",updateAutoOn:"Auto ligado",updateAutoOff:"Auto desligado",updateStatusReady:"Pronto para consultar o canal oficial.",updateStatusChecking:"Consultando GitHub Releases agora.",updateStatusAvailable:"A versão {version} está disponível.",updateStatusCurrent:"Você já está na versão atual.",updateStatusIgnored:"Esta versão está oculta até sair uma release mais nova."});
 Object.assign(LANGS["en-US"],{systemProfile:"PC Profile",ramLabel:"RAM",systemLabel:"System",gpuHint:"Graphics adapter",localSnapshot:"live snapshot",freeNow:"{free} free now",ramShort:"RAM",pagefileShort:"Pagefile",loadShort:"load",behaviorEngine:"Behavior Engine",behaviorK:"Core intelligence",behaviorT:"Behavior Engine",behaviorD:"Profiles apps locally by CPU, memory return, bursts and wake events.",behaviorMode:"mode",behaviorAdaptive:"adaptive",behaviorOn:"on",behaviorOff:"off",profilesShort:"profiles"});
 Object.assign(LANGS["ru-RU"],{behaviorEngine:"Behavior Engine",behaviorK:"ÃÅ¾Ã‘ÂÃÂ½ÃÂ¾ÃÂ²ÃÂ½ÃÂ¾ÃÂ¹ ÃÂ¸ÃÂ½Ã‘â€šÃÂµÃÂ»ÃÂ»ÃÂµÃÂºÃ‘â€š",behaviorT:"Behavior Engine",behaviorD:"Ãâ€ºÃÂ¾ÃÂºÃÂ°ÃÂ»Ã‘Å’ÃÂ½ÃÂ¾ Ã‘ÂÃ‘â€šÃ‘â‚¬ÃÂ¾ÃÂ¸Ã‘â€š ÃÂ¿Ã‘â‚¬ÃÂ¾Ã‘â€žÃÂ¸ÃÂ»ÃÂ¸ ÃÂ¿ÃÂ¾ CPU, ÃÂ¿ÃÂ°ÃÂ¼Ã‘ÂÃ‘â€šÃÂ¸, ÃÂ²Ã‘ÂÃÂ¿ÃÂ»ÃÂµÃ‘ÂÃÂºÃÂ°ÃÂ¼ ÃÂ¸ wake-Ã‘ÂÃÂ¾ÃÂ±Ã‘â€¹Ã‘â€šÃÂ¸Ã‘ÂÃÂ¼.",behaviorMode:"Ã‘â‚¬ÃÂµÃÂ¶ÃÂ¸ÃÂ¼",behaviorAdaptive:"ÃÂ°ÃÂ´ÃÂ°ÃÂ¿Ã‘â€šÃÂ¸ÃÂ²ÃÂ½Ã‘â€¹ÃÂ¹",behaviorOn:"ÃÂ²ÃÂºÃÂ»",behaviorOff:"ÃÂ²Ã‘â€¹ÃÂºÃÂ»",profilesShort:"ÃÂ¿Ã‘â‚¬ÃÂ¾Ã‘â€žÃÂ¸ÃÂ»ÃÂ¸",pressureNormal:"ÃÂÃÂ¾Ã‘â‚¬ÃÂ¼ÃÂ°",pressureModerate:"ÃÂ¡Ã‘â‚¬ÃÂµÃÂ´ÃÂ½Ã‘ÂÃ‘Â",pressureElevated:"ÃÅ¸ÃÂ¾ÃÂ²Ã‘â€¹Ã‘Ë†ÃÂµÃÂ½ÃÂ½ÃÂ°Ã‘Â",pressureCritical:"ÃÅ¡Ã‘â‚¬ÃÂ¸Ã‘â€šÃÂ¸Ã‘â€¡ÃÂ½ÃÂ°Ã‘Â",pressureUnknown:"ÃÂÃÂµÃÂ¸ÃÂ·ÃÂ²ÃÂµÃ‘ÂÃ‘â€šÃÂ½ÃÂ¾"});
 Object.assign(LANGS["es-ES"],{systemProfile:"Perfil del PC",ramLabel:"RAM",systemLabel:"Sistema",gpuHint:"Adaptador grafico",localSnapshot:"snapshot vivo",freeNow:"{free} libre ahora",ramShort:"RAM",pagefileShort:"Pagefile",loadShort:"carga",behaviorEngine:"Behavior Engine",behaviorK:"Inteligencia central",behaviorT:"Behavior Engine",behaviorD:"Crea perfiles locales por CPU, retorno de memoria, rafagas y eventos wake.",behaviorMode:"modo",behaviorAdaptive:"adaptativo",behaviorOn:"activo",behaviorOff:"apagado",profilesShort:"perfiles",pressureNormal:"Normal",pressureModerate:"Moderada",pressureElevated:"Elevada",pressureCritical:"Critica",pressureUnknown:"Desconocida"});
 Object.assign(LANGS["fr-FR"],{systemProfile:"Profil PC",ramLabel:"RAM",systemLabel:"Systeme",gpuHint:"Adaptateur graphique",localSnapshot:"snapshot live",freeNow:"{free} libre maintenant",ramShort:"RAM",pagefileShort:"Pagefile",loadShort:"charge",behaviorEngine:"Behavior Engine",behaviorK:"Intelligence centrale",behaviorT:"Behavior Engine",behaviorD:"Profile localement les apps par CPU, retour memoire, rafales et evenements wake.",behaviorMode:"mode",behaviorAdaptive:"adaptatif",behaviorOn:"actif",behaviorOff:"inactif",profilesShort:"profils",pressureNormal:"Normale",pressureModerate:"Moderee",pressureElevated:"Elevee",pressureCritical:"Critique",pressureUnknown:"Inconnue"});
 Object.assign(LANGS["de-DE"],{systemProfile:"PC Profil",ramLabel:"RAM",systemLabel:"System",gpuHint:"Grafikadapter",localSnapshot:"Live-Snapshot",freeNow:"{free} frei",ramShort:"RAM",pagefileShort:"Pagefile",loadShort:"Last",behaviorEngine:"Behavior Engine",behaviorK:"Kernintelligenz",behaviorT:"Behavior Engine",behaviorD:"Profile Apps lokal nach CPU, Speicher-Rueckkehr, Bursts und Wake-Ereignissen.",behaviorMode:"Modus",behaviorAdaptive:"adaptiv",behaviorOn:"an",behaviorOff:"aus",profilesShort:"Profile",pressureNormal:"Normal",pressureModerate:"Moderat",pressureElevated:"Erhoeht",pressureCritical:"Kritisch",pressureUnknown:"Unbekannt"});
+LANGS["ru-RU"] = Object.assign({}, LANGS["en-US"], {languageName:"Русский",appTitle:"Smart Nap",appSubtitle:"Контроль фоновых приложений для игр и многозадачности",navDashboard:"Панель",navScore:"Nap Score",navLog:"Журнал",navFiles:"Файлы",navGithub:"GitHub",headline:"Фоновые приложения под контролем",subline:"Открытые приложения становятся легче, а активное окно быстро возвращает приоритет.",feature1K:"Активное окно",feature1T:"Быстрый возврат",feature1D:"Восстанавливает приоритет сразу после переключения окна.",feature2K:"Память",feature2T:"Адаптивная очистка",feature2D:"Снижает лишнюю нагрузку на RAM с паузами, чтобы не быть агрессивным.",feature3K:"Планировщик",feature3T:"Уровни Nap",feature3D:"Light, Balanced и Deep по реальному поведению процесса.",languageTitle:"Выберите язык",languageSubtitle:"Меняется только текст лаунчера. Оптимизатор продолжает безопасно работать в фоне.",apply:"Оптимизировать",stop:"Стоп",pauseMotor:"Пауза",resumeMotor:"Запустить",restore:"Восстановить",on:"Вкл",off:"Выкл",live:"Обновление",motorActive:"Мотор активен",manual:"Ручной",startupOn:"Запуск с Windows",startupOff:"Автозапуск выкл",apps:"apps",intelK:"Обучение",intelT:"Решения по поведению",smartLearning:"Smart Learning",learningOn:"Вкл",learningOff:"Выкл",updateK:"Официальное обновление",updateTitle:"Доступна новая версия",updateBody:"Версия {version} опубликована в официальном GitHub Release.",updateDownload:"Обновить",updateDismiss:"Не напоминать об этой версии",updateCheck:"Проверить",updateCheckingTitle:"Проверка обновлений",updateCheckingBody:"Проверяем официальный канал релизов GitHub."});
 const LANGUAGE_ORDER = ["pt-BR","en-US","ru-RU","es-ES","fr-FR","de-DE"];
 let currentLanguage = "pt-BR";
 let lastState = null;
@@ -604,6 +640,40 @@ function chooseLanguage(code){
   applyI18n();
   closeLanguagePicker();
   send("setLanguage",{language:currentLanguage});
+}
+function openUpdateInfo(){
+  $("updateOverlay")?.classList.add("open");
+  updateUpdatePopup(lastState || {});
+  send("checkUpdate");
+}
+function closeUpdateInfo(){
+  $("updateOverlay")?.classList.remove("open");
+}
+function toggleUpdateAuto(){
+  const enabled=!(lastState && lastState.UpdateAutoChecks);
+  send("setUpdateAuto",{enabled});
+}
+function updateUpdateControls(s){
+  const auto=!!(s&&s.UpdateAutoChecks);
+  txt("updateActionText",t("updateAction"));
+  const btn=$("updateAction");
+  if(btn){ btn.className="startupAction updateAction "+(auto?"on":"off"); btn.title=t("updateModalBody"); btn.setAttribute("aria-pressed",auto?"true":"false"); }
+  const toggle=$("updateAutoToggle");
+  if(toggle){ toggle.textContent=auto?t("updateAutoOn"):t("updateAutoOff"); toggle.classList.toggle("on",auto); }
+  updateUpdatePopup(s||{});
+}
+function updateUpdatePopup(s){
+  const status=$("updateModalStatus");
+  if(!status) return;
+  const version=s.UpdateLatestTag || s.UpdateLatestVersion || "latest";
+  let text=t("updateStatusReady");
+  if(s.UpdateChecking) text=t("updateStatusChecking");
+  else if(s.UpdateAvailable) text=t("updateStatusAvailable").replace("{version}",version);
+  else if(s.UpdateIgnored) text=t("updateStatusIgnored");
+  else if(s.UpdateError) text=String(s.UpdateError);
+  else if(s.UpdateLatestTag || s.UpdateLatestVersion) text=t("updateStatusCurrent");
+  status.textContent=text;
+  txt("updateModalCheck",t("updateCheck"));
 }
 function openLearningInfo(){
   $("learningOverlay")?.classList.add("open");
@@ -724,6 +794,7 @@ function paintState(state){
   txt("intentState",formatIntent(s));
   txt("radarState",formatRadar(s));
   updatePermissionGuard(s);
+  updateUpdatePanel(s);
   $("apply").className=s.CanStop?"btn danger":"btn primary";
   cls("motor",s.AutoMode?"pill good":"pill warn");
   txt("motor",s.AutoMode?t("motorActive"):t("manual"));
@@ -830,6 +901,25 @@ function updatePermissionGuard(s){
   txt("adminButton",s.IsElevated?t("alreadyElevated"):t("requestAdmin"));
   $("adminButton").disabled=!!s.IsElevated;
   $("adminButton").style.opacity=s.IsElevated?".62":"1";
+}
+function updateUpdatePanel(s){
+  const box=$("updatePanel");
+  if(!box) return;
+  const available=!!(s&&s.UpdateAvailable);
+  const checking=!!(s&&s.UpdateChecking);
+  box.classList.toggle("show",available||checking);
+  if(!available && !checking) return;
+  const version=s.UpdateLatestTag || s.UpdateLatestVersion || "";
+  txt("updateK",checking?t("updateCheck"):t("updateK"));
+  txt("updateTitle",checking?t("updateCheckingTitle"):t("updateTitle"));
+  txt("updateBody",checking?t("updateCheckingBody"):t("updateBody").replace("{version}",version || "latest"));
+  txt("updateDownload",t("updateDownload"));
+  txt("updateDismiss",t("updateDismiss"));
+  txt("updateCheck",t("updateCheck"));
+  const dismiss=$("updateDismiss");
+  const download=$("updateDownload");
+  if(dismiss) dismiss.disabled=checking;
+  if(download) download.disabled=checking;
 }
 function renderRows(rowsData){
   const rows=$("rows");

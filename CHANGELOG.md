@@ -1,4 +1,10 @@
 # Changelog
+## 0.4.6 - 2026-07-15
+
+- Added an official GitHub Releases update checker inside the launcher with update, manual check, ignore-this-version controls, and a user-managed automatic-check preference.
+- Added a public landing site that pulls the latest release and recent repository changes from GitHub automatically.
+- Updated trust documentation so the network model is explicit: no telemetry and no user data uploads; update checks only read official GitHub release metadata.
+- Fixed the first-run language selector labels so multilingual choices render cleanly.
 ## 0.4.5 - 2026-07-15
 
 - Added Behavior Engine, a local per-app profiler that learns from aggregate app behavior instead of treating every child process as a separate app.

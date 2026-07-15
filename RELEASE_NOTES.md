@@ -1,18 +1,15 @@
-# Smart Background Nap 0.4.5
+# Smart Background Nap 0.4.6
 
-Behavior and launcher refinement release: adds local behavior profiling, clearer WebView2 controls, improved window handling, and fresher tray telemetry.
+Update and site release: adds official GitHub release checks inside the launcher and publishes a public landing page with automatic release/change discovery.
 
 ## Highlights
 
 - Single-file release: download and run SmartBackgroundNap.exe.
-- Added Behavior Engine, a local per-app profiler that learns from aggregate app behavior instead of listing every child process as a separate app.
-- Behavior-aware nap decisions can soften apps that wake often or refault memory, and deepen apps that are proven idle and efficient to trim.
-- Refined the dashboard with clearer intelligence telemetry, cleaner copy, responsive layout fixes, and better action badges.
-- Added a refreshed README banner, project badges, and about panel with generic sample visuals for the GitHub page.
-- Reworked the WebView2 window frame with a dark custom surface and reliable native drag handling.
-- Made Start with Windows directly clickable from the top status area and startup card.
-- Fixed tray tooltip refresh so hover/menu interactions request current RAM, managed app, and reclaimed-memory data.
-- The PC Profile, grouped Live Manager, Smart Learning, Permission Guard, multilingual UI, and local-only trust model remain included.
+- Added official update checks against GitHub Releases, with automatic checks controlled by the user.
+- Added launcher actions to update, manually check, ignore the current latest version, or disable automatic update reminders.
+- Added a public landing site with release download, latest changes, creator links, and animated product sections.
+- Updated trust notes to clarify that the app has no telemetry and no user data uploads.
+- The Behavior Engine, PC Profile, grouped Live Manager, Smart Learning, Permission Guard, multilingual UI, and local safety model remain included.
 
 ## Included
 
@@ -24,12 +21,12 @@ Behavior and launcher refinement release: adds local behavior profiling, clearer
 SHA-256 for SmartBackgroundNap.exe:
 
 ```text
-F0175A25A0FF5F1D1CD4B2FCC4E9BE6825D2CDDCF9BF568E43B5A1CE34CE1B96
+1C3F8DEC4A9B3E50A79202BDA272A1C06F4793D078CEF3B9E9D0538E6F49D5A0
 ```
 
 ## Trust Notes
 
-Smart Background Nap has no telemetry, no network calls, no driver install, no service install, no startup registry key, and no permanent administrator elevation.
+Smart Background Nap has no telemetry, no user data uploads, no driver install, no service install, no startup registry key, and no permanent administrator elevation. The launcher can check the official GitHub Releases endpoint to notify about updates.
 
 This release stays process-level and conservative. It avoids power plan switching, affinity rules, CPU Sets, overclocking, undervolting, service tweaks, driver tweaks, and app closing.
 

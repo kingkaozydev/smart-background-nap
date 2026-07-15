@@ -5,7 +5,7 @@ Smart Background Nap is designed to be transparent, local-only, and easy to audi
 ## Core Guarantees
 
 - No telemetry.
-- No network calls.
+- No user data uploads. The app can optionally check the official GitHub Releases endpoint for update notifications.
 - No accounts, passwords, cookies, browser profiles, documents, or game files are read.
 - No drivers, kernel components, Windows services, browser extensions, or startup registry keys are installed.
 - No administrator elevation is requested by the app manifest.

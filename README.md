@@ -73,6 +73,7 @@ It avoids the things that should stay awake:
 - **Permission Guard**: shows apps that denied changes and can request one administrator pass through UAC.
 - **Multilingual UI**: Portuguese BR, English, Russian, Spanish, French, and German.
 - **Safety report**: local report with executable path, SHA-256, runtime folder, task status, and behavior summary.
+- **Official update check**: checks GitHub Releases for a newer version, with user-controlled automatic reminders, manual search, update, and ignore-this-version actions.
 
 ## Intelligence Engine
 
@@ -149,7 +150,8 @@ The launcher includes:
 Smart Background Nap is intentionally local:
 
 - no telemetry
-- no network calls
+- no user data uploads
+- no network calls except the optional official GitHub Releases update check
 - no accounts
 - no browser cookies or profiles
 - no documents or game files read
