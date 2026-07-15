@@ -1,6 +1,6 @@
-# Smart Background Nap 0.4.0
+# Smart Background Nap 0.4.1
 
-Intelligence Engine release: safer automatic decisions, visible intent telemetry, per-app policies, and a stronger Live Manager.
+Live Manager cleanup release: safer automatic decisions, visible intent telemetry, per-app policies, and grouped multi-process apps.
 
 ## Highlights
 
@@ -13,6 +13,8 @@ Intelligence Engine release: safer automatic decisions, visible intent telemetry
 - Download/Launcher Guard avoids false positives when launchers are downloading, installing, or updating games.
 - Memory Pressure Governor 2.0 adds Normal, Moderate, Elevated, and Critical pressure bands.
 - Live Manager now exposes app policies: Auto, Protect, Light, Balanced, and Deep.
+- Multi-process apps such as browsers are grouped into one Live Manager row with an instance count.
+- Apply summaries now report unique apps as `targets` while keeping the touched process count as `processes`.
 - Dashboard rows show role, guard, intent, fast-wake, and policy badges.
 - Extracted runtime files are versioned, so updates can move to a fresh engine even when an older runtime folder has restrictive permissions.
 - Smart Learning remains optional and local.
@@ -29,7 +31,7 @@ Intelligence Engine release: safer automatic decisions, visible intent telemetry
 SHA-256 for `SmartBackgroundNap.exe`:
 
 ```text
-B791FAE2D654FE80793EFDB6E77AC6B05FE63851A6A3481ED5BF00DA59A446B9
+4B1A77A6CA5D666D1A24DF48026B158159A365BE618E5AB498DC16A96681EED3
 ```
 
 ## Trust Notes

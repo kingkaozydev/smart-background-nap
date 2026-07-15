@@ -103,7 +103,7 @@ def draw_dashboard(base: Image.Image, x: int, y: int, w: int, h: int):
     text(d, (tx + 35, y + 187), "Quiet mode", 34, bold=True)
     text(d, (tx + 36, y + 238), "Foreground stays ready.", 19, "#adc3dc")
     px = tx + 38
-    for label, color in [("CPU priority", "#7db3ff"), ("RAM trim", "#ffa629"), ("EcoQoS", "#2ee184"), ("Fast wake", "#b99cff")]:
+    for label, color in [("CPU priority", "#7db3ff")]:
         pw = pill(d, px, y + 279, label, color)
         px += pw + 14
 
@@ -122,14 +122,16 @@ def draw_dashboard(base: Image.Image, x: int, y: int, w: int, h: int):
         text(d, (bx + 12, engine[1] + 105), v, 15, bold=True)
 
     card_y = y + 372
-    card_w = (w - 185) // 4
+    usable_right = x + w - 65
+    card_gap = 18
+    card_w = (usable_right - tx - (card_gap * 3)) // 4
     for i, (k, v, col) in enumerate([
         ("Auto mode", "On", "#4b93ff"),
         ("Startup", "On", "#2ee184"),
         ("Smart Learning", "On", "#9a72ff"),
         ("Last result", "59 apps", "#ffa629"),
     ]):
-        cx = tx + i * (card_w + 18)
+        cx = tx + i * (card_w + card_gap)
         d.rounded_rectangle((cx, card_y, cx + card_w, card_y + 98), radius=14, fill=(13, 27, 47, 238), outline=(44, 72, 108, 180))
         d.rectangle((cx, card_y, cx + card_w, card_y + 4), fill=col)
         text(d, (cx + 22, card_y + 31), k, 15, "#9eb8d6")
@@ -149,9 +151,8 @@ def draw_dashboard(base: Image.Image, x: int, y: int, w: int, h: int):
     col_action = int(table_w * 0.76)
     for px2, label in [(col_app, "App"), (col_score, "Score"), (col_delta, "Delta"), (col_cpu, "CPU"), (col_action, "Action")]:
         text(d, (table[0] + px2, header_y + 10), label, 14, "#a9bad0", True)
-    rows = [("Discord", "164.6", "403.9 MB", "0.0", "Light  P OK  M OK  IO OK"),
-            ("zen", "148.8", "0.0 MB", "0.7", "Balanced / cooldown"),
-            ("chrome", "101.8", "209.5 MB", "0.0", "Deep / OK")]
+    rows = [("Discord", "164.6", "403.9 MB", "0.0", "Light / OK"),
+            ("zen", "148.8", "0.0 MB", "0.7", "Balanced")]
     for i, row in enumerate(rows):
         ry = header_y + 45 + i * 38
         d.line((table[0] + 22, ry + 30, table[2] - 22, ry + 30), fill=(43, 65, 92, 150))

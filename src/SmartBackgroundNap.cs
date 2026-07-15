@@ -26,7 +26,7 @@ using Microsoft.Web.WebView2.Wpf;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.4.0";
+    private const string AppVersion = "0.4.1";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
@@ -2956,6 +2956,7 @@ internal static class SmartBackgroundNap
                 if (!root.TryGetValue("Items", out items) || items == null) { return rows; }
                 System.Collections.IEnumerable enumerable = items as System.Collections.IEnumerable;
                 if (enumerable == null || items is string) { return rows; }
+                Dictionary<string, WebManagerRow> grouped = new Dictionary<string, WebManagerRow>(StringComparer.OrdinalIgnoreCase);
                 foreach (object item in enumerable)
                 {
                     IDictionary<string, object> map = item as IDictionary<string, object>;
@@ -2979,7 +2980,30 @@ internal static class SmartBackgroundNap
                     row.IntentConfidence = GetInt(map, "IntentConfidence");
                     row.SwitchFastWake = GetBool(map, "SwitchFastWake");
                     row.RawScore = GetDouble(map, "Score");
-                    rows.Add(row);
+                    row.RepresentativeScore = row.RawScore;
+                    row.RawDelta = GetDouble(map, "DeltaMB");
+                    row.RawCpu = GetDouble(map, "CpuPercent");
+                    row.RawBursts = GetInt(map, "BurstCount");
+                    row.InstanceCount = Math.Max(1, GetInt(map, "InstanceCount"));
+                    string groupKey = BuildManagerGroupKey(map, row);
+                    WebManagerRow existing;
+                    if (grouped.TryGetValue(groupKey, out existing))
+                    {
+                        MergeManagerRow(existing, row);
+                    }
+                    else
+                    {
+                        grouped[groupKey] = row;
+                    }
+                }
+                rows.AddRange(grouped.Values);
+                foreach (WebManagerRow row in rows)
+                {
+                    row.Name = BuildManagerDisplayName(row);
+                    row.Score = FormatDecimal(row.RawScore);
+                    row.Delta = FormatDecimal(row.RawDelta) + " MB";
+                    row.Cpu = FormatDecimal(row.RawCpu);
+                    row.Bursts = row.RawBursts.ToString(CultureInfo.CurrentCulture);
                 }
                 rows.Sort(delegate(WebManagerRow left, WebManagerRow right) { return right.RawScore.CompareTo(left.RawScore); });
                 if (rows.Count > 12)
@@ -2993,10 +3017,77 @@ internal static class SmartBackgroundNap
             return rows;
         }
 
+        private static string BuildManagerGroupKey(IDictionary<string, object> map, WebManagerRow row)
+        {
+            string key = row == null ? "" : row.Key;
+            if (String.IsNullOrWhiteSpace(key))
+            {
+                key = GetString(map, "AppKey");
+            }
+            if (!String.IsNullOrWhiteSpace(key))
+            {
+                return key.Trim().ToLowerInvariant();
+            }
+            string path = row == null ? "" : row.Path;
+            if (String.IsNullOrWhiteSpace(path))
+            {
+                path = GetString(map, "Path");
+            }
+            if (!String.IsNullOrWhiteSpace(path))
+            {
+                return "path:" + path.Trim().ToLowerInvariant();
+            }
+            string name = row == null ? "" : row.ProcessName;
+            if (String.IsNullOrWhiteSpace(name))
+            {
+                name = GetString(map, "ProcessName");
+            }
+            return "name:" + (String.IsNullOrWhiteSpace(name) ? "unknown" : name.Trim().ToLowerInvariant());
+        }
+
+        private static void MergeManagerRow(WebManagerRow target, WebManagerRow source)
+        {
+            if (target == null || source == null) { return; }
+            target.InstanceCount += Math.Max(1, source.InstanceCount);
+            target.RawScore += source.RawScore;
+            target.RawDelta += source.RawDelta;
+            target.RawCpu += source.RawCpu;
+            target.RawBursts += source.RawBursts;
+            target.PermissionDenied = target.PermissionDenied || source.PermissionDenied;
+            target.SwitchFastWake = target.SwitchFastWake || source.SwitchFastWake;
+            if (source.IntentConfidence > target.IntentConfidence)
+            {
+                target.IntentConfidence = source.IntentConfidence;
+                if (!String.IsNullOrWhiteSpace(source.Intent)) { target.Intent = source.Intent; }
+            }
+            if (String.IsNullOrWhiteSpace(target.Guard) && !String.IsNullOrWhiteSpace(source.Guard)) { target.Guard = source.Guard; }
+            if ((String.IsNullOrWhiteSpace(target.Role) || String.Equals(target.Role, "App", StringComparison.OrdinalIgnoreCase)) && !String.IsNullOrWhiteSpace(source.Role)) { target.Role = source.Role; }
+            if ((String.IsNullOrWhiteSpace(target.Policy) || String.Equals(target.Policy, "Auto", StringComparison.OrdinalIgnoreCase)) && !String.IsNullOrWhiteSpace(source.Policy)) { target.Policy = source.Policy; }
+            if (source.RepresentativeScore > target.RepresentativeScore)
+            {
+                target.RepresentativeScore = source.RepresentativeScore;
+                target.Action = source.Action;
+                target.Key = String.IsNullOrWhiteSpace(source.Key) ? target.Key : source.Key;
+                target.ProcessName = String.IsNullOrWhiteSpace(source.ProcessName) ? target.ProcessName : source.ProcessName;
+                target.Path = String.IsNullOrWhiteSpace(source.Path) ? target.Path : source.Path;
+            }
+        }
+
+        private static string BuildManagerDisplayName(WebManagerRow row)
+        {
+            string name = row == null ? "" : row.ProcessName;
+            if (String.IsNullOrWhiteSpace(name) && row != null) { name = row.Name; }
+            if (String.IsNullOrWhiteSpace(name)) { name = "Unknown"; }
+            int instances = row == null ? 0 : row.InstanceCount;
+            return instances > 1 ? name + " x" + instances.ToString(CultureInfo.CurrentCulture) : name;
+        }
+
         private string BuildProcessLabel(IDictionary<string, object> map)
         {
             string name = GetString(map, "ProcessName");
             if (String.IsNullOrWhiteSpace(name)) { name = "Unknown"; }
+            int instances = GetInt(map, "InstanceCount");
+            if (instances > 1) { return name + " x" + instances.ToString(CultureInfo.CurrentCulture); }
             int id = GetInt(map, "Id");
             return id > 0 ? name + " (" + id.ToString(CultureInfo.CurrentCulture) + ")" : name;
         }
@@ -3456,6 +3547,11 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public bool SwitchFastWake { get; set; }
             public bool PermissionDenied { get; set; }
             public double RawScore { get; set; }
+            public double RepresentativeScore { get; set; }
+            public double RawDelta { get; set; }
+            public double RawCpu { get; set; }
+            public int RawBursts { get; set; }
+            public int InstanceCount { get; set; }
         }
     }
 #endif

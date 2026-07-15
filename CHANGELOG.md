@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1 - 2026-07-15
+
+- Grouped Live Manager and Nap Score entries by app identity, so multi-process apps such as browsers appear once with an instance count instead of repeating every process.
+- Updated apply summaries to count unique apps as `targets` while keeping the touched process count available as `processes`.
+- Kept per-process actions under the hood, so the engine still tunes each child process safely.
+
 ## 0.4.0 - 2026-07-13
 
 - Added Intent Engine telemetry for Desktop, Gaming, Media/Call, Download/Install, and Memory Pressure sessions.

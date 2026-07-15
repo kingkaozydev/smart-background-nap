@@ -2042,13 +2042,26 @@ function New-StateSnapshot {
 function Write-ApplySummaryLog {
     param([array]$Results)
 
-    $count = @($Results).Count
+    $processCount = @($Results).Count
+    $appKeys = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
     $before = 0.0
     $after = 0.0
     foreach ($r in @($Results)) {
+        $appKey = [string]$r.AppKey
+        if ([string]::IsNullOrWhiteSpace($appKey)) {
+            if (-not [string]::IsNullOrWhiteSpace([string]$r.Path)) {
+                $appKey = "path:" + ([string]$r.Path).ToLowerInvariant()
+            } elseif (-not [string]::IsNullOrWhiteSpace([string]$r.ProcessName)) {
+                $appKey = "name:" + ([string]$r.ProcessName).ToLowerInvariant()
+            } else {
+                $appKey = "pid:" + ([string]$r.Id)
+            }
+        }
+        [void]$appKeys.Add($appKey)
         if ($r.WorkingSetBeforeMB -ne $null) { $before += [double]$r.WorkingSetBeforeMB }
         if ($r.WorkingSetAfterMB -ne $null) { $after += [double]$r.WorkingSetAfterMB }
     }
+    $count = $appKeys.Count
     $delta = $before - $after
     if ($delta -lt 0) { $delta = 0.0 }
     $light = @($Results | Where-Object { $_.NapTier -eq "Light" }).Count
@@ -2067,61 +2080,102 @@ function Write-ApplySummaryLog {
     if ($intentEngine -and $script:currentIntent) {
         $intentText = " intent={0} confidence={1}" -f ([string]$script:currentIntent.Kind), ([int]$script:currentIntent.Confidence)
     }
-    $line = "{0} action=apply targets={1} beforeMB={2} afterMB={3} deltaMB={4} light={5} balanced={6} deep={7} trimmed={8} cooldown={9} fullscreen={10}{11}{12}{13}" -f (Get-Date).ToString("s"), $count, ([math]::Round($before, 1)), ([math]::Round($after, 1)), ([math]::Round($delta, 1)), $light, $balanced, $deep, $trimmed, $cooldown, ([string]$fullscreen).ToLowerInvariant(), $topText, $learningText, $intentText
+    $line = "{0} action=apply targets={1} processes={2} beforeMB={3} afterMB={4} deltaMB={5} light={6} balanced={7} deep={8} trimmed={9} cooldown={10} fullscreen={11}{12}{13}{14}" -f (Get-Date).ToString("s"), $count, $processCount, ([math]::Round($before, 1)), ([math]::Round($after, 1)), ([math]::Round($delta, 1)), $light, $balanced, $deep, $trimmed, $cooldown, ([string]$fullscreen).ToLowerInvariant(), $topText, $learningText, $intentText
     Add-Content -LiteralPath $LogPath -Value $line -Encoding UTF8
+}
+
+function Get-NapResultAppKey {
+    param([object]$Result)
+
+    $appKey = [string]$Result.AppKey
+    if (-not [string]::IsNullOrWhiteSpace($appKey)) { return $appKey }
+    if (-not [string]::IsNullOrWhiteSpace([string]$Result.Path)) { return "path:" + ([string]$Result.Path).ToLowerInvariant() }
+    if (-not [string]::IsNullOrWhiteSpace([string]$Result.ProcessName)) { return "name:" + ([string]$Result.ProcessName).ToLowerInvariant() }
+    return "pid:" + ([string]$Result.Id)
+}
+
+function Convert-NapResultGroupToScoreItem {
+    param([array]$Group)
+
+    $items = @($Group)
+    $primary = @($items | Sort-Object NapScore -Descending | Select-Object -First 1)
+    if ($primary.Count -eq 0) { return $null }
+    $p = $primary[0]
+    $before = 0.0
+    $after = 0.0
+    $cpu = 0.0
+    $bursts = 0
+    $score = 0.0
+    $ids = @()
+    foreach ($item in $items) {
+        if ($item.Id -ne $null) { $ids += [int]$item.Id }
+        if ($item.WorkingSetBeforeMB -ne $null) { $before += [double]$item.WorkingSetBeforeMB }
+        if ($item.WorkingSetAfterMB -ne $null) { $after += [double]$item.WorkingSetAfterMB }
+        if ($item.CpuPercent -ne $null) { $cpu += [double]$item.CpuPercent }
+        if ($item.BurstCount -ne $null) { $bursts += [int]$item.BurstCount }
+        if ($item.NapScore -ne $null) { $score += [double]$item.NapScore }
+    }
+    $deltaMB = $before - $after
+    if ($deltaMB -lt 0) { $deltaMB = 0.0 }
+    [pscustomobject]@{
+        ProcessName = $p.ProcessName
+        Id = $p.Id
+        InstanceCount = $items.Count
+        ProcessIds = @($ids)
+        Score = [math]::Round($score, 1)
+        CpuPercent = [math]::Round($cpu, 1)
+        BurstCount = $bursts
+        WorkingSetBeforeMB = [math]::Round($before, 1)
+        WorkingSetAfterMB = [math]::Round($after, 1)
+        DeltaMB = [math]::Round($deltaMB, 1)
+        Priority = $p.Priority
+        MemoryPriority = $p.MemoryPriority
+        IoPriority = $p.IoPriority
+        PowerThrottling = $p.PowerThrottling
+        TrimWorkingSet = $p.TrimWorkingSet
+        NapTier = $p.NapTier
+        Decision = $p.Decision
+        Learning = $p.Learning
+        LearningObservations = $p.LearningObservations
+        LearningWakeCount = $p.LearningWakeCount
+        LearningAggression = $p.LearningAggression
+        LearningPressure = $p.LearningPressure
+        ForegroundFullscreen = $p.ForegroundFullscreen
+        Role = $p.Role
+        AppKey = $p.AppKey
+        AppPolicy = $p.AppPolicy
+        PolicySource = $p.PolicySource
+        GuardReason = $p.GuardReason
+        GuardConfidence = $p.GuardConfidence
+        SwitchFastWake = $p.SwitchFastWake
+        SwitchWakeCount = $p.SwitchWakeCount
+        IntentKind = $p.IntentKind
+        IntentConfidence = $p.IntentConfidence
+        GameProfileName = $p.GameProfileName
+        GameProfileObservations = $p.GameProfileObservations
+        GameAggressionBias = $p.GameAggressionBias
+        Path = $p.Path
+    }
 }
 
 function Write-NapScore {
     param([array]$Results)
 
     if (-not $smartNapScore) { return }
-    $items = @($Results | Sort-Object NapScore -Descending | Select-Object -First 25 | ForEach-Object {
-        $deltaMB = $null
-        if ($_.WorkingSetBeforeMB -ne $null -and $_.WorkingSetAfterMB -ne $null) {
-            $deltaMB = [math]::Round(([double]$_.WorkingSetBeforeMB - [double]$_.WorkingSetAfterMB), 1)
-            if ($deltaMB -lt 0) { $deltaMB = 0.0 }
+    $groups = @{}
+    foreach ($result in @($Results)) {
+        $key = Get-NapResultAppKey -Result $result
+        if (-not $groups.ContainsKey($key)) {
+            $groups[$key] = New-Object System.Collections.ArrayList
         }
-        [pscustomobject]@{
-            ProcessName = $_.ProcessName
-            Id = $_.Id
-            Score = $_.NapScore
-            CpuPercent = $_.CpuPercent
-            BurstCount = $_.BurstCount
-            WorkingSetBeforeMB = $_.WorkingSetBeforeMB
-            WorkingSetAfterMB = $_.WorkingSetAfterMB
-            DeltaMB = $deltaMB
-            Priority = $_.Priority
-            MemoryPriority = $_.MemoryPriority
-            IoPriority = $_.IoPriority
-            PowerThrottling = $_.PowerThrottling
-            TrimWorkingSet = $_.TrimWorkingSet
-            NapTier = $_.NapTier
-            Decision = $_.Decision
-            Learning = $_.Learning
-            LearningObservations = $_.LearningObservations
-            LearningWakeCount = $_.LearningWakeCount
-            LearningAggression = $_.LearningAggression
-            LearningPressure = $_.LearningPressure
-            ForegroundFullscreen = $_.ForegroundFullscreen
-            Role = $_.Role
-            AppKey = $_.AppKey
-            AppPolicy = $_.AppPolicy
-            PolicySource = $_.PolicySource
-            GuardReason = $_.GuardReason
-            GuardConfidence = $_.GuardConfidence
-            SwitchFastWake = $_.SwitchFastWake
-            SwitchWakeCount = $_.SwitchWakeCount
-            IntentKind = $_.IntentKind
-            IntentConfidence = $_.IntentConfidence
-            GameProfileName = $_.GameProfileName
-            GameProfileObservations = $_.GameProfileObservations
-            GameAggressionBias = $_.GameAggressionBias
-            Path = $_.Path
-        }
-    })
+        [void]$groups[$key].Add($result)
+    }
+    $items = @($groups.Values | ForEach-Object { Convert-NapResultGroupToScoreItem -Group ([array]$_.ToArray()) } | Where-Object { $_ } | Sort-Object Score -Descending | Select-Object -First 25)
 
     [pscustomobject]@{
         Timestamp = (Get-Date).ToString("o")
+        AppCount = $groups.Count
+        ProcessCount = @($Results).Count
         LearningEnabled = [bool]$smartLearning
         LearningProfiles = if ($smartLearning) { [int]$script:learningMap.Count } else { 0 }
         MemoryPressure = [string]$script:currentMemoryPressure.Level
