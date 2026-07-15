@@ -1,4 +1,13 @@
 # Changelog
+## 0.4.11 - 2026-07-15
+
+- Fixed sidebar telemetry overflow for long current-context/app names and added hover titles for full values.
+
+## 0.4.10 - 2026-07-15
+
+- Added hover explanations for Auto, Protect, Light, Balanced, Deep, tier badges, cooldown, skip, admin, and OK action badges in the Live Manager.
+- Included the root site build manifest so production deployment can find the static site build entrypoint.
+
 ## 0.4.9 - 2026-07-15
 
 - Fixed update popup button alignment and prevented the automatic update toggle text from wrapping.

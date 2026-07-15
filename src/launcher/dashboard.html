@@ -83,7 +83,7 @@ button{font:inherit}
 .manager{min-height:0;padding:14px;display:grid;grid-template-rows:auto minmax(0,1fr);gap:10px}.panelTitle{display:flex;align-items:center;justify-content:space-between;gap:12px}.panelTitle h3{margin:0;font-size:18px}.panelTitle span{color:#71839b;font-size:11px;font-weight:800}
 .table{min-height:0;display:grid;grid-template-rows:30px minmax(0,1fr);border:1px solid #1d3048;border-radius:10px;overflow:auto;scrollbar-color:#2e4565 #09111e;scrollbar-width:thin}.thead,.row{width:100%;min-width:780px;display:grid;grid-template-columns:minmax(125px,1.45fr) 60px 78px 54px 56px minmax(320px,2.8fr);align-items:center}.thead{position:sticky;top:0;z-index:1;background:#14243a;color:#9fb0c6;font-size:11px;font-weight:900}.row{min-height:38px;border-top:1px solid #1b2d44;background:#0b1524;color:#dde9f8;font-size:11px}.row:nth-child(even){background:#0e192a}.row>span{padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#rows{min-height:0;overflow:visible}.actionsCell{display:flex;align-items:center;gap:4px;padding:6px 8px!important;overflow:visible!important;white-space:normal!important;flex-wrap:wrap;align-content:center}
 .badge{display:inline-flex;align-items:center;height:20px;border-radius:6px;border:1px solid #2b405e;background:#111f33;color:#cfe0f5;padding:0 6px;font-size:9px;font-weight:950;flex:0 0 auto}.badge.ok{border-color:#176649;background:#0c3225;color:var(--green)}.badge.cool{border-color:#6b5223;background:#2a2113;color:var(--amber)}.badge.skip{border-color:#40536d;color:#8fa1ba}.badge.deep{border-color:#8d5a18;background:#2b1d10;color:var(--amber)}.badge.balanced{border-color:#1a5d86;background:#0d263b;color:#58b9ff}.badge.light{border-color:#355178;background:#111f33;color:#b8c8dc}.badge.guard{border-color:#6a4cd4;background:#1b1633;color:#c9bbff}.policyButtons{display:inline-flex;align-items:center;gap:3px;margin-left:4px;padding-left:6px;border-left:1px solid rgba(255,255,255,.08)}.policyBtn{height:22px;min-width:23px;border-radius:6px;border:1px solid #2b405e;background:#0b1728;color:#93a8c2;font-size:9px;font-weight:950;cursor:pointer;padding:0 5px}.policyBtn:hover{border-color:var(--amber);color:#fff}.policyBtn.active{border-color:rgba(255,166,41,.75);background:rgba(255,166,41,.18);color:var(--amber)}.goodtxt{color:var(--green);font-weight:900}.amber{color:var(--amber)}
-.sidePanel{padding:14px;min-height:0;display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:12px}.focusBox{display:grid;grid-template-columns:1fr;gap:8px}.focusLine{border:1px solid #223650;border-radius:10px;background:#0a1728;padding:11px}.focusLine small{display:block;color:#71839b;font-size:10px;font-weight:850}.focusLine b{display:block;margin-top:4px;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidePanel{padding:14px;min-height:0;min-width:0;display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:12px}.focusBox{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;min-width:0}.focusLine{min-width:0;border:1px solid #223650;border-radius:10px;background:#0a1728;padding:11px;overflow:hidden}.focusLine small{display:block;color:#71839b;font-size:10px;font-weight:850}.focusLine b{display:block;max-width:100%;min-width:0;margin-top:4px;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .permissionBox{display:none;border:1px solid rgba(255,166,41,.42);border-radius:12px;background:linear-gradient(145deg,rgba(255,166,41,.14),rgba(12,23,38,.92));padding:12px}.permissionBox.show{display:grid;gap:8px}.permissionBox small{display:block;color:var(--amber);font-size:10px;font-weight:950;text-transform:uppercase}.permissionBox b{display:block;font-size:15px}.permissionBox p{margin:0;color:#afbfd2;font-size:11px;line-height:1.4}.permissionBox .btn{height:36px}
 .timeline{min-height:0;border:1px solid #1d3048;border-radius:10px;background:#08111d;padding:8px;overflow:auto;scrollbar-color:#2e4565 #09111e;scrollbar-width:thin}.eventLine{display:grid;grid-template-columns:58px minmax(0,1fr);gap:8px;border-bottom:1px solid rgba(255,255,255,.05);padding:7px 2px;color:#dce8f8;font-family:Consolas,monospace;font-size:11px;line-height:1.35}.eventLine:last-child{border-bottom:0}.eventLine time{color:var(--amber);font-weight:900}.eventLine span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .feedbox{display:none}.status{display:none}.footer{display:none}
@@ -576,7 +576,7 @@ let currentLanguage = "pt-BR";
 let lastState = null;
 let languagePromptClosed = false;
 function send(action,payload){ if(window.chrome&&chrome.webview){ chrome.webview.postMessage(Object.assign({action},payload||{})); } }
-function txt(id,value){ const el=$(id); if(el) el.textContent=value == null ? "" : String(value); }
+function txt(id,value){ const el=$(id); if(el){ const text=value == null ? "" : String(value); el.textContent=text; if(el.matches && el.matches(".focusLine b,#intentState,#radarState,#engineTop,#memoryPressure,#behaviorState")) el.title=text; } }
 function shouldStartWindowDrag(ev){
   if(!ev || ev.button !== 0) return false;
   const target = ev.target;
@@ -991,6 +991,28 @@ function cleanActionLabel(value){
   const map={"P OK":t("cpuBadge"),"M OK":t("memoryBadge"),"IO OK":t("ioBadge"),"T OK":t("trimBadge"),"E OK":t("ecoBadge"),"T Cooldown":t("cooldownBadge"),"T Skip":t("trimSkipBadge"),"Wake":t("fastWake")};
   return map[label] || label;
 }
+function isPt(){ return String(currentLanguage||"").toLowerCase().startsWith("pt"); }
+function policyTooltip(policy){
+  const key=String(policy||"Auto").toLowerCase();
+  const pt=isPt();
+  if(key==="auto") return pt ? "Auto: o motor decide entre Protect, Light, Balanced ou Deep com base no uso real do app." : "Auto: the engine chooses Protect, Light, Balanced, or Deep from real app behavior.";
+  if(key==="protect") return pt ? "Protect: protege o app e impede nap automatico. Use para apps sensiveis, chamadas, launchers ou qualquer coisa que deve ficar acordada." : "Protect: keeps the app awake and blocks automatic naps. Use for sensitive apps, calls, launchers, or anything that must stay responsive.";
+  if(key==="light") return pt ? "Light: reducao leve. Mantem resposta rapida para apps que voce alterna com frequencia." : "Light: gentle reduction. Keeps fast response for apps you switch back to often.";
+  if(key==="balanced") return pt ? "Balanced: reducao intermediaria. Diminui pressao de CPU/RAM/I/O sem ser agressivo." : "Balanced: middle profile. Reduces CPU/RAM/I/O pressure without being aggressive.";
+  if(key==="deep") return pt ? "Deep: modo mais forte para app realmente parado em segundo plano. Reduz mais recursos e restaura quando voce volta ao app." : "Deep: strongest profile for truly idle background apps. Reduces more pressure and restores when you return.";
+  return policy;
+}
+function badgeTooltip(raw,label){
+  const text=String(raw||label||"").toLowerCase();
+  if(text.includes("tier light") || String(label||"").toLowerCase()==="light") return policyTooltip("Light");
+  if(text.includes("tier balanced") || String(label||"").toLowerCase()==="balanced") return policyTooltip("Balanced");
+  if(text.includes("tier deep") || String(label||"").toLowerCase()==="deep") return policyTooltip("Deep");
+  if(text.includes("cooldown")) return isPt()?"Cooldown: o app foi poupado por seguranca para evitar trims agressivos em sequencia.":"Cooldown: the app was spared to avoid repeated aggressive trims.";
+  if(text.includes("skip")) return isPt()?"Skip: o motor decidiu nao mexer nesse ponto agora por limite, protecao ou contexto atual.":"Skip: the engine decided not to change this item right now due to threshold, guard, or current context.";
+  if(text.includes("admin needed")) return isPt()?"Admin: o Windows negou a mudanca sem permissao elevada.":"Admin: Windows denied the change without elevated permission.";
+  if(text.includes(" ok")) return isPt()?"OK: essa parte do nap foi aplicada ou ja estava no estado esperado.":"OK: this part of the nap was applied or already in the expected state.";
+  return label || raw || "";
+}
 function metaBadges(row){
   const out=[];
   const role=String(row.Role||"");
@@ -1007,7 +1029,7 @@ function metaBadges(row){
   if(behaviorConfidence>0){
     const klass=behaviorBias<0?"light":(behaviorBias>1?"deep":"balanced");
     const label=behaviorBias<0?(t("behaviorGuardLabel")+(behaviorWakes>0?" "+behaviorWakes:"")):(t("behaviorLabel")+" "+(behaviorTier||behaviorConfidence));
-    out.push('<b class="badge '+klass+'" title="Behavior confidence '+esc(behaviorConfidence)+'">'+esc(label)+'</b>');
+    out.push('<b class="badge '+klass+'" title="'+esc(badgeTooltip("Tier "+(behaviorTier||klass),label))+' | Behavior confidence '+esc(behaviorConfidence)+'">'+esc(label)+'</b>');
   }
   return out.join("");
 }
@@ -1021,7 +1043,8 @@ function makePolicyButtons(row){
     btn.type="button";
     btn.className="policyBtn"+(current.toLowerCase()===policy.toLowerCase()?" active":"");
     btn.textContent=label;
-    btn.title=policy;
+    btn.title=policyTooltip(policy);
+    btn.setAttribute("aria-label", policyTooltip(policy));
     btn.addEventListener("click",(ev)=>{
       ev.stopPropagation();
       send("setAppPolicy",{policy:policy,key:row.Key||"",processName:row.ProcessName||"",path:row.Path||""});
@@ -1042,7 +1065,7 @@ function actionBadges(value){
     else if(low.indexOf("cooldown")>=0) clsName+=" cool";
     else if(low.indexOf("skip")>=0 || low.indexOf("disabled")>=0) clsName+=" skip";
     let label=cleanActionLabel(x);
-    return '<b class="'+clsName+'">'+esc(label)+'</b>';
+    return '<b class="'+clsName+'" title="'+esc(badgeTooltip(x,label))+'">'+esc(label)+'</b>';
   }).join("");
 }
 document.querySelectorAll(".locale").forEach(btn=>btn.addEventListener("click",()=>chooseLanguage(btn.dataset.lang)));

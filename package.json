@@ -1,0 +1,9 @@
+{
+  "name": "smart-background-nap",
+  "private": true,
+  "version": "0.4.9",
+  "type": "module",
+  "scripts": {
+    "build": "node ./site/scripts/build-root-static.mjs"
+  }
+}

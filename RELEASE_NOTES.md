@@ -1,12 +1,12 @@
-# Smart Background Nap 0.4.9
+# Smart Background Nap 0.4.11
 
-Launcher polish release: fixes update popup button alignment and keeps the automatic update toggle visually centered.
+Launcher layout fix release: fixes sidebar telemetry overflow for long app/context names.
 
 ## Highlights
 
 - Single-file release: download and run SmartBackgroundNap.exe.
-- Fixed the update popup toggle so "Auto ligado/desligado" stays centered and does not wrap awkwardly.
-- Fixed the popup footer buttons so they align consistently instead of inheriting dashboard button grid behavior.
+- Fixed long current-context values in Engine Telemetry so they truncate cleanly instead of escaping the card.
+- Added hover titles for long telemetry values so the full text is still visible.
 
 ## Included
 
@@ -18,7 +18,7 @@ Launcher polish release: fixes update popup button alignment and keeps the autom
 SHA-256 for SmartBackgroundNap.exe:
 
 ```text
-026FA42EFD831F0A9977A486EB3CC26FA1167DFA322EA6ABAA0CAA9058CF7765
+B2640DAB5BB2D14EE6BE9D395F8811163FAC810562C5B88E44705B35439553E6
 ```
 
 ## Trust Notes
