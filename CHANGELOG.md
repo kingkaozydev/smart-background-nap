@@ -1,4 +1,10 @@
 # Changelog
+## 0.4.7 - 2026-07-15
+
+- Fixed the automatic update preference so the popup can switch between on/off immediately and persist correctly.
+- Removed the PC Profile snapshot label from the launcher.
+- Added the static-site package manifest required by the deployment platform.
+
 ## 0.4.6 - 2026-07-15
 
 - Added an official GitHub Releases update checker inside the launcher with update, manual check, ignore-this-version controls, and a user-managed automatic-check preference.
