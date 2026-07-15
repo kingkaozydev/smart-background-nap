@@ -1,4 +1,9 @@
 # Changelog
+## 0.4.8 - 2026-07-15
+
+- Fixed the update popup JavaScript so the automatic update toggle can switch off/on correctly.
+- Made the update check action explicit and clickable from the popup.
+
 ## 0.4.7 - 2026-07-15
 
 - Fixed the automatic update preference so the popup can switch between on/off immediately and persist correctly.

@@ -262,7 +262,7 @@ button{font:inherit}
     <div class="updateStatus" id="updateModalStatus">Ready.</div>
     <div class="infoActions">
       <button class="btn" data-i18n="cancel" onclick="closeUpdateInfo()">Cancel</button>
-      <button class="btn primary" id="updateModalCheck" onclick="send('checkUpdate')">Check now</button>
+      <button class="btn primary" id="updateModalCheck" type="button" onclick="manualUpdateCheck()">Check now</button>
     </div>
   </div>
 </div>
@@ -641,17 +641,29 @@ function chooseLanguage(code){
   closeLanguagePicker();
   send("setLanguage",{language:currentLanguage});
 }
+function boolState(value){
+  if(value===true) return true;
+  if(value===false || value==null) return false;
+  const raw=String(value).trim().toLowerCase();
+  return raw==="true" || raw==="1" || raw==="on" || raw==="yes" || raw==="ligado";
+}
 function openUpdateInfo(){
   $("updateOverlay")?.classList.add("open");
-  updateUpdatePopup(lastState || {});
-  send("checkUpdate");
+  updateUpdateControls(lastState || {});
 }
 function closeUpdateInfo(){
   $("updateOverlay")?.classList.remove("open");
 }
+function manualUpdateCheck(){
+  const status=$("updateModalStatus");
+  if(status) status.textContent=t("updateStatusChecking");
+  send("checkUpdate");
+}
 function toggleUpdateAuto(){
-  const enabled=!(lastState && lastState.UpdateAutoChecks);
-  send("setUpdateAuto",{enabled});
+  const enabled=!boolState(lastState && lastState.UpdateAutoChecks);
+  lastState=Object.assign({},lastState||{},{UpdateAutoChecks:enabled});
+  updateUpdateControls(lastState);
+  send("setUpdateAuto",{enabled:enabled});
 }
 function updateUpdateControls(s){
   const auto=boolState(s&&s.UpdateAutoChecks);
