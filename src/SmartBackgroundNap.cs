@@ -29,7 +29,7 @@ using Microsoft.Web.WebView2.Wpf;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.5.1";
+    private const string AppVersion = "0.5.6";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
@@ -48,6 +48,9 @@ internal static class SmartBackgroundNap
     private const int EnergyIdleMinMinutes = 5;
     private const int EnergyIdleMaxMinutes = 240;
 
+    private static readonly object powerPlanCacheLock = new object();
+    private static PowerPlanSnapshot cachedPowerPlan;
+    private static DateTime cachedPowerPlanAtUtc = DateTime.MinValue;
     private static string appRoot;
     private static string backgroundScriptPath;
     private static string autoManagerPath;
@@ -1613,6 +1616,19 @@ internal static class SmartBackgroundNap
         return String.Equals(planGuid, SmartNapGamePowerPlanGuid, StringComparison.OrdinalIgnoreCase) ||
             String.Equals(planGuid, SmartNapLivePowerPlanGuid, StringComparison.OrdinalIgnoreCase);
     }
+    private static string FriendlyPowerPlanName(string planGuid, string parsedName)
+    {
+        string name = String.IsNullOrWhiteSpace(parsedName) ? "" : parsedName.Trim().Trim('*').Trim();
+        if (!String.IsNullOrWhiteSpace(name))
+        {
+            return name;
+        }
+
+        if (String.Equals(planGuid, SmartNapGamePowerPlanGuid, StringComparison.OrdinalIgnoreCase)) { return SmartNapGamePowerPlanName; }
+        if (String.Equals(planGuid, SmartNapLivePowerPlanGuid, StringComparison.OrdinalIgnoreCase)) { return SmartNapLivePowerPlanName; }
+        if (String.Equals(planGuid, BalancedPowerPlanGuid, StringComparison.OrdinalIgnoreCase)) { return "Equilibrado"; }
+        return "";
+    }
 
     private static PowerPlanSnapshot ParsePowerPlanOutput(string output)
     {
@@ -1623,16 +1639,131 @@ internal static class SmartBackgroundNap
         int open = output.IndexOf('(', match.Index + match.Length);
         int close = open >= 0 ? output.IndexOf(')', open + 1) : -1;
         if (open >= 0 && close > open) { name = output.Substring(open + 1, close - open - 1).Trim(); }
-        return new PowerPlanSnapshot { Guid = match.Value, Name = name };
+        if (String.IsNullOrWhiteSpace(name))
+        {
+            string tail = output.Substring(match.Index + match.Length).Trim();
+            tail = tail.Replace("*", "").Trim();
+            tail = Regex.Replace(tail, @"^[\s:\-–—]+", "").Trim();
+            name = tail.Trim('(', ')', '*', ' ');
+        }
+        return new PowerPlanSnapshot { Guid = match.Value, Name = FriendlyPowerPlanName(match.Value, name) };
+    }
+
+    private static PowerPlanSnapshot ClonePowerPlan(PowerPlanSnapshot snapshot)
+    {
+        return snapshot == null ? null : new PowerPlanSnapshot { Guid = snapshot.Guid, Name = snapshot.Name };
+    }
+
+    private static PowerPlanSnapshot GetCachedPowerPlan(TimeSpan maxAge)
+    {
+        lock (powerPlanCacheLock)
+        {
+            if (cachedPowerPlan == null) { return null; }
+            if ((DateTime.UtcNow - cachedPowerPlanAtUtc) > maxAge) { return null; }
+            return ClonePowerPlan(cachedPowerPlan);
+        }
+    }
+
+    private static void SaveCachedPowerPlan(PowerPlanSnapshot snapshot)
+    {
+        if (snapshot == null || String.IsNullOrWhiteSpace(snapshot.Guid)) { return; }
+        lock (powerPlanCacheLock)
+        {
+            cachedPowerPlan = ClonePowerPlan(snapshot);
+            cachedPowerPlanAtUtc = DateTime.UtcNow;
+        }
+    }
+
+    private static PowerPlanSnapshot FindActivePowerPlanFromList()
+    {
+        RunResult list = RunHidden(GetPowerCfgPath(), "/list", 7000);
+        if (list.ExitCode != 0) { list = RunHidden(GetPowerCfgPath(), "/l", 7000); }
+        if (list.ExitCode != 0) { return null; }
+
+        foreach (string line in Regex.Split(list.Output ?? "", @"\r?\n"))
+        {
+            if (line.IndexOf("*", StringComparison.Ordinal) < 0) { continue; }
+            PowerPlanSnapshot snapshot = ParsePowerPlanOutput(line);
+            if (snapshot != null && !String.IsNullOrWhiteSpace(snapshot.Guid)) { return snapshot; }
+        }
+        return null;
+    }
+
+    private static string ReadPowerPlanFriendlyNameFromRegistry(string guid)
+    {
+        if (String.IsNullOrWhiteSpace(guid)) { return ""; }
+        try
+        {
+            using (RegistryKey key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes\" + guid))
+            {
+                if (key == null) { return ""; }
+                return Convert.ToString(key.GetValue("FriendlyName"), CultureInfo.InvariantCulture) ?? "";
+            }
+        }
+        catch { return ""; }
+    }
+
+    private static PowerPlanSnapshot FindActivePowerPlanFromRegistry()
+    {
+        try
+        {
+            string guid = ReadRegistryString(@"SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes", "ActivePowerScheme").Trim();
+            if (String.IsNullOrWhiteSpace(guid)) { return null; }
+            Match match = Regex.Match(guid, @"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
+            if (!match.Success) { return null; }
+            string cleanGuid = match.Value;
+            string name = ReadPowerPlanFriendlyNameFromRegistry(cleanGuid);
+            return new PowerPlanSnapshot { Guid = cleanGuid, Name = FriendlyPowerPlanName(cleanGuid, name) };
+        }
+        catch { return null; }
     }
 
     private static PowerPlanSnapshot GetActivePowerPlan()
     {
-        RunResult active = RunHidden(GetPowerCfgPath(), "/getactivescheme", 7000);
-        if (active.ExitCode != 0) { return null; }
-        return ParsePowerPlanOutput(active.Output);
-    }
+        PowerPlanSnapshot cached = GetCachedPowerPlan(TimeSpan.FromSeconds(12));
+        if (cached != null) { return cached; }
 
+        PowerPlanSnapshot snapshot = null;
+        RunResult active = RunHidden(GetPowerCfgPath(), "/getactivescheme", 7000);
+        if (active.ExitCode == 0)
+        {
+            snapshot = ParsePowerPlanOutput(active.Output);
+        }
+
+        if (snapshot == null || String.IsNullOrWhiteSpace(snapshot.Guid))
+        {
+            snapshot = FindActivePowerPlanFromList();
+        }
+        if (snapshot == null || String.IsNullOrWhiteSpace(snapshot.Guid))
+        {
+            snapshot = FindActivePowerPlanFromRegistry();
+        }
+        else if (String.IsNullOrWhiteSpace(snapshot.Name))
+        {
+            PowerPlanSnapshot fromList = FindActivePowerPlanFromList();
+            if (fromList != null && String.Equals(fromList.Guid, snapshot.Guid, StringComparison.OrdinalIgnoreCase) && !String.IsNullOrWhiteSpace(fromList.Name))
+            {
+                snapshot.Name = fromList.Name;
+            }
+            else
+            {
+                PowerPlanSnapshot fromRegistry = FindActivePowerPlanFromRegistry();
+                if (fromRegistry != null && String.Equals(fromRegistry.Guid, snapshot.Guid, StringComparison.OrdinalIgnoreCase) && !String.IsNullOrWhiteSpace(fromRegistry.Name))
+                {
+                    snapshot.Name = fromRegistry.Name;
+                }
+            }
+        }
+
+        if (snapshot != null && !String.IsNullOrWhiteSpace(snapshot.Guid))
+        {
+            snapshot.Name = FriendlyPowerPlanName(snapshot.Guid, snapshot.Name);
+            SaveCachedPowerPlan(snapshot);
+            return snapshot;
+        }
+
+        return GetCachedPowerPlan(TimeSpan.FromMinutes(10));
+    }
     private static PowerPlanSnapshot LoadPreviousPowerPlan()
     {
         try
@@ -1882,9 +2013,17 @@ internal static class SmartBackgroundNap
 
     private static RunResult UninstallStartup()
     {
-        return RunPowerShellScript(trayManagerPath, "-Action Uninstall", 60000);
+        if (!IsTaskInstalled(TrayTaskName))
+        {
+            return new RunResult(0, "Tray startup is already off.");
+        }
+        RunResult result = RunHidden("schtasks.exe", "/Delete /TN " + Quote(TrayTaskName) + " /F", 10000);
+        if (result.ExitCode == 0)
+        {
+            return new RunResult(0, "Tray startup removed. Current Smart Nap session kept running.");
+        }
+        return result;
     }
-
     private static RunResult InstallComplete()
     {
         RunResult auto = InstallAutomatic();
@@ -2153,7 +2292,7 @@ internal static class SmartBackgroundNap
         if (String.Equals(value, "Gaming", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Game", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Jogos", StringComparison.OrdinalIgnoreCase)) { return "Gaming"; }
         if (String.Equals(value, "Work", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Trabalho", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Creator", StringComparison.OrdinalIgnoreCase)) { return "Work"; }
         if (String.Equals(value, "Focus", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Foco", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "DeepFocus", StringComparison.OrdinalIgnoreCase)) { return "Focus"; }
-        if (String.Equals(value, "Streamer", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Stream", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Live", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Transmissao", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Transmissão", StringComparison.OrdinalIgnoreCase)) { return "Streamer"; }
+        if (String.Equals(value, "Streamer", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Stream", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Live", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Transmissao", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Transmiss\u00e3o", StringComparison.OrdinalIgnoreCase)) { return "Streamer"; }
         return "Auto";
     }
 
@@ -2906,91 +3045,218 @@ internal static class SmartBackgroundNap
         private ContextMenuStrip BuildMenu()
         {
             ContextMenuStrip menu = new ContextMenuStrip();
-            ToolStripMenuItem title = new ToolStripMenuItem(AppName);
-            title.Enabled = false;
-            menu.Items.Add(title);
-
-            ToolStripMenuItem creator = new ToolStripMenuItem(CreatorLine);
-            creator.Enabled = false;
-            menu.Items.Add(creator);
-            menu.Items.Add(new ToolStripSeparator());
-
-            ToolStripMenuItem open = new ToolStripMenuItem("Open dashboard");
-            open.Click += delegate { ShowMainWindow(); };
-            menu.Items.Add(open);
-
-            ToolStripMenuItem apply = new ToolStripMenuItem("Optimize now");
-            apply.Click += delegate { RunFromTray("Optimize now", RunApplyNow); };
-            menu.Items.Add(apply);
-
-            ToolStripMenuItem restore = new ToolStripMenuItem("Restore last snapshot");
-            restore.Click += delegate { RunFromTray("Restore", RunRestore); };
-            menu.Items.Add(restore);
-
-            menu.Items.Add(new ToolStripSeparator());
-
-            ToolStripMenuItem log = new ToolStripMenuItem("Open log");
-            log.Click += delegate { OpenLog(); };
-            menu.Items.Add(log);
-
-            ToolStripMenuItem folder = new ToolStripMenuItem("Open folder");
-            folder.Click += delegate { OpenFolder(); };
-            menu.Items.Add(folder);
-
-            ToolStripMenuItem readme = new ToolStripMenuItem("Open README");
-            readme.Click += delegate { OpenReadme(); };
-            menu.Items.Add(readme);
-
-            ToolStripMenuItem safety = new ToolStripMenuItem("Safety report");
-            safety.Click += delegate { OpenSafetyReport(); };
-            menu.Items.Add(safety);
-
-            ToolStripMenuItem score = new ToolStripMenuItem("Nap score");
-            score.Click += delegate { OpenScore(); };
-            menu.Items.Add(score);
-
-            menu.Items.Add(new ToolStripSeparator());
-
-            ToolStripMenuItem exit = new ToolStripMenuItem("Exit");
-            exit.Click += delegate
+            menu.ShowImageMargin = false;
+            menu.BackColor = Color.FromArgb(7, 15, 26);
+            menu.ForeColor = Color.FromArgb(236, 245, 255);
+            menu.Renderer = new ToolStripProfessionalRenderer(new SmartNapTrayColors());
+            PopulateTrayMenu(menu);
+            menu.Opening += delegate
             {
-                allowExit = true;
-                listenerStopping = true;
-                if (foregroundWakeTimer != null)
-                {
-                    foregroundWakeTimer.Stop();
-                    foregroundWakeTimer.Dispose();
-                    foregroundWakeTimer = null;
-                }
-                if (trayTelemetryTimer != null)
-                {
-                    trayTelemetryTimer.Stop();
-                    trayTelemetryTimer.Dispose();
-                    trayTelemetryTimer = null;
-                }
-                if (energyIdleGuardTimer != null)
-                {
-                    energyIdleGuardTimer.Stop();
-                    energyIdleGuardTimer.Dispose();
-                    energyIdleGuardTimer = null;
-                }
-                try { showDashboardEvent.Set(); } catch { }
-                notifyIcon.Visible = false;
-                notifyIcon.Dispose();
-                try { dispatchForm.Close(); } catch { }
-                try { dispatchForm.Dispose(); } catch { }
-#if NET9_0_OR_GREATER
-                dashboardHost.Shutdown();
-#else
-                mainWindow.Close();
-#endif
-                Application.Exit();
+                PopulateTrayMenu(menu);
+                UpdateTrayTelemetryText(true);
             };
-            menu.Items.Add(exit);
-
             return menu;
         }
 
+        private void PopulateTrayMenu(ContextMenuStrip menu)
+        {
+            menu.Items.Clear();
+            string mode = GetSessionMode();
+            bool motorOn = IsTaskInstalled(AutoTaskName);
+            bool startupOn = IsTaskInstalled(TrayTaskName);
+            PowerPlanSnapshot plan = GetActivePowerPlan();
+            string planName = plan == null || String.IsNullOrWhiteSpace(plan.Name) ? "plano nao identificado" : plan.Name;
+
+            AddTrayHeader(menu, "Smart Nap", "Modo " + DisplaySessionMode(mode) + " | " + (motorOn ? "motor ativo" : "motor pausado"));
+            AddTrayStatus(menu, "Energia: " + TrimTrayText(planName, 38));
+            AddTrayStatus(menu, BuildCompactTrayTelemetryText());
+            menu.Items.Add(new ToolStripSeparator());
+
+            AddTrayItem(menu, "Abrir launcher", delegate { ShowMainWindow(); }, true, false);
+            AddTrayItem(menu, "Otimizar agora", delegate { RunFromTray("Otimizar agora", RunApplyNow); }, true, false);
+            AddTrayItem(menu, motorOn ? "Pausar motor" : "Retomar motor", delegate { RunFromTray(motorOn ? "Motor pausado" : "Motor iniciado", motorOn ? (Func<RunResult>)UninstallAutomatic : InstallAutomatic); }, true, false);
+            AddTrayItem(menu, startupOn ? "Iniciar com Windows: ligado" : "Iniciar com Windows: desligado", delegate { RunFromTray(startupOn ? "Inicializacao desligada" : "Inicializacao ligada", startupOn ? (Func<RunResult>)UninstallStartup : InstallStartup); }, true, startupOn);
+            menu.Items.Add(new ToolStripSeparator());
+
+            ToolStripMenuItem modes = AddTraySubmenu(menu, "Modo do motor");
+            AddModeTrayItem(modes, "Auto", "Auto", mode, "Mantem decisao automatica por app.", "keep");
+            AddModeTrayItem(modes, "Jogos", "Gaming", mode, "Prioriza o jogo ativo e contem o fundo.", "keep");
+            AddModeTrayItem(modes, "Live / Streamer", "Streamer", mode, "Protege encoder, jogo e apps de live.", "keep");
+            AddModeTrayItem(modes, "Trabalho", "Work", mode, "Mantem multitarefa responsiva.", "keep");
+            AddModeTrayItem(modes, "Foco", "Focus", mode, "Aperta apps parados com mais firmeza.", "keep");
+
+            ToolStripMenuItem energy = AddTraySubmenu(menu, "Modo + energia");
+            AddTrayItem(energy, "Jogos + plano Smart Nap", delegate { ConfirmPowerModeFromTray("Gaming", "activate", "Smart Nap MODO JOGO"); }, false, String.Equals(mode, "Gaming", StringComparison.OrdinalIgnoreCase) && plan != null && String.Equals(plan.Guid, SmartNapGamePowerPlanGuid, StringComparison.OrdinalIgnoreCase));
+            AddTrayItem(energy, "Live + plano Smart Nap", delegate { ConfirmPowerModeFromTray("Streamer", "activate", "Smart Nap MODO LIVE"); }, false, String.Equals(mode, "Streamer", StringComparison.OrdinalIgnoreCase) && plan != null && String.Equals(plan.Guid, SmartNapLivePowerPlanGuid, StringComparison.OrdinalIgnoreCase));
+            AddTrayItem(energy, "Restaurar plano anterior", delegate { RunFromTray("Plano anterior", delegate { return SetSessionMode("Auto", "restore"); }); }, false, false);
+            AddTrayItem(energy, "Usar Equilibrado", delegate { RunFromTray("Equilibrado", delegate { return SetSessionMode("Auto", "balanced"); }); }, false, plan != null && String.Equals(plan.Guid, BalancedPowerPlanGuid, StringComparison.OrdinalIgnoreCase));
+
+            ToolStripMenuItem tools = AddTraySubmenu(menu, "Ferramentas");
+            AddTrayItem(tools, "Nap Score", delegate { OpenScore(); }, false, false);
+            AddTrayItem(tools, "Log de eventos", delegate { OpenLog(); }, false, false);
+            AddTrayItem(tools, "Pasta do app", delegate { OpenFolder(); }, false, false);
+            AddTrayItem(tools, "Relatorio de seguranca", delegate { OpenSafetyReport(); }, false, false);
+            AddTrayItem(tools, "GitHub", delegate { OpenGitHub(); }, false, false);
+
+            menu.Items.Add(new ToolStripSeparator());
+            AddTrayItem(menu, "Sair do Smart Nap", delegate { ExitFromTray(); }, true, false);
+        }
+
+        private void AddTrayHeader(ContextMenuStrip menu, string title, string subtitle)
+        {
+            ToolStripMenuItem item = new ToolStripMenuItem(title + " - " + subtitle);
+            item.Enabled = false;
+            item.Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+            item.ForeColor = Color.FromArgb(255, 166, 41);
+            item.BackColor = Color.FromArgb(7, 15, 26);
+            menu.Items.Add(item);
+        }
+
+        private void AddTrayStatus(ContextMenuStrip menu, string text)
+        {
+            ToolStripMenuItem item = new ToolStripMenuItem(text);
+            item.Enabled = false;
+            item.Font = new Font("Segoe UI", 8.5f, FontStyle.Regular);
+            item.ForeColor = Color.FromArgb(156, 177, 204);
+            item.BackColor = Color.FromArgb(7, 15, 26);
+            menu.Items.Add(item);
+        }
+
+        private ToolStripMenuItem AddTraySubmenu(ContextMenuStrip menu, string text)
+        {
+            ToolStripMenuItem item = new ToolStripMenuItem(text);
+            StyleTrayItem(item, false);
+            menu.Items.Add(item);
+            return item;
+        }
+
+        private ToolStripMenuItem AddTrayItem(ContextMenuStrip menu, string text, Action action, bool bold, bool isChecked)
+        {
+            return AddTrayItem(menu.Items, text, action, bold, isChecked);
+        }
+
+        private ToolStripMenuItem AddTrayItem(ToolStripMenuItem parent, string text, Action action, bool bold, bool isChecked)
+        {
+            return AddTrayItem(parent.DropDownItems, text, action, bold, isChecked);
+        }
+
+        private ToolStripMenuItem AddTrayItem(ToolStripItemCollection items, string text, Action action, bool bold, bool isChecked)
+        {
+            ToolStripMenuItem item = new ToolStripMenuItem(text);
+            item.Checked = isChecked;
+            item.Font = new Font("Segoe UI", 9.0f, bold ? FontStyle.Bold : FontStyle.Regular);
+            StyleTrayItem(item, bold);
+            item.Click += delegate { action(); };
+            items.Add(item);
+            return item;
+        }
+
+        private void AddModeTrayItem(ToolStripMenuItem parent, string label, string mode, string currentMode, string tooltip, string energyChoice)
+        {
+            ToolStripMenuItem item = AddTrayItem(parent.DropDownItems, label, delegate
+            {
+                RunFromTray("Modo " + label, delegate { return SetSessionMode(mode, energyChoice); });
+            }, false, String.Equals(NormalizeSessionMode(currentMode), NormalizeSessionMode(mode), StringComparison.OrdinalIgnoreCase));
+            item.ToolTipText = tooltip;
+        }
+
+        private void StyleTrayItem(ToolStripMenuItem item, bool accent)
+        {
+            item.BackColor = Color.FromArgb(7, 15, 26);
+            item.ForeColor = accent ? Color.FromArgb(255, 166, 41) : Color.FromArgb(236, 245, 255);
+        }
+
+        private void ConfirmPowerModeFromTray(string mode, string energyChoice, string planName)
+        {
+            DialogResult confirm = MessageBox.Show(
+                "Ativar " + planName + " agora?\n\nEsse perfil mantem o PC em alto desempenho enquanto o modo estiver ativo. Use Auto depois para restaurar ou trocar o plano.",
+                AppName,
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+            if (confirm != DialogResult.Yes) { return; }
+            RunFromTray("Modo " + DisplaySessionMode(mode), delegate { return SetSessionMode(mode, energyChoice); });
+        }
+
+        private void ExitFromTray()
+        {
+            allowExit = true;
+            listenerStopping = true;
+            if (foregroundWakeTimer != null)
+            {
+                foregroundWakeTimer.Stop();
+                foregroundWakeTimer.Dispose();
+                foregroundWakeTimer = null;
+            }
+            if (trayTelemetryTimer != null)
+            {
+                trayTelemetryTimer.Stop();
+                trayTelemetryTimer.Dispose();
+                trayTelemetryTimer = null;
+            }
+            if (energyIdleGuardTimer != null)
+            {
+                energyIdleGuardTimer.Stop();
+                energyIdleGuardTimer.Dispose();
+                energyIdleGuardTimer = null;
+            }
+            try { showDashboardEvent.Set(); } catch { }
+            notifyIcon.Visible = false;
+            notifyIcon.Dispose();
+            try { dispatchForm.Close(); } catch { }
+            try { dispatchForm.Dispose(); } catch { }
+#if NET9_0_OR_GREATER
+            dashboardHost.Shutdown();
+#else
+            mainWindow.Close();
+#endif
+            Application.Exit();
+        }
+
+        private string DisplaySessionMode(string mode)
+        {
+            string normalized = NormalizeSessionMode(mode);
+            if (String.Equals(normalized, "Gaming", StringComparison.OrdinalIgnoreCase)) { return "Jogos"; }
+            if (String.Equals(normalized, "Streamer", StringComparison.OrdinalIgnoreCase)) { return "Live"; }
+            if (String.Equals(normalized, "Work", StringComparison.OrdinalIgnoreCase)) { return "Trabalho"; }
+            if (String.Equals(normalized, "Focus", StringComparison.OrdinalIgnoreCase)) { return "Foco"; }
+            return "Auto";
+        }
+
+        private string BuildCompactTrayTelemetryText()
+        {
+            HardwareSnapshot hardware = GetHardwareSnapshot();
+            string line = ReadLastApplyLogLine();
+            string targets = ExtractLogField(line, "targets");
+            string delta = ExtractLogField(line, "deltaMB");
+            if (String.IsNullOrWhiteSpace(targets)) { targets = "0"; }
+            if (String.IsNullOrWhiteSpace(delta)) { delta = "0"; }
+            string free = hardware != null && hardware.AvailableMemoryMB > 0 ? FormatMemoryBytes((ulong)(hardware.AvailableMemoryMB * 1024.0 * 1024.0)) : "-";
+            return "RAM livre " + free + " | " + targets + " apps / " + delta + " MB";
+        }
+
+        private static string TrimTrayText(string text, int maxLength)
+        {
+            if (String.IsNullOrWhiteSpace(text)) { return "-"; }
+            string value = text.Trim();
+            return value.Length <= maxLength ? value : value.Substring(0, Math.Max(1, maxLength - 1)) + "...";
+        }
+
+        private sealed class SmartNapTrayColors : ProfessionalColorTable
+        {
+            public override Color ToolStripDropDownBackground { get { return Color.FromArgb(7, 15, 26); } }
+            public override Color ImageMarginGradientBegin { get { return Color.FromArgb(7, 15, 26); } }
+            public override Color ImageMarginGradientMiddle { get { return Color.FromArgb(7, 15, 26); } }
+            public override Color ImageMarginGradientEnd { get { return Color.FromArgb(7, 15, 26); } }
+            public override Color MenuBorder { get { return Color.FromArgb(255, 166, 41); } }
+            public override Color MenuItemBorder { get { return Color.FromArgb(255, 166, 41); } }
+            public override Color MenuItemSelected { get { return Color.FromArgb(22, 38, 60); } }
+            public override Color MenuItemSelectedGradientBegin { get { return Color.FromArgb(22, 38, 60); } }
+            public override Color MenuItemSelectedGradientEnd { get { return Color.FromArgb(16, 29, 48); } }
+            public override Color MenuItemPressedGradientBegin { get { return Color.FromArgb(16, 29, 48); } }
+            public override Color MenuItemPressedGradientEnd { get { return Color.FromArgb(7, 15, 26); } }
+            public override Color SeparatorDark { get { return Color.FromArgb(38, 56, 81); } }
+            public override Color SeparatorLight { get { return Color.FromArgb(9, 18, 31); } }
+        }
         private void StartShowListener()
         {
             showThread = new Thread(new ThreadStart(delegate
@@ -3216,17 +3482,19 @@ internal static class SmartBackgroundNap
             string memory = TrySetMemoryPriority(pid, 5) ? "OK" : "Skip";
             string io = TrySetIoPriority(pid, 2) ? "OK" : "Skip";
             string power = TryClearPowerThrottling(pid) ? "OK" : "Skip";
+            int groupWake = TryRestoreForegroundProcessGroup(process);
             Directory.CreateDirectory(outputsPath);
             string line = String.Format(
                 CultureInfo.InvariantCulture,
-                "{0} action=foreground-restore mode=fast pid={1} process={2} priority={3} memory={4} io={5} power={6}",
+                "{0} action=foreground-restore mode=fast pid={1} process={2} priority={3} memory={4} io={5} power={6} groupWake={7}",
                 DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
                 pid,
                 process.ProcessName,
                 priority,
                 memory,
                 io,
-                power);
+                power,
+                groupWake);
             File.AppendAllText(logPath, line + Environment.NewLine, Encoding.UTF8);
             return new RunResult(0, line);
         }
@@ -3235,6 +3503,78 @@ internal static class SmartBackgroundNap
             WriteCrash(ex);
             return new RunResult(1, ex.Message);
         }
+    }
+
+    private static int TryRestoreForegroundProcessGroup(Process foregroundProcess)
+    {
+        if (foregroundProcess == null) { return 0; }
+        string name = foregroundProcess.ProcessName;
+        if (!ShouldWakeProcessGroup(name)) { return 0; }
+
+        int currentSession;
+        try { currentSession = Process.GetCurrentProcess().SessionId; }
+        catch { currentSession = -1; }
+
+        int restored = 0;
+        Process[] peers;
+        try { peers = Process.GetProcessesByName(name); }
+        catch { return 0; }
+
+        for (int i = 0; i < peers.Length && restored < 64; i++)
+        {
+            Process peer = peers[i];
+            try
+            {
+                if (peer.Id == foregroundProcess.Id || peer.Id == Process.GetCurrentProcess().Id) { continue; }
+                if (currentSession >= 0 && peer.SessionId != currentSession) { continue; }
+                if (IsProtectedForegroundProcess(peer.ProcessName)) { continue; }
+
+                bool touched = false;
+                try
+                {
+                    ProcessPriorityClass current = peer.PriorityClass;
+                    if (current == ProcessPriorityClass.Idle || current == ProcessPriorityClass.BelowNormal)
+                    {
+                        peer.PriorityClass = ProcessPriorityClass.Normal;
+                        touched = true;
+                    }
+                }
+                catch { }
+
+                if (TrySetMemoryPriority(peer.Id, 5)) { touched = true; }
+                if (TrySetIoPriority(peer.Id, 2)) { touched = true; }
+                if (TryClearPowerThrottling(peer.Id)) { touched = true; }
+                if (touched) { restored++; }
+            }
+            catch
+            {
+            }
+            finally
+            {
+                try { peer.Dispose(); } catch { }
+            }
+        }
+
+        return restored;
+    }
+
+    private static bool ShouldWakeProcessGroup(string processName)
+    {
+        if (String.IsNullOrWhiteSpace(processName)) { return false; }
+        string[] names = new string[]
+        {
+            "zen", "chrome", "msedge", "firefox", "brave", "opera", "vivaldi",
+            "Discord", "Teams", "Slack", "Zoom", "Telegram", "WhatsApp",
+            "Spotify", "vlc", "mpv",
+            "steam", "steamwebhelper", "EpicGamesLauncher", "EpicWebHelper", "Battle.net",
+            "EADesktop", "EABackgroundService", "RiotClientServices", "RiotClientUx",
+            "UbisoftConnect", "upc", "GalaxyClient", "GOG Galaxy", "XboxPcApp"
+        };
+        for (int i = 0; i < names.Length; i++)
+        {
+            if (String.Equals(processName, names[i], StringComparison.OrdinalIgnoreCase)) { return true; }
+        }
+        return false;
     }
 
     private static bool IsProtectedForegroundProcess(string processName)
@@ -4534,6 +4874,8 @@ internal static class SmartBackgroundNap
             PowerPlanSnapshot previousPowerPlan = LoadPreviousPowerPlan();
             state.PowerPlanName = activePowerPlan == null ? "" : activePowerPlan.Name;
             state.PowerPlanGuid = activePowerPlan == null ? "" : activePowerPlan.Guid;
+            state.powerPlanName = state.PowerPlanName;
+            state.powerPlanGuid = state.PowerPlanGuid;
             state.PreviousPowerPlanName = previousPowerPlan == null ? "" : previousPowerPlan.Name;
             state.PreviousPowerPlanGuid = previousPowerPlan == null ? "" : previousPowerPlan.Guid;
             state.EnergyIdleGuardEnabled = LoadEnergyIdleGuardEnabled();
@@ -5513,6 +5855,8 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public string SessionMode { get; set; }
             public string PowerPlanName { get; set; }
             public string PowerPlanGuid { get; set; }
+            public string powerPlanName { get; set; }
+            public string powerPlanGuid { get; set; }
             public string PreviousPowerPlanName { get; set; }
             public string PreviousPowerPlanGuid { get; set; }
             public bool EnergyIdleGuardEnabled { get; set; }
@@ -8311,7 +8655,7 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                 BeginInvoke(new System.Windows.Forms.MethodInvoker(delegate
                 {
                     bool stopped = result.ExitCode == 130;
-                    string title = stopped ? "OtimizaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o parada" : (result.ExitCode == 0 ? "OtimizaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o concluÃƒÆ’Ã‚Â­da" : "Action failed");
+                    string title = stopped ? "Otimizacao parada" : (result.ExitCode == 0 ? "Otimizacao concluida" : "Action failed");
                     string detail = stopped ? "O passe manual foi interrompido." : (result.ExitCode == 0 ? BuildResultText() : ShortError(result.Output));
                     activeRunControl = null;
                     busy = false;
@@ -8333,8 +8677,8 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                 return;
             }
 
-            actionTitle.Text = "Parando otimizaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o...";
-            actionDetail.Text = "Encerrando o passe manual com seguranÃƒÆ’Ã‚Â§a.";
+            actionTitle.Text = "Parando otimizacao...";
+            actionDetail.Text = "Encerrando o passe manual com seguranca.";
             optimizeButton.Enabled = false;
             activeRunControl.Cancel();
         }

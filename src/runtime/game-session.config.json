@@ -146,6 +146,22 @@
                       "MediaCallProtection":  true,
                       "MemoryPressureGovernor":  true,
                       "UserAppPolicy":  true,
+                      "DesktopMultitaskGuard":  true,
+                      "DesktopGuardFreeMemoryMB":  4096,
+                      "DesktopGuardTrimFloorMB":  512,
+                      "DesktopGuardMaxCpuPercent":  12,
+                      "DesktopGuardRoles":  [
+                                                  "Browser",
+                                                  "Communication",
+                                                  "Media",
+                                                  "Launcher"
+                                              ],
+                      "DesktopGuardIntents":  [
+                                                    "Desktop",
+                                                    "MediaCall",
+                                                    "DownloadInstall",
+                                                    "MemoryPressure"
+                                                ],
                       "ModerateFreeMemoryMB":  8192,
                       "ElevatedFreeMemoryMB":  6144,
                       "CriticalFreeMemoryMB":  3072,

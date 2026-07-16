@@ -123,6 +123,12 @@ $memoryPressureGovernor = $true
 $userAppPolicy = $true
 $sessionMode = "Auto"
 $adaptiveExclusions = $true
+$desktopMultitaskGuard = $true
+$desktopGuardFreeMemoryMB = 4096.0
+$desktopGuardTrimFloorMB = 512.0
+$desktopGuardMaxCpuPercent = 12.0
+$desktopGuardRoles = @("Browser", "Communication", "Media", "Launcher")
+$desktopGuardIntents = @("Desktop", "MediaCall", "DownloadInstall", "MemoryPressure")
 $streamerAutoDetect = $true
 $streamerCpuContainment = $true
 $streamerReserveLogicalProcessors = 2
@@ -211,6 +217,12 @@ if ($smart) {
     if ($smart.PSObject.Properties.Name -contains "UserAppPolicy") { $userAppPolicy = [bool]$smart.UserAppPolicy }
     if ($smart.PSObject.Properties.Name -contains "SessionMode") { $sessionMode = [string]$smart.SessionMode }
     if ($smart.PSObject.Properties.Name -contains "AdaptiveExclusionsEnabled") { $adaptiveExclusions = [bool]$smart.AdaptiveExclusionsEnabled }
+    if ($smart.PSObject.Properties.Name -contains "DesktopMultitaskGuard") { $desktopMultitaskGuard = [bool]$smart.DesktopMultitaskGuard }
+    if ($smart.PSObject.Properties.Name -contains "DesktopGuardFreeMemoryMB") { $desktopGuardFreeMemoryMB = [double]$smart.DesktopGuardFreeMemoryMB }
+    if ($smart.PSObject.Properties.Name -contains "DesktopGuardTrimFloorMB") { $desktopGuardTrimFloorMB = [double]$smart.DesktopGuardTrimFloorMB }
+    if ($smart.PSObject.Properties.Name -contains "DesktopGuardMaxCpuPercent") { $desktopGuardMaxCpuPercent = [double]$smart.DesktopGuardMaxCpuPercent }
+    if ($smart.PSObject.Properties.Name -contains "DesktopGuardRoles") { $desktopGuardRoles = @($smart.DesktopGuardRoles) }
+    if ($smart.PSObject.Properties.Name -contains "DesktopGuardIntents") { $desktopGuardIntents = @($smart.DesktopGuardIntents) }
     if ($smart.PSObject.Properties.Name -contains "StreamerAutoDetect") { $streamerAutoDetect = [bool]$smart.StreamerAutoDetect }
     if ($smart.PSObject.Properties.Name -contains "StreamerCpuContainment") { $streamerCpuContainment = [bool]$smart.StreamerCpuContainment }
     if ($smart.PSObject.Properties.Name -contains "StreamerReserveLogicalProcessors") { $streamerReserveLogicalProcessors = [int]$smart.StreamerReserveLogicalProcessors }
@@ -330,6 +342,11 @@ if ($behaviorLightConfidence -gt 100) { $behaviorLightConfidence = 100 }
 if ($behaviorEfficientDeltaMB -lt 8.0) { $behaviorEfficientDeltaMB = 8.0 }
 if ($behaviorRefaultPenaltyMB -lt 16.0) { $behaviorRefaultPenaltyMB = 16.0 }
 if ($behaviorStableCpuPercent -lt 0.0) { $behaviorStableCpuPercent = 0.0 }
+if ($desktopGuardFreeMemoryMB -lt 1024.0) { $desktopGuardFreeMemoryMB = 1024.0 }
+if ($desktopGuardTrimFloorMB -lt 128.0) { $desktopGuardTrimFloorMB = 128.0 }
+if ($desktopGuardMaxCpuPercent -lt 1.0) { $desktopGuardMaxCpuPercent = 1.0 }
+if (-not $desktopGuardRoles -or @($desktopGuardRoles).Count -eq 0) { $desktopGuardRoles = @("Browser", "Communication", "Media", "Launcher") }
+if (-not $desktopGuardIntents -or @($desktopGuardIntents).Count -eq 0) { $desktopGuardIntents = @("Desktop", "MediaCall", "DownloadInstall", "MemoryPressure") }
 if ($moderateFreeMemoryMB -lt 512) { $moderateFreeMemoryMB = 512.0 }
 if ($elevatedFreeMemoryMB -lt 512) { $elevatedFreeMemoryMB = 512.0 }
 if ($criticalFreeMemoryMB -lt 256) { $criticalFreeMemoryMB = 256.0 }
@@ -2203,6 +2220,33 @@ function Set-TrimCooldown {
     }
 }
 
+function Test-DesktopMultitaskGuard {
+    param([object]$Row)
+
+    if (-not $desktopMultitaskGuard -or -not $Row) { return $false }
+    if ($sessionMode -notin @("Auto", "Work")) { return $false }
+
+    $intentKind = if ($script:currentIntent) { [string]$script:currentIntent.Kind } else { "Desktop" }
+    if ($intentKind -in @("Gaming", "Streaming")) { return $false }
+    if ($intentKind -notin @($desktopGuardIntents)) { return $false }
+
+    $pressure = if ($script:currentMemoryPressure) { [string]$script:currentMemoryPressure.Level } else { "Unknown" }
+    $freeMB = if ($script:currentMemoryPressure) { [double]$script:currentMemoryPressure.FreeMB } else { 0.0 }
+    if ($pressure -eq "Critical") { return $false }
+    if ($pressure -eq "Elevated" -and $freeMB -lt $desktopGuardFreeMemoryMB) { return $false }
+
+    $role = [string]$Row.Role
+    if ($role -notin @($desktopGuardRoles)) { return $false }
+    if ([double]$Row.CpuPercent -gt $desktopGuardMaxCpuPercent) { return $false }
+
+    if ($realtimeFriendlyNames.Contains([string]$Row.ProcessName)) { return $true }
+    if ([bool]$Row.SwitchFastWake) { return $true }
+    if ([int]$Row.BurstCount -gt 0) { return $true }
+    if ($role -in @("Browser", "Communication", "Media") -and $intentKind -in @("Desktop", "MediaCall", "DownloadInstall", "MemoryPressure")) { return $true }
+
+    return $false
+}
+
 function Get-CandidateWeight {
     param([object]$Row)
 
@@ -2219,6 +2263,9 @@ function Get-CandidateWeight {
     }
     if ([bool]$Row.SwitchFastWake) {
         $weight *= 0.58
+    }
+    if (Test-DesktopMultitaskGuard -Row $Row) {
+        $weight *= 0.30
     }
     if ($realtimeFriendlyNames.Contains([string]$Row.ProcessName)) {
         $weight *= 0.62
@@ -2328,6 +2375,10 @@ function Get-NapPolicy {
     } elseif ($smartLearning -and [int]$Row.LearningObservations -ge $learningMinObservations -and [bool]$Row.LearningFastWake) {
         $tier = "Light"
         $reason = "learned-fast-wake"
+    } elseif (Test-DesktopMultitaskGuard -Row $Row) {
+        $tier = "Light"
+        $reason = "desktop-hot-multitask"
+        $policySource = "intent"
     } elseif ($behaviorEngine -and [int]$Row.BehaviorConfidence -ge $behaviorLightConfidence -and [int]$Row.BehaviorBias -lt 0) {
         $tier = "Light"
         $reason = if ([string]$Row.BehaviorReason) { [string]$Row.BehaviorReason } else { "behavior-guard" }
@@ -2932,6 +2983,7 @@ function Invoke-ApplyOnce {
         }
 
         $policy = Get-NapPolicy -Row $row
+        $desktopGuarded = Test-DesktopMultitaskGuard -Row $row
         $priorityStatus = "OK"
         $memoryStatus = "OK"
         $ioStatus = if ($useIoPriority) { "OK" } else { "Disabled" }
@@ -2990,6 +3042,9 @@ function Invoke-ApplyOnce {
             $trimThreshold = [math]::Max($trimThreshold, ([double]$row.WorkingSetMB + 1.0))
         }
 
+        if ($desktopGuarded) {
+            $trimThreshold = [math]::Max($trimThreshold, [math]::Max($desktopGuardTrimFloorMB, ([double]$row.WorkingSetMB + 1.0)))
+        }
         $trimStatus = "SkippedBelowThreshold"
         if ($trimWorkingSet -and $row.WorkingSetMB -ge $trimThreshold) {
             $trimOnCooldown = if ($row.Path) { Test-TrimCooldown -Map $trimMap -Process $p -Path $row.Path } else { $false }
@@ -3041,6 +3096,7 @@ function Invoke-ApplyOnce {
             AppPolicy = $row.AppPolicy
             GuardReason = $row.GuardReason
             GuardConfidence = $row.GuardConfidence
+            DesktopMultitaskGuard = [bool]$desktopGuarded
             SwitchFastWake = $row.SwitchFastWake
             SwitchWakeCount = $row.SwitchWakeCount
             IntentKind = $row.IntentKind

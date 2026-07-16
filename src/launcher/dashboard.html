@@ -102,6 +102,39 @@ button{font:inherit}
 @media(max-width:900px){.app{grid-template-columns:64px minmax(0,1fr)}.rail{padding-top:12px}.nav{width:42px;height:42px}.brandMark{width:42px;height:42px}.workspace{padding:14px}.topbar{height:auto;align-items:flex-start;flex-direction:column}.statusBar{justify-content:flex-start;padding-right:104px}.featureGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard{grid-template-columns:1fr}.headline{font-size:30px}.languageGrid{grid-template-columns:1fr}}
 @media(max-width:620px){.updatePref,.energyIdleBox,.energyModeBrief{grid-template-columns:1fr}.updatePref button{width:100%;min-width:0}}
 @media(max-width:720px){.updatePanel{grid-template-columns:1fr}.updateActions{justify-content:stretch}.updateActions .btn{flex:1 1 130px}.app{grid-template-columns:56px minmax(0,1fr)}.workspace{padding:12px}.featureGrid,.cards,.systemGrid,.intelStats,.metricGrid{grid-template-columns:1fr}.intelTop{grid-template-columns:1fr}.intelStats span{border-left:0;border-top:1px solid rgba(255,255,255,.08);padding-left:0;padding-top:8px}.intelStats span:first-child{border-top:0;padding-top:0}.meter{grid-template-columns:1fr}.actions{grid-template-columns:1fr}.btn.primary{grid-column:auto}.table{max-width:calc(100vw - 92px)}}
+/* v0.5.2 polish: readable live manager, portrait monitors, compact chrome on scroll */
+.workspace{position:relative;scroll-padding-top:74px}.topbar{position:sticky;top:-1px;z-index:7;padding:8px 0;background:linear-gradient(180deg,rgba(5,9,15,.96),rgba(5,9,15,.82));backdrop-filter:blur(14px);border-bottom:1px solid transparent;transition:160ms ease}.statusBar{transition:160ms ease}.windowControls{z-index:30;background:rgba(5,9,15,.78);border:1px solid rgba(45,67,98,.72);border-radius:11px;padding:3px;box-shadow:0 12px 28px rgba(0,0,0,.28);transition:160ms ease}.chromeBtn{width:28px;height:26px}.chromeCompact .windowControls{opacity:.18;transform:translateY(-10px) scale(.92)}.chromeCompact .windowControls:hover{opacity:1;transform:translateY(0) scale(1)}.chromeCompact .topbar{height:42px;min-height:42px;padding:5px 0;border-bottom-color:rgba(38,58,85,.62)}.chromeCompact .titleBlock span{display:none}.chromeCompact .statusBar{max-height:0;opacity:0;pointer-events:none;overflow:hidden;transform:translateY(-8px)}
+.appCell{display:grid;gap:2px;min-width:0}.appCell b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}.appCell em{font-style:normal;color:#74879f;font-size:9px;font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.thead,.row{grid-template-columns:minmax(145px,1.2fr) 70px 78px 54px 54px minmax(430px,3.8fr)}.row{min-height:58px}.row>span{min-width:0}.actionsCell{display:flex;align-items:center;gap:6px!important;flex-wrap:wrap;align-content:center;padding:7px 8px!important}.badgeGroup{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap;min-height:26px;border:1px solid rgba(38,58,85,.78);border-radius:9px;background:rgba(7,17,31,.72);padding:3px 5px}.badgeGroup:empty{display:none}.badgeGroup em{font-style:normal;text-transform:uppercase;color:#72859e;font-size:8px;font-weight:950;margin-right:2px}.badgeGroup.context{border-color:rgba(75,147,255,.28)}.badgeGroup.profile{border-color:rgba(154,114,255,.30)}.badgeGroup.actionsGroup{border-color:rgba(46,225,132,.24)}.policyButtons{margin-left:0;padding-left:0;border-left:0;display:inline-flex;align-items:center;gap:3px}.policyButtons:before{content:attr(data-label);text-transform:uppercase;color:#72859e;font-size:8px;font-weight:950;margin-right:3px}.policyBtn{height:22px;min-width:auto;padding:0 7px}.badge{height:20px;font-size:8.8px}.manager .panelTitle span{max-width:48%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:1320px){.dashboard{grid-template-columns:1fr}.rightCol{grid-template-rows:auto}.sidePanel{max-height:none}.timeline{max-height:360px}.modeInsight{grid-template-columns:1fr}.table{max-height:62vh}}
+@media(max-width:980px){.topbar{align-items:flex-start}.statusBar{padding-right:96px}.command,.dashboard{grid-template-columns:1fr}.modeRow{grid-template-columns:repeat(2,minmax(0,1fr))}.modeDeckHero,.modeInsight{grid-template-columns:1fr}.modeDeckStatus{justify-items:start}.thead,.row{min-width:860px;grid-template-columns:minmax(135px,1.15fr) 66px 76px 52px 52px minmax(470px,3.8fr)}}
+@media(max-aspect-ratio:4/5){.app{grid-template-columns:58px minmax(0,1fr)}.rail{padding-top:12px}.nav{width:42px;height:42px}.workspace{padding:13px}.dashboard,.command,.modeDeckHero,.modeInsight{grid-template-columns:1fr}.featureGrid,.cards,.systemGrid{grid-template-columns:1fr}.modeRow{grid-template-columns:1fr}.rightCol{grid-template-rows:auto}.sidePanel{max-height:none}.timeline{max-height:44vh}.table{max-height:52vh;max-width:calc(100vw - 88px)}.headline{font-size:30px}.windowControls{right:9px;top:7px}.statusBar{justify-content:flex-start;padding-right:96px}.topbar{height:auto;align-items:flex-start;flex-direction:column}.modeBtn{min-height:82px}.energyPanel,.languagePanel,.infoPanel{width:min(720px,calc(100vw - 24px));padding:18px}}
+/* v0.5.2 motion polish: visible, GPU-friendly, disabled by reduced-motion */
+body{background:#050910;position:relative;overflow:hidden}
+body:before{content:"";position:fixed;inset:-18%;pointer-events:none;background:radial-gradient(circle at 18% 18%,rgba(255,166,41,.18),transparent 28%),radial-gradient(circle at 82% 10%,rgba(46,225,132,.12),transparent 28%),radial-gradient(circle at 50% 100%,rgba(75,147,255,.14),transparent 34%);filter:blur(4px);opacity:.86;animation:ambientDrift 18s ease-in-out infinite alternate;z-index:0}.app{position:relative;z-index:1;isolation:isolate}.workspaceInner{animation:pageSettle .42s cubic-bezier(.2,.8,.2,1) both}.panel,.engineCard,.controlDeck,.card,.systemTile,.feature,.intelligencePanel{transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease,background .18s ease}.panel:hover,.engineCard:hover,.controlDeck:hover,.systemTile:hover,.intelligencePanel:hover{border-color:rgba(88,185,255,.42);box-shadow:0 22px 54px rgba(0,0,0,.30),0 0 0 1px rgba(88,185,255,.06) inset}.command,.engineCard,.controlDeck,.sidePanel,.manager,.systemPanel{position:relative}.command:before,.engineCard:after,.controlDeck:after{content:"";position:absolute;pointer-events:none;inset:0;background:linear-gradient(115deg,transparent 0 36%,rgba(255,255,255,.055) 47%,transparent 58%);transform:translateX(-120%);animation:sweepLight 9s ease-in-out infinite}.engineCard:after,.controlDeck:after{border-radius:inherit;animation-duration:11s;opacity:.75}.brandMark{animation:brandWake .7s cubic-bezier(.2,.8,.2,1) both}.brandMark img{filter:drop-shadow(0 0 10px rgba(255,166,41,.28));transition:transform .18s ease,filter .18s ease}.brandMark:hover img{transform:rotate(-8deg) scale(1.06);filter:drop-shadow(0 0 16px rgba(255,166,41,.42))}.nav,.startupAction,.langButton,.btn,.policyBtn{transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease,background .16s ease,filter .16s ease}.nav:hover,.startupAction:hover,.langButton:hover,.btn:hover,.policyBtn:hover{box-shadow:0 12px 26px rgba(0,0,0,.22)}.pill.good{box-shadow:0 0 0 1px rgba(46,225,132,.06) inset,0 0 20px rgba(46,225,132,.08)}.state{animation:stateBreath 2.8s ease-in-out infinite}.ring{transition:background .35s ease,box-shadow .2s ease;animation:ringFloat 3.8s ease-in-out infinite}.ring:after{content:"";position:absolute;inset:2px;border-radius:999px;border:1px solid rgba(255,255,255,.08);border-top-color:rgba(255,166,41,.46);animation:ringTrace 4.2s linear infinite}.busy .ring{box-shadow:0 0 30px rgba(46,225,132,.18),0 0 52px rgba(75,147,255,.10)}.card{animation:surfaceRise .36s cubic-bezier(.2,.8,.2,1) both}.cards .card:nth-child(1){animation-delay:.03s}.cards .card:nth-child(2){animation-delay:.06s}.cards .card:nth-child(3){animation-delay:.09s}.cards .card:nth-child(4){animation-delay:.12s}.cards .card:nth-child(5){animation-delay:.15s}.card:hover{transform:translateY(-2px);border-color:rgba(255,166,41,.35);box-shadow:0 18px 38px rgba(0,0,0,.24)}.modeBtn{transition:transform .18s cubic-bezier(.2,.8,.2,1),box-shadow .18s ease,border-color .18s ease,background .18s ease}.modeBtn.active{animation:activeMode 2.9s ease-in-out infinite}.modeBtn strong{transition:transform .18s ease,background .18s ease}.modeBtn:hover strong{transform:translateY(-1px)}.table{background:linear-gradient(180deg,rgba(12,23,38,.92),rgba(7,14,24,.92))}.row{transition:transform .14s ease,background .14s ease,box-shadow .14s ease}.row:hover{transform:translateX(3px);background:#111f33;box-shadow:inset 3px 0 0 rgba(255,166,41,.72)}.row:first-child{animation:latestRow .42s ease both}.badge,.badgeGroup{transition:transform .14s ease,filter .14s ease,border-color .14s ease}.badge:hover,.badgeGroup:hover{transform:translateY(-1px);filter:brightness(1.12)}.eventLine{animation:feedSlide .24s ease both}.eventLine:first-child{background:linear-gradient(90deg,rgba(255,166,41,.08),transparent);border-radius:7px}.eventLine:first-child time{animation:timeBlink 1.6s ease-in-out 2}.updatePanel.show,.permissionBox.show{animation:noticeIn .28s cubic-bezier(.2,.8,.2,1) both}.languagePanel,.infoPanel,.energyPanel{animation:modalPop .22s cubic-bezier(.2,.8,.2,1) both}.chromeCompact .windowControls{transition:opacity .18s ease,transform .18s ease}
+@keyframes ambientDrift{0%{transform:translate3d(-1.5%,-1%,0) scale(1)}100%{transform:translate3d(1.5%,1%,0) scale(1.04)}}@keyframes pageSettle{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}@keyframes surfaceRise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}@keyframes sweepLight{0%,55%{transform:translateX(-125%)}72%,100%{transform:translateX(125%)}}@keyframes brandWake{from{opacity:0;transform:scale(.88) rotate(-8deg)}to{opacity:1;transform:none}}@keyframes stateBreath{0%,100%{box-shadow:0 0 0 rgba(46,225,132,0)}50%{box-shadow:0 0 22px rgba(46,225,132,.16)}}@keyframes ringFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}@keyframes ringTrace{to{transform:rotate(360deg)}}@keyframes activeMode{0%,100%{box-shadow:0 0 0 1px color-mix(in srgb,var(--mode-color,#4091ff) 30%, transparent) inset,0 0 18px color-mix(in srgb,var(--mode-color,#4091ff) 10%, transparent)}50%{box-shadow:0 0 0 1px color-mix(in srgb,var(--mode-color,#4091ff) 44%, transparent) inset,0 0 34px color-mix(in srgb,var(--mode-color,#4091ff) 18%, transparent)}}@keyframes latestRow{from{box-shadow:inset 3px 0 0 rgba(46,225,132,.85);filter:brightness(1.12)}to{box-shadow:inset 0 0 0 transparent;filter:none}}@keyframes feedSlide{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}@keyframes timeBlink{50%{color:#fff}}@keyframes noticeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}@keyframes modalPop{from{opacity:0;transform:scale(.985) translateY(6px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.001ms!important}.row:hover,.card:hover,.nav:hover,.btn:hover,.modeBtn:hover{transform:none!important}}
+/* v0.5.2 depth polish: cleaner chrome, buttons and WebView scrollbars */
+.workspace::-webkit-scrollbar,.table::-webkit-scrollbar,.timeline::-webkit-scrollbar{width:10px;height:10px}.workspace::-webkit-scrollbar-track,.table::-webkit-scrollbar-track,.timeline::-webkit-scrollbar-track{background:#07101b}.workspace::-webkit-scrollbar-thumb,.table::-webkit-scrollbar-thumb,.timeline::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#28415f,#13243a);border:2px solid #07101b;border-radius:999px}.workspace::-webkit-scrollbar-thumb:hover,.table::-webkit-scrollbar-thumb:hover,.timeline::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#3b5e86,#1c3555)}.btn.primary,.btn.green,.btn.violet{position:relative;isolation:isolate;overflow:hidden}.btn.primary:before,.btn.green:before,.btn.violet:before{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 0 32%,rgba(255,255,255,.34) 46%,transparent 62%);transform:translateX(-135%);transition:transform .42s ease;z-index:-1}.btn.primary:hover:before,.btn.green:hover:before,.btn.violet:hover:before{transform:translateX(135%)}.startupAction.on,.langButton,.modeDeckStatus b{box-shadow:0 0 0 1px rgba(154,114,255,.06) inset,0 10px 24px rgba(0,0,0,.14)}.startupAction:active,.langButton:active,.btn:active,.policyBtn:active,.modeBtn:active{transform:translateY(1px) scale(.992)}.command{background:radial-gradient(circle at 0 0,rgba(255,166,41,.10),transparent 30%),radial-gradient(circle at 100% 16%,rgba(46,225,132,.08),transparent 32%),linear-gradient(145deg,rgba(14,25,41,.96),rgba(8,15,26,.96))}.engineCard{box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 18px 38px rgba(0,0,0,.22)}.engineCard .mini,.modeFact,.focusLine,.systemTile,.feature{box-shadow:inset 0 1px 0 rgba(255,255,255,.035)}.badgeGroup{box-shadow:inset 0 1px 0 rgba(255,255,255,.035)}.policyBtn.active{box-shadow:0 0 14px rgba(255,166,41,.12)}.modeDeckStatus span{transition:border-color .18s ease,color .18s ease,box-shadow .18s ease}.modeDeckStatus span:hover{border-color:rgba(88,185,255,.45);color:#dcecff;box-shadow:0 0 18px rgba(88,185,255,.08)}.windowControls{backdrop-filter:blur(12px)}.chromeBtn{transition:background .14s ease,border-color .14s ease,color .14s ease,transform .14s ease}.chromeBtn:hover{transform:translateY(-1px)}
+/* v0.5.3 visual stability: no refresh flicker, no hover scrollbar jitter */
+.timeline .eventLine,.timeline .eventLine:first-child,.timeline .eventLine:first-child time{animation:none!important}.timeline .eventLine:first-child{background:linear-gradient(90deg,rgba(255,166,41,.06),transparent);border-radius:7px}.table{overflow-x:scroll!important;overflow-y:auto!important;scrollbar-gutter:stable both-edges;contain:paint}.row,.row:first-child{animation:none!important}.row:hover{transform:none!important;background:#111f33;box-shadow:inset 3px 0 0 rgba(255,166,41,.72)}.badge:hover,.badgeGroup:hover,.policyBtn:hover{transform:none!important}.actionsCell{transform:none!important}.table::-webkit-scrollbar:horizontal{height:12px}.table::-webkit-scrollbar:vertical{width:10px}.table::-webkit-scrollbar-corner{background:#07101b}.modeDeckStatus span{min-width:0;max-width:340px}.modeDeckStatus span#powerPlanChip{justify-content:center}
+/* v0.5.3 compact header fix: header scrolls away, only window buttons stay fixed */
+.topbar{position:relative!important;top:auto!important;z-index:4;background:transparent!important;backdrop-filter:none!important;border-bottom-color:transparent!important}.chromeCompact .topbar{height:52px!important;min-height:52px!important;padding:0!important;border-bottom-color:transparent!important;background:transparent!important;opacity:1!important;pointer-events:auto!important}.chromeCompact .titleBlock span{display:block!important}.chromeCompact .statusBar{max-height:none!important;opacity:1!important;pointer-events:auto!important;overflow:visible!important;transform:none!important}.windowControls{background:rgba(5,9,15,.96)!important;border-color:rgba(52,78,114,.82)!important}.chromeCompact .windowControls{opacity:.22;transform:translateY(-6px) scale(.94)}.chromeCompact .windowControls:hover{opacity:1;transform:translateY(0) scale(1)}
+/* v0.5.6 brand typography: stronger wordmark without refresh flicker */
+.titleBlock b{
+  font-family:"Montserrat","Segoe UI Variable Display","Segoe UI",Arial,sans-serif;
+  font-weight:950;
+  letter-spacing:0;
+  background:linear-gradient(92deg,#f8fbff 0%,#f8fbff 28%,#ffae2b 42%,#58b9ff 55%,#f8fbff 72%,#f8fbff 100%);
+  background-size:260% 100%;
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  text-shadow:0 10px 24px rgba(0,0,0,.28);
+  animation:brandTextSweep 6.8s cubic-bezier(.45,0,.2,1) infinite;
+}
+.titleBlock span{font-family:"Montserrat","Segoe UI Variable Text","Segoe UI",Arial,sans-serif;letter-spacing:0}
+@keyframes brandTextSweep{0%,22%{background-position:118% 0}52%,100%{background-position:-42% 0}}
+@media(prefers-reduced-motion:reduce){.titleBlock b{animation:none!important;background-position:0 0}}
 </style>
 </head>
 <body>
@@ -205,7 +238,7 @@ button{font:inherit}
               </div>
               <div class="modeDeckStatus">
                 <b id="sessionCurrent">Auto</b>
-                <span id="powerPlanChip">Plano de energia: plano atual</span>
+                <span id="powerPlanChip">Plano de energia: lendo...</span>
               </div>
             </div>
             <div class="modeRow">
@@ -240,7 +273,7 @@ button{font:inherit}
           <section class="panel manager">
             <div class="panelTitle"><h3 data-i18n="liveManager">Live Manager</h3><span id="managerStatus">Waiting for score data.</span></div>
             <div class="table">
-              <div class="thead"><span data-i18n="colApp">App</span><span data-i18n="colScore">Score</span><span>Delta</span><span>CPU</span><span data-i18n="colBursts">Bursts</span><span data-i18n="colAction">Action</span></div>
+              <div class="thead"><span data-i18n="colApp">App</span><span data-i18n="colScore">Impacto</span><span data-i18n="colDelta">RAM</span><span data-i18n="colCpu">CPU</span><span data-i18n="colBursts">Picos</span><span data-i18n="colAction">Decisão</span></div>
               <div id="rows"></div>
             </div>
           </section>
@@ -535,6 +568,17 @@ Object.keys(LANGS).forEach(k=>{
   LANGS[k].streamingRole = LANGS[k].streamingRole || "Streaming";
   LANGS[k].streamHelperRole = LANGS[k].streamHelperRole || "Stream helper";
   LANGS[k].behaviorGuardLabel = LANGS[k].behaviorGuardLabel || "Protected";
+  LANGS[k].learnedProfileLabel = LANGS[k].learnedProfileLabel || "Learned";
+  LANGS[k].napLevelLabel = LANGS[k].napLevelLabel || "Nap";
+  LANGS[k].policyAutoShort = LANGS[k].policyAutoShort || "Auto";
+  LANGS[k].policyProtectShort = LANGS[k].policyProtectShort || "Protect";
+  LANGS[k].policyLightShort = LANGS[k].policyLightShort || "Light";
+  LANGS[k].policyBalancedShort = LANGS[k].policyBalancedShort || "Balanced";
+  LANGS[k].policyDeepShort = LANGS[k].policyDeepShort || "Deep";
+  LANGS[k].guardMediaCall = LANGS[k].guardMediaCall || "Media/call";
+  LANGS[k].guardStreaming = LANGS[k].guardStreaming || "Live";
+  LANGS[k].guardProtected = LANGS[k].guardProtected || "Protected";
+  LANGS[k].guardLauncher = LANGS[k].guardLauncher || "Launcher";
   LANGS[k].cpuBadge = LANGS[k].cpuBadge || "CPU";
   LANGS[k].memoryBadge = LANGS[k].memoryBadge || "RAM";
   LANGS[k].ioBadge = LANGS[k].ioBadge || "I/O";
@@ -597,6 +641,8 @@ Object.assign(LANGS["es-ES"],{systemProfile:"Perfil del PC",ramLabel:"RAM",syste
 Object.assign(LANGS["fr-FR"],{systemProfile:"Profil PC",ramLabel:"RAM",systemLabel:"Systeme",gpuHint:"Adaptateur graphique",localSnapshot:"",freeNow:"{free} libre maintenant",ramShort:"RAM",pagefileShort:"Pagination",loadShort:"charge",behaviorEngine:"Behavior Engine",behaviorK:"Intelligence centrale",behaviorT:"Behavior Engine",behaviorD:"Profile localement les apps par CPU, retour memoire, rafales et evenements wake.",behaviorMode:"mode",behaviorAdaptive:"adaptatif",behaviorOn:"actif",behaviorOff:"inactif",profilesShort:"profils",pressureNormal:"Normale",pressureModerate:"Moderee",pressureElevated:"Elevee",pressureCritical:"Critique",pressureUnknown:"Inconnue"});
 Object.assign(LANGS["de-DE"],{systemProfile:"PC Profil",ramLabel:"RAM",systemLabel:"System",gpuHint:"Grafikadapter",localSnapshot:"",freeNow:"{free} frei",ramShort:"RAM",pagefileShort:"Auslagerung",loadShort:"Last",behaviorEngine:"Behavior Engine",behaviorK:"Kernintelligenz",behaviorT:"Behavior Engine",behaviorD:"Profile Apps lokal nach CPU, Speicher-Rueckkehr, Bursts und Wake-Ereignissen.",behaviorMode:"Modus",behaviorAdaptive:"adaptiv",behaviorOn:"an",behaviorOff:"aus",profilesShort:"Profile",pressureNormal:"Normal",pressureModerate:"Moderat",pressureElevated:"Erhoeht",pressureCritical:"Kritisch",pressureUnknown:"Unbekannt"});
 LANGS["ru-RU"] = Object.assign({}, LANGS["en-US"], {languageName:"Русский",appTitle:"Smart Nap",appSubtitle:"Контроль фоновых приложений для игр и многозадачности",navDashboard:"Панель",navScore:"Nap Score",navLog:"Журнал",navFiles:"Файлы",navGithub:"GitHub",headline:"Фоновые приложения под контролем",subline:"Открытые приложения становятся легче, а активное окно быстро возвращает приоритет.",feature1K:"Активное окно",feature1T:"Быстрый возврат",feature1D:"Восстанавливает приоритет сразу после переключения окна.",feature2K:"Память",feature2T:"Адаптивная очистка",feature2D:"Снижает лишнюю нагрузку на RAM с паузами, чтобы не быть агрессивным.",feature3K:"Планировщик",feature3T:"Уровни Nap",feature3D:"Light, Balanced и Deep по реальному поведению процесса.",languageTitle:"Выберите язык",languageSubtitle:"Меняется только текст лаунчера. Оптимизатор продолжает безопасно работать в фоне.",apply:"Оптимизировать",stop:"Стоп",pauseMotor:"Пауза",resumeMotor:"Запустить",restore:"Восстановить",on:"Вкл",off:"Выкл",live:"Обновление",motorActive:"Мотор активен",manual:"Ручной",startupOn:"Запуск с Windows",startupOff:"Автозапуск выкл",apps:"apps",intelK:"Обучение",intelT:"Решения по поведению",smartLearning:"Smart Learning",learningOn:"Вкл",learningOff:"Выкл",updateK:"Официальное обновление",updateTitle:"Доступна новая версия",updateBody:"Версия {version} опубликована в официальном GitHub Release.",updateDownload:"Обновить",updateDismiss:"Не напоминать об этой версии",updateCheck:"Проверить",updateCheckingTitle:"Проверка обновлений",updateCheckingBody:"Проверяем официальный канал релизов GitHub."});
+Object.assign(LANGS["pt-BR"],{colScore:"Impacto",colDelta:"RAM",colCpu:"CPU",colBursts:"Picos",colAction:"Decisão",groupContext:"Tipo",groupProfile:"Perfil",groupActions:"Ajustes",groupPolicy:"Controle",instancesLabel:"instâncias",profileLabel:"Perfil",learnedProfileLabel:"Aprendido",napLevelLabel:"Nap",tierLight:"Leve",tierBalanced:"Equilibrado",tierDeep:"Forte",tierProtect:"Protegido",coresLabel:"Núcleos",coresOffLabel:"Núcleos livres",coresPreviewLabel:"Núcleos preview",planUnknown:"Plano não identificado",policyAutoShort:"Auto",policyProtectShort:"Proteger",policyLightShort:"Leve",policyBalancedShort:"Médio",policyDeepShort:"Forte",guardMediaCall:"Mídia/chamada",guardStreaming:"Live",guardProtected:"Protegido",guardLauncher:"Launcher",detailArmed:"Retorno rápido armado. Apps em segundo plano são ajustados por nível."});
+Object.assign(LANGS["en-US"],{colScore:"Impact",colDelta:"RAM",colCpu:"CPU",colBursts:"Peaks",colAction:"Decision",groupContext:"Type",groupProfile:"Profile",groupActions:"Applied",groupPolicy:"Control",instancesLabel:"instances",profileLabel:"Profile",learnedProfileLabel:"Learned",napLevelLabel:"Nap",tierLight:"Light",tierBalanced:"Balanced",tierDeep:"Deep",tierProtect:"Protected",coresLabel:"Cores",coresOffLabel:"Cores free",coresPreviewLabel:"Cores preview",planUnknown:"Plan not detected",policyAutoShort:"Auto",policyProtectShort:"Protect",policyLightShort:"Light",policyBalancedShort:"Balanced",policyDeepShort:"Deep",guardMediaCall:"Media/call",guardStreaming:"Live",guardProtected:"Protected",guardLauncher:"Launcher"});
 const LANGUAGE_ORDER = ["pt-BR","en-US","ru-RU","es-ES","fr-FR","de-DE"];
 let currentLanguage = "pt-BR";
 let lastState = null;
@@ -612,7 +658,8 @@ function normalizedModeName(mode){
   if(m==="focus"||m==="foco") return "Focus";
   return "Auto";
 }
-function planLabel(name){ return String(name||"").trim() || (isPt()?"plano atual":"current plan"); }
+function statePick(s){ for(let i=1;i<arguments.length;i++){ const key=arguments[i]; if(s && Object.prototype.hasOwnProperty.call(s,key) && s[key]!==undefined && s[key]!==null && String(s[key]).trim()!=="") return s[key]; } return ""; }
+function planLabel(name,guid){ const raw=String(name||"").trim(); if(raw) return raw; const g=String(guid||"").trim(); if(g.toLowerCase()==="381b4222-f694-41f0-9685-ff5bb260df2e") return isPt()?"Equilibrado":"Balanced"; if(g) return g.slice(0,8)+"..."; return t("planUnknown"); }
 function setSessionMode(mode){
   const normalized=normalizedModeName(mode);
   if(normalized==="Gaming" || normalized==="Streamer" || normalized==="Auto") { openEnergyPrompt(normalized); return; }
@@ -622,8 +669,8 @@ function energyIdleMinutesValue(){ const raw=Number(($("energyIdleMinutes")&&$("
 function openEnergyPrompt(mode){
   pendingEnergyMode=normalizedModeName(mode);
   const pt=isPt();
-  const current=planLabel(lastState&&lastState.PowerPlanName);
-  const previous=String((lastState&&lastState.PreviousPowerPlanName)||"").trim();
+  const current=planLabel(statePick(lastState,"PowerPlanName","powerPlanName","powerPlanDisplay"),statePick(lastState,"PowerPlanGuid","powerPlanGuid"));
+  const previous=String(statePick(lastState,"PreviousPowerPlanName","previousPowerPlanName")).trim();
   const savedMinutes=Math.max(5,Math.min(240,Number(lastState&&lastState.EnergyIdleGuardMinutes)||20));
   const savedIdle=!!(lastState&&lastState.EnergyIdleGuardEnabled);
   txt("energyCurrent",(pt?"Plano atual: ":"Current plan: ")+current);
@@ -887,6 +934,7 @@ function smartNapUpdate(state){
 }
 function paintState(state){
   const s = state || {};
+  try{ updateV5Panels(s); }catch(e){}
   const managed = Number.parseInt(s.Managed || "0",10) || 0;
   const ringDeg = Math.max(46, Math.min(330, managed * 4.2));
   document.body.classList.toggle("busy",!!s.Busy);
@@ -1069,7 +1117,7 @@ function updateV5Panels(s){
   txt("sessionHint",sessionHint(mode));
   txt("modeImpact",modeImpactTitle(mode));
   txt("modeImpactDetail",modeImpactDetail(mode));
-  const plan=planLabel(s.PowerPlanName);
+  const plan=planLabel(statePick(s,"PowerPlanName","powerPlanName","powerPlanDisplay"),statePick(s,"PowerPlanGuid","powerPlanGuid"));
   const idleText=s.EnergyIdleGuardEnabled?((isPt()?" / Equilibrado após ":" / Balanced after ")+(s.EnergyIdleGuardMinutes||20)+(isPt()?" min parado":" idle min")):"";
   txt("powerPlanChip",(isPt()?"Energia: ":"Power: ")+plan+(s.EnergyIdleGuardEnabled?(isPt()?" + proteção":" + guard"):""));
   txt("energyPlanState",plan+idleText);
@@ -1112,6 +1160,17 @@ function updateUpdatePanel(s){
   if(dismiss) dismiss.disabled=checking;
   if(download) download.disabled=checking;
 }
+function splitAppName(name){
+  const raw=String(name||"-").trim();
+  const match=/^(.*?)\s+x(\d+)$/i.exec(raw);
+  return match?{base:match[1],instances:Number(match[2])||0}:{base:raw,instances:0};
+}
+function makeBadgeGroup(label,html,klass){
+  const group=document.createElement("span");
+  group.className="badgeGroup "+(klass||"");
+  group.innerHTML='<em>'+esc(label)+'</em>'+(html||"");
+  return group;
+}
 function renderRows(rowsData){
   const rows=$("rows");
   if(!rows) return;
@@ -1124,15 +1183,21 @@ function renderRows(rowsData){
   rowsData.forEach(row=>{
     const div=document.createElement("div");
     div.className="row";
-    div.innerHTML='<span title="'+esc(row.Path || row.Name)+'">'+esc(row.Name)+'</span><span class="goodtxt">'+esc(row.Score)+'</span><span class="amber">'+esc(row.Delta)+'</span><span>'+esc(row.Cpu)+'</span><span>'+esc(row.Bursts)+'</span><span class="actionsCell"></span>';
+    const app=splitAppName(row.Name);
+    const instanceText=app.instances>1 ? app.instances+" "+t("instancesLabel") : (row.ProcessName||"");
+    div.innerHTML='<span class="appCell" title="'+esc(row.Path || row.Name)+'"><b>'+esc(app.base)+'</b><em>'+esc(instanceText)+'</em></span><span class="goodtxt">'+esc(row.Score)+'</span><span class="amber">'+esc(row.Delta)+'</span><span>'+esc(row.Cpu)+'</span><span>'+esc(row.Bursts)+'</span><span class="actionsCell"></span>';
     const cell=div.querySelector(".actionsCell");
-    cell.innerHTML=metaBadges(row)+actionBadges(row.Action);
+    const context=metaBadges(row);
+    if(context) cell.appendChild(makeBadgeGroup(t("groupContext"),context,"context"));
+    const profile=profileBadges(row);
+    if(profile) cell.appendChild(makeBadgeGroup(t("groupProfile"),profile,"profile"));
+    const actions=actionBadges(row.Action);
+    if(actions) cell.appendChild(makeBadgeGroup(t("groupActions"),actions,"actionsGroup"));
     cell.appendChild(makePolicyButtons(row));
     rows.appendChild(div);
   });
   txt("managerStatus",t("tracking").replace("{count}",rowsData.length));
-}
-function renderEvents(events){
+}function renderEvents(events){
   const feed=$("events");
   if(!feed) return;
   feed.innerHTML="";
@@ -1150,12 +1215,14 @@ function renderEvents(events){
 function translateEventBody(body){
   let text=String(body||"");
   text=text.replace(/\bevent\b/g,t("event")).replace(/\bnext\b/g,t("next"));
-  text=text.replace("motor automático ativo; ciclos e foco protegidos",t("detailArmed"));
+  text=text.replace(/\bWATCH\s+motor\s+automatico ativo; ciclos e foco protegidos\b/gi,t("detailArmed"));
+  text=text.replace(/\bmotor\s+automatico ativo; ciclos e foco protegidos\b/gi,t("detailArmed"));
+  text=text.replace(/\bmotor\s+automático ativo; ciclos e foco protegidos\b/gi,t("detailArmed"));
+  text=text.replace(/\bmotor\s+motor\b/gi,"Motor");
   text=text.replace(/\bWATCH\b/g,t("watchLabel")).replace(/\bAPPLY\b/g,t("passLabel")).replace(/\bWAKE\b/g,t("wakeLabel")).replace(/\bBEHAVIOR\b/g,t("behaviorLabel")).replace(/\bLEARN\b/g,t("learnLabel")).replace(/\bADMIN\b/g,t("adminLabel")).replace(/\bPOLICY\b/g,t("policyLabel"));
   text=text.replace(/\bL\/B\/D\b/g,t("tiersLabel")).replace(/\bT\s+(?=\d)/g,t("trimLabel")+" ").replace(/\bC\s+(?=\d)/g,t("cooldownLabel")+" ").replace(/\btop\b/g,"principal").replace(/\bapps\b/g,t("apps"));
   return text.replace(/(\d+)\s+apps/g,"$1 "+t("apps"));
-}
-function translateRoleLabel(value){
+}function translateRoleLabel(value){
   const role=String(value||"");
   if(role==="Browser") return t("browserRole");
   if(role==="MediaCall") return t("mediaCallRole");
@@ -1164,14 +1231,30 @@ function translateRoleLabel(value){
   return role;
 }
 function formatGuardLabel(value){
-  return String(value||"").replace("Guard","").replace("MediaCall",t("mediaCallRole")).trim();
+  const raw=String(value||"").trim();
+  const compact=raw.replace(/\d+/g,"").replace(/Guard/gi,"").replace(/\s+/g," ").trim();
+  if(/MediaCall/i.test(raw)) return t("guardMediaCall");
+  if(/Streaming|Stream/i.test(raw)) return t("guardStreaming");
+  if(/Protect/i.test(raw)) return t("guardProtected");
+  if(/Launcher/i.test(raw)) return t("guardLauncher");
+  return compact || raw;
+}
+function translateTierLabel(value){
+  const key=String(value||"").trim().toLowerCase();
+  if(key==="protect"||key==="protected") return t("tierProtect");
+  if(key==="light") return t("tierLight");
+  if(key==="balanced") return t("tierBalanced");
+  if(key==="deep") return t("tierDeep");
+  return value || "";
 }
 function cleanActionLabel(value){
-  let label=String(value||"").replace("SkippedBelowThreshold","Skip").replace(/^Tier /,"").replace(/^Eco /,"E ").replace("Admin needed",t("adminNeededBadge"));
-  const map={"P OK":t("cpuBadge"),"M OK":t("memoryBadge"),"IO OK":t("ioBadge"),"T OK":t("trimBadge"),"E OK":t("ecoBadge"),"T Cooldown":t("cooldownBadge"),"T Skip":t("trimSkipBadge"),"Affinity OK":"Cores","Affinity Already":"Cores","Affinity Disabled":"Cores off","Affinity WouldLimit":"Cores preview","Wake":t("fastWake")};
+  let raw=String(value||"").trim();
+  let label=raw.replace("SkippedBelowThreshold","Skip").replace(/^Eco /,"E ").replace("Admin needed",t("adminNeededBadge"));
+  if(/^Profile\s+/i.test(label) || /^Perfil\s+/i.test(label)) return "";
+  if(/^Tier\s+/i.test(label)) return t("napLevelLabel")+": "+translateTierLabel(label.replace(/^Tier\s+/i,""));
+  const map={"P OK":t("cpuBadge"),"M OK":t("memoryBadge"),"IO OK":t("ioBadge"),"T OK":t("trimBadge"),"E OK":t("ecoBadge"),"T Cooldown":t("cooldownBadge"),"T Skip":t("trimSkipBadge"),"Affinity OK":t("coresLabel"),"Affinity Already":t("coresLabel"),"Affinity Disabled":t("coresOffLabel"),"Affinity WouldLimit":t("coresPreviewLabel"),"Wake":t("fastWake")};
   return map[label] || label;
-}
-function isPt(){ return String(currentLanguage||"").toLowerCase().startsWith("pt"); }
+}function isPt(){ return String(currentLanguage||"").toLowerCase().startsWith("pt"); }
 function policyTooltip(policy){
   const key=String(policy||"Auto").toLowerCase();
   const pt=isPt();
@@ -1199,25 +1282,31 @@ function metaBadges(row){
   const role=String(row.Role||"");
   const guard=String(row.Guard||"");
   const intent=String(row.Intent||"");
+  if(role && role!=="App") out.push('<b class="badge guard" title="'+esc(t("groupContext"))+'">'+esc(translateRoleLabel(role))+'</b>');
+  if(guard) out.push('<b class="badge cool" title="'+esc(badgeTooltip(guard,guard))+'">'+esc(formatGuardLabel(guard))+'</b>');
+  if(intent && intent!=="Desktop") out.push('<b class="badge balanced" title="'+esc(translateIntentKind(intent)+' '+(row.IntentConfidence||""))+'">'+esc(translateIntentKind(intent))+'</b>');
+  if(row.SwitchFastWake) out.push('<b class="badge light" title="'+esc(policyTooltip("Light"))+'">'+esc(t("fastWake"))+'</b>');
+  return out.join("");
+}
+function profileBadges(row){
+  const out=[];
   const behaviorConfidence=Number(row.BehaviorConfidence||0);
   const behaviorWakes=Number(row.BehaviorWakeCount||0);
   const behaviorBias=Number(row.BehaviorBias||0);
   const behaviorTier=String(row.BehaviorTier||"");
-  if(role && role!=="App") out.push('<b class="badge guard">'+esc(translateRoleLabel(role))+'</b>');
-  if(guard) out.push('<b class="badge cool">'+esc(formatGuardLabel(guard))+'</b>');
-  if(row.SwitchFastWake) out.push('<b class="badge light">'+esc(t("fastWake"))+'</b>');
-  if(intent && intent!=="Desktop") out.push('<b class="badge balanced">'+esc(translateIntentKind(intent))+' '+esc(row.IntentConfidence||"")+'</b>');
   if(behaviorConfidence>0){
     const klass=behaviorBias<0?"light":(behaviorBias>1?"deep":"balanced");
-    const label=behaviorBias<0?(t("behaviorGuardLabel")+(behaviorWakes>0?" "+behaviorWakes:"")):(t("behaviorLabel")+" "+(behaviorTier||behaviorConfidence));
-    out.push('<b class="badge '+klass+'" title="'+esc(badgeTooltip("Tier "+(behaviorTier||klass),label))+' | Behavior confidence '+esc(behaviorConfidence)+'">'+esc(label)+'</b>');
+    const tier=translateTierLabel(behaviorTier||klass);
+    const label=behaviorBias<0?t("behaviorGuardLabel"):(t("learnedProfileLabel")+": "+tier);
+    const detail=(behaviorWakes>0?" | wakes "+behaviorWakes:"")+" | "+t("groupProfile")+" "+behaviorConfidence;
+    out.push('<b class="badge '+klass+'" title="'+esc(badgeTooltip("Tier "+(behaviorTier||klass),label)+detail)+'">'+esc(label)+'</b>');
   }
   return out.join("");
-}
-function makePolicyButtons(row){
+}function makePolicyButtons(row){
   const wrap=document.createElement("span");
   wrap.className="policyButtons";
-  const policies=[["Auto","A"],["Protect","P"],["Light","L"],["Balanced","B"],["Deep","D"]];
+  wrap.setAttribute("data-label",t("groupPolicy"));
+  const policies=[["Auto",t("policyAutoShort")],["Protect",t("policyProtectShort")],["Light",t("policyLightShort")],["Balanced",t("policyBalancedShort")],["Deep",t("policyDeepShort")]];
   const current=String(row.Policy||"Auto");
   policies.forEach(([policy,label])=>{
     const btn=document.createElement("button");
@@ -1237,7 +1326,9 @@ function makePolicyButtons(row){
   return wrap;
 }
 function actionBadges(value){
-  return String(value || "").split("/").map(x=>x.trim()).filter(Boolean).slice(0,7).map(x=>{
+  return String(value || "").split("/").map(x=>x.trim()).filter(Boolean).map(x=>{
+    const label=cleanActionLabel(x);
+    if(!label) return "";
     const low=x.toLowerCase();
     let clsName="badge";
     if(low.indexOf("tier deep")===0) clsName+=" deep";
@@ -1247,13 +1338,13 @@ function actionBadges(value){
     else if(low.indexOf(" ok")>=0) clsName+=" ok";
     else if(low.indexOf("cooldown")>=0) clsName+=" cool";
     else if(low.indexOf("skip")>=0 || low.indexOf("disabled")>=0) clsName+=" skip";
-    let label=cleanActionLabel(x);
     return '<b class="'+clsName+'" title="'+esc(badgeTooltip(x,label))+'">'+esc(label)+'</b>';
-  }).join("");
+  }).filter(Boolean).slice(0,6).join("");
 }
 document.querySelectorAll(".locale").forEach(btn=>btn.addEventListener("click",()=>chooseLanguage(btn.dataset.lang)));
 if(window.chrome&&chrome.webview){ chrome.webview.addEventListener("message", e => smartNapUpdate(e.data)); }
-window.addEventListener("DOMContentLoaded",()=>{ currentLanguage=bestLanguage(navigator.language); applyI18n(); send("ready"); });
+function updateChromeCompact(){ const w=document.querySelector(".workspace"); document.body.classList.toggle("chromeCompact", !!w && w.scrollTop>42); }
+window.addEventListener("DOMContentLoaded",()=>{ currentLanguage=bestLanguage(navigator.language); applyI18n(); const w=document.querySelector(".workspace"); if(w){ w.addEventListener("scroll",updateChromeCompact,{passive:true}); updateChromeCompact(); } send("ready"); });
 </script>
 </body>
 </html>
