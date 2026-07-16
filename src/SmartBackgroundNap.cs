@@ -29,7 +29,7 @@ using Microsoft.Web.WebView2.Wpf;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.5.6";
+    private const string AppVersion = "0.5.7";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
@@ -5808,7 +5808,7 @@ internal static class SmartBackgroundNap
         <div><h2>Background apps under control</h2><p>Open apps stay quiet while your active window keeps priority.</p><div class='chips'><span class='chip'>CPU</span><span class='chip'>RAM</span><span class='chip'>EcoQoS</span><span class='chip'>Wake restore</span></div></div>
         <div class='control' id='control'><div class='engineHead'><h3 id='actionTitle'>Nap Engine</h3><span class='state' id='state'>READY</span></div><div class='detail' id='detail'>Waiting.</div><div class='engineStats'><div><small>Pass</small><b id='enginePass'>-</b></div><div><small>Next</small><b id='engineNext'>-</b></div><div><small>Event</small><b id='engineEvent'>-</b></div><div><small>UI</small><b id='engineBeat'>-</b></div></div><div class='bar'><i></i></div><div class='actions'><button class='btn primary' id='apply' onclick=""send('apply')"">Otimizar agora</button><button class='btn' id='motorBtn' onclick=""send('toggleMotor')"">Pausar motor</button><button class='btn' onclick=""send('restore')"">Restore</button></div></div>
       </section>
-      <section class='cards'><div class='card'><small>Auto mode</small><b id='autoCard'>-</b></div><div class='card'><small>Startup</small><b id='startupCard'>-</b></div><div class='card'><small>Last event</small><b id='lastCard'>-</b></div><div class='card'><small>Last result</small><b id='resultCard'>-</b></div></section>
+      <section class='cards'><div class='card'><small>Auto mode</small><b id='autoCard'>-</b></div><div class='card'><small>Managed apps</small><b id='managedCard'>-</b></div><div class='card'><small>Smart Learning</small><b id='learningCard'>-</b></div><div class='card'><small>Last event</small><b id='lastCard'>-</b></div><div class='card'><small>Last result</small><b id='resultCard'>-</b></div></section>
       <section class='live'><div class='panel'><h3>Live Manager</h3><div class='table'><div class='thead'><span>App</span><span>Score</span><span>Delta</span><span>CPU</span><span>Bursts</span><span>Action</span></div><div id='rows'></div></div><div class='status' id='managerStatus'>Waiting for score data.</div></div><div class='panel'><h3>Event Stream</h3><div class='feedbox' id='events'></div><div class='status'><button class='btn' onclick=""send('toggleStartup')"">Startup</button> <button class='btn' onclick=""send('safety')"">Safety</button> <button class='btn' onclick=""send('config')"">Config</button></div></div></section>
       <footer class='footer' id='creator'></footer>
     </main>
@@ -5824,7 +5824,7 @@ function smartNapUpdate(s){
  if(s.Logo){ document.getElementById('logo').src=s.Logo; }
  txt('version','v'+s.AppVersion); txt('creator',s.Creator); txt('actionTitle',s.Title); txt('detail',s.Detail); txt('state',s.RunState);
  txt('enginePass',s.Managed+' apps'); txt('engineNext',s.NextPass); txt('engineEvent',s.LastEventAge); txt('engineBeat',s.Heartbeat);
- txt('autoCard',s.AutoMode?'On':'Off'); txt('startupCard',s.Startup?'On':'Off'); txt('lastCard',s.LastRun); txt('resultCard',s.Result);
+ txt('autoCard',s.AutoMode?'On':'Off'); txt('managedCard',s.Managed+' apps'); txt('learningCard',s.Learning?'On':'Off'); txt('lastCard',s.LastRun); txt('resultCard',s.Result);
  txt('motorBtn',s.AutoMode?'Pausar motor':'Retomar motor'); txt('apply',s.CanStop?'Parar':'Otimizar agora');
  document.getElementById('apply').className=s.CanStop?'btn danger':'btn primary';
  cls('motor',s.AutoMode?'pill good':'pill warn'); txt('motor',s.AutoMode?'MOTOR ACTIVE':'MANUAL');
