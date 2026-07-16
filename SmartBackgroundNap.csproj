@@ -59,5 +59,6 @@
     <EmbeddedResource Include="assets\smart-nap-logo.ico" LogicalName="SmartBackgroundNap.Resources.icon_ico" />
     <EmbeddedResource Include="assets\smart-nap-logo-v2.png" LogicalName="SmartBackgroundNap.Resources.logo_png" />
     <EmbeddedResource Include="assets\smart-nap-hero-bg.png" LogicalName="SmartBackgroundNap.Resources.hero_png" />
+    <EmbeddedResource Include="assets\power\smart-nap-hone-base.pow" LogicalName="SmartBackgroundNap.Resources.power_hone_base_pow" />
   </ItemGroup>
 </Project>

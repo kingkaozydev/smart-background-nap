@@ -16,6 +16,8 @@ param(
 
     [switch]$NoTrimWorkingSet,
 
+    [switch]$Preview,
+
     [ValidateSet("Timestamp", "Latest", "None")]
     [string]$StateMode = "Timestamp",
 
@@ -60,6 +62,7 @@ $gameProfileStatePath = Join-Path $outDir "background-nap-game-profiles-latest.j
 $behaviorStatePath = Join-Path $outDir "background-nap-behavior-latest.json"
 $appPolicyStatePath = Join-Path $outDir "background-nap-app-policies.json"
 $radarStatePath = Join-Path $outDir "background-nap-radar-latest.json"
+$previewPath = Join-Path $outDir "background-nap-preview-latest.json"
 
 $priorityClass = [string]$nap.PriorityClass
 $targetPriorityClass = [System.Enum]::Parse([System.Diagnostics.ProcessPriorityClass], $priorityClass, $true)
@@ -118,6 +121,15 @@ $downloadLauncherGuard = $true
 $mediaCallProtection = $true
 $memoryPressureGovernor = $true
 $userAppPolicy = $true
+$sessionMode = "Auto"
+$adaptiveExclusions = $true
+$streamerAutoDetect = $true
+$streamerCpuContainment = $true
+$streamerReserveLogicalProcessors = 2
+$streamerBackgroundAffinityPercent = 35
+$streamerBrowserHelperGuard = $true
+$streamerBrowserHelperCpuThreshold = 3.0
+$streamerBrowserHelperAffinityPercent = 45
 $moderateFreeMemoryMB = 8192.0
 $elevatedFreeMemoryMB = 6144.0
 $criticalFreeMemoryMB = 3072.0
@@ -141,12 +153,18 @@ $realtimeFriendlyDefaults = @("Discord", "Spotify", "WhatsApp", "Telegram", "Sla
 $realtimeFriendlyConfigured = $null
 $knownLauncherDefaults = @("steam", "steamwebhelper", "EpicGamesLauncher", "EpicWebHelper", "Battle.net", "EADesktop", "EABackgroundService", "RiotClientServices", "RiotClientUx", "UbisoftConnect", "upc", "GalaxyClient", "GOG Galaxy", "XboxPcApp")
 $knownCommunicationDefaults = @("Discord", "Teams", "Slack", "Zoom", "Telegram", "WhatsApp")
-$knownMediaDefaults = @("Spotify", "vlc", "mpv", "obs64", "obs32", "Streamlabs Desktop")
+$knownMediaDefaults = @("Spotify", "vlc", "mpv")
+$knownStreamingDefaults = @("obs64", "obs32", "Streamlabs Desktop", "Streamlabs", "TikTok LIVE Studio", "TikTokLiveStudio", "TikTokStudio", "PRISMLiveStudio", "XSplit.Core", "XSplitBroadcaster", "vMix64", "vMix", "TwitchStudio", "NVIDIA Broadcast", "ElgatoCameraHub")
+$streamerBrowserHelperNameDefaults = @("obs-browser-page", "CefSharp.BrowserSubprocess", "QtWebEngineProcess", "msedgewebview2", "chrome", "msedge")
+$streamerBrowserHelperPathDefaults = @("\obs-studio\", "\Streamlabs\", "\TikTok LIVE Studio\", "\TikTokLiveStudio\", "\TikTokStudio\", "\PRISMLiveStudio\", "\Twitch Studio\", "\XSplit\", "\vMix\")
 $knownGamePathDefaults = @("\steamapps\common\", "\XboxGames\", "\Epic Games\", "\Riot Games\", "\Battle.net\", "\GOG Galaxy\Games\")
 $knownLauncherConfigured = $null
 $knownCommunicationConfigured = $null
 $knownMediaConfigured = $null
+$knownStreamingConfigured = $null
 $knownGamePathConfigured = $null
+$streamerBrowserHelperNamesConfigured = $null
+$streamerBrowserHelperPathConfigured = $null
 
 if ($smart) {
     if ($smart.PSObject.Properties.Name -contains "ForegroundWakeRestore") { $smartForegroundWake = [bool]$smart.ForegroundWakeRestore }
@@ -191,6 +209,15 @@ if ($smart) {
     if ($smart.PSObject.Properties.Name -contains "MediaCallProtection") { $mediaCallProtection = [bool]$smart.MediaCallProtection }
     if ($smart.PSObject.Properties.Name -contains "MemoryPressureGovernor") { $memoryPressureGovernor = [bool]$smart.MemoryPressureGovernor }
     if ($smart.PSObject.Properties.Name -contains "UserAppPolicy") { $userAppPolicy = [bool]$smart.UserAppPolicy }
+    if ($smart.PSObject.Properties.Name -contains "SessionMode") { $sessionMode = [string]$smart.SessionMode }
+    if ($smart.PSObject.Properties.Name -contains "AdaptiveExclusionsEnabled") { $adaptiveExclusions = [bool]$smart.AdaptiveExclusionsEnabled }
+    if ($smart.PSObject.Properties.Name -contains "StreamerAutoDetect") { $streamerAutoDetect = [bool]$smart.StreamerAutoDetect }
+    if ($smart.PSObject.Properties.Name -contains "StreamerCpuContainment") { $streamerCpuContainment = [bool]$smart.StreamerCpuContainment }
+    if ($smart.PSObject.Properties.Name -contains "StreamerReserveLogicalProcessors") { $streamerReserveLogicalProcessors = [int]$smart.StreamerReserveLogicalProcessors }
+    if ($smart.PSObject.Properties.Name -contains "StreamerBackgroundAffinityPercent") { $streamerBackgroundAffinityPercent = [int]$smart.StreamerBackgroundAffinityPercent }
+    if ($smart.PSObject.Properties.Name -contains "StreamerBrowserHelperGuard") { $streamerBrowserHelperGuard = [bool]$smart.StreamerBrowserHelperGuard }
+    if ($smart.PSObject.Properties.Name -contains "StreamerBrowserHelperCpuThreshold") { $streamerBrowserHelperCpuThreshold = [double]$smart.StreamerBrowserHelperCpuThreshold }
+    if ($smart.PSObject.Properties.Name -contains "StreamerBrowserHelperAffinityPercent") { $streamerBrowserHelperAffinityPercent = [int]$smart.StreamerBrowserHelperAffinityPercent }
     if ($smart.PSObject.Properties.Name -contains "ModerateFreeMemoryMB") { $moderateFreeMemoryMB = [double]$smart.ModerateFreeMemoryMB }
     if ($smart.PSObject.Properties.Name -contains "ElevatedFreeMemoryMB") { $elevatedFreeMemoryMB = [double]$smart.ElevatedFreeMemoryMB }
     if ($smart.PSObject.Properties.Name -contains "CriticalFreeMemoryMB") { $criticalFreeMemoryMB = [double]$smart.CriticalFreeMemoryMB }
@@ -214,9 +241,69 @@ if ($smart) {
     if ($smart.PSObject.Properties.Name -contains "KnownLauncherProcessNames") { $knownLauncherConfigured = @($smart.KnownLauncherProcessNames) }
     if ($smart.PSObject.Properties.Name -contains "KnownCommunicationProcessNames") { $knownCommunicationConfigured = @($smart.KnownCommunicationProcessNames) }
     if ($smart.PSObject.Properties.Name -contains "KnownMediaProcessNames") { $knownMediaConfigured = @($smart.KnownMediaProcessNames) }
+    if ($smart.PSObject.Properties.Name -contains "KnownStreamingProcessNames") { $knownStreamingConfigured = @($smart.KnownStreamingProcessNames) }
+    if ($smart.PSObject.Properties.Name -contains "StreamerBrowserHelperProcessNames") { $streamerBrowserHelperNamesConfigured = @($smart.StreamerBrowserHelperProcessNames) }
+    if ($smart.PSObject.Properties.Name -contains "StreamerBrowserHelperPathFragments") { $streamerBrowserHelperPathConfigured = @($smart.StreamerBrowserHelperPathFragments) }
     if ($smart.PSObject.Properties.Name -contains "KnownGamePathFragments") { $knownGamePathConfigured = @($smart.KnownGamePathFragments) }
     if ($smart.PSObject.Properties.Name -contains "NapScore") { $smartNapScore = [bool]$smart.NapScore }
 }
+$sessionMode = ([string]$sessionMode).Trim()
+if ([string]::IsNullOrWhiteSpace($sessionMode)) { $sessionMode = "Auto" }
+switch -Regex ($sessionMode) {
+    "^(Gaming|Game|Jogo|Jogos)$" { $sessionMode = "Gaming"; break }
+    "^(Work|Trabalho|Creator|Create)$" { $sessionMode = "Work"; break }
+    "^(Focus|Foco|DeepFocus)$" { $sessionMode = "Focus"; break }
+    "^(Streamer|Stream|Live|LiveStream|Broadcast|Transmissao|Transmissão)$" { $sessionMode = "Streamer"; break }
+    default { $sessionMode = "Auto"; break }
+}
+switch ($sessionMode) {
+    "Gaming" {
+        $maxTargetsPerPass = [math]::Min($maxTargetsPerPass, 64)
+        $highCpuThreshold = [math]::Max($highCpuThreshold, 10.0)
+        $fullscreenHighCpuThreshold = [math]::Max($fullscreenHighCpuThreshold, 12.0)
+        $trimCooldownMinutes = [math]::Max($trimCooldownMinutes, 12)
+        $autoProtectForegroundMinutes = [math]::Max($autoProtectForegroundMinutes, 3)
+        $lightNapTrimMinimumMB = [math]::Max($lightNapTrimMinimumMB, 260.0)
+        $deepNapMaxCpuPercent = [math]::Min($deepNapMaxCpuPercent, 0.30)
+    }
+    "Work" {
+        $maxTargetsPerPass = [math]::Min($maxTargetsPerPass, 72)
+        $autoProtectForegroundMinutes = [math]::Max($autoProtectForegroundMinutes, 3)
+        $foregroundSwitchProtectMinutes = [math]::Max($foregroundSwitchProtectMinutes, 6)
+        $lightNapTrimMinimumMB = [math]::Max($lightNapTrimMinimumMB, 240.0)
+        $balancedNapMaxCpuPercent = [math]::Max($balancedNapMaxCpuPercent, 3.0)
+    }
+    "Focus" {
+        $maxTargetsPerPass = [math]::Max($maxTargetsPerPass, 96)
+        $trimCooldownMinutes = [math]::Min($trimCooldownMinutes, 8)
+        $deepNapMinimumMB = [math]::Min($deepNapMinimumMB, 130.0)
+        $balancedNapMinimumMB = [math]::Min($balancedNapMinimumMB, 70.0)
+        $deepNapMaxCpuPercent = [math]::Max($deepNapMaxCpuPercent, 0.55)
+        $deepNapTrimMinimumMB = [math]::Min($deepNapTrimMinimumMB, 36.0)
+    }
+    "Streamer" {
+        $maxTargetsPerPass = [math]::Max($maxTargetsPerPass, 96)
+        $trimCooldownMinutes = [math]::Min($trimCooldownMinutes, 6)
+        $autoProtectForegroundMinutes = [math]::Max($autoProtectForegroundMinutes, 4)
+        $foregroundSwitchProtectMinutes = [math]::Max($foregroundSwitchProtectMinutes, 8)
+        $highCpuThreshold = [math]::Max($highCpuThreshold, 14.0)
+        $fullscreenHighCpuThreshold = [math]::Max($fullscreenHighCpuThreshold, 16.0)
+        $deepNapMinimumMB = [math]::Min($deepNapMinimumMB, 110.0)
+        $balancedNapMinimumMB = [math]::Min($balancedNapMinimumMB, 60.0)
+        $deepNapMaxCpuPercent = [math]::Max($deepNapMaxCpuPercent, 0.95)
+        $balancedNapMaxCpuPercent = [math]::Max($balancedNapMaxCpuPercent, 3.5)
+        $balancedNapTrimMinimumMB = [math]::Min($balancedNapTrimMinimumMB, 56.0)
+        $deepNapTrimMinimumMB = [math]::Min($deepNapTrimMinimumMB, 30.0)
+        $behaviorDeepConfidence = [math]::Min($behaviorDeepConfidence, 66)
+    }
+}
+if ($streamerReserveLogicalProcessors -lt 1) { $streamerReserveLogicalProcessors = 1 }
+if ($streamerBackgroundAffinityPercent -lt 15) { $streamerBackgroundAffinityPercent = 15 }
+if ($streamerBackgroundAffinityPercent -gt 75) { $streamerBackgroundAffinityPercent = 75 }
+if ($streamerBrowserHelperCpuThreshold -lt 1.0) { $streamerBrowserHelperCpuThreshold = 1.0 }
+if ($streamerBrowserHelperCpuThreshold -gt 25.0) { $streamerBrowserHelperCpuThreshold = 25.0 }
+if ($streamerBrowserHelperAffinityPercent -lt 25) { $streamerBrowserHelperAffinityPercent = 25 }
+if ($streamerBrowserHelperAffinityPercent -gt 75) { $streamerBrowserHelperAffinityPercent = 75 }
 if ($autoProtectForegroundMinutes -lt 1) { $autoProtectForegroundMinutes = 1 }
 if ($autoProtectHighCpuMinutes -lt 1) { $autoProtectHighCpuMinutes = 1 }
 if ($burstWindowMinutes -lt 1) { $burstWindowMinutes = 1 }
@@ -277,6 +364,18 @@ $knownCommunicationSource = if ($knownCommunicationConfigured -ne $null) { $know
 $knownMediaNames = New-Object "System.Collections.Generic.HashSet[string]" ([System.StringComparer]::OrdinalIgnoreCase)
 $knownMediaSource = if ($knownMediaConfigured -ne $null) { $knownMediaConfigured } else { $knownMediaDefaults }
 @($knownMediaSource) | Where-Object { $_ } | ForEach-Object { [void]$knownMediaNames.Add([string]$_) }
+
+$knownStreamingNames = New-Object "System.Collections.Generic.HashSet[string]" ([System.StringComparer]::OrdinalIgnoreCase)
+$knownStreamingSource = if ($knownStreamingConfigured -ne $null) { $knownStreamingConfigured } else { $knownStreamingDefaults }
+@($knownStreamingSource) | Where-Object { $_ } | ForEach-Object { [void]$knownStreamingNames.Add([string]$_) }
+
+$streamerBrowserHelperNames = New-Object "System.Collections.Generic.HashSet[string]" ([System.StringComparer]::OrdinalIgnoreCase)
+$streamerBrowserHelperNameSource = if ($streamerBrowserHelperNamesConfigured -ne $null) { $streamerBrowserHelperNamesConfigured } else { $streamerBrowserHelperNameDefaults }
+@($streamerBrowserHelperNameSource) | Where-Object { $_ } | ForEach-Object { [void]$streamerBrowserHelperNames.Add([string]$_) }
+
+$streamerBrowserHelperPathFragments = @()
+$streamerBrowserHelperPathSource = if ($streamerBrowserHelperPathConfigured -ne $null) { $streamerBrowserHelperPathConfigured } else { $streamerBrowserHelperPathDefaults }
+@($streamerBrowserHelperPathSource) | Where-Object { $_ } | ForEach-Object { $streamerBrowserHelperPathFragments += [string]$_ }
 
 $knownGamePathFragments = @()
 $knownGamePathSource = if ($knownGamePathConfigured -ne $null) { $knownGamePathConfigured } else { $knownGamePathDefaults }
@@ -756,6 +855,19 @@ function Test-PathContainsFragment {
     return $false
 }
 
+function Test-StreamerBrowserHelper {
+    param(
+        [string]$ProcessName,
+        [string]$Path
+    )
+
+    if (-not $streamerBrowserHelperGuard) { return $false }
+    if (Test-NameInSet -Set $knownStreamingNames -Name $ProcessName) { return $false }
+    if (-not (Test-NameInSet -Set $streamerBrowserHelperNames -Name $ProcessName)) { return $false }
+    if ($ProcessName -ieq "obs-browser-page") { return $true }
+    if (Test-PathContainsFragment -Path $Path -Fragments $streamerBrowserHelperPathFragments) { return $true }
+    return $false
+}
 function Normalize-AppIdentityKey {
     param([string]$Key)
     if ([string]::IsNullOrWhiteSpace($Key)) { return "" }
@@ -816,6 +928,8 @@ function Get-ProcessRole {
 
     if (Test-NameInSet -Set $knownLauncherNames -Name $ProcessName) { return "Launcher" }
     if (Test-NameInSet -Set $knownCommunicationNames -Name $ProcessName) { return "Communication" }
+    if (Test-NameInSet -Set $knownStreamingNames -Name $ProcessName) { return "Streaming" }
+    if (Test-StreamerBrowserHelper -ProcessName $ProcessName -Path $Path) { return "StreamHelper" }
     if (Test-NameInSet -Set $knownMediaNames -Name $ProcessName) { return "Media" }
     if (Test-PathContainsFragment -Path $Path -Fragments $knownGamePathFragments) { return "GameCandidate" }
     if ($ProcessName -match '^(chrome|msedge|firefox|zen|brave|opera|vivaldi)$') { return "Browser" }
@@ -1557,14 +1671,18 @@ function Get-IntentContext {
             $signals += "known-game-path"
             $confidence += 38
             $kind = "Gaming"
-        } elseif ($fgRole -notin @("Browser", "Communication", "Media") -and -not (Test-PathContainsFragment -Path $path -Fragments @("\Windows\", "\Program Files\WindowsApps\"))) {
+        } elseif ($fgRole -notin @("Browser", "Communication", "Media", "Streaming") -and -not (Test-PathContainsFragment -Path $path -Fragments @("\Windows\", "\Program Files\WindowsApps\"))) {
             $signals += "exclusive-foreground"
             $confidence += 24
             $kind = "Gaming"
         }
     }
 
-    if ($fgRole -in @("Communication", "Media")) {
+    if ($fgRole -eq "Streaming") {
+        $signals += "foreground-streaming"
+        $confidence = [math]::Max($confidence, 88)
+        $kind = "Streaming"
+    } elseif ($fgRole -in @("Communication", "Media")) {
         $signals += ("foreground-" + $fgRole.ToLowerInvariant())
         $confidence = [math]::Max($confidence, 72)
         $kind = "MediaCall"
@@ -1572,12 +1690,33 @@ function Get-IntentContext {
 
     $launcherActivity = 0
     $mediaActivity = 0
+    $streamingActivity = 0
+    $streamingCpu = 0.0
+    $streamingName = ""
     foreach ($p in @($Processes)) {
         $role = Get-ProcessRole -ProcessName $p.ProcessName -Path (Get-ProcessPathText -Process $p)
         $cpu = 0.0
         if ($CpuMap -and $CpuMap.ContainsKey([int]$p.Id)) { $cpu = [double]$CpuMap[[int]$p.Id] }
         if ($role -eq "Launcher" -and $cpu -ge 0.35) { $launcherActivity++ }
         if ($role -in @("Communication", "Media") -and $cpu -ge 0.15) { $mediaActivity++ }
+        if ($role -eq "Streaming") {
+            $streamingActivity++
+            $streamingCpu += $cpu
+            if ([string]::IsNullOrWhiteSpace($streamingName)) { $streamingName = [string]$p.ProcessName }
+        }
+    }
+    if ($streamerAutoDetect -and $streamingActivity -gt 0) {
+        $previousKind = $kind
+        $kind = "Streaming"
+        $name = if ([string]::IsNullOrWhiteSpace($streamingName)) { $name } else { $streamingName }
+        $signals += "streaming-app"
+        if ($previousKind -eq "Gaming") { $signals += "game-plus-stream" }
+        $confidence = [math]::Max($confidence, [math]::Min(100, 74 + ($streamingActivity * 4) + [int]([math]::Min(12.0, $streamingCpu * 2.0))))
+    }
+    if ($sessionMode -eq "Streamer") {
+        $kind = "Streaming"
+        $signals += "session-streamer"
+        $confidence = [math]::Max($confidence, 86)
     }
     if ($kind -eq "Desktop" -and $launcherActivity -gt 0) {
         $kind = "DownloadInstall"
@@ -1595,6 +1734,10 @@ function Get-IntentContext {
         if ([string]$Pressure.Level -eq "Moderate") { $confidence = [math]::Max($confidence, 56) }
         if ([string]$Pressure.Level -eq "Elevated") { $confidence = [math]::Max($confidence, 70) }
         if ([string]$Pressure.Level -eq "Critical") { $confidence = [math]::Max($confidence, 84) }
+    }
+    if ($kind -eq "Streaming" -and $confidence -lt 62) {
+        $kind = "Desktop"
+        $signals += "streaming-confidence-below-threshold"
     }
     if ($kind -eq "Gaming" -and $confidence -lt $intentMinConfidence) {
         $kind = "Desktop"
@@ -1633,7 +1776,15 @@ function Get-GuardDecision {
     $reason = ""
     $confidence = 0
 
-    if ($mediaCallProtection -and $Role -in @("Communication", "Media")) {
+    if ($Role -eq "Streaming") {
+        $protect = $true
+        $reason = "StreamGuard"
+        $confidence = 88
+        if ($isForeground) { $confidence += 8 }
+        if ($CpuPercent -ge 0.5) { $confidence += 4 }
+    }
+
+    if (-not $protect -and $mediaCallProtection -and $Role -in @("Communication", "Media")) {
         if ($isForeground -or $fastWake -or $CpuPercent -ge 0.15 -or $BurstCount -gt 0) {
             $protect = $true
             $reason = if ($Role -eq "Communication") { "MediaCallGuard" } else { "MediaGuard" }
@@ -1644,6 +1795,19 @@ function Get-GuardDecision {
         }
     }
 
+    if (-not $protect -and $adaptiveExclusions -and $behaviorEngine) {
+        $behaviorProfile = Get-BehaviorProfile -ProcessName $ProcessName -Path $Path
+        if ($behaviorProfile -and [int]$behaviorProfile.Confidence -ge $behaviorLightConfidence) {
+            $wakeHeavy = [int]$behaviorProfile.WakeCount -ge [math]::Max(3, $foregroundSwitchMinWakes)
+            $refaultHeavy = [double]$behaviorProfile.AvgRefaultMB -ge $behaviorRefaultPenaltyMB
+            $lightBias = [int]$behaviorProfile.AggressionBias -lt 0
+            if (($wakeHeavy -or $refaultHeavy) -and $lightBias -and $CpuPercent -lt 1.5) {
+                $protect = $true
+                $reason = "AdaptiveExclusion"
+                $confidence = [math]::Min(100, [int]$behaviorProfile.Confidence + 8)
+            }
+        }
+    }
     if (-not $protect -and $downloadLauncherGuard -and $Role -eq "Launcher") {
         if ($CpuPercent -ge 0.35 -or $BurstCount -gt 0 -or $fastWake) {
             $protect = $true
@@ -2090,6 +2254,17 @@ function Get-CandidateWeight {
     if ($perGameProfiles -and [int]$Row.GameAggressionBias -gt 0 -and [string]$script:currentIntent.Kind -eq "Gaming") {
         $weight *= (1.0 + ([int]$Row.GameAggressionBias * 0.12))
     }
+    if (($sessionMode -eq "Streamer") -or ($script:currentIntent -and [string]$script:currentIntent.Kind -eq "Streaming")) {
+        if ([string]$Row.Role -in @("Streaming", "Communication", "Media", "GameCandidate")) {
+            $weight *= 0.20
+        } elseif ([string]$Row.Role -eq "StreamHelper") {
+            if ([double]$Row.CpuPercent -ge $streamerBrowserHelperCpuThreshold -or [int]$Row.BurstCount -gt 0) { $weight *= 1.38 } else { $weight *= 1.06 }
+        } elseif ([string]$Row.Role -eq "Browser") {
+            $weight *= 0.92
+        } elseif (-not $Row.GuardReason -and -not [bool]$Row.SwitchFastWake) {
+            $weight *= 1.34
+        }
+    }
     return [math]::Round($weight, 3)
 }
 
@@ -2157,6 +2332,30 @@ function Get-NapPolicy {
         $tier = "Light"
         $reason = if ([string]$Row.BehaviorReason) { [string]$Row.BehaviorReason } else { "behavior-guard" }
         $policySource = "behavior"
+    } elseif ((($sessionMode -eq "Streamer") -or ($script:currentIntent -and [string]$script:currentIntent.Kind -eq "Streaming")) -and [string]$Row.Role -eq "StreamHelper" -and -not [bool]$Row.SwitchFastWake -and -not $Row.GuardReason) {
+        if ([double]$Row.CpuPercent -ge $streamerBrowserHelperCpuThreshold -or [int]$Row.BurstCount -gt 0) {
+            $tier = "Balanced"
+            $reason = "stream-helper-cpu-guard"
+        } elseif ([double]$Row.WorkingSetMB -ge $balancedNapMinimumMB) {
+            $tier = "Light"
+            $reason = "stream-helper-watch"
+        } else {
+            $tier = "Light"
+            $reason = "stream-helper-small"
+        }
+        $policySource = "streamer"
+    } elseif ((($sessionMode -eq "Streamer") -or ($script:currentIntent -and [string]$script:currentIntent.Kind -eq "Streaming")) -and -not [bool]$Row.SwitchFastWake -and -not $Row.GuardReason -and ([string]$Row.Role -notin @("Streaming", "Communication", "Media", "GameCandidate", "Launcher", "Browser", "StreamHelper")) -and -not ($realtimeFriendlyNames.Contains([string]$Row.ProcessName))) {
+        if ([double]$Row.WorkingSetMB -ge $deepMinimum -and [double]$Row.CpuPercent -le [math]::Max(1.2, $deepCpuLimit) -and [int]$Row.BurstCount -eq 0) {
+            $tier = "Deep"
+            $reason = "streamer-idle-containment"
+        } elseif ([double]$Row.WorkingSetMB -lt 48.0 -and [double]$Row.CpuPercent -lt 1.0) {
+            $tier = "Light"
+            $reason = "streamer-small-background"
+        } else {
+            $tier = "Balanced"
+            $reason = "streamer-background-containment"
+        }
+        $policySource = "streamer"
     } elseif ($behaviorEngine -and [int]$Row.BehaviorObservations -ge $behaviorMinObservations -and [int]$Row.BehaviorConfidence -ge $behaviorDeepConfidence -and [int]$Row.BehaviorBias -ge 2 -and [double]$Row.CpuPercent -le [math]::Max(1.0, $deepCpuLimit) -and -not [bool]$Row.SwitchFastWake -and -not $Row.GuardReason -and -not ($realtimeFriendlyNames.Contains([string]$Row.ProcessName))) {
         $tier = "Deep"
         $reason = if ([string]$Row.BehaviorReason) { [string]$Row.BehaviorReason } else { "behavior-proven-idle" }
@@ -2202,6 +2401,99 @@ function Get-NapPolicy {
     }
 }
 
+function Get-ProcessAffinityText {
+    param([System.Diagnostics.Process]$Process)
+    try {
+        return ([UInt64]$Process.ProcessorAffinity.ToInt64()).ToString([System.Globalization.CultureInfo]::InvariantCulture)
+    } catch {
+        return ""
+    }
+}
+
+function Convert-AffinityTextToInt64 {
+    param([string]$Value)
+    if ([string]::IsNullOrWhiteSpace($Value)) { return $null }
+    try {
+        $raw = [UInt64]::Parse($Value, [System.Globalization.CultureInfo]::InvariantCulture)
+        if ($raw -eq 0 -or $raw -gt [UInt64][Int64]::MaxValue) { return $null }
+        return [Int64]$raw
+    } catch {
+        return $null
+    }
+}
+
+function Get-StreamerAffinityMask {
+    param([int]$Percent = 0)
+
+    if (-not $streamerCpuContainment) { return [UInt64]0 }
+    if ($logicalProcessorCount -lt 4 -or $logicalProcessorCount -gt 62) { return [UInt64]0 }
+    $percentToUse = if ($Percent -gt 0) { $Percent } else { $streamerBackgroundAffinityPercent }
+    if ($percentToUse -lt 15) { $percentToUse = 15 }
+    if ($percentToUse -gt 75) { $percentToUse = 75 }
+    $desired = [int][math]::Floor([double]$logicalProcessorCount * ([double]$percentToUse / 100.0))
+    if ($desired -lt 1) { $desired = 1 }
+    $maxAllowed = [math]::Max(1, $logicalProcessorCount - [int]$streamerReserveLogicalProcessors)
+    if ($desired -gt $maxAllowed) { $desired = $maxAllowed }
+    if ($desired -ge $logicalProcessorCount) { return [UInt64]0 }
+    [UInt64]$mask = 0
+    for ($i = 0; $i -lt $desired; $i++) {
+        $mask = $mask -bor ([UInt64]1 -shl $i)
+    }
+    return $mask
+}
+
+function Test-StreamerAffinityCandidate {
+    param(
+        [object]$Row,
+        [object]$Policy
+    )
+    if (-not $streamerCpuContainment) { return $false }
+    $streamingPressure = ($sessionMode -eq "Streamer") -or ($script:currentIntent -and [string]$script:currentIntent.Kind -eq "Streaming")
+    if (-not $streamingPressure) { return $false }
+    if (-not $Policy -or [string]$Policy.Tier -eq "Light") { return $false }
+    if ($Row.GuardReason -or [bool]$Row.SwitchFastWake) { return $false }
+    if ([string]$Row.AppPolicy -in @("Protect", "Light")) { return $false }
+    if ($realtimeFriendlyNames.Contains([string]$Row.ProcessName)) { return $false }
+    if ([string]$Row.Role -eq "StreamHelper") {
+        return ([double]$Row.CpuPercent -ge $streamerBrowserHelperCpuThreshold -or [int]$Row.BurstCount -gt 0)
+    }
+    if ([string]$Row.Role -in @("Streaming", "Communication", "Media", "GameCandidate", "Launcher", "Browser")) { return $false }
+    if ([double]$Row.CpuPercent -gt 8.0) { return $false }
+    return $true
+}
+
+function Set-ProcessAffinityMask {
+    param(
+        [System.Diagnostics.Process]$Process,
+        [UInt64]$Mask
+    )
+    if ($Mask -le 0) { return "Disabled" }
+    try {
+        $target = [Int64]$Mask
+        $current = [UInt64]$Process.ProcessorAffinity.ToInt64()
+        if ($current -eq $Mask) { return "Already" }
+        $Process.ProcessorAffinity = [IntPtr]$target
+        return "OK"
+    } catch {
+        return "Error: $($_.Exception.Message)"
+    }
+}
+
+function Restore-ProcessAffinityFromText {
+    param(
+        [System.Diagnostics.Process]$Process,
+        [string]$Value
+    )
+    $target = Convert-AffinityTextToInt64 -Value $Value
+    if ($target -eq $null) { return "Disabled" }
+    try {
+        $Process.ProcessorAffinity = [IntPtr]$target
+        return "OK"
+    } catch {
+        return "Error: $($_.Exception.Message)"
+    }
+}
+
 function Get-SkipReason {
     param(
         [System.Diagnostics.Process]$Process,
@@ -2211,14 +2503,15 @@ function Get-SkipReason {
         [double]$CpuProtectThreshold,
         [string]$Path,
         [object]$AppPolicy,
-        [object]$GuardDecision
+        [object]$GuardDecision,
+        [string]$Role
     )
 
     if ($Process.Id -eq $currentPid) { return "Self" }
     if ($skipSessionZero -and $Process.SessionId -eq 0) { return "Session0Service" }
     if ($Process.SessionId -ne $currentSessionId) { return "OtherSession" }
     if ($systemNames.Contains($Process.ProcessName)) { return "SystemProcess" }
-    if ($protectedNames.Contains($Process.ProcessName)) { return "ProtectedTweakerOrTool" }
+    if ($protectedNames.Contains($Process.ProcessName) -and ([string]$Role -ne "StreamHelper")) { return "ProtectedTweakerOrTool" }
     if ($skipForegroundName -and $Foreground.ProcessName -and $Process.ProcessName -ieq $Foreground.ProcessName) { return "ForegroundApp" }
     if ($AppPolicy -and [string]$AppPolicy.Policy -eq "Protect") { return "UserProtectPolicy" }
     if ($GuardDecision -and [bool]$GuardDecision.Protect) { return [string]$GuardDecision.Reason }
@@ -2228,7 +2521,11 @@ function Get-SkipReason {
     if (-not $path) { return "NoAccessiblePath" }
 
     if (Test-TemporaryProtected -Map $ProtectMap -Process $Process -Path $path) { return "TemporaryActiveApp" }
-    if ($skipHighCpu -and $CpuPercent -ge $CpuProtectThreshold) { return "ActiveCpu" }
+    if ($skipHighCpu -and $CpuPercent -ge $CpuProtectThreshold) {
+        $streamingPressure = ($sessionMode -eq "Streamer") -or ($script:currentIntent -and [string]$script:currentIntent.Kind -eq "Streaming")
+        $safeToContainHotBackground = $streamingPressure -and (([string]$Role -eq "StreamHelper") -or ($Role -notin @("Streaming", "Communication", "Media", "GameCandidate", "Launcher", "Browser")))
+        if (-not $safeToContainHotBackground) { return "ActiveCpu" }
+    }
 
     foreach ($fragment in $protectedPathFragments) {
         if ($path.IndexOf($fragment, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
@@ -2334,7 +2631,7 @@ function Get-BackgroundProcessRows {
         try { $handleCount = [int]$p.HandleCount } catch { $handleCount = 0 }
         try { $threadCount = @($p.Threads).Count } catch { $threadCount = 0 }
 
-        if ($path -and $smartAutoProtect -and $skipHighCpu -and $cpuPercent -ge $effectiveHighCpuThreshold) {
+        if ($path -and $smartAutoProtect -and $skipHighCpu -and $cpuPercent -ge $effectiveHighCpuThreshold -and $role -ne "StreamHelper") {
             Add-TemporaryProtection -Map $protectMap -Process $p -Path $path -Reason "ActiveCpu" -Minutes $autoProtectHighCpuMinutes
         }
         if ($path -and $smartBurstWatcher -and $p.Id -ne $foreground.Id -and $cpuPercent -ge $burstCpuThreshold -and $cpuPercent -lt $effectiveHighCpuThreshold) {
@@ -2343,7 +2640,7 @@ function Get-BackgroundProcessRows {
 
         $burstCount = if ($path) { Get-BurstCount -Map $burstMap -Process $p -Path $path } else { 0 }
         $guardDecision = Get-GuardDecision -ProcessName $p.ProcessName -Path $path -Role $role -CpuPercent $cpuPercent -BurstCount $burstCount -Foreground $foreground -SwitchProfile $switchProfile
-        $skip = Get-SkipReason -Process $p -Foreground $foreground -CpuPercent $cpuPercent -ProtectMap $protectMap -CpuProtectThreshold $effectiveHighCpuThreshold -Path $path -AppPolicy $appPolicy -GuardDecision $guardDecision
+        $skip = Get-SkipReason -Process $p -Foreground $foreground -CpuPercent $cpuPercent -ProtectMap $protectMap -CpuProtectThreshold $effectiveHighCpuThreshold -Path $path -AppPolicy $appPolicy -GuardDecision $guardDecision -Role $role
         $learningProfile = $null
         if ($smartLearning) {
             $learningKey = Get-LearningKeyFromText -ProcessName $p.ProcessName -Path $path
@@ -2358,6 +2655,7 @@ function Get-BackgroundProcessRows {
             SkipReason = $skip
             PriorityClass = Get-ProcessPriorityText -Process $p
             IoPriority = Get-ProcessIoPriorityText -Process $p
+            ProcessorAffinity = Get-ProcessAffinityText -Process $p
             WorkingSetMB = [math]::Round($p.WorkingSet64 / 1MB, 1)
             PrivateMemoryMB = $privateMemoryMB
             HandleCount = $handleCount
@@ -2428,6 +2726,7 @@ function New-StateSnapshot {
                 ProcessName = $_.ProcessName
                 PriorityClass = $_.PriorityClass
                 IoPriority = $_.IoPriority
+                ProcessorAffinity = $_.ProcessorAffinity
                 WorkingSetMB = $_.WorkingSetMB
                 Path = $_.Path
             }
@@ -2482,7 +2781,9 @@ function Write-ApplySummaryLog {
     if ($intentEngine -and $script:currentIntent) {
         $intentText = " intent={0} confidence={1}" -f ([string]$script:currentIntent.Kind), ([int]$script:currentIntent.Confidence)
     }
-    $line = "{0} action=apply targets={1} processes={2} beforeMB={3} afterMB={4} deltaMB={5} light={6} balanced={7} deep={8} trimmed={9} cooldown={10} fullscreen={11}{12}{13}{14}{15}" -f (Get-Date).ToString("s"), $count, $processCount, ([math]::Round($before, 1)), ([math]::Round($after, 1)), ([math]::Round($delta, 1)), $light, $balanced, $deep, $trimmed, $cooldown, ([string]$fullscreen).ToLowerInvariant(), $topText, $learningText, $behaviorText, $intentText
+    $actionName = if ($script:previewPassActive) { "preview" } else { "apply" }
+    $modeText = " mode={0} adaptiveExclusions={1}" -f $sessionMode, ([string]$adaptiveExclusions).ToLowerInvariant()
+    $line = "{0} action={16} targets={1} processes={2} beforeMB={3} afterMB={4} deltaMB={5} light={6} balanced={7} deep={8} trimmed={9} cooldown={10} fullscreen={11}{12}{13}{14}{15}{17}" -f (Get-Date).ToString("s"), $count, $processCount, ([math]::Round($before, 1)), ([math]::Round($after, 1)), ([math]::Round($delta, 1)), $light, $balanced, $deep, $trimmed, $cooldown, ([string]$fullscreen).ToLowerInvariant(), $topText, $learningText, $behaviorText, $intentText, $actionName, $modeText
     Add-Content -LiteralPath $LogPath -Value $line -Encoding UTF8
 }
 
@@ -2534,6 +2835,7 @@ function Convert-NapResultGroupToScoreItem {
         MemoryPriority = $p.MemoryPriority
         IoPriority = $p.IoPriority
         PowerThrottling = $p.PowerThrottling
+        CpuAffinity = $p.CpuAffinity
         TrimWorkingSet = $p.TrimWorkingSet
         NapTier = $p.NapTier
         Decision = $p.Decision
@@ -2569,7 +2871,7 @@ function Convert-NapResultGroupToScoreItem {
 }
 
 function Write-NapScore {
-    param([array]$Results)
+    param([array]$Results, [string]$Path = $scorePath, [bool]$PreviewMode = $false)
 
     if (-not $smartNapScore) { return }
     $groups = @{}
@@ -2596,12 +2898,15 @@ function Write-NapScore {
         IntentName = if ($script:currentIntent) { [string]$script:currentIntent.Name } else { "" }
         IntentConfidence = if ($script:currentIntent) { [int]$script:currentIntent.Confidence } else { 0 }
         IntentSignals = if ($script:currentIntent) { @($script:currentIntent.Signals) } else { @() }
+        SessionMode = [string]$sessionMode
+        AdaptiveExclusionsEnabled = [bool]$adaptiveExclusions
+        Preview = [bool]$PreviewMode
         Items = $items
-    } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $scorePath -Encoding UTF8
+    } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $Path -Encoding UTF8
 }
 
 function Invoke-ApplyOnce {
-    param([bool]$SaveState = $true)
+    param([bool]$SaveState = $true, [bool]$PreviewMode = $false)
 
     if ($smartLearning) {
         $script:learningMap = Read-LearningMap
@@ -2616,7 +2921,7 @@ function Invoke-ApplyOnce {
         Select-Object -First $targetLimit)
     $trimMap = Read-TrimMap
     $state = $null
-    if ($SaveState) {
+    if ($SaveState -and -not $PreviewMode) {
         $state = New-StateSnapshot -Rows $rows
     }
 
@@ -2628,19 +2933,42 @@ function Invoke-ApplyOnce {
 
         $policy = Get-NapPolicy -Row $row
         $priorityStatus = "OK"
-        try {
-            $p.PriorityClass = $policy.PriorityClass
-        } catch {
-            $priorityStatus = "Error: $($_.Exception.Message)"
+        $memoryStatus = "OK"
+        $ioStatus = if ($useIoPriority) { "OK" } else { "Disabled" }
+        $powerStatus = "OK"
+        if ($PreviewMode) {
+            $priorityStatus = "Preview"
+            $memoryStatus = "Preview"
+            $ioStatus = if ($useIoPriority) { "Preview" } else { "Disabled" }
+            $powerStatus = "Preview"
+        } else {
+            try {
+                $p.PriorityClass = $policy.PriorityClass
+            } catch {
+                $priorityStatus = "Error: $($_.Exception.Message)"
+            }
+
+            $memoryStatus = Convert-Win32Result ([BackgroundNapNative]::SetMemoryPriority([int]$p.Id, [uint32]$policy.MemoryPriority))
+            $ioStatus = if ($useIoPriority) {
+                Convert-NtStatusResult ([BackgroundNapNative]::SetIoPriority([int]$p.Id, [uint32]$policy.IoPriority))
+            } else {
+                "Disabled"
+            }
+            $powerStatus = Convert-Win32Result ([BackgroundNapNative]::SetPowerThrottling([int]$p.Id, $useEcoQos, $ignoreTimerResolution, $false))
         }
 
-        $memoryStatus = Convert-Win32Result ([BackgroundNapNative]::SetMemoryPriority([int]$p.Id, [uint32]$policy.MemoryPriority))
-        $ioStatus = if ($useIoPriority) {
-            Convert-NtStatusResult ([BackgroundNapNative]::SetIoPriority([int]$p.Id, [uint32]$policy.IoPriority))
-        } else {
-            "Disabled"
+        $affinityStatus = "Disabled"
+        $affinityTarget = [UInt64]0
+        if (Test-StreamerAffinityCandidate -Row $row -Policy $policy) {
+            $affinityTarget = if ([string]$row.Role -eq "StreamHelper") { Get-StreamerAffinityMask -Percent $streamerBrowserHelperAffinityPercent } else { Get-StreamerAffinityMask }
+            if ($affinityTarget -gt 0) {
+                if ($PreviewMode) {
+                    $affinityStatus = "WouldLimit"
+                } else {
+                    $affinityStatus = Set-ProcessAffinityMask -Process $p -Mask $affinityTarget
+                }
+            }
         }
-        $powerStatus = Convert-Win32Result ([BackgroundNapNative]::SetPowerThrottling([int]$p.Id, $useEcoQos, $ignoreTimerResolution, $false))
 
         $trimThreshold = [double]$row.EffectiveTrimMinimumMB
         if ($policy.Tier -eq "Deep") {
@@ -2658,12 +2986,17 @@ function Invoke-ApplyOnce {
                 $trimThreshold = [math]::Max(24.0, [math]::Round($trimThreshold * 0.82, 1))
             }
         }
+        if ([string]$row.Role -eq "StreamHelper") {
+            $trimThreshold = [math]::Max($trimThreshold, ([double]$row.WorkingSetMB + 1.0))
+        }
 
         $trimStatus = "SkippedBelowThreshold"
         if ($trimWorkingSet -and $row.WorkingSetMB -ge $trimThreshold) {
             $trimOnCooldown = if ($row.Path) { Test-TrimCooldown -Map $trimMap -Process $p -Path $row.Path } else { $false }
             if ($trimOnCooldown) {
                 $trimStatus = "Cooldown"
+            } elseif ($PreviewMode) {
+                $trimStatus = "WouldTrim"
             } else {
                 $trimStatus = Convert-Win32Result ([BackgroundNapNative]::TrimWorkingSet([int]$p.Id))
                 if ($trimStatus -eq "OK" -and $row.Path) {
@@ -2672,11 +3005,13 @@ function Invoke-ApplyOnce {
             }
         } elseif (-not $trimWorkingSet) {
             $trimStatus = "Disabled"
+        } elseif ($PreviewMode) {
+            $trimStatus = "WouldSkipBelowThreshold"
         }
 
-        Start-Sleep -Milliseconds 20
-        $after = Get-Process -Id $p.Id -ErrorAction SilentlyContinue
-        $afterMB = if ($after) { [math]::Round($after.WorkingSet64 / 1MB, 1) } else { $null }
+        if (-not $PreviewMode) { Start-Sleep -Milliseconds 20 }
+        $after = if ($PreviewMode) { $p } else { Get-Process -Id $p.Id -ErrorAction SilentlyContinue }
+        $afterMB = if ($PreviewMode) { [math]::Round([double]$row.WorkingSetMB, 1) } elseif ($after) { [math]::Round($after.WorkingSet64 / 1MB, 1) } else { $null }
         $deltaMB = if ($afterMB -ne $null) { [double]$row.WorkingSetMB - [double]$afterMB } else { 0.0 }
         if ($deltaMB -lt 0) { $deltaMB = 0.0 }
         $tierWeight = if ($policy.Tier -eq "Deep") { 18.0 } elseif ($policy.Tier -eq "Balanced") { 9.0 } else { 3.0 }
@@ -2686,7 +3021,7 @@ function Invoke-ApplyOnce {
             Id = $row.Id
             ProcessName = $row.ProcessName
             NapTier = $policy.Tier
-            Decision = $policy.Reason
+            Decision = if ($PreviewMode) { "preview-" + [string]$policy.Reason } else { $policy.Reason }
             PolicySource = $policy.Source
             Learning = $policy.LearningSummary
             LearningObservations = $row.LearningObservations
@@ -2717,6 +3052,7 @@ function Invoke-ApplyOnce {
             MemoryPriority = $memoryStatus
             IoPriority = $ioStatus
             PowerThrottling = $powerStatus
+            CpuAffinity = $affinityStatus
             TrimWorkingSet = $trimStatus
             WorkingSetBeforeMB = $row.WorkingSetMB
             WorkingSetAfterMB = $afterMB
@@ -2727,14 +3063,17 @@ function Invoke-ApplyOnce {
             BurstCount = $row.BurstCount
             NapScore = $napScore
             ForegroundFullscreen = $row.ForegroundFullscreen
+            Preview = [bool]$PreviewMode
             StatePath = $state
             Path = $row.Path
         }
     }
 
-    Save-TrimMap -Map $trimMap
-    Update-BehaviorProfiles -Rows $rows -Results $results
-    Write-ContentionRadar -Rows $rows -Results $results
+    if (-not $PreviewMode) {
+        Save-TrimMap -Map $trimMap
+        Update-BehaviorProfiles -Rows $rows -Results $results
+        Write-ContentionRadar -Rows $rows -Results $results
+    }
     return $results
 }
 
@@ -2783,6 +3122,7 @@ function Invoke-Restore {
             TargetPriority = $targetPriority
             MemoryPriority = Convert-Win32Result ([BackgroundNapNative]::SetMemoryPriority([int]$p.Id, [uint32]$normalMemoryPriority))
             IoPriority = if ($useIoPriority) { Convert-NtStatusResult ([BackgroundNapNative]::SetIoPriority([int]$p.Id, [uint32]$targetIo)) } else { "Disabled" }
+            CpuAffinity = Restore-ProcessAffinityFromText -Process $p -Value ([string]$item.ProcessorAffinity)
             PowerThrottling = Convert-Win32Result ([BackgroundNapNative]::SetPowerThrottling([int]$p.Id, $useEcoQos, $ignoreTimerResolution, $true))
             StatePath = $StatePath
         }
@@ -2879,6 +3219,7 @@ function Invoke-ForegroundRestore {
     $memoryStatus = Convert-Win32Result ([BackgroundNapNative]::SetMemoryPriority([int]$p.Id, [uint32]$normalMemoryPriority))
     $ioStatus = if ($useIoPriority) { Convert-NtStatusResult ([BackgroundNapNative]::SetIoPriority([int]$p.Id, [uint32]$targetIo)) } else { "Disabled" }
     $powerStatus = Convert-Win32Result ([BackgroundNapNative]::SetPowerThrottling([int]$p.Id, $useEcoQos, $ignoreTimerResolution, $true))
+    $affinityStatus = if ($item) { Restore-ProcessAffinityFromText -Process $p -Value ([string]$item.ProcessorAffinity) } else { "Disabled" }
 
     if ($smartAutoProtect) {
         $protectMap = Read-TemporaryProtectMap
@@ -2916,6 +3257,7 @@ function Invoke-ForegroundRestore {
         MemoryPriority = $memoryStatus
         IoPriority = $ioStatus
         PowerThrottling = $powerStatus
+        CpuAffinity = $affinityStatus
         StatePath = $statePathToUse
     }
 }
@@ -2935,13 +3277,25 @@ switch ($Action) {
             Sort-Object @{ Expression = "Candidate"; Descending = $true }, @{ Expression = "WorkingSetMB"; Descending = $true }
     }
     "Apply" {
-        $results = @(Invoke-ApplyOnce -SaveState:($StateMode -ne "None"))
-        Update-LearningProfiles -Results $results
-        Update-GameProfiles -Results $results
-        Write-ApplySummaryLog -Results $results
-        Write-NapScore -Results $results
-        if (-not $Quiet) {
-            $results
+        if ($Preview) {
+            $script:previewPassActive = $true
+            $results = @(Invoke-ApplyOnce -SaveState:$false -PreviewMode:$true)
+            Write-ApplySummaryLog -Results $results
+            Write-NapScore -Results $results -Path $previewPath -PreviewMode:$true
+            $script:previewPassActive = $false
+            if (-not $Quiet) {
+                $results
+            }
+        } else {
+            $script:previewPassActive = $false
+            $results = @(Invoke-ApplyOnce -SaveState:($StateMode -ne "None"))
+            Update-LearningProfiles -Results $results
+            Update-GameProfiles -Results $results
+            Write-ApplySummaryLog -Results $results
+            Write-NapScore -Results $results
+            if (-not $Quiet) {
+                $results
+            }
         }
     }
     "Restore" {
@@ -2958,6 +3312,7 @@ switch ($Action) {
         $first = $true
         while ((Get-Date) -lt $deadline) {
             $saveState = ($StateMode -ne "None") -and ($first -or $StateMode -eq "Latest")
+            $script:previewPassActive = $false
             $results = @(Invoke-ApplyOnce -SaveState:$saveState)
             Update-LearningProfiles -Results $results
             Update-GameProfiles -Results $results

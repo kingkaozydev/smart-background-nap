@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -12,6 +12,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Security.Principal;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.Win32;
 #if NET9_0_OR_GREATER
 using System.Text.Json;
@@ -28,7 +29,7 @@ using Microsoft.Web.WebView2.Wpf;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.4.13";
+    private const string AppVersion = "0.5.1";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
@@ -38,6 +39,14 @@ internal static class SmartBackgroundNap
     private const string MutexName = "Local\\SmartBackgroundNap.SingleInstance";
     private const string ShowDashboardEventName = "Local\\SmartBackgroundNap.ShowDashboard";
     private const string ResourcePrefix = "SmartBackgroundNap.Resources.";
+    private const string SmartNapGamePowerPlanGuid = "7a6f2f9d-88d3-4abf-8b5f-3f8f2f477501";
+    private const string SmartNapLivePowerPlanGuid = "79b75b8e-1118-40a6-a9e6-72b72d760457";
+    private const string BalancedPowerPlanGuid = "381b4222-f694-41f0-9685-ff5bb260df2e";
+    private const string SmartNapGamePowerPlanName = "Smart Nap MODO JOGO";
+    private const string SmartNapLivePowerPlanName = "Smart Nap MODO LIVE";
+    private const int EnergyIdleDefaultMinutes = 20;
+    private const int EnergyIdleMinMinutes = 5;
+    private const int EnergyIdleMaxMinutes = 240;
 
     private static string appRoot;
     private static string backgroundScriptPath;
@@ -50,12 +59,14 @@ internal static class SmartBackgroundNap
     private static string iconPath;
     private static string logoPath;
     private static string heroPath;
+    private static string powerBasePlanPath;
     private static string uiSettingsPath;
     private static string learningSettingsPath;
     private static string uiLanguage;
     private static string outputsPath;
     private static string logPath;
     private static string scorePath;
+    private static string previewPath;
     private static string appPolicyPath;
     private static string radarPath;
     private static string safetyReportPath;
@@ -125,6 +136,21 @@ internal static class SmartBackgroundNap
         public uint CurrentIdleState;
     }
 
+    private sealed class PowerPlanSnapshot
+    {
+        public string Guid;
+        public string Name;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct LastInputInfo
+    {
+        public uint cbSize;
+        public uint dwTime;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool GetLastInputInfo(ref LastInputInfo info);
     private struct CpuClockSnapshot
     {
         public int CurrentMhz;
@@ -370,12 +396,14 @@ internal static class SmartBackgroundNap
         iconPath = Path.Combine(looseRoot, "assets\\smart-nap-logo.ico");
         logoPath = Path.Combine(looseRoot, "assets\\smart-nap-logo-v2.png");
         heroPath = Path.Combine(looseRoot, "assets\\smart-nap-hero-bg.png");
+        powerBasePlanPath = Path.Combine(looseRoot, "assets\\power\\smart-nap-hone-base.pow");
         uiSettingsPath = Path.Combine(appRoot, "ui-settings.json");
         learningSettingsPath = Path.Combine(appRoot, "smart-learning.settings.json");
         uiLanguage = LoadUiLanguage();
         outputsPath = Path.Combine(appRoot, "outputs");
         logPath = Path.Combine(outputsPath, "background-nap-auto.log");
         scorePath = Path.Combine(outputsPath, "background-nap-score-latest.json");
+        previewPath = Path.Combine(outputsPath, "background-nap-preview-latest.json");
         appPolicyPath = Path.Combine(outputsPath, "background-nap-app-policies.json");
         radarPath = Path.Combine(outputsPath, "background-nap-radar-latest.json");
         safetyReportPath = Path.Combine(outputsPath, "SmartBackgroundNap-SafetyReport.txt");
@@ -1215,6 +1243,42 @@ internal static class SmartBackgroundNap
         SaveUiSettings(settings);
     }
 
+    private static int ClampEnergyIdleMinutes(int minutes)
+    {
+        if (minutes <= 0) { minutes = EnergyIdleDefaultMinutes; }
+        return Math.Max(EnergyIdleMinMinutes, Math.Min(EnergyIdleMaxMinutes, minutes));
+    }
+
+    private static int LoadEnergyIdleGuardMinutes()
+    {
+        int parsed;
+        return ClampEnergyIdleMinutes(Int32.TryParse(GetUiSettingString("EnergyIdleGuardMinutes"), NumberStyles.Integer, CultureInfo.InvariantCulture, out parsed) ? parsed : EnergyIdleDefaultMinutes);
+    }
+
+    private static bool LoadEnergyIdleGuardEnabled()
+    {
+        string value = GetUiSettingString("EnergyIdleGuardEnabled").Trim();
+        return String.Equals(value, "true", StringComparison.OrdinalIgnoreCase) ||
+            String.Equals(value, "1", StringComparison.OrdinalIgnoreCase) ||
+            String.Equals(value, "on", StringComparison.OrdinalIgnoreCase) ||
+            String.Equals(value, "yes", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool LoadEnergyIdleGuardConfigured()
+    {
+        return !String.IsNullOrWhiteSpace(GetUiSettingString("EnergyIdleGuardConfigured"));
+    }
+
+    private static void SaveEnergyIdleGuard(bool enabled, int minutes)
+    {
+        IDictionary<string, object> settings = LoadUiSettings();
+        settings["EnergyIdleGuardEnabled"] = enabled ? "true" : "false";
+        settings["EnergyIdleGuardMinutes"] = ClampEnergyIdleMinutes(minutes).ToString(CultureInfo.InvariantCulture);
+        settings["EnergyIdleGuardConfigured"] = "true";
+        settings["EnergyIdleGuardChangedAt"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+        SaveUiSettings(settings);
+    }
+
     private static void EnsureRuntimeFiles(string runtimeRoot)
     {
         Directory.CreateDirectory(runtimeRoot);
@@ -1236,6 +1300,7 @@ internal static class SmartBackgroundNap
         ExtractResource("icon_ico", Path.Combine(runtimeRoot, "assets\\smart-nap-logo.ico"));
         ExtractResource("logo_png", Path.Combine(runtimeRoot, "assets\\smart-nap-logo-v2.png"));
         ExtractResource("hero_png", Path.Combine(runtimeRoot, "assets\\smart-nap-hero-bg.png"));
+        ExtractResource("power_hone_base_pow", Path.Combine(runtimeRoot, "assets\\power\\smart-nap-hone-base.pow"));
     }
 
     private static void ExtractConfigResource(string resourceName, string targetPath)
@@ -1527,6 +1592,175 @@ internal static class SmartBackgroundNap
         }
     }
 
+    private static string GetPowerCfgPath()
+    {
+        string systemPowerCfg = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "powercfg.exe");
+        return File.Exists(systemPowerCfg) ? systemPowerCfg : "powercfg.exe";
+    }
+
+    private static string NormalizeEnergyChoice(string choice)
+    {
+        if (String.IsNullOrWhiteSpace(choice)) { return "keep"; }
+        string value = choice.Trim();
+        if (String.Equals(value, "activate", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "smart", StringComparison.OrdinalIgnoreCase)) { return "activate"; }
+        if (String.Equals(value, "restore", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "previous", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "anterior", StringComparison.OrdinalIgnoreCase)) { return "restore"; }
+        if (String.Equals(value, "balanced", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "equilibrado", StringComparison.OrdinalIgnoreCase)) { return "balanced"; }
+        return "keep";
+    }
+
+    private static bool IsSmartNapPowerPlanGuid(string planGuid)
+    {
+        return String.Equals(planGuid, SmartNapGamePowerPlanGuid, StringComparison.OrdinalIgnoreCase) ||
+            String.Equals(planGuid, SmartNapLivePowerPlanGuid, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static PowerPlanSnapshot ParsePowerPlanOutput(string output)
+    {
+        if (String.IsNullOrWhiteSpace(output)) { return null; }
+        Match match = Regex.Match(output, @"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
+        if (!match.Success) { return null; }
+        string name = "";
+        int open = output.IndexOf('(', match.Index + match.Length);
+        int close = open >= 0 ? output.IndexOf(')', open + 1) : -1;
+        if (open >= 0 && close > open) { name = output.Substring(open + 1, close - open - 1).Trim(); }
+        return new PowerPlanSnapshot { Guid = match.Value, Name = name };
+    }
+
+    private static PowerPlanSnapshot GetActivePowerPlan()
+    {
+        RunResult active = RunHidden(GetPowerCfgPath(), "/getactivescheme", 7000);
+        if (active.ExitCode != 0) { return null; }
+        return ParsePowerPlanOutput(active.Output);
+    }
+
+    private static PowerPlanSnapshot LoadPreviousPowerPlan()
+    {
+        try
+        {
+            string guid = GetUiSettingString("PreviousPowerPlanGuid").Trim();
+            string name = GetUiSettingString("PreviousPowerPlanName").Trim();
+            if (String.IsNullOrWhiteSpace(guid)) { return null; }
+            return new PowerPlanSnapshot { Guid = guid, Name = name };
+        }
+        catch { return null; }
+    }
+
+    private static void SavePreviousPowerPlan(PowerPlanSnapshot snapshot)
+    {
+        if (snapshot == null || String.IsNullOrWhiteSpace(snapshot.Guid) || IsSmartNapPowerPlanGuid(snapshot.Guid)) { return; }
+        IDictionary<string, object> settings = LoadUiSettings();
+        settings["PreviousPowerPlanGuid"] = snapshot.Guid;
+        settings["PreviousPowerPlanName"] = String.IsNullOrWhiteSpace(snapshot.Name) ? snapshot.Guid : snapshot.Name;
+        settings["PreviousPowerPlanSavedAt"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+        SaveUiSettings(settings);
+    }
+
+    private static void SaveCurrentPowerPlanBeforeSmartActivation()
+    {
+        PowerPlanSnapshot current = GetActivePowerPlan();
+        SavePreviousPowerPlan(current);
+    }
+
+    private static bool PowerPlanExists(string planGuid)
+    {
+        RunResult list = RunHidden(GetPowerCfgPath(), "/list", 7000);
+        if (list.ExitCode != 0) { return false; }
+        return list.Output.IndexOf(planGuid, StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static RunResult RenamePowerPlan(string planGuid, string name, string description)
+    {
+        return RunHidden(GetPowerCfgPath(), "-changename " + planGuid + " " + Quote(name) + " " + Quote(description), 7000);
+    }
+
+    private static RunResult EnsureSmartNapPowerPlan(string planGuid, string name, string description)
+    {
+        if (String.IsNullOrWhiteSpace(powerBasePlanPath) || !File.Exists(powerBasePlanPath))
+        {
+            return new RunResult(1, "Missing embedded power plan template.");
+        }
+
+        if (!PowerPlanExists(planGuid))
+        {
+            RunResult import = RunHidden(GetPowerCfgPath(), "-import " + Quote(powerBasePlanPath) + " " + planGuid, 12000);
+            if (import.ExitCode != 0) { return new RunResult(import.ExitCode, "Could not import " + name + ": " + import.Output); }
+        }
+
+        RunResult rename = RenamePowerPlan(planGuid, name, description);
+        if (rename.ExitCode != 0) { return new RunResult(rename.ExitCode, "Power plan exists, but rename failed: " + rename.Output); }
+        return new RunResult(0, name + " ready.");
+    }
+
+    private static RunResult EnsureSmartNapPowerPlans()
+    {
+        RunResult game = EnsureSmartNapPowerPlan(SmartNapGamePowerPlanGuid, SmartNapGamePowerPlanName, "Smart Nap gaming power plan based on a high performance Windows profile.");
+        if (game.ExitCode != 0) { return game; }
+        RunResult live = EnsureSmartNapPowerPlan(SmartNapLivePowerPlanGuid, SmartNapLivePowerPlanName, "Smart Nap live/streaming power plan based on a high performance Windows profile.");
+        if (live.ExitCode != 0) { return live; }
+        return new RunResult(0, SmartNapGamePowerPlanName + " and " + SmartNapLivePowerPlanName + " ready.");
+    }
+
+    private static RunResult ActivatePowerPlan(string planGuid, string name, bool savePrevious)
+    {
+        if (savePrevious) { SaveCurrentPowerPlanBeforeSmartActivation(); }
+        RunResult active = RunHidden(GetPowerCfgPath(), "/setactive " + planGuid, 7000);
+        if (active.ExitCode != 0) { return new RunResult(active.ExitCode, "Could not activate " + name + ": " + active.Output); }
+        return new RunResult(0, name + " active.");
+    }
+
+    private static RunResult RestorePreviousPowerPlan()
+    {
+        PowerPlanSnapshot previous = LoadPreviousPowerPlan();
+        if (previous == null || String.IsNullOrWhiteSpace(previous.Guid))
+        {
+            return new RunResult(1, "No previous Windows power plan was saved yet.");
+        }
+        string name = String.IsNullOrWhiteSpace(previous.Name) ? "previous power plan" : previous.Name;
+        return ActivatePowerPlan(previous.Guid, name, false);
+    }
+
+    private static RunResult ApplyEnergyChoiceForMode(string normalizedMode, string energyChoice)
+    {
+        string choice = NormalizeEnergyChoice(energyChoice);
+        if (String.Equals(normalizedMode, "Gaming", StringComparison.OrdinalIgnoreCase))
+        {
+            RunResult ensure = EnsureSmartNapPowerPlans();
+            if (ensure.ExitCode != 0) { return ensure; }
+            if (choice == "activate") { return ActivatePowerPlan(SmartNapGamePowerPlanGuid, SmartNapGamePowerPlanName, true); }
+            return new RunResult(0, "Game power plan is installed. Current Windows plan kept.");
+        }
+        if (String.Equals(normalizedMode, "Streamer", StringComparison.OrdinalIgnoreCase))
+        {
+            RunResult ensure = EnsureSmartNapPowerPlans();
+            if (ensure.ExitCode != 0) { return ensure; }
+            if (choice == "activate") { return ActivatePowerPlan(SmartNapLivePowerPlanGuid, SmartNapLivePowerPlanName, true); }
+            return new RunResult(0, "Live power plan is installed. Current Windows plan kept.");
+        }
+        if (String.Equals(normalizedMode, "Auto", StringComparison.OrdinalIgnoreCase))
+        {
+            if (choice == "restore") { return RestorePreviousPowerPlan(); }
+            if (choice == "balanced") { return ActivatePowerPlan(BalancedPowerPlanGuid, "Balanced", false); }
+        }
+        return new RunResult(0, "Current Windows power plan kept.");
+    }
+
+
+    private static TimeSpan GetSystemIdleTime()
+    {
+        try
+        {
+            LastInputInfo info = new LastInputInfo();
+            info.cbSize = (uint)Marshal.SizeOf(typeof(LastInputInfo));
+            if (!GetLastInputInfo(ref info)) { return TimeSpan.Zero; }
+            uint tick = unchecked((uint)Environment.TickCount);
+            uint idleTicks = unchecked(tick - info.dwTime);
+            return TimeSpan.FromMilliseconds(idleTicks);
+        }
+        catch
+        {
+            return TimeSpan.Zero;
+        }
+    }
     private static RunResult RunPowerShellScript(string scriptPath, string arguments, int timeoutMs)
     {
         return RunPowerShellScript(scriptPath, arguments, timeoutMs, null);
@@ -1567,6 +1801,13 @@ internal static class SmartBackgroundNap
         return RunPowerShellScript(backgroundScriptPath, "-ConfigPath " + Quote(GetEffectiveConfigPath()) + " -Action Apply -StateMode Latest -Quiet -LogPath " + Quote(logPath), 120000, control);
     }
 
+
+    private static RunResult RunPreviewNow()
+    {
+        SyncSmartLearningSettingToConfig();
+        Directory.CreateDirectory(outputsPath);
+        return RunPowerShellScript(backgroundScriptPath, "-ConfigPath " + Quote(GetEffectiveConfigPath()) + " -Action Apply -Preview -StateMode None -Quiet -LogPath " + Quote(logPath), 120000);
+    }
     private static RunResult RunElevatedApply()
     {
         try
@@ -1888,6 +2129,159 @@ internal static class SmartBackgroundNap
         File.WriteAllText(userConfigPath, JsonCompat.SerializeObject(root), Encoding.UTF8);
     }
 
+
+    private static string GetMapString(IDictionary<string, object> map, string key)
+    {
+        object value;
+        if (map == null || !map.TryGetValue(key, out value) || value == null) { return String.Empty; }
+        return Convert.ToString(value, CultureInfo.InvariantCulture);
+    }
+
+    private static string NormalizePolicyNameForConfig(string policy)
+    {
+        if (String.IsNullOrWhiteSpace(policy)) { return String.Empty; }
+        if (String.Equals(policy, "Auto", StringComparison.OrdinalIgnoreCase)) { return "Auto"; }
+        if (String.Equals(policy, "Protect", StringComparison.OrdinalIgnoreCase)) { return "Protect"; }
+        if (String.Equals(policy, "Light", StringComparison.OrdinalIgnoreCase)) { return "Light"; }
+        if (String.Equals(policy, "Balanced", StringComparison.OrdinalIgnoreCase)) { return "Balanced"; }
+        if (String.Equals(policy, "Deep", StringComparison.OrdinalIgnoreCase)) { return "Deep"; }
+        return String.Empty;
+    }
+    private static string NormalizeSessionMode(string mode)
+    {
+        string value = String.IsNullOrWhiteSpace(mode) ? "Auto" : mode.Trim();
+        if (String.Equals(value, "Gaming", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Game", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Jogos", StringComparison.OrdinalIgnoreCase)) { return "Gaming"; }
+        if (String.Equals(value, "Work", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Trabalho", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Creator", StringComparison.OrdinalIgnoreCase)) { return "Work"; }
+        if (String.Equals(value, "Focus", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Foco", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "DeepFocus", StringComparison.OrdinalIgnoreCase)) { return "Focus"; }
+        if (String.Equals(value, "Streamer", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Stream", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Live", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Transmissao", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Transmissão", StringComparison.OrdinalIgnoreCase)) { return "Streamer"; }
+        return "Auto";
+    }
+
+    private static IDictionary<string, object> LoadSmartModeMap()
+    {
+        IDictionary<string, object> root = LoadConfigRoot();
+        object smartObject;
+        IDictionary<string, object> smart = root.TryGetValue("SmartMode", out smartObject) ? smartObject as IDictionary<string, object> : null;
+        return smart ?? new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static string GetSessionMode()
+    {
+        try
+        {
+            IDictionary<string, object> smart = LoadSmartModeMap();
+            return NormalizeSessionMode(GetMapString(smart, "SessionMode"));
+        }
+        catch
+        {
+            return "Auto";
+        }
+    }
+
+    private static bool IsAdaptiveExclusionsEnabled()
+    {
+        try
+        {
+            IDictionary<string, object> smart = LoadSmartModeMap();
+            object value;
+            if (!smart.TryGetValue("AdaptiveExclusionsEnabled", out value)) { return true; }
+            return Convert.ToBoolean(value, CultureInfo.InvariantCulture);
+        }
+        catch
+        {
+            return true;
+        }
+    }
+
+    private static RunResult WriteSmartModeValue(string key, object value)
+    {
+        try
+        {
+            IDictionary<string, object> root = LoadConfigRoot();
+            IDictionary<string, object> smart = GetOrCreateMap(root, "SmartMode");
+            smart[key] = value;
+            Directory.CreateDirectory(appRoot);
+            File.WriteAllText(userConfigPath, JsonCompat.SerializeObject(root), Encoding.UTF8);
+            return new RunResult(0, "Saved.");
+        }
+        catch (Exception ex)
+        {
+            return new RunResult(1, ex.Message);
+        }
+    }
+
+    private static RunResult SetSessionMode(string mode)
+    {
+        return SetSessionMode(mode, "keep");
+    }
+
+    private static RunResult SetSessionMode(string mode, string energyChoice)
+    {
+        string normalized = NormalizeSessionMode(mode);
+        RunResult result = WriteSmartModeValue("SessionMode", normalized);
+        if (result.ExitCode != 0) { return result; }
+
+        RunResult energy = ApplyEnergyChoiceForMode(normalized, energyChoice);
+        string choice = NormalizeEnergyChoice(energyChoice);
+        AppendOperationalLog("action=session-mode mode=" + normalized + " energy=" + choice + " energyResult=" + (energy.ExitCode == 0 ? "OK" : "FAIL"));
+        if (energy.ExitCode != 0) { return energy; }
+        string detail = String.IsNullOrWhiteSpace(energy.Output) ? "" : " " + energy.Output;
+        return new RunResult(0, "Session mode: " + normalized + "." + detail);
+    }
+
+    private static RunResult SetAdaptiveExclusionsEnabled(bool enabled)
+    {
+        RunResult result = WriteSmartModeValue("AdaptiveExclusionsEnabled", enabled);
+        if (result.ExitCode == 0) { AppendOperationalLog("action=adaptive-exclusions enabled=" + enabled.ToString().ToLowerInvariant()); }
+        return result.ExitCode == 0 ? new RunResult(0, enabled ? "Adaptive exclusions enabled." : "Adaptive exclusions disabled.") : result;
+    }
+
+    private static int CountManualPolicies()
+    {
+        try
+        {
+            if (String.IsNullOrWhiteSpace(appPolicyPath) || !File.Exists(appPolicyPath)) { return 0; }
+            IDictionary<string, object> root = JsonCompat.DeserializeObject(File.ReadAllText(appPolicyPath, Encoding.UTF8));
+            object existingItems = null;
+            System.Collections.IEnumerable enumerable = root != null && root.TryGetValue("Items", out existingItems) ? existingItems as System.Collections.IEnumerable : null;
+            if (enumerable == null || existingItems is string) { return 0; }
+            HashSet<string> unique = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (object item in enumerable)
+            {
+                IDictionary<string, object> map = item as IDictionary<string, object>;
+                if (map == null) { continue; }
+                string policy = NormalizePolicyNameForConfig(GetMapString(map, "Policy"));
+                if (String.IsNullOrWhiteSpace(policy) || String.Equals(policy, "Auto", StringComparison.OrdinalIgnoreCase)) { continue; }
+                string label = GetMapString(map, "Path");
+                if (String.IsNullOrWhiteSpace(label)) { label = GetMapString(map, "ProcessName"); }
+                if (String.IsNullOrWhiteSpace(label)) { label = GetMapString(map, "Key"); }
+                if (!String.IsNullOrWhiteSpace(label)) { unique.Add(label.Trim().ToLowerInvariant()); }
+            }
+            return unique.Count;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    private static RunResult ClearAppPolicies()
+    {
+        try
+        {
+            Directory.CreateDirectory(outputsPath);
+            Dictionary<string, object> output = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            output["Timestamp"] = DateTime.Now.ToString("o", CultureInfo.InvariantCulture);
+            output["Items"] = new List<Dictionary<string, object>>();
+            File.WriteAllText(appPolicyPath, JsonCompat.SerializeObject(output), Encoding.UTF8);
+            AppendOperationalLog("action=policy-clear status=done");
+            return new RunResult(0, "Policies cleared.");
+        }
+        catch (Exception ex)
+        {
+            return new RunResult(1, ex.Message);
+        }
+    }
     private static int GetLearningProfileCount()
     {
         try
@@ -2071,7 +2465,7 @@ internal static class SmartBackgroundNap
         report.AppendLine("Optimization scope");
         report.AppendLine("Allowed actions: process priority, memory priority, process I/O priority, Windows power throttling/EcoQoS, timer-resolution isolation, foreground wake restore, temporary active-app protection, burst scoring, fullscreen-aware thresholds, optional local Smart Learning profiles, optional working-set trimming.");
         report.AppendLine("Skipped targets: Windows/system processes, session 0 services, foreground app, high-CPU active workloads, configured protected apps, configured protected paths.");
-        report.AppendLine("Destructive actions: none. It does not kill apps, delete files, change drivers, change power plans, overclock, undervolt, or disable Windows services.");
+        report.AppendLine("Destructive actions: none. It does not kill apps, delete files, change drivers, force power-plan changes, overclock, undervolt, or disable Windows services. Optional Smart Nap power profiles require user confirmation.");
         report.AppendLine();
         report.AppendLine("Audit files");
         report.AppendLine("Config: " + configPath);
@@ -2432,6 +2826,7 @@ internal static class SmartBackgroundNap
         private Thread showThread;
         private System.Windows.Forms.Timer foregroundWakeTimer;
         private System.Windows.Forms.Timer trayTelemetryTimer;
+        private System.Windows.Forms.Timer energyIdleGuardTimer;
         private DateTime lastTrayTelemetryRefreshAt = DateTime.MinValue;
         private string lastTrayTelemetryText = "";
         private int lastForegroundPid;
@@ -2490,6 +2885,7 @@ internal static class SmartBackgroundNap
             StartShowListener();
             StartForegroundWakeTimer();
             StartTrayTelemetryTimer();
+            StartEnergyIdleGuardTimer();
         }
 
         private ModernMainWindow CreateMainWindow()
@@ -2572,6 +2968,12 @@ internal static class SmartBackgroundNap
                     trayTelemetryTimer.Dispose();
                     trayTelemetryTimer = null;
                 }
+                if (energyIdleGuardTimer != null)
+                {
+                    energyIdleGuardTimer.Stop();
+                    energyIdleGuardTimer.Dispose();
+                    energyIdleGuardTimer = null;
+                }
                 try { showDashboardEvent.Set(); } catch { }
                 notifyIcon.Visible = false;
                 notifyIcon.Dispose();
@@ -2635,6 +3037,33 @@ internal static class SmartBackgroundNap
             foregroundWakeTimer.Start();
         }
 
+        private void StartEnergyIdleGuardTimer()
+        {
+            energyIdleGuardTimer = new System.Windows.Forms.Timer();
+            energyIdleGuardTimer.Interval = 30000;
+            energyIdleGuardTimer.Tick += delegate { CheckEnergyIdleGuard(); };
+            energyIdleGuardTimer.Start();
+        }
+
+        private void CheckEnergyIdleGuard()
+        {
+            try
+            {
+                if (!LoadEnergyIdleGuardEnabled()) { return; }
+                PowerPlanSnapshot active = GetActivePowerPlan();
+                if (active == null || !String.Equals(active.Guid, SmartNapGamePowerPlanGuid, StringComparison.OrdinalIgnoreCase)) { return; }
+                TimeSpan idle = GetSystemIdleTime();
+                int minutes = LoadEnergyIdleGuardMinutes();
+                if (idle.TotalMinutes < minutes) { return; }
+                RunResult result = ActivatePowerPlan(BalancedPowerPlanGuid, "Balanced", false);
+                AppendOperationalLog("action=energy-idle-guard idleMinutes=" + ((int)Math.Floor(idle.TotalMinutes)).ToString(CultureInfo.InvariantCulture) + " threshold=" + minutes.ToString(CultureInfo.InvariantCulture) + " result=" + (result.ExitCode == 0 ? "OK" : "FAIL"));
+                if (result.ExitCode == 0) { UpdateTrayTelemetryText(true); }
+            }
+            catch (Exception ex)
+            {
+                WriteCrash(ex);
+            }
+        }
         private void StartTrayTelemetryTimer()
         {
             trayTelemetryTimer = new System.Windows.Forms.Timer();
@@ -3638,6 +4067,33 @@ internal static class SmartBackgroundNap
                     SendState();
                     return;
                 }
+                if (String.Equals(action, "setSessionMode", StringComparison.OrdinalIgnoreCase))
+                {
+                    string mode = GetMapString(message, "mode");
+                    string energy = GetMapString(message, "energy");
+                    if (message.ContainsKey("idleEnabled") || message.ContainsKey("idleMinutes"))
+                    {
+                        SaveEnergyIdleGuard(GetBool(message, "idleEnabled"), GetInt(message, "idleMinutes"));
+                    }
+                    RunUserAction("Changing session mode...", "Session mode updated.", delegate { return SetSessionMode(mode, energy); });
+                    return;
+                }
+                if (String.Equals(action, "toggleAdaptiveExclusions", StringComparison.OrdinalIgnoreCase))
+                {
+                    bool enabled = !IsAdaptiveExclusionsEnabled();
+                    RunUserAction(enabled ? "Enabling adaptive exclusions..." : "Disabling adaptive exclusions...", enabled ? "Adaptive exclusions enabled." : "Adaptive exclusions disabled.", delegate { return SetAdaptiveExclusionsEnabled(enabled); });
+                    return;
+                }
+                if (String.Equals(action, "preview", StringComparison.OrdinalIgnoreCase))
+                {
+                    RunPreviewActionWithFeedback();
+                    return;
+                }
+                if (String.Equals(action, "clearPolicies", StringComparison.OrdinalIgnoreCase))
+                {
+                    RunUserAction("Clearing manual policies...", "Manual policies cleared.", ClearAppPolicies);
+                    return;
+                }
                 if (String.Equals(action, "runElevatedApply", StringComparison.OrdinalIgnoreCase))
                 {
                     RunUserAction("Requesting administrator permission...", "Elevated pass finished.", RunElevatedApply);
@@ -3656,6 +4112,12 @@ internal static class SmartBackgroundNap
                     SendState();
                     return;
                 }
+                if (String.Equals(action, "setEnergyIdleGuard", StringComparison.OrdinalIgnoreCase))
+                {
+                    SaveEnergyIdleGuard(GetBool(message, "enabled"), GetInt(message, "minutes"));
+                    SendState();
+                    return;
+                }
                 if (String.Equals(action, "checkUpdate", StringComparison.OrdinalIgnoreCase)) { BeginUpdateCheck(true); return; }
                 if (String.Equals(action, "openUpdate", StringComparison.OrdinalIgnoreCase)) { OpenExternal(String.IsNullOrWhiteSpace(updateInfo.DownloadUrl) ? GitHubLatestDownloadUrl : updateInfo.DownloadUrl); return; }
                 if (String.Equals(action, "dismissUpdate", StringComparison.OrdinalIgnoreCase))
@@ -3665,7 +4127,8 @@ internal static class SmartBackgroundNap
                     if (updateInfo != null) { updateInfo.Available = false; updateInfo.Ignored = true; }
                     SendState();
                     return;
-                }            }
+                }
+            }
             catch (Exception ex)
             {
                 WriteCrash(ex);
@@ -3758,9 +4221,9 @@ internal static class SmartBackgroundNap
                 {
                     IDictionary<string, object> map = item as IDictionary<string, object>;
                     if (map == null) { continue; }
-                    string policy = NormalizeAppPolicyName(GetString(map, "Policy"));
+                    string policy = NormalizePolicyNameForConfig(GetMapString(map, "Policy"));
                     if (!IsKnownAppPolicy(policy, true)) { continue; }
-                    foreach (string policyKey in BuildAppPolicyKeys(GetString(map, "Key"), GetString(map, "ProcessName"), GetString(map, "Path")))
+                    foreach (string policyKey in BuildAppPolicyKeys(GetMapString(map, "Key"), GetMapString(map, "ProcessName"), GetMapString(map, "Path")))
                     {
                         policies[policyKey] = policy;
                     }
@@ -3813,19 +4276,19 @@ internal static class SmartBackgroundNap
                         {
                             IDictionary<string, object> map = item as IDictionary<string, object>;
                             if (map == null) { continue; }
-                            string existingKey = GetString(map, "Key");
-                            string existingPolicy = NormalizeAppPolicyName(GetString(map, "Policy"));
+                            string existingKey = GetMapString(map, "Key");
+                            string existingPolicy = NormalizePolicyNameForConfig(GetMapString(map, "Policy"));
                             if (String.IsNullOrWhiteSpace(existingKey) || !IsKnownAppPolicy(existingPolicy, true)) { continue; }
                             bool sameTarget = false;
-                            foreach (string existingAlias in BuildAppPolicyKeys(existingKey, GetString(map, "ProcessName"), GetString(map, "Path")))
+                            foreach (string existingAlias in BuildAppPolicyKeys(existingKey, GetMapString(map, "ProcessName"), GetMapString(map, "Path")))
                             {
                                 if (targetSet.Contains(existingAlias)) { sameTarget = true; break; }
                             }
                             if (sameTarget) { continue; }
                             Dictionary<string, object> copy = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
                             copy["Key"] = NormalizeAppPolicyKey(existingKey);
-                            copy["ProcessName"] = GetString(map, "ProcessName");
-                            copy["Path"] = GetString(map, "Path");
+                            copy["ProcessName"] = GetMapString(map, "ProcessName");
+                            copy["Path"] = GetMapString(map, "Path");
                             copy["Policy"] = existingPolicy;
                             copy["UpdatedAt"] = GetString(map, "UpdatedAt");
                             items.Add(copy);
@@ -3882,7 +4345,7 @@ internal static class SmartBackgroundNap
                 {
                     busy = false;
                     activeTitle = result.ExitCode == 0 ? successMessage : "Action failed";
-                    activeDetail = result.ExitCode == 0 ? BuildResultText() : ShortError(result.Output);
+                    activeDetail = result.ExitCode == 0 ? (String.IsNullOrWhiteSpace(result.Output) ? BuildResultText() : ShortError(result.Output)) : ShortError(result.Output);
                     runState = result.ExitCode == 0 ? "DONE" : "ERROR";
                     activeUiEventLine = DateTime.Now.ToString("HH:mm:ss", CultureInfo.CurrentCulture) + (result.ExitCode == 0 ? "  OK   " + CleanEventText(successMessage) : "  FAIL " + CleanEventText(ShortError(result.Output)));
                     SendState();
@@ -3944,6 +4407,36 @@ internal static class SmartBackgroundNap
             });
         }
 
+        private void RunPreviewActionWithFeedback()
+        {
+            if (busy) { return; }
+            busy = true;
+            activeRunCanStop = false;
+            activeTitle = "Simulando passe seguro";
+            activeDetail = "Calculando o que mudaria sem alterar prioridade, memoria, IO ou EcoQoS.";
+            runState = "PREVIEW";
+            activeUiEventLine = DateTime.Now.ToString("HH:mm:ss", CultureInfo.CurrentCulture) + "  PREVIEW  simulacao iniciada";
+            SendState();
+
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                RunResult result = RunPreviewNow();
+                Dispatcher.BeginInvoke(new Action(delegate
+                {
+                    busy = false;
+                    PreviewSummary preview = LoadPreviewSummary();
+                    activeTitle = result.ExitCode == 0 ? "Preview pronto" : "Preview falhou";
+                    activeDetail = result.ExitCode == 0 ? preview.Detail : ShortError(result.Output);
+                    runState = result.ExitCode == 0 ? "DONE" : "ERROR";
+                    activeUiEventLine = DateTime.Now.ToString("HH:mm:ss", CultureInfo.CurrentCulture) + (result.ExitCode == 0 ? "  OK   preview: " + preview.ShortText : "  FAIL preview falhou");
+                    SendState();
+                    if (result.ExitCode != 0)
+                    {
+                        System.Windows.MessageBox.Show(ShortError(result.Output), AppName, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                    }
+                }));
+            });
+        }
         private void StopCurrentActionWithFeedback()
         {
             if (!busy || activeRunControl == null)
@@ -4036,6 +4529,25 @@ internal static class SmartBackgroundNap
             state.FirstRun = String.IsNullOrWhiteSpace(uiLanguage);
             state.AutoMode = autoInstalled;
             state.Startup = startupInstalled;
+            state.SessionMode = GetSessionMode();
+            PowerPlanSnapshot activePowerPlan = GetActivePowerPlan();
+            PowerPlanSnapshot previousPowerPlan = LoadPreviousPowerPlan();
+            state.PowerPlanName = activePowerPlan == null ? "" : activePowerPlan.Name;
+            state.PowerPlanGuid = activePowerPlan == null ? "" : activePowerPlan.Guid;
+            state.PreviousPowerPlanName = previousPowerPlan == null ? "" : previousPowerPlan.Name;
+            state.PreviousPowerPlanGuid = previousPowerPlan == null ? "" : previousPowerPlan.Guid;
+            state.EnergyIdleGuardEnabled = LoadEnergyIdleGuardEnabled();
+            state.EnergyIdleGuardConfigured = LoadEnergyIdleGuardConfigured();
+            state.EnergyIdleGuardMinutes = LoadEnergyIdleGuardMinutes();
+            state.AdaptiveExclusions = IsAdaptiveExclusionsEnabled();
+            state.PolicyCount = CountManualPolicies();
+            PreviewSummary preview = LoadPreviewSummary();
+            state.PreviewTargets = preview.Targets;
+            state.PreviewWouldTrim = preview.WouldTrim;
+            state.PreviewTop = preview.TopApp;
+            state.PreviewAt = preview.TimestampText;
+            state.PreviewResult = preview.ShortText;
+            state.PreviewDetail = preview.Detail;
             state.Learning = learningEnabled;
             state.LearningProfiles = learningEnabled ? Math.Max(scoreMeta.LearningProfiles, GetLearningProfileCount()) : 0;
             state.Behavior = behaviorEnabled || scoreMeta.BehaviorEnabled;
@@ -4083,6 +4595,7 @@ internal static class SmartBackgroundNap
             state.HardwareMemoryLoad = hardware.MemoryLoad;
             state.HardwareCpuClockMhz = hardware.CpuClockCurrentMhz;
             state.HardwareCpuMaxMhz = hardware.CpuClockMaxMhz;
+            state.AppTimelines = BuildAppTimelines(rows);
             state.Rows = rows;
             state.Events = BuildEvents(autoInstalled, heartbeat, lastEventAge, nextPass);
             ReleaseUpdateInfo currentUpdate = updateInfo ?? ReleaseUpdateInfo.Idle();
@@ -4222,6 +4735,87 @@ internal static class SmartBackgroundNap
             }
         }
 
+        private PreviewSummary LoadPreviewSummary()
+        {
+            PreviewSummary summary = new PreviewSummary();
+            summary.ShortText = "No preview yet";
+            summary.Detail = "Run Preview to see the next pass without touching processes.";
+            summary.TimestampText = "-";
+            summary.TopApp = "-";
+            try
+            {
+                if (String.IsNullOrWhiteSpace(previewPath) || !File.Exists(previewPath)) { return summary; }
+                IDictionary<string, object> root = JsonCompat.DeserializeObject(File.ReadAllText(previewPath, Encoding.UTF8));
+                if (root == null) { return summary; }
+                object items;
+                System.Collections.IEnumerable enumerable = root.TryGetValue("Items", out items) ? items as System.Collections.IEnumerable : null;
+                if (enumerable == null || items is string) { return summary; }
+                int targets = 0;
+                int wouldTrim = 0;
+                int light = 0;
+                int balanced = 0;
+                int deep = 0;
+                double topScore = -1.0;
+                string topName = "-";
+                foreach (object item in enumerable)
+                {
+                    IDictionary<string, object> map = item as IDictionary<string, object>;
+                    if (map == null) { continue; }
+                    targets++;
+                    string trim = GetMapString(map, "TrimWorkingSet");
+                    if (String.Equals(trim, "WouldTrim", StringComparison.OrdinalIgnoreCase)) { wouldTrim++; }
+                    string tier = GetMapString(map, "NapTier");
+                    if (String.Equals(tier, "Light", StringComparison.OrdinalIgnoreCase)) { light++; }
+                    else if (String.Equals(tier, "Balanced", StringComparison.OrdinalIgnoreCase)) { balanced++; }
+                    else if (String.Equals(tier, "Deep", StringComparison.OrdinalIgnoreCase)) { deep++; }
+                    double score = GetDouble(map, "Score");
+                    if (score > topScore)
+                    {
+                        topScore = score;
+                        topName = BuildProcessLabel(map);
+                    }
+                }
+                summary.Targets = targets;
+                summary.WouldTrim = wouldTrim;
+                summary.TopApp = topName;
+                summary.ShortText = targets.ToString(CultureInfo.CurrentCulture) + " apps / " + wouldTrim.ToString(CultureInfo.CurrentCulture) + " trims";
+                summary.Detail = "Preview: " + targets.ToString(CultureInfo.CurrentCulture) + " apps, " + wouldTrim.ToString(CultureInfo.CurrentCulture) + " would trim, L/B/D " + light.ToString(CultureInfo.CurrentCulture) + "/" + balanced.ToString(CultureInfo.CurrentCulture) + "/" + deep.ToString(CultureInfo.CurrentCulture) + ", top " + topName + ".";
+                summary.TimestampText = File.GetLastWriteTime(previewPath).ToString("HH:mm:ss", CultureInfo.CurrentCulture);
+            }
+            catch
+            {
+            }
+            return summary;
+        }
+
+        private Dictionary<string, List<string>> BuildAppTimelines(List<WebManagerRow> rows)
+        {
+            Dictionary<string, List<string>> timelines = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            List<string> logLines = ReadLastLines(logPath, 80);
+            foreach (WebManagerRow row in rows)
+            {
+                if (row == null) { continue; }
+                string key = String.IsNullOrWhiteSpace(row.Key) ? row.ProcessName : row.Key;
+                if (String.IsNullOrWhiteSpace(key)) { key = row.Name; }
+                if (String.IsNullOrWhiteSpace(key) || timelines.ContainsKey(key)) { continue; }
+                List<string> items = new List<string>();
+                items.Add("App: " + row.Name);
+                items.Add("Policy: " + (String.IsNullOrWhiteSpace(row.Policy) ? "Auto" : row.Policy) + " | Confidence: " + row.BehaviorConfidence.ToString(CultureInfo.CurrentCulture) + " | Tier: " + (String.IsNullOrWhiteSpace(row.BehaviorTier) ? "Auto" : row.BehaviorTier));
+                items.Add("Instances: " + row.InstanceCount.ToString(CultureInfo.CurrentCulture) + " | CPU: " + row.Cpu + " | Delta: " + row.Delta);
+                if (!String.IsNullOrWhiteSpace(row.BehaviorReason)) { items.Add("Reason: " + row.BehaviorReason); }
+                string process = row.ProcessName ?? String.Empty;
+                for (int i = logLines.Count - 1; i >= 0 && items.Count < 9; i--)
+                {
+                    string line = logLines[i];
+                    if (String.IsNullOrWhiteSpace(process) || line.IndexOf(process, StringComparison.OrdinalIgnoreCase) >= 0 || line.IndexOf("action=apply", StringComparison.OrdinalIgnoreCase) >= 0 || line.IndexOf("action=preview", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        items.Add(FormatActivityLine(line));
+                    }
+                }
+                timelines[key] = items;
+            }
+            return timelines;
+        }
         private string BuildResultText()
         {
             string line = ReadLastApplyLogLine();
@@ -4365,8 +4959,8 @@ internal static class SmartBackgroundNap
                     row.Action = BuildActionSummary(map);
                     row.PermissionDenied = HasPermissionDeniedStatus(map);
                     row.Key = GetString(map, "AppKey");
-                    row.ProcessName = GetString(map, "ProcessName");
-                    row.Path = GetString(map, "Path");
+                    row.ProcessName = GetMapString(map, "ProcessName");
+                    row.Path = GetMapString(map, "Path");
                     row.Role = GetString(map, "Role");
                     row.Policy = String.IsNullOrWhiteSpace(GetString(map, "AppPolicy")) ? "Auto" : GetString(map, "AppPolicy");
                     row.PolicySource = GetString(map, "PolicySource");
@@ -4433,7 +5027,7 @@ internal static class SmartBackgroundNap
             string path = row == null ? "" : row.Path;
             if (String.IsNullOrWhiteSpace(path))
             {
-                path = GetString(map, "Path");
+                path = GetMapString(map, "Path");
             }
             if (!String.IsNullOrWhiteSpace(path))
             {
@@ -4442,7 +5036,7 @@ internal static class SmartBackgroundNap
             string name = row == null ? "" : row.ProcessName;
             if (String.IsNullOrWhiteSpace(name))
             {
-                name = GetString(map, "ProcessName");
+                name = GetMapString(map, "ProcessName");
             }
             return "name:" + (String.IsNullOrWhiteSpace(name) ? "unknown" : name.Trim().ToLowerInvariant());
         }
@@ -4494,7 +5088,7 @@ internal static class SmartBackgroundNap
 
         private string BuildProcessLabel(IDictionary<string, object> map)
         {
-            string name = GetString(map, "ProcessName");
+            string name = GetMapString(map, "ProcessName");
             if (String.IsNullOrWhiteSpace(name)) { name = "Unknown"; }
             int instances = GetInt(map, "InstanceCount");
             if (instances > 1) { return name + " x" + instances.ToString(CultureInfo.CurrentCulture); }
@@ -4510,6 +5104,7 @@ internal static class SmartBackgroundNap
             string io = BlankToDash(GetString(map, "IoPriority"));
             string trim = BlankToDash(GetString(map, "TrimWorkingSet"));
             string power = BlankToDash(GetString(map, "PowerThrottling"));
+            string affinity = BlankToDash(GetString(map, "CpuAffinity"));
             string learning = GetString(map, "Learning");
             int observations = GetInt(map, "LearningObservations");
             int wakes = GetInt(map, "LearningWakeCount");
@@ -4523,7 +5118,7 @@ internal static class SmartBackgroundNap
             int behaviorBias = GetInt(map, "BehaviorBias");
             int behaviorWakes = GetInt(map, "BehaviorWakeCount");
             string behaviorTier = GetString(map, "BehaviorPreferredTier");
-            string summary = "Tier " + tier + " / P " + priority + " / M " + memory + " / IO " + io + " / T " + trim + " / Eco " + power;
+            string summary = "Tier " + tier + " / P " + priority + " / M " + memory + " / IO " + io + " / T " + trim + " / Eco " + power + " / Affinity " + affinity;
             if (!String.IsNullOrWhiteSpace(policy) && !String.Equals(policy, "Auto", StringComparison.OrdinalIgnoreCase))
             {
                 summary += " / Policy " + policy;
@@ -4915,6 +5510,22 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public bool FirstRun { get; set; }
             public bool AutoMode { get; set; }
             public bool Startup { get; set; }
+            public string SessionMode { get; set; }
+            public string PowerPlanName { get; set; }
+            public string PowerPlanGuid { get; set; }
+            public string PreviousPowerPlanName { get; set; }
+            public string PreviousPowerPlanGuid { get; set; }
+            public bool EnergyIdleGuardEnabled { get; set; }
+            public bool EnergyIdleGuardConfigured { get; set; }
+            public int EnergyIdleGuardMinutes { get; set; }
+            public bool AdaptiveExclusions { get; set; }
+            public int PolicyCount { get; set; }
+            public int PreviewTargets { get; set; }
+            public int PreviewWouldTrim { get; set; }
+            public string PreviewTop { get; set; }
+            public string PreviewAt { get; set; }
+            public string PreviewResult { get; set; }
+            public string PreviewDetail { get; set; }
             public bool Learning { get; set; }
             public int LearningProfiles { get; set; }
             public bool Behavior { get; set; }
@@ -4964,6 +5575,7 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public int HardwareCpuClockMhz { get; set; }
             public int HardwareCpuMaxMhz { get; set; }
             public List<WebManagerRow> Rows { get; set; }
+            public Dictionary<string, List<string>> AppTimelines { get; set; }
             public List<string> Events { get; set; }
             public bool UpdateAutoChecks { get; set; }
             public bool UpdateChecking { get; set; }
@@ -4977,6 +5589,15 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public string UpdatePublishedAt { get; set; }
             public string UpdateError { get; set; }        }
 
+        private sealed class PreviewSummary
+        {
+            public int Targets { get; set; }
+            public int WouldTrim { get; set; }
+            public string TopApp { get; set; }
+            public string TimestampText { get; set; }
+            public string ShortText { get; set; }
+            public string Detail { get; set; }
+        }
         private sealed class ScoreMeta
         {
             public bool LearningEnabled { get; set; }
@@ -6271,7 +6892,7 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                     row.CpuPercent = GetDouble(map, "CpuPercent");
                     row.BurstCount = GetInt(map, "BurstCount");
                     row.Action = BuildActionSummary(map);
-                    row.Path = GetString(map, "Path");
+                    row.Path = GetMapString(map, "Path");
                     rows.Add(row);
                 }
                 rows.Sort(delegate (ManagerRow left, ManagerRow right) { return right.Score.CompareTo(left.Score); });
@@ -6284,7 +6905,7 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
 
         private string BuildProcessLabel(IDictionary<string, object> map)
         {
-            string name = GetString(map, "ProcessName");
+            string name = GetMapString(map, "ProcessName");
             if (String.IsNullOrWhiteSpace(name))
             {
                 name = "Unknown";
@@ -7428,7 +8049,7 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                     row.CpuPercent = GetDouble(map, "CpuPercent");
                     row.BurstCount = GetInt(map, "BurstCount");
                     row.Action = BuildActionSummary(map);
-                    row.Path = GetString(map, "Path");
+                    row.Path = GetMapString(map, "Path");
                     rows.Add(row);
                 }
 
@@ -7445,7 +8066,7 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
 
         private string BuildProcessLabel(IDictionary<string, object> map)
         {
-            string name = GetString(map, "ProcessName");
+            string name = GetMapString(map, "ProcessName");
             if (String.IsNullOrWhiteSpace(name))
             {
                 name = "Unknown";
@@ -8490,7 +9111,7 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                 row.BeforeMBValue = GetDouble(map, "WorkingSetBeforeMB");
                 row.AfterMBValue = GetDouble(map, "WorkingSetAfterMB");
                 row.Actions = BuildActionSummary(map);
-                row.Path = GetString(map, "Path");
+                row.Path = GetMapString(map, "Path");
                 rows.Add(row);
             }
 
@@ -8503,7 +9124,7 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
 
         private string BuildProcessLabel(IDictionary<string, object> map)
         {
-            string name = GetString(map, "ProcessName");
+            string name = GetMapString(map, "ProcessName");
             if (String.IsNullOrWhiteSpace(name))
             {
                 name = "Unknown";
@@ -8826,6 +9447,15 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
         }
     }
 
+    private sealed class PreviewSummary
+    {
+        public int Targets { get; set; }
+        public int WouldTrim { get; set; }
+        public string TopApp { get; set; }
+        public string TimestampText { get; set; }
+        public string ShortText { get; set; }
+        public string Detail { get; set; }
+    }
     private sealed class RunResult
     {
         public readonly int ExitCode;

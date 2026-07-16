@@ -78,7 +78,7 @@ button{font:inherit}
 @keyframes slide{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
 .actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.btn{height:38px;border-radius:9px;border:1px solid #314967;background:#132238;color:#f4f8ff;font-size:13px;font-weight:900;cursor:pointer;transition:120ms ease;white-space:nowrap;padding:0 10px;min-width:0;overflow:hidden;text-overflow:ellipsis}.btn:hover{filter:brightness(1.08);transform:translateY(-1px)}.btn.primary{grid-column:1/-1;background:linear-gradient(180deg,#ffb13a,#ff9f21);border-color:#ffb13a;color:#121212}.btn.danger{background:linear-gradient(180deg,#ff6674,#eb3f51);border-color:#ff6674;color:#fff}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}.cardButton{text-align:left;color:inherit;font:inherit;cursor:pointer}.cardButton:hover{filter:brightness(1.08);transform:translateY(-1px)}.card{min-height:86px;border:1px solid #263a55;border-radius:12px;background:linear-gradient(145deg,#101d30,#0a1422);padding:13px;position:relative;overflow:hidden}.card:before{content:"";position:absolute;inset:0 auto auto 0;width:100%;height:3px;background:var(--blue)}.card:nth-child(2):before{background:var(--green)}.card:nth-child(3):before{background:var(--amber)}.card:nth-child(4):before{background:var(--violet)}.card:nth-child(5):before{background:var(--green)}.card small{display:block;color:#8ea0b8;font-size:11px;font-weight:800}.card b{display:block;margin-top:8px;font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.updatePanel{display:none;border:1px solid rgba(255,170,42,.34);border-radius:14px;background:linear-gradient(135deg,rgba(255,170,42,.14),rgba(10,22,38,.96));padding:14px;gap:12px;grid-template-columns:minmax(0,1fr) auto;align-items:center;position:relative;overflow:hidden}.updatePanel.show{display:grid}.updatePanel:before{content:"";position:absolute;inset:0 auto auto 0;width:100%;height:3px;background:linear-gradient(90deg,var(--amber),var(--green),var(--blue))}.updateCopy{position:relative;min-width:0}.updateCopy small{display:block;color:var(--amber);font-size:10px;font-weight:950;text-transform:uppercase}.updateCopy b{display:block;margin-top:5px;font-size:16px}.updateCopy p{margin:5px 0 0;color:#aabbd0;font-size:12px;line-height:1.4}.updateActions{position:relative;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.updateActions .btn{height:34px}.btn.subtle{background:rgba(14,28,47,.76);color:#c8d7ea;border-color:#2a405f}
+.controlDeck{border:1px solid #263a55;border-radius:14px;background:linear-gradient(145deg,rgba(15,28,47,.98),rgba(7,16,29,.98));padding:14px;display:grid;gap:13px;min-width:0;overflow:hidden;position:relative}.controlDeck:before{content:"";position:absolute;inset:0 auto auto 0;width:100%;height:2px;background:linear-gradient(90deg,var(--amber),var(--blue),var(--green))}.deckHeader{position:relative;display:flex;align-items:flex-start;justify-content:space-between;gap:14px}.deckHeader small,.selectedMode small{display:block;color:#7e91ab;font-size:10px;font-weight:950;text-transform:uppercase}.deckHeader h3{margin:3px 0 0;font-size:18px;line-height:1.18}.deckStatus{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.deckStatus span{height:26px;display:inline-flex;align-items:center;border:1px solid #2a405f;border-radius:999px;background:#0b1728;color:#b9c9dd;padding:0 10px;font-size:11px;font-weight:900;white-space:nowrap}.modeRow{display:grid;grid-template-columns:repeat(5,minmax(112px,1fr));gap:8px;min-width:0}.modeBtn{min-height:72px;border-radius:11px;border:1px solid #263a55;background:linear-gradient(145deg,#0b1728,#091321);color:#d7e4f5;padding:10px;text-align:left;font-size:12px;font-weight:950;cursor:pointer;display:grid;align-content:start;gap:4px;min-width:0;transition:120ms ease}.modeBtn b{font-size:13px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.modeBtn span{color:#8fa1ba;font-size:10px;line-height:1.25;font-weight:750}.modeBtn:hover{border-color:rgba(255,166,41,.75);transform:translateY(-1px);filter:brightness(1.08)}.modeBtn.active{border-color:rgba(255,166,41,.9);background:linear-gradient(145deg,rgba(255,166,41,.20),rgba(16,29,48,.96));box-shadow:0 0 0 1px rgba(255,166,41,.14) inset;color:#fff}.modeBtn.active span{color:#ffd08a}.deckBody{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;min-width:0}.selectedMode{min-width:0;border:1px solid #213550;border-radius:12px;background:#091523;padding:11px;display:grid;gap:8px}.selectedMode p{margin:0;color:#dce8f8;font-size:12px;line-height:1.45}.modeFacts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.modeFact{border:1px solid #1d3048;border-radius:10px;background:#07111f;padding:9px;min-width:0}.modeFact small{display:block;color:#71839b;font-size:10px;font-weight:850}.modeFact b{display:block;margin-top:3px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.updatePanel{display:none;border:1px solid rgba(255,170,42,.34);border-radius:14px;background:linear-gradient(135deg,rgba(255,170,42,.14),rgba(10,22,38,.96));padding:14px;gap:12px;grid-template-columns:minmax(0,1fr) auto;align-items:center;position:relative;overflow:hidden}.updatePanel.show{display:grid}.updatePanel:before{content:"";position:absolute;inset:0 auto auto 0;width:100%;height:3px;background:linear-gradient(90deg,var(--amber),var(--green),var(--blue))}.updateCopy{position:relative;min-width:0}.updateCopy small{display:block;color:var(--amber);font-size:10px;font-weight:950;text-transform:uppercase}.updateCopy b{display:block;margin-top:5px;font-size:16px}.updateCopy p{margin:5px 0 0;color:#aabbd0;font-size:12px;line-height:1.4}.updateActions{position:relative;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.updateActions .btn{height:34px}.btn.subtle{background:rgba(14,28,47,.76);color:#c8d7ea;border-color:#2a405f}
 .systemPanel{padding:13px;display:grid;gap:10px}.systemGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.systemTile{min-width:0;border:1px solid #223650;border-radius:11px;background:linear-gradient(145deg,rgba(12,24,40,.95),rgba(7,14,25,.95));padding:11px;position:relative;overflow:hidden}.systemTile:before{content:"";position:absolute;inset:0 auto auto 0;width:100%;height:2px;background:linear-gradient(90deg,var(--amber),var(--blue))}.systemTile small{display:block;color:#7e91ab;font-size:10px;font-weight:850;letter-spacing:0}.systemTile b{display:block;margin-top:6px;color:#f6f9ff;font-size:14px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.systemTile p{margin:5px 0 0;color:#93a6bd;font-size:11px;line-height:1.35;min-height:43px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.systemTile.ram:before{background:linear-gradient(90deg,var(--green),var(--amber))}.systemTile.gpu:before{background:linear-gradient(90deg,var(--blue),var(--violet))}.systemTile.os:before{background:linear-gradient(90deg,var(--violet),var(--green))}
 .manager{min-height:0;padding:14px;display:grid;grid-template-rows:auto minmax(0,1fr);gap:10px}.panelTitle{display:flex;align-items:center;justify-content:space-between;gap:12px}.panelTitle h3{margin:0;font-size:18px}.panelTitle span{color:#71839b;font-size:11px;font-weight:800}
 .table{min-height:0;display:grid;grid-template-rows:30px minmax(0,1fr);border:1px solid #1d3048;border-radius:10px;overflow:auto;scrollbar-color:#2e4565 #09111e;scrollbar-width:thin}.thead,.row{width:100%;min-width:780px;display:grid;grid-template-columns:minmax(125px,1.45fr) 60px 78px 54px 56px minmax(320px,2.8fr);align-items:center}.thead{position:sticky;top:0;z-index:1;background:#14243a;color:#9fb0c6;font-size:11px;font-weight:900}.row{min-height:38px;border-top:1px solid #1b2d44;background:#0b1524;color:#dde9f8;font-size:11px}.row:nth-child(even){background:#0e192a}.row>span{padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#rows{min-height:0;overflow:visible}.actionsCell{display:flex;align-items:center;gap:4px;padding:6px 8px!important;overflow:visible!important;white-space:normal!important;flex-wrap:wrap;align-content:center}
@@ -87,6 +87,7 @@ button{font:inherit}
 .permissionBox{display:none;border:1px solid rgba(255,166,41,.42);border-radius:12px;background:linear-gradient(145deg,rgba(255,166,41,.14),rgba(12,23,38,.92));padding:12px}.permissionBox.show{display:grid;gap:8px}.permissionBox small{display:block;color:var(--amber);font-size:10px;font-weight:950;text-transform:uppercase}.permissionBox b{display:block;font-size:15px}.permissionBox p{margin:0;color:#afbfd2;font-size:11px;line-height:1.4}.permissionBox .btn{height:36px}
 .timeline{min-height:0;border:1px solid #1d3048;border-radius:10px;background:#08111d;padding:8px;overflow:auto;scrollbar-color:#2e4565 #09111e;scrollbar-width:thin}.eventLine{display:grid;grid-template-columns:58px minmax(0,1fr);gap:8px;border-bottom:1px solid rgba(255,255,255,.05);padding:7px 2px;color:#dce8f8;font-family:Consolas,monospace;font-size:11px;line-height:1.35}.eventLine:last-child{border-bottom:0}.eventLine time{color:var(--amber);font-weight:900}.eventLine span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .feedbox{display:none}.status{display:none}.footer{display:none}
+.modeDeckHero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:start;position:relative}.modeDeckHero small{display:block;color:#8aa0ba;font-size:10px;font-weight:950;text-transform:uppercase}.modeDeckHero h3{margin:3px 0 0;font-size:22px;line-height:1.1}.modeDeckHero p{margin:7px 0 0;color:#aec0d6;font-size:12px;line-height:1.35;max-width:760px}.modeDeckStatus{display:grid;gap:7px;justify-items:end}.modeDeckStatus b,.modeDeckStatus span{display:inline-flex;align-items:center;min-height:27px;border-radius:999px;border:1px solid #2c4362;background:#0b1728;padding:0 11px;font-size:11px;font-weight:950;white-space:nowrap}.modeDeckStatus b{border-color:rgba(255,166,41,.55);color:#ffc266;background:rgba(255,166,41,.10)}.modeDeckStatus span{max-width:260px;color:#a9bad0;overflow:hidden;text-overflow:ellipsis}.modeRow{grid-template-columns:repeat(5,minmax(126px,1fr))}.modeBtn{position:relative;min-height:96px;border-radius:14px;padding:13px;overflow:hidden;background:linear-gradient(145deg,#0b1728,#07111f);border-color:#243853}.modeBtn:before{content:"";position:absolute;inset:0 auto auto 0;width:100%;height:3px;background:var(--mode-color,#4091ff)}.modeBtn:after{content:"";position:absolute;right:-28px;top:-28px;width:86px;height:86px;border-radius:999px;background:radial-gradient(circle, color-mix(in srgb,var(--mode-color,#4091ff) 34%, transparent), transparent 70%);opacity:.55;transition:160ms ease}.modeBtn b{position:relative;font-size:14px}.modeBtn span{position:relative;margin-top:2px;display:block;font-size:10.5px;color:#a7b8cd}.modeBtn:hover{border-color:color-mix(in srgb,var(--mode-color,#4091ff) 74%, #fff);box-shadow:0 12px 30px rgba(0,0,0,.22),0 0 0 1px color-mix(in srgb,var(--mode-color,#4091ff) 22%, transparent) inset}.modeBtn:hover:after{transform:scale(1.2);opacity:.85}.modeBtn.active{border-color:color-mix(in srgb,var(--mode-color,#4091ff) 82%, #fff);background:linear-gradient(145deg,color-mix(in srgb,var(--mode-color,#4091ff) 22%, #101d30),#091321);box-shadow:0 0 0 1px color-mix(in srgb,var(--mode-color,#4091ff) 32%, transparent) inset,0 0 30px color-mix(in srgb,var(--mode-color,#4091ff) 15%, transparent)}.modeBtn.active:before{height:4px;box-shadow:0 0 18px var(--mode-color,#4091ff)}.modeBtn.active span{color:#f5fbff}.modeBtn strong{position:absolute;right:11px;bottom:10px;font-size:9px;color:color-mix(in srgb,var(--mode-color,#4091ff) 80%, #fff);border:1px solid color-mix(in srgb,var(--mode-color,#4091ff) 50%, transparent);border-radius:999px;padding:3px 7px;background:rgba(4,10,18,.55)}#modeAuto{--mode-color:#58b9ff}#modeGaming{--mode-color:#ffa629}#modeStreamer{--mode-color:#2ee184;animation:livePulse 2.6s ease-in-out infinite}#modeWork{--mode-color:#9a72ff}#modeFocus{--mode-color:#ff6674}@keyframes livePulse{0%,100%{box-shadow:0 0 0 rgba(46,225,132,0)}50%{box-shadow:0 0 26px rgba(46,225,132,.12)}}.modeInsight{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(260px,.85fr);gap:10px}.selectedMode{background:linear-gradient(145deg,#091523,#07111f);border-radius:13px}.selectedMode p{font-size:13px}.modeFacts{grid-template-columns:repeat(3,minmax(0,1fr))}.modeFact{background:linear-gradient(145deg,#07111f,#09182a);border-color:#223752}.modeFact.accent{border-color:rgba(255,166,41,.45)}.modeFact.live{border-color:rgba(46,225,132,.42)}.modeFact b{font-size:14px}.energyOverlay{position:fixed;inset:0;z-index:24;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(1,5,10,.72);backdrop-filter:blur(14px)}.energyOverlay.open{display:flex}.energyPanel{width:min(620px,calc(100vw - 48px));border:1px solid rgba(255,166,41,.42);border-radius:18px;background:radial-gradient(circle at 12% 0%,rgba(255,166,41,.20),transparent 35%),linear-gradient(145deg,#101b2d,#08111f);box-shadow:0 28px 90px rgba(0,0,0,.56);padding:22px;display:grid;gap:14px}.energyPanel small{color:#ffa629;font-size:10px;text-transform:uppercase;font-weight:950}.energyPanel h2{margin:0;font-size:25px}.energyPanel p{margin:0;color:#b1c1d5;font-size:13px;line-height:1.5}.energySummary{border:1px solid #243955;border-radius:12px;background:#081421;padding:11px;display:grid;gap:4px}.energySummary b{font-size:13px}.energySummary span{color:#8fa2ba;font-size:11px}.energyActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.energyActions .btn{height:40px}.energyActions .btn.primary{grid-column:auto}.energyActions .btn.wide{grid-column:1/-1}.btn.green{background:linear-gradient(180deg,#2ee184,#17b86a);border-color:#2ee184;color:#04120c}.btn.violet{background:linear-gradient(180deg,#9a72ff,#7952e8);border-color:#9a72ff;color:#fff}.btn.ghost{background:#0b1728;color:#c7d7eb;border-color:#2a405f}.energyIdleBox{border:1px solid #243955;border-radius:14px;background:linear-gradient(145deg,rgba(9,20,34,.96),rgba(6,13,23,.96));padding:12px;display:grid;grid-template-columns:minmax(0,1fr) 132px;gap:12px;align-items:center}.energyIdleBox.disabled{opacity:.72}.energyCheck{display:grid;grid-template-columns:38px minmax(0,1fr);gap:10px;align-items:center;min-width:0}.energyCheck input{width:38px;height:22px;accent-color:#2ee184;cursor:pointer}.energyCheck b{display:block;font-size:13px}.energyCheck em{display:block;margin-top:3px;color:#8fa2ba;font-size:11px;line-height:1.35;font-style:normal}.energyMinutes{display:grid;gap:5px}.energyMinutes span{color:#8fa2ba;font-size:10px;font-weight:900}.energyMinutes input{height:36px;border-radius:10px;border:1px solid #2a405f;background:#081421;color:#f4f7fb;padding:0 10px;font-weight:900}.energyModeBrief{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.energyModeBrief div{border:1px solid #243955;border-radius:12px;background:#081421;padding:10px}.energyModeBrief b{display:block;font-size:12px}.energyModeBrief span{display:block;margin-top:4px;color:#8fa2ba;font-size:11px;line-height:1.35}
 .languageOverlay{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(1,5,10,.72);backdrop-filter:blur(14px)}
 .languageOverlay.open{display:flex}
 .languagePanel{width:min(720px,calc(100vw - 48px));border:1px solid rgba(75,147,255,.34);border-radius:18px;background:radial-gradient(circle at 20% 0%,rgba(255,166,41,.18),transparent 34%),linear-gradient(145deg,#101b2c,#08111e);box-shadow:0 28px 80px rgba(0,0,0,.5);padding:22px}
@@ -97,9 +98,9 @@ button{font:inherit}
 .infoPanel{width:min(560px,calc(100vw - 48px));border:1px solid rgba(154,114,255,.42);border-radius:18px;background:radial-gradient(circle at 15% 0%,rgba(154,114,255,.20),transparent 38%),linear-gradient(145deg,#101b2c,#08111e);box-shadow:0 28px 80px rgba(0,0,0,.52);padding:20px}
 .infoPanel h2{margin:0;font-size:24px}.infoPanel p{margin:8px 0 14px;color:#a9b8ca;font-size:13px;line-height:1.45}.infoList{display:grid;gap:8px;margin:0 0 16px;padding:0;list-style:none}.infoList li{border:1px solid #223650;border-radius:11px;background:#0a1728;padding:10px;color:#dbe7f6;font-size:12px;line-height:1.35}.infoActions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.infoActions .btn{height:40px}.infoActions .btn.primary{grid-column:auto}.updatePref{display:grid;grid-template-columns:minmax(0,1fr) 168px;gap:12px;align-items:center;border:1px solid #223650;border-radius:12px;background:#0a1728;padding:12px;margin:0 0 14px}.updatePref b{display:block;font-size:14px}.updatePref span{display:block;margin-top:4px;color:#8fa1b8;font-size:11px;line-height:1.35}.updatePref button{height:38px;min-width:168px;border-radius:999px;border:1px solid rgba(154,114,255,.5);background:rgba(154,114,255,.13);color:#efe8ff;font-weight:950;cursor:pointer;display:flex;align-items:center;justify-content:center;white-space:nowrap;line-height:1;padding:0 16px;text-align:center}.updateStatus{border:1px solid #223650;border-radius:11px;background:#091523;padding:11px;color:#dbe7f6;font-size:12px;line-height:1.35;margin-bottom:14px}
 @media(max-width:1320px){.dashboard{grid-template-columns:1fr}.rightCol{grid-template-rows:minmax(320px,420px)}}
-@media(max-width:1120px){.command{grid-template-columns:1fr}.engineCard{max-width:none}.featureGrid{max-width:none}.intelligencePanel{max-width:none}}
+@media(max-width:1120px){.command{grid-template-columns:1fr}.engineCard{max-width:none}.featureGrid{max-width:none}.intelligencePanel{max-width:none}.modeRow{grid-template-columns:repeat(2,minmax(0,1fr))}.deckBody{grid-template-columns:1fr}}
 @media(max-width:900px){.app{grid-template-columns:64px minmax(0,1fr)}.rail{padding-top:12px}.nav{width:42px;height:42px}.brandMark{width:42px;height:42px}.workspace{padding:14px}.topbar{height:auto;align-items:flex-start;flex-direction:column}.statusBar{justify-content:flex-start;padding-right:104px}.featureGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard{grid-template-columns:1fr}.headline{font-size:30px}.languageGrid{grid-template-columns:1fr}}
-@media(max-width:620px){.updatePref{grid-template-columns:1fr}.updatePref button{width:100%;min-width:0}}
+@media(max-width:620px){.updatePref,.energyIdleBox,.energyModeBrief{grid-template-columns:1fr}.updatePref button{width:100%;min-width:0}}
 @media(max-width:720px){.updatePanel{grid-template-columns:1fr}.updateActions{justify-content:stretch}.updateActions .btn{flex:1 1 130px}.app{grid-template-columns:56px minmax(0,1fr)}.workspace{padding:12px}.featureGrid,.cards,.systemGrid,.intelStats,.metricGrid{grid-template-columns:1fr}.intelTop{grid-template-columns:1fr}.intelStats span{border-left:0;border-top:1px solid rgba(255,255,255,.08);padding-left:0;padding-top:8px}.intelStats span:first-child{border-top:0;padding-top:0}.meter{grid-template-columns:1fr}.actions{grid-template-columns:1fr}.btn.primary{grid-column:auto}.table{max-width:calc(100vw - 92px)}}
 </style>
 </head>
@@ -113,10 +114,9 @@ button{font:inherit}
   <aside class="rail">
     <div class="brandMark"><img id="logo" alt=""></div>
     <nav class="navStack">
-      <button class="nav active" title="Dashboard" data-title-key="navDashboard"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 11.5 12 4l9 7.5v8.5h-6v-5H9v5H3z"/></svg></button>
-      <button class="nav" title="Nap Score" data-title-key="navScore" onclick="send('score')"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M4 19h16v2H4zM6 10h3v7H6zm5-5h3v12h-3zm5 8h3v4h-3z"/></svg></button>
-      <button class="nav" title="Activity Log" data-title-key="navLog" onclick="send('log')"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M5 4h14v16H5zm3 4v2h8V8zm0 4v2h8v-2zm0 4v2h5v-2z"/></svg></button>
-      <button class="nav" title="Local Files" data-title-key="navFiles" onclick="send('folder')"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 6h7l2 2h9v10H3z"/></svg></button>
+      <button class="nav active" title="Painel" data-title-key="navDashboard"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 11.5 12 4l9 7.5v8.5h-6v-5H9v5H3z"/></svg></button>
+      <button class="nav" title="Log de atividade" data-title-key="navLog" onclick="send('log')"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M5 4h14v16H5zm3 4v2h8V8zm0 4v2h8v-2zm0 4v2h5v-2z"/></svg></button>
+      <button class="nav" title="Arquivos locais" data-title-key="navFiles" onclick="send('folder')"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 6h7l2 2h9v10H3z"/></svg></button>
       <button class="nav" title="GitHub" data-title-key="navGithub" onclick="send('github')"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 0 0-3 19c.5.1.7-.2.7-.5v-2c-3 .6-3.6-1.2-3.6-1.2-.5-1.1-1.1-1.4-1.1-1.4-.9-.6.1-.6.1-.6 1 .1 1.6 1.1 1.6 1.1.9 1.5 2.4 1.1 3 .8.1-.7.4-1.1.7-1.3-2.4-.3-4.9-1.2-4.9-5A3.9 3.9 0 0 1 6.5 7c-.1-.3-.5-1.4.1-2.8 0 0 .9-.3 3 1.1a10.3 10.3 0 0 1 5.4 0c2.1-1.4 3-1.1 3-1.1.6 1.4.2 2.5.1 2.8a3.9 3.9 0 0 1 1 2.7c0 3.9-2.5 4.8-4.9 5.1.4.3.8 1 .8 2v3c0 .3.2.6.8.5A10 10 0 0 0 12 2z"/></svg></button>
     </nav>
     <div class="version" id="version">v0.0.0</div>
@@ -127,7 +127,7 @@ button{font:inherit}
         <div class="titleBlock"><b data-i18n="appTitle">Smart Nap</b><span data-i18n="appSubtitle">Background control for gaming and multitasking</span></div>
         <div class="statusBar">
           <button class="langButton" id="languageButton" onclick="openLanguagePicker(false)">Language</button>
-          <button class="startupAction" id="startup" type="button" onclick="send('toggleStartup')"><span id="startupText">Inicializacao</span></button>
+          <button class="startupAction" id="startup" type="button" onclick="send('toggleStartup')"><span id="startupText">Inicialização</span></button>
           <button class="startupAction updateAction" id="updateAction" type="button" onclick="openUpdateInfo()"><span id="updateActionText">Procurar atualizações</span></button>
           <span class="pill good" id="live"><i class="pulseDot"></i>Atualizando</span>
           <span class="pill" id="motor">Motor</span>
@@ -142,13 +142,13 @@ button{font:inherit}
                 <p class="subline" data-i18n="subline">Apps abertos ficam leves enquanto a janela ativa recupera prioridade instantaneamente.</p>
               </div>
               <div class="featureGrid">
-                <div class="feature"><small data-i18n="feature1K">Foreground</small><b data-i18n="feature1T">Fast wake</b><p data-i18n="feature1D">Restaura prioridade assim que voce troca de janela.</p></div>
-                <div class="feature"><small data-i18n="feature2K">Memory</small><b data-i18n="feature2T">Adaptive trim</b><p data-i18n="feature2D">Reduz sobra de RAM com cooldown para evitar agressividade.</p></div>
-                <div class="feature"><small data-i18n="feature3K">Scheduler</small><b data-i18n="feature3T">Tiered nap</b><p data-i18n="feature3D">Light, Balanced e Deep conforme uso real do processo.</p></div>
+                <div class="feature"><small data-i18n="feature1K">Janela ativa</small><b data-i18n="feature1T">Retorno rápido</b><p data-i18n="feature1D">Restaura prioridade assim que você troca de janela.</p></div>
+                <div class="feature"><small data-i18n="feature2K">Memória</small><b data-i18n="feature2T">Alívio adaptativo</b><p data-i18n="feature2D">Reduz sobra de RAM com pausa de segurança para não exagerar.</p></div>
+                <div class="feature"><small data-i18n="feature3K">Agendador</small><b data-i18n="feature3T">Nap por nível</b><p data-i18n="feature3D">Perfis Leve, Equilibrado e Forte conforme o uso real do app.</p></div>
               </div>
               <div class="intelligencePanel">
                 <div class="intelTop">
-                  <div class="intelCopy"><small data-i18n="intelK">Aprendizado</small><b data-i18n="intelT">Behavior-aware decisions</b><p id="intelDetail" data-i18n="intelD">The engine compares app response, memory return and wake history before choosing Light, Balanced or Deep.</p></div>
+                  <div class="intelCopy"><small data-i18n="intelK">Aprendizado</small><b data-i18n="intelT">Decisão por comportamento</b><p id="intelDetail" data-i18n="intelD">O motor compara resposta, memória recuperada e histórico de retorno antes de escolher o perfil certo.</p></div>
                   <button class="learningToggle" id="learningToggle" onclick="openLearningInfo();event.stopPropagation()">Enable</button>
                 </div>
                 <div class="intelStats">
@@ -158,7 +158,7 @@ button{font:inherit}
                 </div>
               </div>
               <div class="chipRow">
-                <span class="chip cpu" data-i18n="chipCpu">CPU priority</span><span class="chip ram" data-i18n="chipRam">RAM trim</span><span class="chip eco">EcoQoS</span><span class="chip wake" data-i18n="chipWake">Fast wake</span>
+                <span class="chip cpu" data-i18n="chipCpu">Prioridade CPU</span><span class="chip ram" data-i18n="chipRam">Alívio de RAM</span><span class="chip eco">EcoQoS</span><span class="chip wake" data-i18n="chipWake">Retorno rápido</span>
               </div>
             </div>
             <div class="engineCard" id="control">
@@ -194,6 +194,38 @@ button{font:inherit}
               <button class="btn primary" id="updateDownload" onclick="send('openUpdate')">Atualizar</button>
               <button class="btn subtle" id="updateDismiss" onclick="send('dismissUpdate')">Não lembrar esta versão</button>
               <button class="btn subtle" id="updateCheck" onclick="send('checkUpdate')">Checar</button>
+            </div>
+          </section>
+          <section class="controlDeck" id="modeDeck">
+            <div class="modeDeckHero">
+              <div>
+                <small data-i18n="sessionK">Session</small>
+                <h3 data-i18n="sessionT">Engine mode</h3>
+                <p id="sessionHint">Equilíbrio automático para uso diário.</p>
+              </div>
+              <div class="modeDeckStatus">
+                <b id="sessionCurrent">Auto</b>
+                <span id="powerPlanChip">Plano de energia: plano atual</span>
+              </div>
+            </div>
+            <div class="modeRow">
+              <button class="modeBtn" id="modeAuto" onclick="setSessionMode('Auto')"><b data-i18n="modeAuto">Auto</b><span data-i18n="modeAutoD">Equilíbrio automático para uso diário.</span><strong data-i18n="modeAutoPill">Uso diário</strong></button>
+              <button class="modeBtn" id="modeGaming" onclick="setSessionMode('Gaming')"><b data-i18n="modeGaming">Gaming</b><span data-i18n="modeGamingD">Fast foreground recovery.</span><strong data-i18n="modeGamingPill">Power</strong></button>
+              <button class="modeBtn" id="modeStreamer" onclick="setSessionMode('Streamer')"><b data-i18n="modeStreamer">Live</b><span data-i18n="modeStreamerD">Protect stream and game.</span><strong data-i18n="modeStreamerPill">Stream guard</strong></button>
+              <button class="modeBtn" id="modeWork" onclick="setSessionMode('Work')"><b data-i18n="modeWork">Trabalho</b><span data-i18n="modeWorkD">Mantém apps responsivos.</span><strong data-i18n="modeWorkPill">Estável</strong></button>
+              <button class="modeBtn" id="modeFocus" onclick="setSessionMode('Focus')"><b data-i18n="modeFocus">Foco</b><span data-i18n="modeFocusD">Alivia apps em segundo plano parados com mais firmeza.</span><strong data-i18n="modeFocusPill">Fundo leve</strong></button>
+            </div>
+            <div class="modeInsight">
+              <div class="selectedMode">
+                <small data-i18n="selectedModeK">Selected behavior</small>
+                <p id="modeImpact">Equilíbrio automático para uso diário.</p>
+                <p id="modeImpactDetail">Smart Nap decides per app and restores foreground responsiveness when you switch.</p>
+              </div>
+              <div class="modeFacts">
+                <div class="modeFact accent"><small data-i18n="energyPlanK">Plano de energia</small><b id="energyPlanState">Plano atual</b></div>
+                <div class="modeFact"><small data-i18n="manualPoliciesK">Manual policies</small><b id="policyCount">0</b></div>
+                <div class="modeFact live"><small data-i18n="learningShortK">Learning</small><b id="adaptiveState">On</b></div>
+              </div>
             </div>
           </section>
           <section class="panel systemPanel">
@@ -273,9 +305,9 @@ button{font:inherit}
     <p data-i18n="learningModalBody">This optional mode learns how your apps behave and adapts future nap passes without sending data anywhere.</p>
     <ul class="infoList">
       <li data-i18n="learningModalLocal">Profiles stay local on this PC and are based on process name/path, memory use, CPU bursts, and wake events.</li>
-      <li data-i18n="learningModalWake">Apps you switch back to often get a lighter Fast Wake profile, so chat apps, browsers, and tools wake faster.</li>
+      <li data-i18n="learningModalWake">Apps que você usa de novo com frequência recebem um perfil mais leve, então chats, navegadores e ferramentas voltam mais rápido.</li>
       <li data-i18n="learningModalPressure">When memory pressure rises, heavy idle background apps can receive a stronger nap automatically.</li>
-      <li data-i18n="learningModalSafe">It does not kill apps, change drivers, change power plans, or upload telemetry.</li>
+      <li data-i18n="learningModalSafe">Não fecha apps, não altera drivers, não força planos de energia e não envia telemetria.</li>
     </ul>
     <div class="infoActions">
       <button class="btn" data-i18n="cancel" onclick="closeLearningInfo()">Cancel</button>
@@ -283,13 +315,35 @@ button{font:inherit}
     </div>
   </div>
 </div>
-<div class="infoOverlay" id="adminOverlay" role="dialog" aria-modal="true">
+<div class="energyOverlay" id="energyOverlay" role="dialog" aria-modal="true">
+  <div class="energyPanel">
+    <small id="energyKind">Perfil de energia</small>
+    <h2 id="energyTitle">Perfil de energia</h2>
+    <p id="energyBody">Escolha como o Smart Nap deve lidar com energia neste modo.</p>
+    <div class="energySummary"><b id="energyCurrent">Plano atual: -</b><span id="energyPrevious">Plano anterior salvo: -</span></div>
+    <div class="energyModeBrief" id="energyModeBrief">
+      <div><b id="energyPlainTitle">Desempenho contínuo</b><span id="energyPlainBody">Mantém o Windows em alto desempenho enquanto este modo está ativo.</span></div>
+      <div><b id="energySafetyTitle">Saída fácil</b><span id="energySafetyBody">Você pode manter, restaurar ou voltar ao Equilibrado a qualquer momento.</span></div>
+    </div>
+    <div class="energyIdleBox" id="energyIdleBox">
+      <label class="energyCheck"><input type="checkbox" id="energyIdleEnabled"><span><b id="energyIdleTitle">Voltar ao Equilibrado quando parado</b><em id="energyIdleBody">Quando o PC ficar sem uso, o Smart Nap pode voltar ao Equilibrado sozinho.</em></span></label>
+      <label class="energyMinutes" id="energyMinutesWrap"><span id="energyIdleMinutesLabel">Minutos parado</span><input type="number" id="energyIdleMinutes" min="5" max="240" step="5" value="20"></label>
+    </div>
+    <div class="energyActions">
+      <button class="btn green" id="energyPrimary" onclick="commitEnergyChoice('activate')">Usar plano Smart Nap</button>
+      <button class="btn ghost" id="energyKeep" onclick="commitEnergyChoice('keep')">Manter plano atual</button>
+      <button class="btn violet" id="energyRestore" onclick="commitEnergyChoice('restore')">Restaurar plano anterior</button>
+      <button class="btn ghost" id="energyBalanced" onclick="commitEnergyChoice('balanced')">Usar Equilibrado</button>
+      <button class="btn wide" id="energyCancel" onclick="closeEnergyPrompt()">Cancelar</button>
+    </div>
+  </div>
+</div><div class="infoOverlay" id="adminOverlay" role="dialog" aria-modal="true">
   <div class="infoPanel">
     <h2 data-i18n="adminModalTitle">Administrator pass</h2>
     <p id="adminModalBody" data-i18n="adminModalBody">Some apps refused process changes because Windows requires higher permission. Smart Nap can ask UAC and run one elevated optimization pass.</p>
     <ul class="infoList">
       <li data-i18n="adminModalScope">This does not keep Smart Nap permanently elevated. It only runs one administrator pass.</li>
-      <li data-i18n="adminModalNoService">It does not install drivers, services, or change power plans.</li>
+      <li data-i18n="adminModalNoService">Não instala drivers, serviços nem força planos de energia.</li>
       <li data-i18n="adminModalProtected">Some protected apps can still refuse changes even with administrator permission.</li>
     </ul>
     <div class="infoActions">
@@ -304,33 +358,33 @@ const LANGS = {
   "pt-BR": {
     languageName:"Português BR", appTitle:"Smart Nap", appSubtitle:"Controle de apps em segundo plano para jogos e multitarefa",
     navDashboard:"Dashboard", navScore:"Nap Score", navLog:"Log de atividade", navFiles:"Arquivos locais", navGithub:"GitHub", headline:"Apps em segundo plano sob controle", subline:"Apps abertos ficam leves enquanto a janela ativa recupera prioridade instantaneamente.",
-    feature1K:"Janela ativa", feature1T:"Retorno rapido", feature1D:"Restaura prioridade assim que voce troca de janela.",
-    feature2K:"Memoria", feature2T:"Trim adaptativo", feature2D:"Reduz sobra de RAM com cooldown para evitar agressividade.",
-    feature3K:"Agendador", feature3T:"Nap por nivel", feature3D:"Light, Balanced e Deep conforme o uso real do processo.",
-    chipCpu:"Prioridade CPU", chipRam:"Trim de RAM", chipWake:"Retorno rapido", nextCycle:"Proximo ciclo", lastEvent:"Ultimo evento", wake:"Retorno",
-    autoMode:"Modo automatico", startup:"Inicializacao", lastResult:"Ultimo resultado", liveManager:"Gerenciador ao vivo", engineTelemetry:"Atividade do motor",
-    topManaged:"Maior impacto agora", reclaimedMemory:"Memoria aliviada", colApp:"App", colScore:"Score", colBursts:"Picos", colAction:"Acao",
+    feature1K:"Janela ativa", feature1T:"Retorno rápido", feature1D:"Restaura prioridade assim que você troca de janela.",
+    feature2K:"Memória", feature2T:"Alívio adaptativo", feature2D:"Reduz sobra de RAM com pausa de segurança para não exagerar.",
+    feature3K:"Agendador", feature3T:"Nap por nível", feature3D:"Perfis Leve, Equilibrado e Forte conforme o uso real do app.",
+    chipCpu:"Prioridade CPU", chipRam:"Alívio de RAM", chipWake:"Retorno rápido", nextCycle:"Próximo ciclo", lastEvent:"Último evento", wake:"Retorno",
+    autoMode:"Modo automático", startup:"Inicialização", lastResult:"Último resultado", liveManager:"Gerenciador ao vivo", engineTelemetry:"Atividade do motor",
+    topManaged:"Maior impacto agora", reclaimedMemory:"Memória aliviada", colApp:"App", colScore:"Score", colBursts:"Picos", colAction:"Ação",
     languageTitle:"Escolha o idioma", languageSubtitle:"Isso muda apenas o texto do launcher. O otimizador continua com o mesmo comportamento seguro em segundo plano.",
     apply:"Otimizar agora", stop:"Parar", pauseMotor:"Pausar motor", resumeMotor:"Retomar motor", restore:"Restaurar",
-    on:"Ligado", off:"Desligado", live:"Atualizando", motorActive:"Motor ativo", manual:"Manual", startupOn:"Inicia com Windows", startupOff:"Inicializacao off",
+    on:"Ligado", off:"Desligado", live:"Atualizando", motorActive:"Motor ativo", manual:"Manual", startupOn:"Inicia com Windows", startupOff:"Inicialização desligada",
     apps:"apps", noEntries:"Nenhuma entrada gerenciada ainda.", runPass:"Rode um passe para preencher os dados ao vivo.", tracking:"Monitorando {count} entradas recentes",
-    nowShort:"Agora", passLabel:"Passe", watchLabel:"Motor", wakeLabel:"Retorno", behaviorLabel:"Perfil", learnLabel:"Aprendizado", adminLabel:"Admin", policyLabel:"Politica", tiersLabel:"niveis", trimLabel:"trim", cooldownLabel:"cooldown", panelLabel:"Painel",
-    noRun:"Nenhum passe ainda", fastWake:"Retorno rapido", manualWake:"Manual", event:"evento", next:"prox.", noEvent:"sem evento", now:"agora", ago:"atras", paused:"pausado", waiting:"aguardando", dueNow:"agora",
-    detailArmed:"Retorno rapido armado. Apps em segundo plano sao ajustados por nivel.", detailPaused:"Pausado. Rode um passe manual ou retome o motor.",
-    wakeGuard:"retorno protegido", startupOffDetail:"inicializacao off", working:"Trabalhando em segundo plano...",
-    intelK:"Aprendizado", intelT:"Decisao por comportamento", intelD:"O motor compara resposta, retorno de memoria e historico de wake antes de escolher Light, Balanced ou Deep.",
-    learningK:"Perfil opcional", learningT:"Smart Learning", learningD:"Aprende suas sessoes localmente e ajusta o nap quando a memoria aperta.",
-    smartLearning:"Smart Learning", learnedProfiles:"Perfis de sessao", memoryPressure:"Memoria do sistema", intentState:"Contexto atual", contentionRadar:"Pressao em segundo plano", enableLearning:"Ativar", disableLearning:"Desativar", learningOn:"Ligado", learningOff:"Desligado",
-    learningModalTitle:"Smart Learning", learningModalBody:"Modo opcional que aprende como seus apps se comportam e adapta os proximos passes sem enviar dados para lugar nenhum.",
-    learningModalLocal:"Os perfis ficam neste PC e usam nome/caminho do processo, memoria, bursts de CPU e eventos de wake.",
-    learningModalWake:"Apps que voce traz de volta com frequencia recebem um perfil mais leve de Fast Wake.",
-    learningModalPressure:"Quando a memoria aperta, apps pesados e ociosos em segundo plano podem receber um nap mais forte.",
-    learningModalSafe:"Nao fecha apps, nao mexe em drivers, nao troca plano de energia e nao envia telemetria.",
-    permissionK:"Permissao", permissionT:"Apps recusaram mudancas", permissionBody:"{count} app(s) negaram mudancas: {apps}. Voce pode autorizar um passe como administrador para tentar agir neles.",
-    requestAdmin:"Pedir admin", alreadyElevated:"Ja esta como admin", adminModalTitle:"Passe com administrador", adminModalBody:"Alguns apps recusaram mudancas porque o Windows exige permissao maior. O Smart Nap pode abrir o UAC e rodar um unico passe elevado.",
+    nowShort:"Agora", passLabel:"Passe", watchLabel:"Motor", wakeLabel:"Retorno", behaviorLabel:"Perfil", learnLabel:"Aprendizado", adminLabel:"Admin", policyLabel:"Política", tiersLabel:"níveis", trimLabel:"alívio", cooldownLabel:"pausa", panelLabel:"Painel",
+    noRun:"Nenhum passe ainda", fastWake:"Retorno rápido", manualWake:"Manual", event:"evento", next:"prox.", noEvent:"sem evento", now:"agora", ago:"atras", paused:"pausado", waiting:"aguardando", dueNow:"agora",
+    detailArmed:"Retorno rápido armado. Apps em segundo plano sao ajustados por nivel.", detailPaused:"Pausado. Rode um passe manual ou retome o motor.",
+    wakeGuard:"retorno protegido", startupOffDetail:"inicialização desligada", working:"Trabalhando em segundo plano...",
+    intelK:"Aprendizado", intelT:"Decisão por comportamento", intelD:"O motor compara resposta, memória recuperada e histórico de retorno antes de escolher o perfil certo.",
+    learningK:"Perfil opcional", learningT:"Smart Learning", learningD:"Aprende suas sessões localmente e ajusta o nap quando a memória fica pressionada.",
+    smartLearning:"Smart Learning", learnedProfiles:"Perfis de sessão", memoryPressure:"Memória do sistema", intentState:"Contexto atual", contentionRadar:"Pressão em segundo plano", enableLearning:"Ativar", disableLearning:"Desativar", learningOn:"Ligado", learningOff:"Desligado",
+    learningModalTitle:"Smart Learning", learningModalBody:"Modo opcional que aprende como seus apps se comportam e adapta os próximos passes sem enviar dados para lugar nenhum.",
+    learningModalLocal:"Os perfis ficam neste PC e usam nome/caminho do processo, memória, bursts de CPU e eventos de wake.",
+    learningModalWake:"Apps que você usa de novo com frequência recebem um perfil mais leve e voltam mais rápido.",
+    learningModalPressure:"Quando a memória fica pressionada, apps pesados e ociosos em segundo plano podem receber um perfil mais forte.",
+    learningModalSafe:"Nao fecha apps, nao mexe em drivers, nao forca plano de energia e nao envia telemetria.",
+    permissionK:"Permissão", permissionT:"Apps recusaram mudanças", permissionBody:"{count} app(s) negaram mudanças: {apps}. Você pode autorizar um passe como administrador para tentar agir neles.",
+    requestAdmin:"Pedir admin", alreadyElevated:"Já está como admin", adminModalTitle:"Passe com administrador", adminModalBody:"Alguns apps recusaram mudanças porque o Windows exige permissão maior. O Smart Nap pode abrir o UAC e rodar um único passe elevado.",
     adminModalScope:"Isso nao deixa o Smart Nap permanentemente como administrador. Ele roda apenas um passe elevado.",
-    adminModalNoService:"Nao instala driver, servico, extensao, nem troca plano de energia.",
-    adminModalProtected:"Alguns apps protegidos ainda podem recusar mudancas mesmo com administrador.",
+    adminModalNoService:"Nao instala driver, servico, extensao, nem forca plano de energia.",
+    adminModalProtected:"Alguns apps protegidos ainda podem recusar mudanças mesmo com administrador.",
     openUac:"Abrir UAC",
     cancel:"Cancelar"
   },
@@ -357,55 +411,22 @@ const LANGS = {
     learningModalLocal:"Profiles stay on this PC and use process name/path, memory use, CPU bursts, and wake events.",
     learningModalWake:"Apps you switch back to often receive a lighter Fast Wake profile.",
     learningModalPressure:"When memory gets tight, heavy idle background apps can receive a stronger nap.",
-    learningModalSafe:"It does not close apps, change drivers, switch power plans, or upload telemetry.",
+    learningModalSafe:"It does not close apps, change drivers, force power plans, or upload telemetry.",
     permissionK:"Permission", permissionT:"Apps refused changes", permissionBody:"{count} app(s) denied changes: {apps}. You can authorize one administrator pass to try those apps again.",
     requestAdmin:"Request admin", alreadyElevated:"Already admin", adminModalTitle:"Administrator pass", adminModalBody:"Some apps refused changes because Windows requires higher permission. Smart Nap can open UAC and run one elevated pass.",
     adminModalScope:"This does not keep Smart Nap permanently elevated. It only runs one administrator pass.",
-    adminModalNoService:"It does not install drivers, services, extensions, or change power plans.",
+    adminModalNoService:"It does not install drivers, services, extensions, or force power plans.",
     adminModalProtected:"Some protected apps can still refuse changes even with administrator permission.",
     openUac:"Open UAC",
     cancel:"Cancel"
-  },
-  "ru-RU": {
-    languageName:"Ð ÑƒÑÑÐºÐ¸Ð¹", appTitle:"Smart Nap", appSubtitle:"ÐšÐ¾Ð½Ñ‚Ñ€Ð¾Ð»ÑŒ Ñ„Ð¾Ð½Ð¾Ð²Ñ‹Ñ… Ð¿Ñ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ð¹ Ð´Ð»Ñ Ð¸Ð³Ñ€ Ð¸ Ð¼Ð½Ð¾Ð³Ð¾Ð·Ð°Ð´Ð°Ñ‡Ð½Ð¾ÑÑ‚Ð¸",
-    navDashboard:"ÐŸÐ°Ð½ÐµÐ»ÑŒ", navScore:"Nap Score", navLog:"Ð–ÑƒÑ€Ð½Ð°Ð»", navFiles:"Ð¤Ð°Ð¹Ð»Ñ‹", navGithub:"GitHub", headline:"Ð¤Ð¾Ð½Ð¾Ð²Ñ‹Ðµ Ð¿Ñ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ñ Ð¿Ð¾Ð´ ÐºÐ¾Ð½Ñ‚Ñ€Ð¾Ð»ÐµÐ¼", subline:"ÐžÑ‚ÐºÑ€Ñ‹Ñ‚Ñ‹Ðµ Ð¿Ñ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ñ ÑÑ‚Ð°Ð½Ð¾Ð²ÑÑ‚ÑÑ Ð»ÐµÐ³Ñ‡Ðµ, Ð° Ð°ÐºÑ‚Ð¸Ð²Ð½Ð¾Ðµ Ð¾ÐºÐ½Ð¾ Ð¼Ð³Ð½Ð¾Ð²ÐµÐ½Ð½Ð¾ Ð²Ð¾Ð·Ð²Ñ€Ð°Ñ‰Ð°ÐµÑ‚ Ð¿Ñ€Ð¸Ð¾Ñ€Ð¸Ñ‚ÐµÑ‚.",
-    feature1K:"ÐÐºÑ‚Ð¸Ð²Ð½Ð¾Ðµ Ð¾ÐºÐ½Ð¾", feature1T:"Ð‘Ñ‹ÑÑ‚Ñ€Ð¾Ðµ Ð¿Ñ€Ð¾Ð±ÑƒÐ¶Ð´ÐµÐ½Ð¸Ðµ", feature1D:"Ð’Ð¾Ð·Ð²Ñ€Ð°Ñ‰Ð°ÐµÑ‚ Ð¿Ñ€Ð¸Ð¾Ñ€Ð¸Ñ‚ÐµÑ‚ ÑÑ€Ð°Ð·Ñƒ Ð¿Ð¾ÑÐ»Ðµ Ð¿ÐµÑ€ÐµÐºÐ»ÑŽÑ‡ÐµÐ½Ð¸Ñ Ð¾ÐºÐ½Ð°.",
-    feature2K:"ÐŸÐ°Ð¼ÑÑ‚ÑŒ", feature2T:"ÐÐ´Ð°Ð¿Ñ‚Ð¸Ð²Ð½Ð°Ñ Ð¾Ñ‡Ð¸ÑÑ‚ÐºÐ°", feature2D:"ÐžÑÐ²Ð¾Ð±Ð¾Ð¶Ð´Ð°ÐµÑ‚ Ð»Ð¸ÑˆÐ½ÑŽÑŽ RAM Ñ Ð¿Ð°ÑƒÐ·Ð°Ð¼Ð¸, Ñ‡Ñ‚Ð¾Ð±Ñ‹ Ð½Ðµ Ð´ÐµÐ¹ÑÑ‚Ð²Ð¾Ð²Ð°Ñ‚ÑŒ ÑÐ»Ð¸ÑˆÐºÐ¾Ð¼ Ð°Ð³Ñ€ÐµÑÑÐ¸Ð²Ð½Ð¾.",
-    feature3K:"ÐŸÐ»Ð°Ð½Ð¸Ñ€Ð¾Ð²Ñ‰Ð¸Ðº", feature3T:"Ð£Ñ€Ð¾Ð²Ð½Ð¸ Nap", feature3D:"Light, Balanced Ð¸ Deep Ð¿Ð¾ Ñ€ÐµÐ°Ð»ÑŒÐ½Ð¾Ð¼Ñƒ Ð¿Ð¾Ð²ÐµÐ´ÐµÐ½Ð¸ÑŽ Ð¿Ñ€Ð¾Ñ†ÐµÑÑÐ°.",
-    chipCpu:"ÐŸÑ€Ð¸Ð¾Ñ€Ð¸Ñ‚ÐµÑ‚ CPU", chipRam:"ÐžÑ‡Ð¸ÑÑ‚ÐºÐ° RAM", chipWake:"Fast wake", nextCycle:"Ð¡Ð»ÐµÐ´ÑƒÑŽÑ‰Ð¸Ð¹ Ñ†Ð¸ÐºÐ»", lastEvent:"ÐŸÐ¾ÑÐ»ÐµÐ´Ð½ÐµÐµ ÑÐ¾Ð±Ñ‹Ñ‚Ð¸Ðµ", wake:"ÐŸÑ€Ð¾Ð±ÑƒÐ¶Ð´ÐµÐ½Ð¸Ðµ",
-    autoMode:"ÐÐ²Ñ‚Ð¾ Ñ€ÐµÐ¶Ð¸Ð¼", startup:"ÐÐ²Ñ‚Ð¾Ð·Ð°Ð¿ÑƒÑÐº", lastResult:"ÐŸÐ¾ÑÐ»ÐµÐ´Ð½Ð¸Ð¹ Ñ€ÐµÐ·ÑƒÐ»ÑŒÑ‚Ð°Ñ‚", liveManager:"Ð–Ð¸Ð²Ð¾Ð¹ Ð¼ÐµÐ½ÐµÐ´Ð¶ÐµÑ€", engineTelemetry:"Ð¢ÐµÐ»ÐµÐ¼ÐµÑ‚Ñ€Ð¸Ñ Ð´Ð²Ð¸Ð¶ÐºÐ°",
-    topManaged:"Ð“Ð»Ð°Ð²Ð½Ð¾Ðµ Ð¿Ñ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ðµ", reclaimedMemory:"ÐžÑÐ²Ð¾Ð±Ð¾Ð¶Ð´ÐµÐ½Ð¾ Ð¿Ð°Ð¼ÑÑ‚Ð¸", colApp:"ÐŸÑ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ðµ", colScore:"ÐžÑ†ÐµÐ½ÐºÐ°", colBursts:"Ð’ÑÐ¿Ð»ÐµÑÐºÐ¸", colAction:"Ð”ÐµÐ¹ÑÑ‚Ð²Ð¸Ðµ",
-    languageTitle:"Ð’Ñ‹Ð±ÐµÑ€Ð¸Ñ‚Ðµ ÑÐ·Ñ‹Ðº", languageSubtitle:"ÐœÐµÐ½ÑÐµÑ‚ÑÑ Ñ‚Ð¾Ð»ÑŒÐºÐ¾ Ñ‚ÐµÐºÑÑ‚ Ð»Ð°ÑƒÐ½Ñ‡ÐµÑ€Ð°. ÐžÐ¿Ñ‚Ð¸Ð¼Ð¸Ð·Ð°Ñ‚Ð¾Ñ€ Ð¿Ñ€Ð¾Ð´Ð¾Ð»Ð¶Ð°ÐµÑ‚ Ñ€Ð°Ð±Ð¾Ñ‚Ð°Ñ‚ÑŒ Ð±ÐµÐ·Ð¾Ð¿Ð°ÑÐ½Ð¾ Ð² Ñ„Ð¾Ð½Ðµ.",
-    apply:"ÐžÐ¿Ñ‚Ð¸Ð¼Ð¸Ð·Ð¸Ñ€Ð¾Ð²Ð°Ñ‚ÑŒ", stop:"Ð¡Ñ‚Ð¾Ð¿", pauseMotor:"ÐŸÐ°ÑƒÐ·Ð°", resumeMotor:"Ð—Ð°Ð¿ÑƒÑÑ‚Ð¸Ñ‚ÑŒ", restore:"Ð’Ð¾ÑÑÑ‚Ð°Ð½Ð¾Ð²Ð¸Ñ‚ÑŒ",
-    on:"Ð’ÐºÐ»", off:"Ð’Ñ‹ÐºÐ»", live:"LIVE", motorActive:"Ð”Ð’Ð˜Ð–ÐžÐš ÐÐšÐ¢Ð˜Ð’Ð•Ð", manual:"Ð Ð£Ð§ÐÐžÐ™", startupOn:"ÐÐ’Ð¢ÐžÐ—ÐÐŸÐ£Ð¡Ðš Ð’ÐšÐ›", startupOff:"ÐÐ’Ð¢ÐžÐ—ÐÐŸÐ£Ð¡Ðš Ð’Ð«ÐšÐ›",
-    apps:"Ð¿Ñ€Ð¸Ð».", noEntries:"ÐŸÐ¾ÐºÐ° Ð½ÐµÑ‚ ÑƒÐ¿Ñ€Ð°Ð²Ð»ÑÐµÐ¼Ñ‹Ñ… Ð·Ð°Ð¿Ð¸ÑÐµÐ¹.", runPass:"Ð—Ð°Ð¿ÑƒÑÑ‚Ð¸Ñ‚Ðµ Ð¿Ñ€Ð¾Ñ…Ð¾Ð´, Ñ‡Ñ‚Ð¾Ð±Ñ‹ Ð·Ð°Ð¿Ð¾Ð»Ð½Ð¸Ñ‚ÑŒ Ð¶Ð¸Ð²Ñ‹Ðµ Ð´Ð°Ð½Ð½Ñ‹Ðµ.", tracking:"ÐžÑ‚ÑÐ»ÐµÐ¶Ð¸Ð²Ð°ÐµÑ‚ÑÑ Ð¿Ð¾ÑÐ»ÐµÐ´Ð½Ð¸Ñ… Ð·Ð°Ð¿Ð¸ÑÐµÐ¹: {count}",
-    noRun:"Ð—Ð°Ð¿ÑƒÑÐºÐ¾Ð² ÐµÑ‰Ðµ Ð½ÐµÑ‚", fastWake:"Ð‘Ñ‹ÑÑ‚Ñ€Ð¾", manualWake:"Ð ÑƒÑ‡Ð½Ð¾Ð¹", event:"ÑÐ¾Ð±Ñ‹Ñ‚Ð¸Ðµ", next:"ÑÐ»ÐµÐ´.", noEvent:"Ð½ÐµÑ‚ ÑÐ¾Ð±Ñ‹Ñ‚Ð¸Ð¹", now:"ÑÐµÐ¹Ñ‡Ð°Ñ", ago:"Ð½Ð°Ð·Ð°Ð´", paused:"Ð¿Ð°ÑƒÐ·Ð°", waiting:"Ð¾Ð¶Ð¸Ð´Ð°Ð½Ð¸Ðµ", dueNow:"ÑÐµÐ¹Ñ‡Ð°Ñ",
-    detailArmed:"Ð‘Ñ‹ÑÑ‚Ñ€Ð¾Ðµ Ð¿Ñ€Ð¾Ð±ÑƒÐ¶Ð´ÐµÐ½Ð¸Ðµ Ð²ÐºÐ»ÑŽÑ‡ÐµÐ½Ð¾. Ð¤Ð¾Ð½Ð¾Ð²Ñ‹Ðµ Ð¿Ñ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ñ Ð½Ð°ÑÑ‚Ñ€Ð°Ð¸Ð²Ð°ÑŽÑ‚ÑÑ Ð¿Ð¾ ÑƒÑ€Ð¾Ð²Ð½ÑÐ¼.", detailPaused:"ÐŸÐ°ÑƒÐ·Ð°. Ð—Ð°Ð¿ÑƒÑÑ‚Ð¸Ñ‚Ðµ Ñ€ÑƒÑ‡Ð½Ð¾Ð¹ Ð¿Ñ€Ð¾Ñ…Ð¾Ð´ Ð¸Ð»Ð¸ Ð²ÐºÐ»ÑŽÑ‡Ð¸Ñ‚Ðµ Ð´Ð²Ð¸Ð¶Ð¾Ðº.",
-    wakeGuard:"wake guard Ð°ÐºÑ‚Ð¸Ð²ÐµÐ½", startupOffDetail:"Ð°Ð²Ñ‚Ð¾Ð·Ð°Ð¿ÑƒÑÐº Ð²Ñ‹ÐºÐ»ÑŽÑ‡ÐµÐ½", working:"Ð Ð°Ð±Ð¾Ñ‚Ð° Ð² Ñ„Ð¾Ð½Ðµ...",
-    intelK:"Ð›Ð¾ÐºÐ°Ð»ÑŒÐ½Ð¾Ðµ ÑÐ´Ñ€Ð¾", intelT:"Ð ÐµÑˆÐµÐ½Ð¸Ñ Ð¿Ð¾ Ð¿Ð¾Ð²ÐµÐ´ÐµÐ½Ð¸ÑŽ", intelD:"Ð”Ð²Ð¸Ð¶Ð¾Ðº ÑÑ€Ð°Ð²Ð½Ð¸Ð²Ð°ÐµÑ‚ Ð¾Ñ‚ÐºÐ»Ð¸Ðº, Ð²Ð¾Ð·Ð²Ñ€Ð°Ñ‚ Ð¿Ð°Ð¼ÑÑ‚Ð¸ Ð¸ wake-Ð¸ÑÑ‚Ð¾Ñ€Ð¸ÑŽ Ð¿ÐµÑ€ÐµÐ´ Ð²Ñ‹Ð±Ð¾Ñ€Ð¾Ð¼ Light, Balanced Ð¸Ð»Ð¸ Deep.",
-    learningK:"ÐžÐ¿Ñ†Ð¸Ð¾Ð½Ð°Ð»ÑŒÐ½Ñ‹Ð¹ Ð¿Ñ€Ð¾Ñ„Ð¸Ð»ÑŒ", learningT:"Smart Learning", learningD:"Ð›Ð¾ÐºÐ°Ð»ÑŒÐ½Ð¾ Ð¸Ð·ÑƒÑ‡Ð°ÐµÑ‚ ÑÐµÑÑÐ¸Ð¸ Ð¸ ÑƒÑÐ¸Ð»Ð¸Ð²Ð°ÐµÑ‚ nap Ð¿Ñ€Ð¸ Ð´Ð°Ð²Ð»ÐµÐ½Ð¸Ð¸ Ð½Ð° Ð¿Ð°Ð¼ÑÑ‚ÑŒ.",
-    smartLearning:"Smart Learning", learnedProfiles:"Ð˜Ð·ÑƒÑ‡ÐµÐ½Ð½Ñ‹Ðµ Ð¿Ñ€Ð¾Ñ„Ð¸Ð»Ð¸", memoryPressure:"Ð”Ð°Ð²Ð»ÐµÐ½Ð¸Ðµ Ð¿Ð°Ð¼ÑÑ‚Ð¸", enableLearning:"Ð’ÐºÐ»ÑŽÑ‡Ð¸Ñ‚ÑŒ", disableLearning:"Ð’Ñ‹ÐºÐ»ÑŽÑ‡Ð¸Ñ‚ÑŒ", learningOn:"Ð’ÐºÐ»", learningOff:"Ð’Ñ‹ÐºÐ»",
-    learningModalTitle:"Smart Learning", learningModalBody:"ÐžÐ¿Ñ†Ð¸Ð¾Ð½Ð°Ð»ÑŒÐ½Ñ‹Ð¹ Ñ€ÐµÐ¶Ð¸Ð¼ Ð¸Ð·ÑƒÑ‡Ð°ÐµÑ‚ Ð¿Ð¾Ð²ÐµÐ´ÐµÐ½Ð¸Ðµ Ð¿Ñ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ð¹ Ð¸ Ð°Ð´Ð°Ð¿Ñ‚Ð¸Ñ€ÑƒÐµÑ‚ Ð±ÑƒÐ´ÑƒÑ‰Ð¸Ðµ Ð¿Ñ€Ð¾Ñ…Ð¾Ð´Ñ‹ Ð±ÐµÐ· Ð¾Ñ‚Ð¿Ñ€Ð°Ð²ÐºÐ¸ Ð´Ð°Ð½Ð½Ñ‹Ñ….",
-    learningModalLocal:"ÐŸÑ€Ð¾Ñ„Ð¸Ð»Ð¸ Ð¾ÑÑ‚Ð°ÑŽÑ‚ÑÑ Ð½Ð° ÑÑ‚Ð¾Ð¼ ÐŸÐš Ð¸ Ð¸ÑÐ¿Ð¾Ð»ÑŒÐ·ÑƒÑŽÑ‚ Ð¸Ð¼Ñ/Ð¿ÑƒÑ‚ÑŒ Ð¿Ñ€Ð¾Ñ†ÐµÑÑÐ°, Ð¿Ð°Ð¼ÑÑ‚ÑŒ, Ð²ÑÐ¿Ð»ÐµÑÐºÐ¸ CPU Ð¸ ÑÐ¾Ð±Ñ‹Ñ‚Ð¸Ñ wake.",
-    learningModalWake:"ÐŸÑ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ñ, Ðº ÐºÐ¾Ñ‚Ð¾Ñ€Ñ‹Ð¼ Ð²Ñ‹ Ñ‡Ð°ÑÑ‚Ð¾ Ð²Ð¾Ð·Ð²Ñ€Ð°Ñ‰Ð°ÐµÑ‚ÐµÑÑŒ, Ð¿Ð¾Ð»ÑƒÑ‡Ð°ÑŽÑ‚ Ð±Ð¾Ð»ÐµÐµ Ð»ÐµÐ³ÐºÐ¸Ð¹ Ð¿Ñ€Ð¾Ñ„Ð¸Ð»ÑŒ Fast Wake.",
-    learningModalPressure:"ÐšÐ¾Ð³Ð´Ð° Ð¿Ð°Ð¼ÑÑ‚Ð¸ Ð¼Ð°Ð»Ð¾, Ñ‚ÑÐ¶ÐµÐ»Ñ‹Ðµ Ð±ÐµÐ·Ð´ÐµÐ¹ÑÑ‚Ð²ÑƒÑŽÑ‰Ð¸Ðµ Ñ„Ð¾Ð½Ð¾Ð²Ñ‹Ðµ Ð¿Ñ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ñ Ð¼Ð¾Ð³ÑƒÑ‚ Ð¿Ð¾Ð»ÑƒÑ‡Ð¸Ñ‚ÑŒ Ð±Ð¾Ð»ÐµÐµ ÑÐ¸Ð»ÑŒÐ½Ñ‹Ð¹ nap.",
-    learningModalSafe:"ÐÐµ Ð·Ð°ÐºÑ€Ñ‹Ð²Ð°ÐµÑ‚ Ð¿Ñ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ñ, Ð½Ðµ Ð¼ÐµÐ½ÑÐµÑ‚ Ð´Ñ€Ð°Ð¹Ð²ÐµÑ€Ñ‹, Ð¿Ð»Ð°Ð½Ñ‹ Ð¿Ð¸Ñ‚Ð°Ð½Ð¸Ñ Ð¸ Ð½Ðµ Ð¾Ñ‚Ð¿Ñ€Ð°Ð²Ð»ÑÐµÑ‚ Ñ‚ÐµÐ»ÐµÐ¼ÐµÑ‚Ñ€Ð¸ÑŽ.",
-    permissionK:"Ð Ð°Ð·Ñ€ÐµÑˆÐµÐ½Ð¸Ðµ", permissionT:"ÐŸÑ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ñ Ð¾Ñ‚ÐºÐ°Ð·Ð°Ð»Ð¸", permissionBody:"{count} Ð¿Ñ€Ð¸Ð»Ð¾Ð¶. Ð¾Ñ‚ÐºÐ°Ð·Ð°Ð»Ð¸: {apps}. ÐœÐ¾Ð¶Ð½Ð¾ Ñ€Ð°Ð·Ñ€ÐµÑˆÐ¸Ñ‚ÑŒ Ð¾Ð´Ð¸Ð½ Ð·Ð°Ð¿ÑƒÑÐº Ð¾Ñ‚ Ð°Ð´Ð¼Ð¸Ð½Ð¸ÑÑ‚Ñ€Ð°Ñ‚Ð¾Ñ€Ð°.",
-    requestAdmin:"Ð—Ð°Ð¿Ñ€Ð¾ÑÐ¸Ñ‚ÑŒ admin", alreadyElevated:"Ð£Ð¶Ðµ admin", adminModalTitle:"Ð—Ð°Ð¿ÑƒÑÐº Ð°Ð´Ð¼Ð¸Ð½Ð¸ÑÑ‚Ñ€Ð°Ñ‚Ð¾Ñ€Ð°", adminModalBody:"ÐÐµÐºÐ¾Ñ‚Ð¾Ñ€Ñ‹Ðµ Ð¿Ñ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ñ Ð¾Ñ‚ÐºÐ°Ð·Ð°Ð»Ð¸, Ð¿Ð¾Ñ‚Ð¾Ð¼Ñƒ Ñ‡Ñ‚Ð¾ Windows Ñ‚Ñ€ÐµÐ±ÑƒÐµÑ‚ Ð±Ð¾Ð»ÑŒÑˆÐµ Ð¿Ñ€Ð°Ð². Smart Nap Ð¼Ð¾Ð¶ÐµÑ‚ Ð¾Ñ‚ÐºÑ€Ñ‹Ñ‚ÑŒ UAC Ð¸ Ð²Ñ‹Ð¿Ð¾Ð»Ð½Ð¸Ñ‚ÑŒ Ð¾Ð´Ð¸Ð½ Ð¿Ð¾Ð²Ñ‹ÑˆÐµÐ½Ð½Ñ‹Ð¹ Ð¿Ñ€Ð¾Ñ…Ð¾Ð´.",
-    adminModalScope:"Smart Nap Ð½Ðµ Ð¾ÑÑ‚Ð°Ð½ÐµÑ‚ÑÑ Ð¿Ð¾ÑÑ‚Ð¾ÑÐ½Ð½Ð¾ Ð¿Ð¾Ð²Ñ‹ÑˆÐµÐ½Ð½Ñ‹Ð¼. Ð‘ÑƒÐ´ÐµÑ‚ Ð²Ñ‹Ð¿Ð¾Ð»Ð½ÐµÐ½ Ñ‚Ð¾Ð»ÑŒÐºÐ¾ Ð¾Ð´Ð¸Ð½ Ð¿Ñ€Ð¾Ñ…Ð¾Ð´.",
-    adminModalNoService:"ÐÐµ ÑƒÑÑ‚Ð°Ð½Ð°Ð²Ð»Ð¸Ð²Ð°ÐµÑ‚ Ð´Ñ€Ð°Ð¹Ð²ÐµÑ€Ñ‹, ÑÐ»ÑƒÐ¶Ð±Ñ‹, Ñ€Ð°ÑÑˆÐ¸Ñ€ÐµÐ½Ð¸Ñ Ð¸ Ð½Ðµ Ð¼ÐµÐ½ÑÐµÑ‚ Ð¿Ð»Ð°Ð½Ñ‹ Ð¿Ð¸Ñ‚Ð°Ð½Ð¸Ñ.",
-    adminModalProtected:"ÐÐµÐºÐ¾Ñ‚Ð¾Ñ€Ñ‹Ðµ Ð·Ð°Ñ‰Ð¸Ñ‰ÐµÐ½Ð½Ñ‹Ðµ Ð¿Ñ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ñ Ð¼Ð¾Ð³ÑƒÑ‚ Ð¾Ñ‚ÐºÐ°Ð·Ð°Ñ‚ÑŒ Ð´Ð°Ð¶Ðµ Ñ Ð¿Ñ€Ð°Ð²Ð°Ð¼Ð¸ Ð°Ð´Ð¼Ð¸Ð½Ð¸ÑÑ‚Ñ€Ð°Ñ‚Ð¾Ñ€Ð°.",
-    openUac:"ÐžÑ‚ÐºÑ€Ñ‹Ñ‚ÑŒ UAC",
-    cancel:"ÐžÑ‚Ð¼ÐµÐ½Ð°"
-  },
-  "es-ES": {
+  },"es-ES": {
     languageName:"Español", appTitle:"Smart Nap", appSubtitle:"Control de apps en segundo plano para juegos y multitarea",
     navDashboard:"Panel", navScore:"Nap Score", navLog:"Registro", navFiles:"Archivos", navGithub:"GitHub", headline:"Apps en segundo plano bajo control", subline:"Las apps abiertas quedan ligeras mientras la ventana activa recupera prioridad al instante.",
     feature1K:"Primer plano", feature1T:"Fast wake", feature1D:"Restaura prioridad en cuanto cambias de ventana.",
     feature2K:"Memoria", feature2T:"Trim adaptativo", feature2D:"Reduce RAM sobrante con cooldown para evitar agresividad.",
     feature3K:"Scheduler", feature3T:"Nap por nivel", feature3D:"Light, Balanced y Deep segun el uso real del proceso.",
-    chipCpu:"Prioridad CPU", chipRam:"Trim RAM", chipWake:"Fast wake", nextCycle:"Proximo ciclo", lastEvent:"Ultimo evento", wake:"Wake",
-    autoMode:"Modo automatico", startup:"Inicio", lastResult:"Ultimo resultado", liveManager:"Live Manager", engineTelemetry:"Telemetria del motor",
+    chipCpu:"Prioridad CPU", chipRam:"Trim RAM", chipWake:"Fast wake", nextCycle:"Próximo ciclo", lastEvent:"Último evento", wake:"Wake",
+    autoMode:"Modo automático", startup:"Inicio", lastResult:"Último resultado", liveManager:"Live Manager", engineTelemetry:"Telemetria del motor",
     topManaged:"App mas gestionada", reclaimedMemory:"Memoria recuperada", colApp:"App", colScore:"Score", colBursts:"Rafagas", colAction:"Accion",
     languageTitle:"Elige tu idioma", languageSubtitle:"Solo cambia el texto del launcher. El optimizador mantiene el mismo comportamiento seguro en segundo plano.",
     apply:"Optimizar ahora", stop:"Parar", pauseMotor:"Pausar motor", resumeMotor:"Retomar motor", restore:"Restaurar",
@@ -414,13 +435,13 @@ const LANGS = {
     noRun:"Sin ejecuciones", fastWake:"Fast wake", manualWake:"Manual", event:"evento", next:"sig.", noEvent:"sin evento", now:"ahora", ago:"atras", paused:"pausado", waiting:"esperando", dueNow:"ahora",
     detailArmed:"Fast wake armado. Las apps de fondo se ajustan por nivel.", detailPaused:"Pausado. Ejecuta un pase manual o retoma el motor.",
     wakeGuard:"wake guard activo", startupOffDetail:"startup off", working:"Trabajando en segundo plano...",
-    intelK:"Aprendizado", intelT:"Decision por comportamiento", intelD:"El motor compara respuesta, retorno de memoria e historial wake antes de elegir Light, Balanced o Deep.",
-    learningK:"Perfil opcional", learningT:"Smart Learning", learningD:"Aprende sesiones localmente y adapta el nap cuando sube la presion de memoria.",
-    smartLearning:"Smart Learning", learnedProfiles:"Perfiles aprendidos", memoryPressure:"Presion de memoria", intentState:"Intent Engine", contentionRadar:"Radar de contencion", enableLearning:"Activar", disableLearning:"Desactivar", learningOn:"On", learningOff:"Off",
+    intelK:"Aprendizado", intelT:"Decision por comportamiento", intelD:"El motor compara respuesta, retorno de memória e historial wake antes de elegir Light, Balanced o Deep.",
+    learningK:"Perfil opcional", learningT:"Smart Learning", learningD:"Aprende sesiones localmente y adapta el nap cuando sube la presion de memória.",
+    smartLearning:"Smart Learning", learnedProfiles:"Perfiles aprendidos", memoryPressure:"Presion de memória", intentState:"Intent Engine", contentionRadar:"Radar de contencion", enableLearning:"Activar", disableLearning:"Desactivar", learningOn:"On", learningOff:"Off",
     learningModalTitle:"Smart Learning", learningModalBody:"Modo opcional que aprende como se comportan tus apps y adapta los proximos pases sin enviar datos.",
-    learningModalLocal:"Los perfiles quedan en este PC y usan nombre/ruta del proceso, memoria, bursts de CPU y eventos wake.",
+    learningModalLocal:"Los perfiles quedan en este PC y usan nombre/ruta del proceso, memória, bursts de CPU y eventos wake.",
     learningModalWake:"Las apps a las que vuelves seguido reciben un perfil Fast Wake mas ligero.",
-    learningModalPressure:"Cuando falta memoria, apps pesadas e inactivas pueden recibir un nap mas fuerte.",
+    learningModalPressure:"Cuando falta memória, apps pesadas e inactivas pueden recibir un nap mas fuerte.",
     learningModalSafe:"No cierra apps, no cambia drivers, no cambia planes de energia y no sube telemetria.",
     permissionK:"Permiso", permissionT:"Apps rechazaron cambios", permissionBody:"{count} app(s) rechazaron cambios: {apps}. Puedes autorizar un pase como administrador.",
     requestAdmin:"Pedir admin", alreadyElevated:"Ya es admin", adminModalTitle:"Pase administrador", adminModalBody:"Algunas apps rechazaron cambios porque Windows requiere mas permiso. Smart Nap puede abrir UAC y ejecutar un pase elevado.",
@@ -511,6 +532,8 @@ Object.keys(LANGS).forEach(k=>{
   LANGS[k].panelLabel = LANGS[k].panelLabel || "Panel";
   LANGS[k].browserRole = LANGS[k].browserRole || "Browser";
   LANGS[k].mediaCallRole = LANGS[k].mediaCallRole || "Media";
+  LANGS[k].streamingRole = LANGS[k].streamingRole || "Streaming";
+  LANGS[k].streamHelperRole = LANGS[k].streamHelperRole || "Stream helper";
   LANGS[k].behaviorGuardLabel = LANGS[k].behaviorGuardLabel || "Protected";
   LANGS[k].cpuBadge = LANGS[k].cpuBadge || "CPU";
   LANGS[k].memoryBadge = LANGS[k].memoryBadge || "RAM";
@@ -524,6 +547,7 @@ Object.keys(LANGS).forEach(k=>{
   LANGS[k].intentMemoryPressure = LANGS[k].intentMemoryPressure || "Memory pressure";
   LANGS[k].intentMediaCall = LANGS[k].intentMediaCall || "Media or call";
   LANGS[k].intentGaming = LANGS[k].intentGaming || "Gaming";
+  LANGS[k].intentStreaming = LANGS[k].intentStreaming || "Streaming";
   LANGS[k].intentDownloadInstall = LANGS[k].intentDownloadInstall || "Download/install";
   LANGS[k].intentState = LANGS[k].intentState || "Intent Engine";
   LANGS[k].contentionRadar = LANGS[k].contentionRadar || "Contention radar";
@@ -563,25 +587,130 @@ Object.keys(LANGS).forEach(k=>{
   LANGS[k].updateDownload = LANGS[k].updateDownload || "Update";
   LANGS[k].updateDismiss = LANGS[k].updateDismiss || "Do not remind this version";
   LANGS[k].updateCheck = LANGS[k].updateCheck || "Check";
+  LANGS[k].sessionK = LANGS[k].sessionK || "Session"; LANGS[k].sessionT = LANGS[k].sessionT || "Engine mode";
+  LANGS[k].modeAuto = LANGS[k].modeAuto || "Auto"; LANGS[k].modeGaming = LANGS[k].modeGaming || "Gaming"; LANGS[k].modeStreamer = LANGS[k].modeStreamer || "Streamer"; LANGS[k].modeWork = LANGS[k].modeWork || "Work"; LANGS[k].modeFocus = LANGS[k].modeFocus || "Focus"; LANGS[k].modeAutoD = LANGS[k].modeAutoD || "Balanced daily behavior."; LANGS[k].modeGamingD = LANGS[k].modeGamingD || "Fast foreground recovery."; LANGS[k].modeStreamerD = LANGS[k].modeStreamerD || "Protect stream and game."; LANGS[k].modeWorkD = LANGS[k].modeWorkD || "Keeps tools responsive."; LANGS[k].modeFocusD = LANGS[k].modeFocusD || "Stronger idle cleanup.";
+  LANGS[k].policyK = LANGS[k].policyK || "Policies"; LANGS[k].clearPolicies = LANGS[k].clearPolicies || "Clear policies"; LANGS[k].selectedModeK = LANGS[k].selectedModeK || "Selected behavior"; LANGS[k].autoPolicyK = LANGS[k].autoPolicyK || "App decisions"; LANGS[k].autoPolicyV = LANGS[k].autoPolicyV || "Automatic"; LANGS[k].manualPoliciesK = LANGS[k].manualPoliciesK || "Manual policies"; LANGS[k].learningShortK = LANGS[k].learningShortK || "Learning"; LANGS[k].energyPlanK = LANGS[k].energyPlanK || "Energy plan"; LANGS[k].modeAutoPill = LANGS[k].modeAutoPill || "Daily"; LANGS[k].modeGamingPill = LANGS[k].modeGamingPill || "Power"; LANGS[k].modeStreamerPill = LANGS[k].modeStreamerPill || "Stream guard"; LANGS[k].modeWorkPill = LANGS[k].modeWorkPill || "Stable"; LANGS[k].modeFocusPill = LANGS[k].modeFocusPill || "Deep";
 });
-Object.assign(LANGS["pt-BR"],{controlTitle:"Controle em tempo real",systemProfile:"Perfil do PC",ramLabel:"Memoria RAM",systemLabel:"Sistema",gpuHint:"Adaptador grafico",localSnapshot:"",freeNow:"{free} livre agora",ramShort:"RAM",pagefileShort:"Pagefile",loadShort:"carga",behaviorEngine:"Aprendizado",behaviorK:"Aprendizado",behaviorT:"Motor comportamental",behaviorProfilesLabel:"Perfis locais",behaviorD:"Cria perfis locais por CPU, retorno de memoria, bursts e eventos de wake.",behaviorMode:"modo",behaviorAdaptive:"adaptativo",behaviorOn:"ligado",behaviorOff:"desligado",profilesShort:"perfis",pressureNormal:"Normal",pressureModerate:"Moderada",pressureElevated:"Elevada",pressureCritical:"Critica",pressureUnknown:"Desconhecida",intentDesktop:"Uso comum",intentMemoryPressure:"Memoria pressionada",intentMediaCall:"Midia ou chamada",intentGaming:"Jogo em foco",intentDownloadInstall:"Download ou instalacao",browserRole:"Navegador",mediaCallRole:"Midia",behaviorGuardLabel:"Protegido",cpuBadge:"CPU",memoryBadge:"RAM",ioBadge:"I/O",trimBadge:"Trim",ecoBadge:"Eco",cooldownBadge:"Cooldown",trimSkipBadge:"Trim skip",adminNeededBadge:"Admin",startupHintOn:"Desativar iniciar com Windows",startupHintOff:"Ativar iniciar com Windows",updateK:"Atualização oficial",updateTitle:"Nova versão disponível",updateBody:"A versão {version} saiu no GitHub oficial. Baixe o EXE mais novo quando quiser atualizar.",updateDownload:"Atualizar",updateDismiss:"Não lembrar esta versão",updateCheck:"Checar",updateAction:"Procurar atualizações",updateModalTitle:"Atualizações",updateModalBody:"Verifique o canal oficial do GitHub e escolha se o Smart Nap pode procurar novas versões automaticamente.",updateAuto:"Atualização automática",updateAutoHint:"Quando ligado, o Smart Nap consulta o GitHub Releases de tempos em tempos e só mostra um lembrete.",updateAutoOn:"Auto ligado",updateAutoOff:"Auto desligado",updateStatusReady:"Pronto para consultar o canal oficial.",updateStatusChecking:"Consultando GitHub Releases agora.",updateStatusAvailable:"A versão {version} está disponível.",updateStatusCurrent:"Você já está na versão atual.",updateStatusIgnored:"Esta versão está oculta até sair uma release mais nova."});
+Object.assign(LANGS["pt-BR"],{controlTitle:"Controle em tempo real",systemProfile:"Perfil do PC",ramLabel:"Memória RAM",systemLabel:"Sistema",gpuHint:"GPU",localSnapshot:"",freeNow:"{free} livre agora",ramShort:"RAM",pagefileShort:"Paginação",loadShort:"carga",behaviorEngine:"Aprendizado",behaviorK:"Aprendizado",behaviorT:"Motor comportamental",behaviorProfilesLabel:"Perfis locais",behaviorD:"Cria perfis locais por CPU, memória recuperada, picos de uso e retorno de janela.",behaviorMode:"modo",behaviorAdaptive:"adaptativo",behaviorOn:"ligado",behaviorOff:"desligado",profilesShort:"perfis",pressureNormal:"Normal",pressureModerate:"Moderada",pressureElevated:"Elevada",pressureCritical:"Crítica",pressureUnknown:"Desconhecida",intentDesktop:"Uso comum",intentMemoryPressure:"Memória pressionada",intentMediaCall:"Mídia ou chamada",intentGaming:"Jogo em foco",intentDownloadInstall:"Download ou instalação",intentStreaming:"Live/stream",browserRole:"Navegador",streamingRole:"Streaming",streamHelperRole:"Helper da live",mediaCallRole:"Mídia",behaviorGuardLabel:"Protegido",cpuBadge:"CPU",memoryBadge:"RAM",ioBadge:"I/O",trimBadge:"RAM",ecoBadge:"Eco",cooldownBadge:"Pausa",trimSkipBadge:"RAM ignorada",adminNeededBadge:"Admin",startupHintOn:"Desativar iniciar com Windows",startupHintOff:"Ativar iniciar com Windows",updateK:"Atualização oficial",updateTitle:"Nova versão disponível",updateBody:"A versão {version} saiu no GitHub oficial. Baixe o EXE mais novo quando quiser atualizar.",updateDownload:"Atualizar",updateDismiss:"Não lembrar esta versão",updateCheck:"Checar",updateAction:"Procurar atualizações",updateModalTitle:"Atualizações",updateModalBody:"Verifique o canal oficial do GitHub e escolha se o Smart Nap pode procurar novas versões automaticamente.",updateAuto:"Atualização automática",updateAutoHint:"Quando ligado, o Smart Nap consulta o GitHub Releases de tempos em tempos e só mostra um lembrete.",updateAutoOn:"Auto ligado",updateAutoOff:"Auto desligado",updateStatusReady:"Pronto para consultar o canal oficial.",updateStatusChecking:"Consultando GitHub Releases agora.",updateStatusAvailable:"A versão {version} está disponível.",updateStatusCurrent:"Você já está na versão atual.",updateStatusIgnored:"Esta versão está oculta até sair uma release mais nova.",sessionK:"Sessão",sessionT:"Modo do motor",modeAuto:"Auto",modeGaming:"Jogos",modeStreamer:"Live",modeWork:"Trabalho",modeFocus:"Foco",modeAutoD:"Equilíbrio automático para uso diário.",modeGamingD:"Prioriza o jogo ativo sem fechar o resto.",modeStreamerD:"Protege live, encoder e jogo.",modeWorkD:"Mantém apps responsivos.",modeFocusD:"Alivia apps parados com mais firmeza.",selectedModeK:"Modo selecionado",autoPolicyK:"Decisão automática",autoPolicyV:"Automática",manualPoliciesK:"Políticas manuais",learningShortK:"Aprendizado",energyPlanK:"Energia",modeAutoPill:"Uso diário",modeGamingPill:"Desempenho",modeStreamerPill:"Live segura",modeWorkPill:"Estável",modeFocusPill:"Fundo leve",policyK:"Políticas",clearPolicies:"Limpar políticas"});
 Object.assign(LANGS["en-US"],{systemProfile:"PC Profile",ramLabel:"RAM",systemLabel:"System",gpuHint:"Graphics adapter",localSnapshot:"",freeNow:"{free} free now",ramShort:"RAM",pagefileShort:"Pagefile",loadShort:"load",behaviorEngine:"Behavior Engine",behaviorK:"Core intelligence",behaviorT:"Behavior Engine",behaviorD:"Profiles apps locally by CPU, memory return, bursts and wake events.",behaviorMode:"mode",behaviorAdaptive:"adaptive",behaviorOn:"on",behaviorOff:"off",profilesShort:"profiles"});
-Object.assign(LANGS["ru-RU"],{behaviorEngine:"Behavior Engine",behaviorK:"ÃÅ¾Ã‘ÂÃÂ½ÃÂ¾ÃÂ²ÃÂ½ÃÂ¾ÃÂ¹ ÃÂ¸ÃÂ½Ã‘â€šÃÂµÃÂ»ÃÂ»ÃÂµÃÂºÃ‘â€š",behaviorT:"Behavior Engine",behaviorD:"Ãâ€ºÃÂ¾ÃÂºÃÂ°ÃÂ»Ã‘Å’ÃÂ½ÃÂ¾ Ã‘ÂÃ‘â€šÃ‘â‚¬ÃÂ¾ÃÂ¸Ã‘â€š ÃÂ¿Ã‘â‚¬ÃÂ¾Ã‘â€žÃÂ¸ÃÂ»ÃÂ¸ ÃÂ¿ÃÂ¾ CPU, ÃÂ¿ÃÂ°ÃÂ¼Ã‘ÂÃ‘â€šÃÂ¸, ÃÂ²Ã‘ÂÃÂ¿ÃÂ»ÃÂµÃ‘ÂÃÂºÃÂ°ÃÂ¼ ÃÂ¸ wake-Ã‘ÂÃÂ¾ÃÂ±Ã‘â€¹Ã‘â€šÃÂ¸Ã‘ÂÃÂ¼.",behaviorMode:"Ã‘â‚¬ÃÂµÃÂ¶ÃÂ¸ÃÂ¼",behaviorAdaptive:"ÃÂ°ÃÂ´ÃÂ°ÃÂ¿Ã‘â€šÃÂ¸ÃÂ²ÃÂ½Ã‘â€¹ÃÂ¹",behaviorOn:"ÃÂ²ÃÂºÃÂ»",behaviorOff:"ÃÂ²Ã‘â€¹ÃÂºÃÂ»",profilesShort:"ÃÂ¿Ã‘â‚¬ÃÂ¾Ã‘â€žÃÂ¸ÃÂ»ÃÂ¸",pressureNormal:"ÃÂÃÂ¾Ã‘â‚¬ÃÂ¼ÃÂ°",pressureModerate:"ÃÂ¡Ã‘â‚¬ÃÂµÃÂ´ÃÂ½Ã‘ÂÃ‘Â",pressureElevated:"ÃÅ¸ÃÂ¾ÃÂ²Ã‘â€¹Ã‘Ë†ÃÂµÃÂ½ÃÂ½ÃÂ°Ã‘Â",pressureCritical:"ÃÅ¡Ã‘â‚¬ÃÂ¸Ã‘â€šÃÂ¸Ã‘â€¡ÃÂ½ÃÂ°Ã‘Â",pressureUnknown:"ÃÂÃÂµÃÂ¸ÃÂ·ÃÂ²ÃÂµÃ‘ÂÃ‘â€šÃÂ½ÃÂ¾"});
-Object.assign(LANGS["es-ES"],{systemProfile:"Perfil del PC",ramLabel:"RAM",systemLabel:"Sistema",gpuHint:"Adaptador grafico",localSnapshot:"",freeNow:"{free} libre ahora",ramShort:"RAM",pagefileShort:"Pagefile",loadShort:"carga",behaviorEngine:"Behavior Engine",behaviorK:"Inteligencia central",behaviorT:"Behavior Engine",behaviorD:"Crea perfiles locales por CPU, retorno de memoria, rafagas y eventos wake.",behaviorMode:"modo",behaviorAdaptive:"adaptativo",behaviorOn:"activo",behaviorOff:"apagado",profilesShort:"perfiles",pressureNormal:"Normal",pressureModerate:"Moderada",pressureElevated:"Elevada",pressureCritical:"Critica",pressureUnknown:"Desconocida"});
-Object.assign(LANGS["fr-FR"],{systemProfile:"Profil PC",ramLabel:"RAM",systemLabel:"Systeme",gpuHint:"Adaptateur graphique",localSnapshot:"",freeNow:"{free} libre maintenant",ramShort:"RAM",pagefileShort:"Pagefile",loadShort:"charge",behaviorEngine:"Behavior Engine",behaviorK:"Intelligence centrale",behaviorT:"Behavior Engine",behaviorD:"Profile localement les apps par CPU, retour memoire, rafales et evenements wake.",behaviorMode:"mode",behaviorAdaptive:"adaptatif",behaviorOn:"actif",behaviorOff:"inactif",profilesShort:"profils",pressureNormal:"Normale",pressureModerate:"Moderee",pressureElevated:"Elevee",pressureCritical:"Critique",pressureUnknown:"Inconnue"});
-Object.assign(LANGS["de-DE"],{systemProfile:"PC Profil",ramLabel:"RAM",systemLabel:"System",gpuHint:"Grafikadapter",localSnapshot:"",freeNow:"{free} frei",ramShort:"RAM",pagefileShort:"Pagefile",loadShort:"Last",behaviorEngine:"Behavior Engine",behaviorK:"Kernintelligenz",behaviorT:"Behavior Engine",behaviorD:"Profile Apps lokal nach CPU, Speicher-Rueckkehr, Bursts und Wake-Ereignissen.",behaviorMode:"Modus",behaviorAdaptive:"adaptiv",behaviorOn:"an",behaviorOff:"aus",profilesShort:"Profile",pressureNormal:"Normal",pressureModerate:"Moderat",pressureElevated:"Erhoeht",pressureCritical:"Kritisch",pressureUnknown:"Unbekannt"});
+Object.assign(LANGS["es-ES"],{systemProfile:"Perfil del PC",ramLabel:"RAM",systemLabel:"Sistema",gpuHint:"GPU",localSnapshot:"",freeNow:"{free} libre ahora",ramShort:"RAM",pagefileShort:"Paginación",loadShort:"carga",behaviorEngine:"Behavior Engine",behaviorK:"Inteligencia central",behaviorT:"Behavior Engine",behaviorD:"Crea perfiles locales por CPU, retorno de memória, rafagas y eventos wake.",behaviorMode:"modo",behaviorAdaptive:"adaptativo",behaviorOn:"activo",behaviorOff:"apagado",profilesShort:"perfiles",pressureNormal:"Normal",pressureModerate:"Moderada",pressureElevated:"Elevada",pressureCritical:"Crítica",pressureUnknown:"Desconocida"});
+Object.assign(LANGS["fr-FR"],{systemProfile:"Profil PC",ramLabel:"RAM",systemLabel:"Systeme",gpuHint:"Adaptateur graphique",localSnapshot:"",freeNow:"{free} libre maintenant",ramShort:"RAM",pagefileShort:"Pagination",loadShort:"charge",behaviorEngine:"Behavior Engine",behaviorK:"Intelligence centrale",behaviorT:"Behavior Engine",behaviorD:"Profile localement les apps par CPU, retour memoire, rafales et evenements wake.",behaviorMode:"mode",behaviorAdaptive:"adaptatif",behaviorOn:"actif",behaviorOff:"inactif",profilesShort:"profils",pressureNormal:"Normale",pressureModerate:"Moderee",pressureElevated:"Elevee",pressureCritical:"Critique",pressureUnknown:"Inconnue"});
+Object.assign(LANGS["de-DE"],{systemProfile:"PC Profil",ramLabel:"RAM",systemLabel:"System",gpuHint:"Grafikadapter",localSnapshot:"",freeNow:"{free} frei",ramShort:"RAM",pagefileShort:"Auslagerung",loadShort:"Last",behaviorEngine:"Behavior Engine",behaviorK:"Kernintelligenz",behaviorT:"Behavior Engine",behaviorD:"Profile Apps lokal nach CPU, Speicher-Rueckkehr, Bursts und Wake-Ereignissen.",behaviorMode:"Modus",behaviorAdaptive:"adaptiv",behaviorOn:"an",behaviorOff:"aus",profilesShort:"Profile",pressureNormal:"Normal",pressureModerate:"Moderat",pressureElevated:"Erhoeht",pressureCritical:"Kritisch",pressureUnknown:"Unbekannt"});
 LANGS["ru-RU"] = Object.assign({}, LANGS["en-US"], {languageName:"Русский",appTitle:"Smart Nap",appSubtitle:"Контроль фоновых приложений для игр и многозадачности",navDashboard:"Панель",navScore:"Nap Score",navLog:"Журнал",navFiles:"Файлы",navGithub:"GitHub",headline:"Фоновые приложения под контролем",subline:"Открытые приложения становятся легче, а активное окно быстро возвращает приоритет.",feature1K:"Активное окно",feature1T:"Быстрый возврат",feature1D:"Восстанавливает приоритет сразу после переключения окна.",feature2K:"Память",feature2T:"Адаптивная очистка",feature2D:"Снижает лишнюю нагрузку на RAM с паузами, чтобы не быть агрессивным.",feature3K:"Планировщик",feature3T:"Уровни Nap",feature3D:"Light, Balanced и Deep по реальному поведению процесса.",languageTitle:"Выберите язык",languageSubtitle:"Меняется только текст лаунчера. Оптимизатор продолжает безопасно работать в фоне.",apply:"Оптимизировать",stop:"Стоп",pauseMotor:"Пауза",resumeMotor:"Запустить",restore:"Восстановить",on:"Вкл",off:"Выкл",live:"Обновление",motorActive:"Мотор активен",manual:"Ручной",startupOn:"Запуск с Windows",startupOff:"Автозапуск выкл",apps:"apps",intelK:"Обучение",intelT:"Решения по поведению",smartLearning:"Smart Learning",learningOn:"Вкл",learningOff:"Выкл",updateK:"Официальное обновление",updateTitle:"Доступна новая версия",updateBody:"Версия {version} опубликована в официальном GitHub Release.",updateDownload:"Обновить",updateDismiss:"Не напоминать об этой версии",updateCheck:"Проверить",updateCheckingTitle:"Проверка обновлений",updateCheckingBody:"Проверяем официальный канал релизов GitHub."});
 const LANGUAGE_ORDER = ["pt-BR","en-US","ru-RU","es-ES","fr-FR","de-DE"];
 let currentLanguage = "pt-BR";
 let lastState = null;
 let languagePromptClosed = false;
+let selectedInsightKey = "";
 function send(action,payload){ if(window.chrome&&chrome.webview){ chrome.webview.postMessage(Object.assign({action},payload||{})); } }
+let pendingEnergyMode = "";
+function normalizedModeName(mode){
+  const m=String(mode||"Auto").toLowerCase();
+  if(m==="gaming"||m==="game"||m==="jogos") return "Gaming";
+  if(m==="streamer"||m==="stream"||m==="live") return "Streamer";
+  if(m==="work"||m==="trabalho") return "Work";
+  if(m==="focus"||m==="foco") return "Focus";
+  return "Auto";
+}
+function planLabel(name){ return String(name||"").trim() || (isPt()?"plano atual":"current plan"); }
+function setSessionMode(mode){
+  const normalized=normalizedModeName(mode);
+  if(normalized==="Gaming" || normalized==="Streamer" || normalized==="Auto") { openEnergyPrompt(normalized); return; }
+  send("setSessionMode",{mode:normalized,energy:"keep"});
+}
+function energyIdleMinutesValue(){ const raw=Number(($("energyIdleMinutes")&&$("energyIdleMinutes").value)||20); const n=Number.isFinite(raw)?Math.round(raw):20; return Math.max(5,Math.min(240,n)); }
+function openEnergyPrompt(mode){
+  pendingEnergyMode=normalizedModeName(mode);
+  const pt=isPt();
+  const current=planLabel(lastState&&lastState.PowerPlanName);
+  const previous=String((lastState&&lastState.PreviousPowerPlanName)||"").trim();
+  const savedMinutes=Math.max(5,Math.min(240,Number(lastState&&lastState.EnergyIdleGuardMinutes)||20));
+  const savedIdle=!!(lastState&&lastState.EnergyIdleGuardEnabled);
+  txt("energyCurrent",(pt?"Plano atual: ":"Current plan: ")+current);
+  txt("energyPrevious",previous ? ((pt?"Plano anterior salvo: ":"Saved previous plan: ")+previous) : (pt?"Nenhum plano anterior salvo ainda.":"No previous plan saved yet."));
+  const restoreBtn=$("energyRestore");
+  const balancedBtn=$("energyBalanced");
+  const primary=$("energyPrimary");
+  const keep=$("energyKeep");
+  const idleBox=$("energyIdleBox");
+  const idleEnabled=$("energyIdleEnabled");
+  const idleMinutes=$("energyIdleMinutes");
+  const idleWrap=$("energyMinutesWrap");
+  if(idleMinutes) idleMinutes.value=String(savedMinutes);
+  if(idleEnabled) idleEnabled.checked=savedIdle;
+  if(idleBox){ idleBox.style.display="none"; idleBox.classList.remove("disabled"); }
+  if(idleEnabled) idleEnabled.disabled=false;
+  if(idleMinutes) idleMinutes.disabled=false;
+  if(idleWrap) idleWrap.style.display="grid";
+  if(primary){ primary.disabled=false; primary.style.opacity="1"; primary.onclick=()=>commitEnergyChoice('activate'); }
+  if(keep){ keep.disabled=false; keep.style.opacity="1"; keep.textContent=pt?"Manter plano atual":"Keep current plan"; keep.title=pt?"Mantém exatamente o plano de energia que está ativo agora.":"Keeps exactly the power plan currently active."; }
+  if(restoreBtn){ restoreBtn.style.display="none"; restoreBtn.disabled=true; restoreBtn.style.opacity="1"; restoreBtn.title=""; }
+  if(balancedBtn){ balancedBtn.style.display = (pendingEnergyMode==="Auto" && previous) ? "block" : "none"; }
+  if(pendingEnergyMode==="Gaming"){
+    txt("energyKind",pt?"Modo Jogos":"Gaming mode");
+    txt("energyTitle",pt?"Mais desempenho para jogar":"More performance for games");
+    txt("energyBody",pt?"O plano Smart Nap MODO JOGO mantém o PC em alto desempenho enquanto estiver ativo. Ele pode usar mais energia mesmo parado; ative a proteção abaixo para voltar ao Equilibrado após um tempo sem uso.":"Smart Nap MODO JOGO keeps the PC in a high performance profile while active. It can use more power even when idle; enable the guard below to return to Balanced after no use.");
+    txt("energyPlainTitle",pt?"Desempenho contínuo":"Continuous performance");
+    txt("energyPlainBody",pt?"Bom para jogo pesado, foreground rápido e menos queda por economia do Windows.":"Good for heavy games, fast foreground recovery, and fewer Windows power-saving dips.");
+    txt("energySafetyTitle",pt?"Economia quando parado":"Idle fallback");
+    txt("energySafetyBody",pt?"Se o PC ficar parado, o Smart Nap pode voltar sozinho ao Equilibrado.":"If the PC is unused, Smart Nap can switch back to Balanced automatically.");
+    txt("energyIdleTitle",pt?"Voltar ao Equilibrado quando ficar parado":"Return to Balanced when idle");
+    txt("energyIdleBody",pt?"Recomendado: evita deixar alto desempenho ligado em idle.":"Recommended: avoids leaving high performance on while idle.");
+    txt("energyIdleMinutesLabel",pt?"Minutos parado":"Idle minutes");
+    if(idleBox) idleBox.style.display="grid";
+    if(primary) primary.textContent=pt?"Usar Smart Nap MODO JOGO":"Use Smart Nap gaming plan";
+  } else if(pendingEnergyMode==="Streamer"){
+    txt("energyKind",pt?"Modo Live":"Live mode");
+    txt("energyTitle",pt?"Estabilidade para live":"Live stability profile");
+    txt("energyBody",pt?"O plano Smart Nap MODO LIVE prioriza estabilidade para encoder, jogo e transmissão. A troca automática para Equilibrado fica desligada aqui para não interferir numa live em andamento.":"Smart Nap MODO LIVE prioritizes stability for encoder, game, and stream. Automatic return to Balanced is disabled here to avoid interfering with a live session.");
+    txt("energyPlainTitle",pt?"Live protegida":"Protected live");
+    txt("energyPlainBody",pt?"Evita economia agressiva enquanto OBS, Streamlabs ou apps de live estão ativos.":"Avoids aggressive power saving while OBS, Streamlabs, or live tools are active.");
+    txt("energySafetyTitle",pt?"Sem troca no meio da live":"No mid-stream switch");
+    txt("energySafetyBody",pt?"Para sair do alto desempenho, volte para Auto e restaure o plano anterior.":"To leave high performance, return to Auto and restore the previous plan.");
+    txt("energyIdleTitle",pt?"Proteção de idle desativada no Live":"Idle fallback disabled for Live");
+    txt("energyIdleBody",pt?"Não recomendado durante transmissão: uma live pode estar ativa mesmo sem teclado e mouse.":"Not recommended during streaming: a live session may be active even without keyboard and mouse.");
+    txt("energyIdleMinutesLabel",pt?"Minutos parado":"Idle minutes");
+    if(idleBox){ idleBox.style.display="grid"; idleBox.classList.add("disabled"); }
+    if(idleEnabled){ idleEnabled.checked=false; idleEnabled.disabled=true; }
+    if(idleMinutes) idleMinutes.disabled=true;
+    if(primary) primary.textContent=pt?"Usar Smart Nap MODO LIVE":"Use Smart Nap live plan";
+  } else {
+    txt("energyKind",pt?"Modo Auto":"Auto mode");
+    txt("energyTitle",pt?"O que fazer com energia?":"What about power?");
+    txt("energyBody", previous ? (pt?"Ao voltar para Auto, restaure o plano que você usava antes ou mantenha o plano atual se preferir.":"When returning to Auto, restore the plan you used before or keep the current plan if you prefer.") : (pt?"Nenhum plano anterior foi salvo ainda. Use Equilibrado para um idle seguro ou mantenha o plano atual manualmente.":"No previous plan has been saved yet. Use Balanced for safer idle behavior or keep the current plan manually."));
+    txt("energyPlainTitle",pt?"Saída segura":"Safe exit");
+    txt("energyPlainBody",pt?"Auto não precisa manter alto desempenho se você não estiver jogando ou em live.":"Auto does not need to keep high performance if you are not gaming or streaming.");
+    txt("energySafetyTitle",pt?"Você decide":"You decide");
+    txt("energySafetyBody", previous ? (pt?"Restaure o plano anterior, use Equilibrado como alternativa ou mantenha o atual manualmente.":"Restore the previous plan, use Balanced as an alternative, or keep the current one manually.") : (pt?"Sem histórico salvo: Equilibrado é a opção segura; manter o plano atual continua disponível.":"No saved history: Balanced is the safer option; keeping the current plan is still available."));
+    if(primary){
+      primary.textContent=previous?(pt?"Restaurar plano anterior":"Restore previous plan"):(pt?"Usar Equilibrado":"Use Balanced");
+      primary.onclick=()=>commitEnergyChoice(previous?'restore':'balanced');
+    }
+  }
+  txt("energyCancel",pt?"Cancelar":"Cancel");
+  txt("energyBalanced",pt?"Usar Equilibrado":"Use Balanced");
+  $("energyOverlay")?.classList.add("open");
+}
+function closeEnergyPrompt(){ pendingEnergyMode=""; $("energyOverlay")?.classList.remove("open"); }
+function commitEnergyChoice(choice){
+  const mode=pendingEnergyMode||"Auto";
+  const payload={mode:mode,energy:choice||"keep"};
+  if(mode==="Gaming"){
+    payload.idleEnabled=!!($("energyIdleEnabled")&&$("energyIdleEnabled").checked);
+    payload.idleMinutes=energyIdleMinutesValue();
+  } else if(mode==="Streamer"){
+    payload.idleEnabled=false;
+    payload.idleMinutes=energyIdleMinutesValue();
+  }
+  closeEnergyPrompt();
+  send("setSessionMode",payload);
+}
 function txt(id,value){ const el=$(id); if(el){ const text=value == null ? "" : String(value); el.textContent=text; if(el.matches && el.matches(".focusLine b,#intentState,#radarState,#engineTop,#memoryPressure,#behaviorState")) el.title=text; } }
 function shouldStartWindowDrag(ev){
   if(!ev || ev.button !== 0) return false;
   const target = ev.target;
   if(!target || !target.closest) return false;
-  if(target.closest("button,a,input,select,textarea,.table,.timeline,.languageOverlay,.infoOverlay,.actions,.policyButtons,.chipRow,.engineCard,.intelligencePanel,.systemPanel,.manager,.sidePanel")) return false;
+  if(target.closest("button,a,input,select,textarea,.table,.timeline,.languageOverlay,.infoOverlay,.energyOverlay,.actions,.policyButtons,.chipRow,.engineCard,.intelligencePanel,.systemPanel,.manager,.sidePanel")) return false;
   return ev.clientY < 86 || !!target.closest(".topbar,.titleBlock");
 }
 let windowDrag = null;
@@ -888,6 +1017,7 @@ function translateIntentKind(kind){
   if(raw==="MemoryPressure") return t("intentMemoryPressure");
   if(raw==="MediaCall") return t("intentMediaCall");
   if(raw==="Gaming") return t("intentGaming");
+  if(raw==="Streaming") return t("intentStreaming");
   if(raw==="DownloadInstall") return t("intentDownloadInstall");
   return raw || "-";
 }
@@ -900,6 +1030,54 @@ function formatRadar(s){
 function formatBehavior(s){
   if(!s || !s.Behavior) return t("behaviorOff");
   return (Number(s.BehaviorProfiles||0))+" "+t("profilesShort")+" / "+t("behaviorOn");
+}
+function sessionHint(mode){
+  const m=String(mode||"Auto").toLowerCase();
+  if(m==="gaming") return isPt()?"Protege o retorno rápido e reduz agressividade durante jogo ou tela cheia.":"Protects fast wake and softens aggression during games or fullscreen.";
+  if(m==="streamer") return isPt()?"Para lives: protege encoder, chamada e jogo enquanto comprime tarefas comuns de fundo, inclusive nucleos quando seguro.":"For livestreams: protects encoder, calls, and the game while containing ordinary background work, including CPU cores when safe.";
+  if(m==="work") return isPt()?"Mantém comunicação, mídia e ferramentas responsivas durante multitarefa.":"Keeps communication, media and tools responsive while multitasking.";
+  if(m==="focus") return isPt()?"Modo mais firme para aliviar apps parados quando a memória fica pressionada.":"Firmer mode for quiet idle background apps when memory pressure rises.";
+  return isPt()?"Equilibrado para uso diario, ajustando por comportamento real.":"Balanced daily behavior, adjusted by real app behavior.";
+}
+function displayModeName(mode){
+  const m=normalizedModeName(mode);
+  if(m==="Gaming") return t("modeGaming");
+  if(m==="Streamer") return t("modeStreamer");
+  if(m==="Work") return t("modeWork");
+  if(m==="Focus") return t("modeFocus");
+  return t("modeAuto");
+}
+function modeImpactTitle(mode){
+  const m=normalizedModeName(mode), pt=isPt();
+  if(m==="Gaming") return pt?"Jogo em primeiro plano, fundo contido":"Foreground game protected, background contained";
+  if(m==="Streamer") return pt?"Live protegida com folga para encoder e jogo":"Stream protected with headroom for encoder and game";
+  if(m==="Work") return pt?"Multitarefa responsiva sem prejudicar comunicação":"Responsive multitasking without squeezing communication";
+  if(m==="Focus") return pt?"Apps parados ficam mais leves":"Idle background work gets stronger treatment";
+  return pt?"Equilíbrio automático para uso diário":"Automatic balance for daily use";
+}
+function modeImpactDetail(mode){
+  const m=normalizedModeName(mode), pt=isPt();
+  if(m==="Gaming") return pt?"Instala o plano Smart Nap MODO JOGO, mas so ativa se você confirmar. O motor prioriza retorno rapido do jogo e reduz disputa de CPU/RAM/I/O no fundo.":"Installs the Smart Nap gaming plan, but activates it only if you confirm. The engine protects game wake and reduces CPU/RAM/I/O contention in the background.";
+  if(m==="Streamer") return pt?"Protege OBS, Streamlabs, TikTok Studio e similares. Helpers de browser da live podem ter CPU contida com seguranca, sem cortar encoder, chamada, jogo ou fonte principal.":"Protects OBS, Streamlabs, TikTok Studio and similar apps. Stream browser helpers can be safely CPU-contained without touching encoder, call, game, or the main source.";
+  if(m==="Work") return pt?"Mantém navegadores, chamadas e ferramentas acordando rapido enquanto apps realmente ociosos continuam leves.":"Keeps browsers, calls and tools waking quickly while truly idle apps remain lighter.";
+  if(m==="Focus") return pt?"Quando a memória pressiona, apps parados podem receber nap mais profundo. Ao voltar para eles, o foreground restore desfaz o aperto.":"When memory pressure rises, idle apps can receive deeper naps. Foreground restore backs off when you return to them.";
+  return pt?"O Smart Nap decide por app, aprende comportamento localmente e restaura responsividade quando você troca de janela.":"Smart Nap decides per app, learns behavior locally, and restores responsiveness when you switch windows.";
+}
+function updateV5Panels(s){
+  const mode=normalizedModeName(s.SessionMode||"Auto");
+  txt("sessionCurrent",displayModeName(mode));
+  txt("sessionHint",sessionHint(mode));
+  txt("modeImpact",modeImpactTitle(mode));
+  txt("modeImpactDetail",modeImpactDetail(mode));
+  const plan=planLabel(s.PowerPlanName);
+  const idleText=s.EnergyIdleGuardEnabled?((isPt()?" / Equilibrado após ":" / Balanced after ")+(s.EnergyIdleGuardMinutes||20)+(isPt()?" min parado":" idle min")):"";
+  txt("powerPlanChip",(isPt()?"Energia: ":"Power: ")+plan+(s.EnergyIdleGuardEnabled?(isPt()?" + proteção":" + guard"):""));
+  txt("energyPlanState",plan+idleText);
+  const deck=$("modeDeck");
+  if(deck){ ["auto","gaming","streamer","work","focus"].forEach(c=>deck.classList.remove(c)); deck.classList.add(mode.toLowerCase()); }
+  ["Auto","Gaming","Streamer","Work","Focus"].forEach(m=>{ const el=$("mode"+m); if(el) el.classList.toggle("active",mode.toLowerCase()===m.toLowerCase()); });
+  const adaptive=!!s.AdaptiveExclusions;
+  txt("policyCount",String(s.PolicyCount||0)); const adaptiveState=$("adaptiveState"); if(adaptiveState){ adaptiveState.textContent=adaptive?(isPt()?"Ligado":"On"):(isPt()?"Desligado":"Off"); }
 }
 function updatePermissionGuard(s){
   const box=$("permissionBox");
@@ -972,7 +1150,7 @@ function renderEvents(events){
 function translateEventBody(body){
   let text=String(body||"");
   text=text.replace(/\bevent\b/g,t("event")).replace(/\bnext\b/g,t("next"));
-  text=text.replace("motor automatico ativo; ciclos e foco protegidos",t("detailArmed"));
+  text=text.replace("motor automático ativo; ciclos e foco protegidos",t("detailArmed"));
   text=text.replace(/\bWATCH\b/g,t("watchLabel")).replace(/\bAPPLY\b/g,t("passLabel")).replace(/\bWAKE\b/g,t("wakeLabel")).replace(/\bBEHAVIOR\b/g,t("behaviorLabel")).replace(/\bLEARN\b/g,t("learnLabel")).replace(/\bADMIN\b/g,t("adminLabel")).replace(/\bPOLICY\b/g,t("policyLabel"));
   text=text.replace(/\bL\/B\/D\b/g,t("tiersLabel")).replace(/\bT\s+(?=\d)/g,t("trimLabel")+" ").replace(/\bC\s+(?=\d)/g,t("cooldownLabel")+" ").replace(/\btop\b/g,"principal").replace(/\bapps\b/g,t("apps"));
   return text.replace(/(\d+)\s+apps/g,"$1 "+t("apps"));
@@ -981,6 +1159,8 @@ function translateRoleLabel(value){
   const role=String(value||"");
   if(role==="Browser") return t("browserRole");
   if(role==="MediaCall") return t("mediaCallRole");
+  if(role==="Streaming") return t("streamingRole");
+  if(role==="StreamHelper") return t("streamHelperRole");
   return role;
 }
 function formatGuardLabel(value){
@@ -988,7 +1168,7 @@ function formatGuardLabel(value){
 }
 function cleanActionLabel(value){
   let label=String(value||"").replace("SkippedBelowThreshold","Skip").replace(/^Tier /,"").replace(/^Eco /,"E ").replace("Admin needed",t("adminNeededBadge"));
-  const map={"P OK":t("cpuBadge"),"M OK":t("memoryBadge"),"IO OK":t("ioBadge"),"T OK":t("trimBadge"),"E OK":t("ecoBadge"),"T Cooldown":t("cooldownBadge"),"T Skip":t("trimSkipBadge"),"Wake":t("fastWake")};
+  const map={"P OK":t("cpuBadge"),"M OK":t("memoryBadge"),"IO OK":t("ioBadge"),"T OK":t("trimBadge"),"E OK":t("ecoBadge"),"T Cooldown":t("cooldownBadge"),"T Skip":t("trimSkipBadge"),"Affinity OK":"Cores","Affinity Already":"Cores","Affinity Disabled":"Cores off","Affinity WouldLimit":"Cores preview","Wake":t("fastWake")};
   return map[label] || label;
 }
 function isPt(){ return String(currentLanguage||"").toLowerCase().startsWith("pt"); }
@@ -996,10 +1176,10 @@ function policyTooltip(policy){
   const key=String(policy||"Auto").toLowerCase();
   const pt=isPt();
   if(key==="auto") return pt ? "Auto: o motor decide entre Protect, Light, Balanced ou Deep com base no uso real do app." : "Auto: the engine chooses Protect, Light, Balanced, or Deep from real app behavior.";
-  if(key==="protect") return pt ? "Protect: protege o app e impede nap automatico. Use para apps sensiveis, chamadas, launchers ou qualquer coisa que deve ficar acordada." : "Protect: keeps the app awake and blocks automatic naps. Use for sensitive apps, calls, launchers, or anything that must stay responsive.";
-  if(key==="light") return pt ? "Light: reducao leve. Mantem resposta rapida para apps que voce alterna com frequencia." : "Light: gentle reduction. Keeps fast response for apps you switch back to often.";
-  if(key==="balanced") return pt ? "Balanced: reducao intermediaria. Diminui pressao de CPU/RAM/I/O sem ser agressivo." : "Balanced: middle profile. Reduces CPU/RAM/I/O pressure without being aggressive.";
-  if(key==="deep") return pt ? "Deep: modo mais forte para app realmente parado em segundo plano. Reduz mais recursos e restaura quando voce volta ao app." : "Deep: strongest profile for truly idle background apps. Reduces more pressure and restores when you return.";
+  if(key==="protect") return pt ? "Protegido: mantém o app acordado e impede nap automático. Use para apps sensíveis, chamadas, launchers ou qualquer coisa que deve ficar acordada." : "Protect: keeps the app awake and blocks automatic naps. Use for sensitive apps, calls, launchers, or anything that must stay responsive.";
+  if(key==="light") return pt ? "Leve: redução suave. Mantém resposta rápida para apps que você alterna com frequência." : "Light: gentle reduction. Keeps fast response for apps you switch back to often.";
+  if(key==="balanced") return pt ? "Equilibrado: redução intermediária. Diminui pressão de CPU/RAM/I/O sem ser agressivo." : "Balanced: middle profile. Reduces CPU/RAM/I/O pressure without being aggressive.";
+  if(key==="deep") return pt ? "Deep: modo mais forte para app realmente parado em segundo plano. Reduz mais recursos e restaura quando você volta ao app." : "Deep: strongest profile for truly idle background apps. Reduces more pressure and restores when you return.";
   return policy;
 }
 function badgeTooltip(raw,label){
@@ -1007,9 +1187,10 @@ function badgeTooltip(raw,label){
   if(text.includes("tier light") || String(label||"").toLowerCase()==="light") return policyTooltip("Light");
   if(text.includes("tier balanced") || String(label||"").toLowerCase()==="balanced") return policyTooltip("Balanced");
   if(text.includes("tier deep") || String(label||"").toLowerCase()==="deep") return policyTooltip("Deep");
-  if(text.includes("cooldown")) return isPt()?"Cooldown: o app foi poupado por seguranca para evitar trims agressivos em sequencia.":"Cooldown: the app was spared to avoid repeated aggressive trims.";
-  if(text.includes("skip")) return isPt()?"Skip: o motor decidiu nao mexer nesse ponto agora por limite, protecao ou contexto atual.":"Skip: the engine decided not to change this item right now due to threshold, guard, or current context.";
-  if(text.includes("admin needed")) return isPt()?"Admin: o Windows negou a mudanca sem permissao elevada.":"Admin: Windows denied the change without elevated permission.";
+  if(text.includes("cooldown")) return isPt()?"Pausa: o app foi poupado para evitar limpeza agressiva em sequência.":"Cooldown: the app was spared to avoid repeated aggressive trims.";
+  if(text.includes("skip")) return isPt()?"Ignorado: o motor decidiu não mexer agora por limite, proteção ou contexto.":"Skip: the engine decided not to change this item right now due to threshold, guard, or current context.";
+  if(text.includes("admin needed")) return isPt()?"Admin: o Windows negou a mudança sem permissão elevada.":"Admin: Windows denied the change without elevated permission.";
+  if(text.includes("affinity")) return isPt()?"Nucleos: em modo Streamer, tarefas comuns de fundo podem ficar presas a menos nucleos para liberar folga ao jogo, encoder e janela ativa.":"Cores: in Streamer mode, ordinary background work can be limited to fewer cores to leave headroom for the game, encoder, and active window.";
   if(text.includes(" ok")) return isPt()?"OK: essa parte do nap foi aplicada ou ja estava no estado esperado.":"OK: this part of the nap was applied or already in the expected state.";
   return label || raw || "";
 }

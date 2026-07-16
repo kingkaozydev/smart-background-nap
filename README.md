@@ -160,7 +160,7 @@ Smart Background Nap is intentionally local:
 - no Windows service install
 - no startup registry key
 - no app killing
-- no power plan switching
+- no forced power-plan switching; optional Smart Nap power profiles are user-confirmed
 
 Windows SmartScreen reputation is controlled by Microsoft and is heavily influenced by Authenticode signing and download reputation. Smart Background Nap ships with product/version metadata and an `asInvoker` manifest, but unsigned community builds can still show an "Unknown Publisher" warning until the project has signing and reputation.
 
