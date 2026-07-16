@@ -12,8 +12,8 @@
     <meta property="og:image" content="https://kingkaozydev.github.io/smart-background-nap/smart-nap-social-preview.png" />
     <meta name="theme-color" content="#05080d" />
     <link rel="icon" href="smart-nap-logo.png" />
-    <link rel="stylesheet" href="src/styles.css" />
-    <script type="module" src="src/main.js"></script>
+    <link rel="stylesheet" href="src/styles.css?v=0.5.1-site2" />
+    <script type="module" src="src/main.js?v=0.5.1-site2"></script>
   </head>
   <body>
     <div class="ambient" aria-hidden="true">
@@ -27,6 +27,7 @@
       </a>
       <nav>
         <a href="#engine">Motor</a>
+        <a href="#modes">Modos</a>
         <a href="#releases">Releases</a>
         <a href="#trust">Confiança</a>
         <a class="nav-cta" id="navDownload" href="https://github.com/kingkaozydev/smart-background-nap/releases/latest/download/SmartBackgroundNap.exe">Download</a>
@@ -85,6 +86,22 @@
         <span>EcoQoS</span>
         <span>Retorno rápido</span>
         <span>Sem fechar apps</span>
+      </section>
+
+      <section class="section-shell modes-section" id="modes">
+        <div class="modes-intro">
+          <p class="eyebrow">Modos do motor</p>
+          <h2>Escolha o comportamento certo para cada sessão.</h2>
+          <p>O Smart Nap não usa um único perfil para tudo. Ele muda a forma de aliviar o fundo conforme você está jogando, fazendo live, trabalhando ou só mantendo o PC responsivo no dia a dia.</p>
+        </div>
+        <div class="mode-grid">
+          <article class="mode-card auto"><span>Auto</span><strong>Equilíbrio diário</strong><p>Observa a sessão e decide sozinho. Ao sair de Jogos ou Live, pode restaurar o plano de energia anterior ou usar Equilibrado para evitar alto desempenho parado.</p></article>
+          <article class="mode-card gaming"><span>Jogos</span><strong>Prioridade para o jogo</strong><p>Protege tela cheia e primeiro plano, reduz disputa de CPU/RAM/I/O no fundo e oferece o plano Smart Nap MODO JOGO com retorno automático ao Equilibrado por inatividade.</p></article>
+          <article class="mode-card live"><span>Live</span><strong>Stream guard</strong><p>Protege OBS, Streamlabs, TikTok LIVE Studio, encoder, áudio e jogo. Também controla helpers de navegador em segundo plano sem cortar processos importantes da transmissão.</p></article>
+          <article class="mode-card work"><span>Trabalho</span><strong>Multitarefa responsiva</strong><p>Mantém comunicação, mídia, navegador e ferramentas de criação mais acordados. É o modo para trocar de janela sem sentir apps voltando lentos.</p></article>
+          <article class="mode-card focus"><span>Foco</span><strong>Fundo mais leve</strong><p>Usa uma postura mais firme em apps parados quando a memória fica pressionada. Bom para sessões pesadas em PCs modestos, sem encerrar o que está aberto.</p></article>
+          <article class="mode-card power"><span>Energia</span><strong>Controle explícito</strong><p>Planos de energia só mudam com confirmação. O app salva o plano anterior, explica o impacto e deixa o usuário decidir se quer manter, restaurar ou voltar ao Equilibrado.</p></article>
+        </div>
       </section>
 
       <section class="section-shell split" id="engine">
