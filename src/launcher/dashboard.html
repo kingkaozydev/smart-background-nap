@@ -135,7 +135,9 @@ body:before{content:"";position:fixed;inset:-18%;pointer-events:none;background:
 .titleBlock span{font-family:"Montserrat","Segoe UI Variable Text","Segoe UI",Arial,sans-serif;letter-spacing:0}
 @keyframes brandTextSweep{0%,22%{background-position:118% 0}52%,100%{background-position:-42% 0}}
 @media(prefers-reduced-motion:reduce){.titleBlock b{animation:none!important;background-position:0 0}}
-</style>
+/* v0.5.9 live manager clarity */
+.decisionSummary{display:grid;gap:2px;min-width:145px;max-width:210px;border:1px solid rgba(88,185,255,.24);border-radius:10px;background:linear-gradient(145deg,rgba(10,22,38,.94),rgba(7,15,27,.94));padding:6px 8px;line-height:1.15}.decisionSummary b{font-size:10px;color:#eef6ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.decisionSummary small{font-size:9px;color:#8ea1b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.decisionSummary.auto{border-color:rgba(255,166,41,.38)}.decisionSummary.protect{border-color:rgba(154,114,255,.42)}.decisionSummary.light{border-color:rgba(88,185,255,.38)}.decisionSummary.balanced{border-color:rgba(46,225,132,.32)}.decisionSummary.deep{border-color:rgba(255,102,116,.38)}.policyButtons{background:rgba(6,15,27,.64);border:1px solid rgba(38,58,85,.70);border-radius:10px;padding:4px 5px!important}.policyButtons:before{min-width:auto}.actionsCell{row-gap:6px!important}.badgeGroup{max-width:100%}.badgeGroup .badge{max-width:172px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:980px){.decisionSummary{min-width:132px}.policyBtn{padding:0 6px}.badgeGroup .badge{max-width:150px}}</style>
 </head>
 <body>
 <div class="app">
@@ -579,6 +581,10 @@ Object.keys(LANGS).forEach(k=>{
   LANGS[k].guardStreaming = LANGS[k].guardStreaming || "Live";
   LANGS[k].guardProtected = LANGS[k].guardProtected || "Protected";
   LANGS[k].guardLauncher = LANGS[k].guardLauncher || "Launcher";
+  LANGS[k].decisionAuto = LANGS[k].decisionAuto || "Automatic decision";
+  LANGS[k].decisionManual = LANGS[k].decisionManual || "Manual rule";
+  LANGS[k].decisionAutoHint = LANGS[k].decisionAutoHint || "Smart Nap chooses per cycle";
+  LANGS[k].decisionManualHint = LANGS[k].decisionManualHint || "User-selected control";
   LANGS[k].cpuBadge = LANGS[k].cpuBadge || "CPU";
   LANGS[k].memoryBadge = LANGS[k].memoryBadge || "RAM";
   LANGS[k].ioBadge = LANGS[k].ioBadge || "I/O";
@@ -641,8 +647,8 @@ Object.assign(LANGS["es-ES"],{systemProfile:"Perfil del PC",ramLabel:"RAM",syste
 Object.assign(LANGS["fr-FR"],{systemProfile:"Profil PC",ramLabel:"RAM",systemLabel:"Systeme",gpuHint:"Adaptateur graphique",localSnapshot:"",freeNow:"{free} libre maintenant",ramShort:"RAM",pagefileShort:"Pagination",loadShort:"charge",behaviorEngine:"Behavior Engine",behaviorK:"Intelligence centrale",behaviorT:"Behavior Engine",behaviorD:"Profile localement les apps par CPU, retour memoire, rafales et evenements wake.",behaviorMode:"mode",behaviorAdaptive:"adaptatif",behaviorOn:"actif",behaviorOff:"inactif",profilesShort:"profils",pressureNormal:"Normale",pressureModerate:"Moderee",pressureElevated:"Elevee",pressureCritical:"Critique",pressureUnknown:"Inconnue"});
 Object.assign(LANGS["de-DE"],{systemProfile:"PC Profil",ramLabel:"RAM",systemLabel:"System",gpuHint:"Grafikadapter",localSnapshot:"",freeNow:"{free} frei",ramShort:"RAM",pagefileShort:"Auslagerung",loadShort:"Last",behaviorEngine:"Behavior Engine",behaviorK:"Kernintelligenz",behaviorT:"Behavior Engine",behaviorD:"Profile Apps lokal nach CPU, Speicher-Rueckkehr, Bursts und Wake-Ereignissen.",behaviorMode:"Modus",behaviorAdaptive:"adaptiv",behaviorOn:"an",behaviorOff:"aus",profilesShort:"Profile",pressureNormal:"Normal",pressureModerate:"Moderat",pressureElevated:"Erhoeht",pressureCritical:"Kritisch",pressureUnknown:"Unbekannt"});
 LANGS["ru-RU"] = Object.assign({}, LANGS["en-US"], {languageName:"Русский",appTitle:"Smart Nap",appSubtitle:"Контроль фоновых приложений для игр и многозадачности",navDashboard:"Панель",navScore:"Nap Score",navLog:"Журнал",navFiles:"Файлы",navGithub:"GitHub",headline:"Фоновые приложения под контролем",subline:"Открытые приложения становятся легче, а активное окно быстро возвращает приоритет.",feature1K:"Активное окно",feature1T:"Быстрый возврат",feature1D:"Восстанавливает приоритет сразу после переключения окна.",feature2K:"Память",feature2T:"Адаптивная очистка",feature2D:"Снижает лишнюю нагрузку на RAM с паузами, чтобы не быть агрессивным.",feature3K:"Планировщик",feature3T:"Уровни Nap",feature3D:"Light, Balanced и Deep по реальному поведению процесса.",languageTitle:"Выберите язык",languageSubtitle:"Меняется только текст лаунчера. Оптимизатор продолжает безопасно работать в фоне.",apply:"Оптимизировать",stop:"Стоп",pauseMotor:"Пауза",resumeMotor:"Запустить",restore:"Восстановить",on:"Вкл",off:"Выкл",live:"Обновление",motorActive:"Мотор активен",manual:"Ручной",startupOn:"Запуск с Windows",startupOff:"Автозапуск выкл",apps:"apps",intelK:"Обучение",intelT:"Решения по поведению",smartLearning:"Smart Learning",learningOn:"Вкл",learningOff:"Выкл",updateK:"Официальное обновление",updateTitle:"Доступна новая версия",updateBody:"Версия {version} опубликована в официальном GitHub Release.",updateDownload:"Обновить",updateDismiss:"Не напоминать об этой версии",updateCheck:"Проверить",updateCheckingTitle:"Проверка обновлений",updateCheckingBody:"Проверяем официальный канал релизов GitHub."});
-Object.assign(LANGS["pt-BR"],{colScore:"Impacto",colDelta:"RAM",colCpu:"CPU",colBursts:"Picos",colAction:"Decisão",groupContext:"Tipo",groupProfile:"Perfil",groupActions:"Ajustes",groupPolicy:"Controle",instancesLabel:"instâncias",profileLabel:"Perfil",learnedProfileLabel:"Aprendido",napLevelLabel:"Nap",tierLight:"Leve",tierBalanced:"Equilibrado",tierDeep:"Forte",tierProtect:"Protegido",coresLabel:"Núcleos",coresOffLabel:"Núcleos livres",coresPreviewLabel:"Núcleos preview",planUnknown:"Plano não identificado",policyAutoShort:"Auto",policyProtectShort:"Proteger",policyLightShort:"Leve",policyBalancedShort:"Médio",policyDeepShort:"Forte",guardMediaCall:"Mídia/chamada",guardStreaming:"Live",guardProtected:"Protegido",guardLauncher:"Launcher",detailArmed:"Retorno rápido armado. Apps em segundo plano são ajustados por nível."});
-Object.assign(LANGS["en-US"],{colScore:"Impact",colDelta:"RAM",colCpu:"CPU",colBursts:"Peaks",colAction:"Decision",groupContext:"Type",groupProfile:"Profile",groupActions:"Applied",groupPolicy:"Control",instancesLabel:"instances",profileLabel:"Profile",learnedProfileLabel:"Learned",napLevelLabel:"Nap",tierLight:"Light",tierBalanced:"Balanced",tierDeep:"Deep",tierProtect:"Protected",coresLabel:"Cores",coresOffLabel:"Cores free",coresPreviewLabel:"Cores preview",planUnknown:"Plan not detected",policyAutoShort:"Auto",policyProtectShort:"Protect",policyLightShort:"Light",policyBalancedShort:"Balanced",policyDeepShort:"Deep",guardMediaCall:"Media/call",guardStreaming:"Live",guardProtected:"Protected",guardLauncher:"Launcher"});
+Object.assign(LANGS["pt-BR"],{colScore:"Impacto",colDelta:"RAM",colCpu:"CPU",colBursts:"Picos",colAction:"Decisão",groupContext:"Tipo",groupProfile:"Perfil",groupActions:"Ajustes",groupPolicy:"Controle",decisionAuto:"Decisão automática",decisionManual:"Regra manual",decisionAutoHint:"O motor escolhe a cada ciclo",decisionManualHint:"Controle escolhido pelo usuário",instancesLabel:"instâncias",profileLabel:"Perfil",learnedProfileLabel:"Aprendido",napLevelLabel:"Nap",tierLight:"Leve",tierBalanced:"Equilibrado",tierDeep:"Forte",tierProtect:"Protegido",coresLabel:"Núcleos",coresOffLabel:"Núcleos livres",coresPreviewLabel:"Núcleos preview",planUnknown:"Plano não identificado",policyAutoShort:"Auto",policyProtectShort:"Proteger",policyLightShort:"Leve",policyBalancedShort:"Médio",policyDeepShort:"Forte",guardMediaCall:"Mídia/chamada",guardStreaming:"Live",guardProtected:"Protegido",guardLauncher:"Launcher",detailArmed:"Retorno rápido armado. Apps em segundo plano são ajustados por nível."});
+Object.assign(LANGS["en-US"],{colScore:"Impact",colDelta:"RAM",colCpu:"CPU",colBursts:"Peaks",colAction:"Decision",groupContext:"Type",groupProfile:"Profile",groupActions:"Applied",groupPolicy:"Control",decisionAuto:"Automatic decision",decisionManual:"Manual rule",decisionAutoHint:"Engine chooses every cycle",decisionManualHint:"User-selected control",instancesLabel:"instances",profileLabel:"Profile",learnedProfileLabel:"Learned",napLevelLabel:"Nap",tierLight:"Light",tierBalanced:"Balanced",tierDeep:"Deep",tierProtect:"Protected",coresLabel:"Cores",coresOffLabel:"Cores free",coresPreviewLabel:"Cores preview",planUnknown:"Plan not detected",policyAutoShort:"Auto",policyProtectShort:"Protect",policyLightShort:"Light",policyBalancedShort:"Balanced",policyDeepShort:"Deep",guardMediaCall:"Media/call",guardStreaming:"Live",guardProtected:"Protected",guardLauncher:"Launcher"});
 const LANGUAGE_ORDER = ["pt-BR","en-US","ru-RU","es-ES","fr-FR","de-DE"];
 let currentLanguage = "pt-BR";
 let lastState = null;
@@ -1202,13 +1208,15 @@ function renderRows(rowsData){
     const instanceText=app.instances>1 ? app.instances+" "+t("instancesLabel") : (row.ProcessName||"");
     div.innerHTML='<span class="appCell" title="'+esc(row.Path || row.Name)+'"><b>'+esc(app.base)+'</b><em>'+esc(instanceText)+'</em></span><span class="goodtxt">'+esc(row.Score)+'</span><span class="amber">'+esc(row.Delta)+'</span><span>'+esc(row.Cpu)+'</span><span>'+esc(row.Bursts)+'</span><span class="actionsCell"></span>';
     const cell=div.querySelector(".actionsCell");
+    const decision=makeDecisionSummary(row);
+    if(decision) cell.appendChild(decision);
+    cell.appendChild(makePolicyButtons(row));
     const context=metaBadges(row);
     if(context) cell.appendChild(makeBadgeGroup(t("groupContext"),context,"context"));
     const profile=profileBadges(row);
     if(profile) cell.appendChild(makeBadgeGroup(t("groupProfile"),profile,"profile"));
     const actions=actionBadges(row.Action);
     if(actions) cell.appendChild(makeBadgeGroup(t("groupActions"),actions,"actionsGroup"));
-    cell.appendChild(makePolicyButtons(row));
     rows.appendChild(div);
   });
   txt("managerStatus",t("tracking").replace("{count}",rowsData.length));
@@ -1303,7 +1311,19 @@ function metaBadges(row){
   if(row.SwitchFastWake) out.push('<b class="badge light" title="'+esc(policyTooltip("Light"))+'">'+esc(t("fastWake"))+'</b>');
   return out.join("");
 }
-function profileBadges(row){
+function makeDecisionSummary(row){
+  const current=String(row.Policy||"Auto");
+  const normalized=current.toLowerCase();
+  const manual=normalized!=="auto";
+  const profile=manual?translateTierLabel(current):(row.BehaviorTier?translateTierLabel(row.BehaviorTier):t("policyAutoShort"));
+  const label=manual?t("decisionManual"):t("decisionAuto");
+  const hint=manual?t("decisionManualHint"):t("decisionAutoHint");
+  const box=document.createElement("span");
+  box.className="decisionSummary "+(manual?normalized:"auto");
+  box.title=manual?policyTooltip(current):policyTooltip("Auto");
+  box.innerHTML='<b>'+esc(label)+'</b><small>'+esc(profile+' · '+hint)+'</small>';
+  return box;
+}function profileBadges(row){
   const out=[];
   const behaviorConfidence=Number(row.BehaviorConfidence||0);
   const behaviorWakes=Number(row.BehaviorWakeCount||0);

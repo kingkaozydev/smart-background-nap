@@ -29,7 +29,7 @@ using Microsoft.Web.WebView2.Wpf;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.5.8";
+    private const string AppVersion = "0.5.9";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
@@ -244,6 +244,12 @@ internal static class SmartBackgroundNap
     {
         InitializePaths();
 
+        if (HasArg(args, "--complete-update"))
+        {
+            Environment.ExitCode = CompleteSelfUpdate(args).ExitCode;
+            return;
+        }
+
         if (HasArg(args, "--apply"))
         {
             Environment.ExitCode = RunApplyNow().ExitCode;
@@ -257,6 +263,11 @@ internal static class SmartBackgroundNap
         if (HasArg(args, "--install"))
         {
             Environment.ExitCode = InstallComplete().ExitCode;
+            return;
+        }
+        if (HasArg(args, "--repair-install") || HasArg(args, "--setup-elevated"))
+        {
+            Environment.ExitCode = InstallComplete(false).ExitCode;
             return;
         }
         if (HasArg(args, "--uninstall"))
@@ -305,6 +316,7 @@ internal static class SmartBackgroundNap
         }
 
         EnsureFirstRunDefaults();
+        EnsureInstallRepairOnLaunch();
 
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
@@ -1335,15 +1347,54 @@ internal static class SmartBackgroundNap
 
         if (!ShouldApplyFirstRunDefaults()) { return; }
 
-        RunResult auto = InstallAutomatic();
-        RunResult startup = InstallStartup();
+        RunResult setup = RunElevatedSetupIfNeeded();
+        RunResult install = setup.ExitCode == 0 && IsAutomaticEngineEnabled() && IsStartupInstalled()
+            ? setup
+            : InstallComplete(false);
         EnsureSmartLearningDefaultEnabled();
         SaveAutoUpdateChecks(true);
-        string summary = "auto=" + auto.ExitCode.ToString(CultureInfo.InvariantCulture) + "; startup=" + startup.ExitCode.ToString(CultureInfo.InvariantCulture);
+        string summary = "setup=" + setup.ExitCode.ToString(CultureInfo.InvariantCulture) + "; install=" + install.ExitCode.ToString(CultureInfo.InvariantCulture) + "; auto=" + IsAutomaticEngineEnabled().ToString(CultureInfo.InvariantCulture) + "; startup=" + IsStartupInstalled().ToString(CultureInfo.InvariantCulture);
         MarkInitialDefaultsApplied(summary);
         AppendOperationalLog("action=first-run-defaults " + summary);
     }
+    private static void EnsureInstallRepairOnLaunch()
+    {
+        try
+        {
+            if (IsCurrentProcessElevated()) { return; }
+            if (!ReadUiFlag("InitialDefaultsApplied")) { return; }
 
+            bool wantsAuto = IsAutomaticEngineEnabled();
+            bool wantsStartup = IsStartupInstalled();
+            bool needsRepair = (wantsAuto && !IsTaskInstalled(AutoTaskName)) || (wantsStartup && !IsTaskInstalled(TrayTaskName));
+            if (!needsRepair) { return; }
+            if (!ShouldAttemptElevatedSetupRepair()) { return; }
+
+            MarkElevatedSetupRepairAttempt();
+            RunResult setup = RunElevatedInstallComplete();
+            AppendOperationalLog("action=launch-install-repair exitCode=" + setup.ExitCode.ToString(CultureInfo.InvariantCulture));
+        }
+        catch (Exception ex)
+        {
+            WriteCrash(ex);
+        }
+    }
+
+    private static bool ShouldAttemptElevatedSetupRepair()
+    {
+        string value = GetUiSettingString("LastElevatedSetupRepairAttemptUtc");
+        if (String.IsNullOrWhiteSpace(value)) { return true; }
+        DateTime last;
+        if (!DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out last)) { return true; }
+        return (DateTime.UtcNow - last) > TimeSpan.FromHours(12);
+    }
+
+    private static void MarkElevatedSetupRepairAttempt()
+    {
+        IDictionary<string, object> settings = LoadUiSettings();
+        settings["LastElevatedSetupRepairAttemptUtc"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+        SaveUiSettings(settings);
+    }
     private static void EnsureSmartLearningDefaultEnabled()
     {
         try
@@ -1501,6 +1552,18 @@ internal static class SmartBackgroundNap
             }
         }
         return false;
+    }
+
+    private static string GetArgValue(string[] args, string name)
+    {
+        for (int i = 0; i < args.Length - 1; i++)
+        {
+            if (String.Equals(args[i], name, StringComparison.OrdinalIgnoreCase))
+            {
+                return args[i + 1] ?? "";
+            }
+        }
+        return "";
     }
 
     private static Icon LoadIcon()
@@ -2058,6 +2121,74 @@ internal static class SmartBackgroundNap
         }
     }
 
+    private static bool ArePrimaryScheduledTasksInstalled()
+    {
+        return IsTaskInstalled(AutoTaskName) && IsTaskInstalled(TrayTaskName);
+    }
+
+    private static RunResult RunElevatedSetupIfNeeded()
+    {
+        if (ArePrimaryScheduledTasksInstalled())
+        {
+            SaveLocalAutoEngine(false);
+            RemoveStartupRegistry();
+            return new RunResult(0, "Scheduled tasks already installed.");
+        }
+        if (IsCurrentProcessElevated())
+        {
+            return InstallComplete(false);
+        }
+        return RunElevatedInstallComplete();
+    }
+
+    private static RunResult RunElevatedInstallComplete()
+    {
+        if (IsCurrentProcessElevated())
+        {
+            return InstallComplete(false);
+        }
+
+        try
+        {
+            ProcessStartInfo start = new ProcessStartInfo();
+            start.FileName = GetLaunchExecutablePath();
+            start.Arguments = "--repair-install";
+            start.UseShellExecute = true;
+            start.Verb = "runas";
+            start.WindowStyle = ProcessWindowStyle.Hidden;
+
+            using (Process process = Process.Start(start))
+            {
+                if (process == null)
+                {
+                    return new RunResult(1, "Nao consegui iniciar o reparo elevado do Smart Nap.");
+                }
+                if (!process.WaitForExit(180000))
+                {
+                    try { process.Kill(); } catch { }
+                    AppendOperationalLog("action=elevated-setup status=timeout");
+                    return new RunResult(124, "O reparo elevado demorou demais e foi interrompido.");
+                }
+                AppendOperationalLog("action=elevated-setup status=done exitCode=" + process.ExitCode.ToString(CultureInfo.InvariantCulture));
+                return new RunResult(process.ExitCode, process.ExitCode == 0 ? "Setup elevated completed." : "Setup elevated exited with code " + process.ExitCode.ToString(CultureInfo.InvariantCulture) + ".");
+            }
+        }
+        catch (Win32Exception ex)
+        {
+            if (ex.NativeErrorCode == 1223)
+            {
+                AppendOperationalLog("action=elevated-setup status=cancelled");
+                return new RunResult(1223, "Permissao de administrador cancelada.");
+            }
+            AppendOperationalLog("action=elevated-setup status=failed detail=" + ShortTaskError(ex.Message));
+            return new RunResult(1, "Nao consegui solicitar permissao de administrador para concluir a instalacao.");
+        }
+        catch (Exception ex)
+        {
+            AppendOperationalLog("action=elevated-setup status=failed detail=" + ShortTaskError(ex.Message));
+            return new RunResult(1, "Nao consegui concluir o reparo de instalacao.");
+        }
+    }
     private static RunResult RunRestore()
     {
         return RunPowerShellScript(backgroundScriptPath, "-ConfigPath " + Quote(GetEffectiveConfigPath()) + " -Action Restore -LogPath " + Quote(logPath), 120000);
@@ -2074,6 +2205,22 @@ internal static class SmartBackgroundNap
 
     private static RunResult InstallAutomatic()
     {
+        return InstallAutomatic(true);
+    }
+
+    private static RunResult InstallAutomatic(bool allowElevatedRepair)
+    {
+        if (allowElevatedRepair && !IsCurrentProcessElevated() && !IsTaskInstalled(AutoTaskName))
+        {
+            RunResult elevated = RunElevatedInstallComplete();
+            if (IsTaskInstalled(AutoTaskName))
+            {
+                SaveLocalAutoEngine(false);
+                return new RunResult(0, "Automatic engine enabled through elevated setup.");
+            }
+            AppendOperationalLog("action=install-auto-elevated-fallback exitCode=" + elevated.ExitCode.ToString(CultureInfo.InvariantCulture));
+        }
+
         RunResult result = RunPowerShellScript(autoManagerPath, "-Action Install -AppExePath " + Quote(GetLaunchExecutablePath()), 60000);
         if (IsTaskInstalled(AutoTaskName))
         {
@@ -2085,7 +2232,6 @@ internal static class SmartBackgroundNap
         string reason = result.ExitCode == 0 ? "Task Scheduler unavailable" : ShortTaskError(result.Output);
         return new RunResult(0, "Automatic engine enabled through local tray fallback. " + reason);
     }
-
     private static RunResult UninstallAutomatic()
     {
         RunResult result = new RunResult(0, "Automatic engine was already using local control.");
@@ -2194,6 +2340,22 @@ internal static class SmartBackgroundNap
 
     private static RunResult InstallStartup()
     {
+        return InstallStartup(true);
+    }
+
+    private static RunResult InstallStartup(bool allowElevatedRepair)
+    {
+        if (allowElevatedRepair && !IsCurrentProcessElevated() && !IsTaskInstalled(TrayTaskName))
+        {
+            RunResult elevated = RunElevatedInstallComplete();
+            if (IsTaskInstalled(TrayTaskName))
+            {
+                RemoveStartupRegistry();
+                return new RunResult(0, "Tray startup enabled through elevated setup.");
+            }
+            AppendOperationalLog("action=install-startup-elevated-fallback exitCode=" + elevated.ExitCode.ToString(CultureInfo.InvariantCulture));
+        }
+
         RunResult result = RunPowerShellScript(trayManagerPath, "-Action Install -AppExePath " + Quote(GetLaunchExecutablePath()), 60000);
         if (IsTaskInstalled(TrayTaskName))
         {
@@ -2206,9 +2368,8 @@ internal static class SmartBackgroundNap
         {
             return new RunResult(0, "Tray startup enabled for the current user. " + (result.ExitCode == 0 ? "Task Scheduler unavailable." : ShortTaskError(result.Output)));
         }
-        return new RunResult(1, ShortTaskError(result.Output) + Environment.NewLine + fallback.Output);
+        return new RunResult(1, "Nao consegui configurar a inicializacao automatica neste usuario. Abra o Smart Nap como administrador e tente novamente.");
     }
-
     private static RunResult UninstallStartup()
     {
         RunResult taskResult = new RunResult(0, "Tray startup task was already off.");
@@ -2229,12 +2390,21 @@ internal static class SmartBackgroundNap
 
     private static RunResult InstallComplete()
     {
-        RunResult auto = InstallAutomatic();
-        RunResult startup = InstallStartup();
+        return InstallComplete(true);
+    }
+
+    private static RunResult InstallComplete(bool allowElevatedRepair)
+    {
+        RunResult auto = InstallAutomatic(allowElevatedRepair);
+        RunResult startup = InstallStartup(allowElevatedRepair);
+        RunResult power = EnsureSmartNapPowerPlans();
+        if (power.ExitCode != 0)
+        {
+            AppendOperationalLog("action=install-power-plans status=deferred detail=" + ShortTaskError(power.Output));
+        }
         EnsureSmartLearningDefaultEnabled();
         return RunResult.Combine(auto, startup);
     }
-
     private static RunResult UninstallComplete()
     {
         RunResult startup = UninstallStartup();
@@ -3009,6 +3179,201 @@ internal static class SmartBackgroundNap
         OpenExternal(GitHubLatestDownloadUrl);
     }
 
+    private static RunResult StartSelfUpdate(string downloadUrl, string latestTag)
+    {
+        try
+        {
+            if (String.IsNullOrWhiteSpace(downloadUrl)) { downloadUrl = GitHubLatestDownloadUrl; }
+            Uri uri;
+            if (!Uri.TryCreate(downloadUrl, UriKind.Absolute, out uri) || !String.Equals(uri.Scheme, "https", StringComparison.OrdinalIgnoreCase))
+            {
+                return new RunResult(1, "O link da atualizacao nao parece ser oficial. Abra o GitHub oficial e baixe manualmente.");
+            }
+            if (!IsOfficialUpdateHost(uri.Host))
+            {
+                return new RunResult(1, "A atualizacao precisa vir do GitHub oficial do Smart Nap.");
+            }
+
+            string updateDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SmartBackgroundNap", "updates");
+            Directory.CreateDirectory(updateDir);
+            string label = SanitizeFileNameSegment(String.IsNullOrWhiteSpace(latestTag) ? "latest" : latestTag);
+            string downloadedPath = Path.Combine(updateDir, "SmartBackgroundNap-" + label + ".exe");
+
+            using (HttpClient client = new HttpClient())
+            {
+                client.Timeout = TimeSpan.FromMinutes(3);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("SmartBackgroundNap/" + AppVersion);
+                byte[] bytes = client.GetByteArrayAsync(uri).GetAwaiter().GetResult();
+                if (bytes == null || bytes.Length < 256 * 1024)
+                {
+                    return new RunResult(1, "O download da atualizacao veio incompleto. Tente novamente em alguns segundos.");
+                }
+                File.WriteAllBytes(downloadedPath, bytes);
+            }
+
+            string targetPath = GetLaunchExecutablePath();
+            if (String.IsNullOrWhiteSpace(targetPath) || !File.Exists(downloadedPath))
+            {
+                return new RunResult(1, "Nao consegui preparar o arquivo de atualizacao.");
+            }
+
+            ProcessStartInfo start = new ProcessStartInfo();
+            start.FileName = downloadedPath;
+            start.Arguments = "--complete-update --update-source " + Quote(downloadedPath) + " --update-target " + Quote(targetPath) + " --wait-pid " + Process.GetCurrentProcess().Id.ToString(CultureInfo.InvariantCulture) + " --launch-after";
+            start.UseShellExecute = true;
+            start.WindowStyle = ProcessWindowStyle.Hidden;
+            Process.Start(start);
+            AppendOperationalLog("action=self-update status=helper-started tag=" + SanitizeLogToken(latestTag));
+            ScheduleProcessExitForUpdate();
+            return new RunResult(0, "Atualizador iniciado. O Smart Nap vai reiniciar automaticamente.");
+        }
+        catch (Exception ex)
+        {
+            WriteCrash(ex);
+            return new RunResult(1, "Nao consegui baixar ou preparar a atualizacao agora.");
+        }
+    }
+
+    private static bool IsOfficialUpdateHost(string host)
+    {
+        if (String.IsNullOrWhiteSpace(host)) { return false; }
+        host = host.Trim().ToLowerInvariant();
+        return String.Equals(host, "github.com", StringComparison.OrdinalIgnoreCase) ||
+            host.EndsWith(".github.com", StringComparison.OrdinalIgnoreCase) ||
+            String.Equals(host, "objects.githubusercontent.com", StringComparison.OrdinalIgnoreCase) ||
+            host.EndsWith(".githubusercontent.com", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string SanitizeFileNameSegment(string value)
+    {
+        if (String.IsNullOrWhiteSpace(value)) { return "latest"; }
+        string safe = Regex.Replace(value.Trim(), @"[^A-Za-z0-9._-]+", "-").Trim('-');
+        return String.IsNullOrWhiteSpace(safe) ? "latest" : safe;
+    }
+
+    private static string SanitizeLogToken(string value)
+    {
+        if (String.IsNullOrWhiteSpace(value)) { return "unknown"; }
+        return Regex.Replace(value.Trim(), @"\s+", "_");
+    }
+
+    private static void ScheduleProcessExitForUpdate()
+    {
+        ThreadPool.QueueUserWorkItem(delegate
+        {
+            Thread.Sleep(900);
+            try { Application.Exit(); } catch { }
+            Thread.Sleep(1800);
+            try { Environment.Exit(0); } catch { }
+        });
+    }
+
+    private static RunResult CompleteSelfUpdate(string[] args)
+    {
+        string source = GetArgValue(args, "--update-source");
+        string target = GetArgValue(args, "--update-target");
+        int waitPid;
+        Int32.TryParse(GetArgValue(args, "--wait-pid"), NumberStyles.Integer, CultureInfo.InvariantCulture, out waitPid);
+
+        if (String.IsNullOrWhiteSpace(source) || String.IsNullOrWhiteSpace(target))
+        {
+            return new RunResult(1, "Missing update source or target.");
+        }
+
+        try
+        {
+            WaitForProcessExit(waitPid, 70000);
+            StopSmartNapProcessesForUpdate(target, Process.GetCurrentProcess().Id);
+            Directory.CreateDirectory(Path.GetDirectoryName(target));
+            CopyFileWithRetries(source, target, 20, 450);
+
+            RunHidden(target, "--install", 120000);
+            if (HasArg(args, "--launch-after"))
+            {
+                ProcessStartInfo launch = new ProcessStartInfo();
+                launch.FileName = target;
+                launch.UseShellExecute = true;
+                Process.Start(launch);
+            }
+            AppendOperationalLog("action=self-update status=completed target=" + SanitizeLogToken(target));
+            return new RunResult(0, "Update completed.");
+        }
+        catch (Exception ex)
+        {
+            WriteCrash(ex);
+            return new RunResult(1, ex.Message);
+        }
+    }
+
+    private static void WaitForProcessExit(int pid, int timeoutMs)
+    {
+        if (pid <= 0) { return; }
+        try
+        {
+            using (Process process = Process.GetProcessById(pid))
+            {
+                process.WaitForExit(timeoutMs);
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    private static void StopSmartNapProcessesForUpdate(string targetPath, int currentPid)
+    {
+        string target = SafeFullPath(targetPath);
+        foreach (Process process in Process.GetProcessesByName("SmartBackgroundNap"))
+        {
+            try
+            {
+                if (process.Id == currentPid) { continue; }
+                string processPath = SafeFullPath(TryGetProcessPath(process));
+                if (!String.IsNullOrWhiteSpace(target) && !String.IsNullOrWhiteSpace(processPath) && !String.Equals(target, processPath, StringComparison.OrdinalIgnoreCase)) { continue; }
+                process.CloseMainWindow();
+                if (!process.WaitForExit(2500)) { process.Kill(); }
+            }
+            catch
+            {
+            }
+            finally
+            {
+                try { process.Dispose(); } catch { }
+            }
+        }
+    }
+
+    private static string TryGetProcessPath(Process process)
+    {
+        try { return process.MainModule == null ? "" : process.MainModule.FileName; }
+        catch { return ""; }
+    }
+
+    private static string SafeFullPath(string path)
+    {
+        if (String.IsNullOrWhiteSpace(path)) { return ""; }
+        try { return Path.GetFullPath(path); }
+        catch { return path; }
+    }
+
+    private static void CopyFileWithRetries(string source, string target, int attempts, int delayMs)
+    {
+        Exception last = null;
+        for (int i = 0; i < attempts; i++)
+        {
+            try
+            {
+                File.Copy(source, target, true);
+                return;
+            }
+            catch (Exception ex)
+            {
+                last = ex;
+                Thread.Sleep(delayMs);
+            }
+        }
+        throw last ?? new IOException("Could not replace Smart Nap executable.");
+    }
     private static ReleaseUpdateInfo CheckForOfficialUpdate()
     {
         ReleaseUpdateInfo info = new ReleaseUpdateInfo();
@@ -4730,7 +5095,13 @@ internal static class SmartBackgroundNap
                     return;
                 }
                 if (String.Equals(action, "checkUpdate", StringComparison.OrdinalIgnoreCase)) { BeginUpdateCheck(true); return; }
-                if (String.Equals(action, "openUpdate", StringComparison.OrdinalIgnoreCase)) { OpenExternal(String.IsNullOrWhiteSpace(updateInfo.DownloadUrl) ? GitHubLatestDownloadUrl : updateInfo.DownloadUrl); return; }
+                if (String.Equals(action, "openUpdate", StringComparison.OrdinalIgnoreCase))
+                {
+                    string downloadUrl = updateInfo == null || String.IsNullOrWhiteSpace(updateInfo.DownloadUrl) ? GitHubLatestDownloadUrl : updateInfo.DownloadUrl;
+                    string latestTag = updateInfo == null ? "" : updateInfo.LatestTag;
+                    RunUserAction("Baixando atualizacao...", "Atualizador iniciado.", delegate { return StartSelfUpdate(downloadUrl, latestTag); });
+                    return;
+                }
                 if (String.Equals(action, "dismissUpdate", StringComparison.OrdinalIgnoreCase))
                 {
                     string tag = updateInfo == null ? "" : updateInfo.LatestTag;
