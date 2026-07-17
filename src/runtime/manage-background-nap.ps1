@@ -153,9 +153,18 @@ function Get-TaskStatusObject {
 switch ($Action) {
     "Install" {
         $xml = Get-TaskDefinitionXml
-        Register-ScheduledTask -TaskName $taskName -Xml $xml -Force | Out-Null
-        Start-ScheduledTask -TaskName $taskName
-        Get-TaskStatusObject
+        try {
+            Register-ScheduledTask -TaskName $taskName -Xml $xml -Force | Out-Null
+            Start-ScheduledTask -TaskName $taskName
+            Get-TaskStatusObject
+        } catch {
+            [pscustomobject]@{
+                TaskName = $taskName
+                Installed = $false
+                RegisterError = $_.Exception.Message
+                Fallback = "LocalAutoEngine"
+            }
+        }
     }
     "Uninstall" {
         $task = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue

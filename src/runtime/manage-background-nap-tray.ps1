@@ -140,10 +140,19 @@ function Get-TrayStatusObject {
 switch ($Action) {
     "Install" {
         $xml = Get-TrayTaskDefinitionXml
-        Register-ScheduledTask -TaskName $taskName -Xml $xml -Force | Out-Null
-        Start-ScheduledTask -TaskName $taskName
-        Start-Sleep -Seconds 2
-        Get-TrayStatusObject
+        try {
+            Register-ScheduledTask -TaskName $taskName -Xml $xml -Force | Out-Null
+            Start-ScheduledTask -TaskName $taskName
+            Start-Sleep -Seconds 2
+            Get-TrayStatusObject
+        } catch {
+            [pscustomobject]@{
+                TaskName = $taskName
+                Installed = $false
+                RegisterError = $_.Exception.Message
+                Fallback = "CurrentUserStartup"
+            }
+        }
     }
     "Uninstall" {
         $task = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
@@ -152,14 +161,6 @@ switch ($Action) {
             Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
         }
 
-        $trayProcesses = @(Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe'" -ErrorAction SilentlyContinue |
-            Where-Object { $_.CommandLine -like "*smart-background-nap-tray.ps1*" })
-        $trayProcesses += @(Get-CimInstance Win32_Process -Filter "Name = 'SmartBackgroundNap.exe'" -ErrorAction SilentlyContinue |
-            Where-Object { $_.CommandLine -like "*--tray*" })
-        $trayProcesses += @(Get-CimInstance Win32_Process -Filter "Name = 'SmartBackgroundNapTray.exe'" -ErrorAction SilentlyContinue)
-        foreach ($proc in $trayProcesses) {
-            Stop-Process -Id $proc.ProcessId -Force -ErrorAction SilentlyContinue
-        }
 
         Get-TrayStatusObject
     }

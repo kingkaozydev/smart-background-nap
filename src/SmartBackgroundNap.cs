@@ -29,7 +29,7 @@ using Microsoft.Web.WebView2.Wpf;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.5.7";
+    private const string AppVersion = "0.5.8";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
@@ -222,6 +222,8 @@ internal static class SmartBackgroundNap
     private static Mutex singleInstanceMutex;
     private static EventWaitHandle showDashboardEvent;
     private static ScoreWindow scoreWindow;
+    private static readonly object firstRunDefaultsLock = new object();
+    private static bool firstRunDefaultsChecked;
 
     [STAThread]
     private static void Main(string[] args)
@@ -301,6 +303,8 @@ internal static class SmartBackgroundNap
             }
             return;
         }
+
+        EnsureFirstRunDefaults();
 
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
@@ -1282,6 +1286,78 @@ internal static class SmartBackgroundNap
         SaveUiSettings(settings);
     }
 
+    private static bool ReadUiFlag(string key)
+    {
+        string value = GetUiSettingString(key).Trim();
+        return String.Equals(value, "true", StringComparison.OrdinalIgnoreCase) ||
+            String.Equals(value, "1", StringComparison.OrdinalIgnoreCase) ||
+            String.Equals(value, "on", StringComparison.OrdinalIgnoreCase) ||
+            String.Equals(value, "yes", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void SaveUiFlag(string key, bool enabled)
+    {
+        IDictionary<string, object> settings = LoadUiSettings();
+        settings[key] = enabled ? "true" : "false";
+        settings[key + "ChangedAt"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+        SaveUiSettings(settings);
+    }
+
+    private static bool ShouldApplyFirstRunDefaults()
+    {
+        if (ReadUiFlag("InitialDefaultsApplied")) { return false; }
+        try
+        {
+            if (!String.IsNullOrWhiteSpace(logPath) && File.Exists(logPath) && new FileInfo(logPath).Length > 0) { return false; }
+        }
+        catch
+        {
+        }
+        return !IsAutomaticEngineEnabled() && !IsStartupInstalled();
+    }
+
+    private static void MarkInitialDefaultsApplied(string summary)
+    {
+        IDictionary<string, object> settings = LoadUiSettings();
+        settings["InitialDefaultsApplied"] = "true";
+        settings["InitialDefaultsAppliedAt"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+        settings["InitialDefaultsSummary"] = summary ?? "";
+        SaveUiSettings(settings);
+    }
+
+    private static void EnsureFirstRunDefaults()
+    {
+        lock (firstRunDefaultsLock)
+        {
+            if (firstRunDefaultsChecked) { return; }
+            firstRunDefaultsChecked = true;
+        }
+
+        if (!ShouldApplyFirstRunDefaults()) { return; }
+
+        RunResult auto = InstallAutomatic();
+        RunResult startup = InstallStartup();
+        EnsureSmartLearningDefaultEnabled();
+        SaveAutoUpdateChecks(true);
+        string summary = "auto=" + auto.ExitCode.ToString(CultureInfo.InvariantCulture) + "; startup=" + startup.ExitCode.ToString(CultureInfo.InvariantCulture);
+        MarkInitialDefaultsApplied(summary);
+        AppendOperationalLog("action=first-run-defaults " + summary);
+    }
+
+    private static void EnsureSmartLearningDefaultEnabled()
+    {
+        try
+        {
+            if (!IsSmartLearningEnabled())
+            {
+                SetSmartLearningEnabled(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            WriteCrash(ex);
+        }
+    }
     private static void EnsureRuntimeFiles(string runtimeRoot)
     {
         Directory.CreateDirectory(runtimeRoot);
@@ -1998,36 +2074,164 @@ internal static class SmartBackgroundNap
 
     private static RunResult InstallAutomatic()
     {
-        return RunPowerShellScript(autoManagerPath, "-Action Install -AppExePath " + Quote(GetLaunchExecutablePath()), 60000);
+        RunResult result = RunPowerShellScript(autoManagerPath, "-Action Install -AppExePath " + Quote(GetLaunchExecutablePath()), 60000);
+        if (IsTaskInstalled(AutoTaskName))
+        {
+            SaveLocalAutoEngine(false);
+            return result.ExitCode == 0 ? result : new RunResult(0, "Automatic engine enabled through Task Scheduler.");
+        }
+
+        SaveLocalAutoEngine(true);
+        string reason = result.ExitCode == 0 ? "Task Scheduler unavailable" : ShortTaskError(result.Output);
+        return new RunResult(0, "Automatic engine enabled through local tray fallback. " + reason);
     }
 
     private static RunResult UninstallAutomatic()
     {
-        return RunPowerShellScript(autoManagerPath, "-Action Uninstall", 60000);
+        RunResult result = new RunResult(0, "Automatic engine was already using local control.");
+        if (IsTaskInstalled(AutoTaskName))
+        {
+            result = RunPowerShellScript(autoManagerPath, "-Action Uninstall", 60000);
+        }
+        SaveLocalAutoEngine(false);
+        if (result.ExitCode != 0) { return result; }
+        return new RunResult(0, "Automatic engine disabled.");
+    }
+
+    private static bool IsLocalAutoEngineEnabled()
+    {
+        return ReadUiFlag("LocalAutoEngineEnabled");
+    }
+
+    private static void SaveLocalAutoEngine(bool enabled)
+    {
+        SaveUiFlag("LocalAutoEngineEnabled", enabled);
+    }
+
+    private static bool IsAutomaticEngineEnabled()
+    {
+        return IsTaskInstalled(AutoTaskName) || IsLocalAutoEngineEnabled();
+    }
+
+    private static int LoadAutomationIntervalMinutes()
+    {
+        const int fallbackIntervalMinutes = 5;
+        try
+        {
+            IDictionary<string, object> root = LoadConfigRoot();
+            object automationObject;
+            if (root == null || !root.TryGetValue("Automation", out automationObject)) { return fallbackIntervalMinutes; }
+            IDictionary<string, object> automation = automationObject as IDictionary<string, object>;
+            if (automation == null) { return fallbackIntervalMinutes; }
+            object intervalObject;
+            if (!automation.TryGetValue("IntervalMinutes", out intervalObject) || intervalObject == null) { return fallbackIntervalMinutes; }
+            int interval = Convert.ToInt32(intervalObject, CultureInfo.InvariantCulture);
+            return Math.Max(1, Math.Min(60, interval));
+        }
+        catch
+        {
+            return fallbackIntervalMinutes;
+        }
+    }
+
+    private static string GetStartupRegistryCommand()
+    {
+        return Quote(GetLaunchExecutablePath()) + " --tray";
+    }
+
+    private static bool IsStartupRegistryInstalled()
+    {
+        try
+        {
+            using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", false))
+            {
+                if (key == null) { return false; }
+                string value = Convert.ToString(key.GetValue(AppName), CultureInfo.InvariantCulture);
+                return !String.IsNullOrWhiteSpace(value) && value.IndexOf("SmartBackgroundNap", StringComparison.OrdinalIgnoreCase) >= 0;
+            }
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static RunResult EnableStartupRegistry()
+    {
+        try
+        {
+            using (RegistryKey key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run"))
+            {
+                if (key == null) { return new RunResult(1, "Could not open current-user startup registry key."); }
+                key.SetValue(AppName, GetStartupRegistryCommand(), RegistryValueKind.String);
+            }
+            return new RunResult(0, "Startup enabled for the current user.");
+        }
+        catch (Exception ex)
+        {
+            return new RunResult(1, "Could not enable current-user startup: " + ex.Message);
+        }
+    }
+
+    private static RunResult RemoveStartupRegistry()
+    {
+        try
+        {
+            using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true))
+            {
+                if (key != null && key.GetValue(AppName) != null)
+                {
+                    key.DeleteValue(AppName, false);
+                }
+            }
+            return new RunResult(0, "Current-user startup removed.");
+        }
+        catch (Exception ex)
+        {
+            return new RunResult(1, "Could not remove current-user startup: " + ex.Message);
+        }
     }
 
     private static RunResult InstallStartup()
     {
-        return RunPowerShellScript(trayManagerPath, "-Action Install -AppExePath " + Quote(GetLaunchExecutablePath()), 60000);
+        RunResult result = RunPowerShellScript(trayManagerPath, "-Action Install -AppExePath " + Quote(GetLaunchExecutablePath()), 60000);
+        if (IsTaskInstalled(TrayTaskName))
+        {
+            RemoveStartupRegistry();
+            return result.ExitCode == 0 ? result : new RunResult(0, "Tray startup enabled through Task Scheduler.");
+        }
+
+        RunResult fallback = EnableStartupRegistry();
+        if (fallback.ExitCode == 0)
+        {
+            return new RunResult(0, "Tray startup enabled for the current user. " + (result.ExitCode == 0 ? "Task Scheduler unavailable." : ShortTaskError(result.Output)));
+        }
+        return new RunResult(1, ShortTaskError(result.Output) + Environment.NewLine + fallback.Output);
     }
 
     private static RunResult UninstallStartup()
     {
-        if (!IsTaskInstalled(TrayTaskName))
+        RunResult taskResult = new RunResult(0, "Tray startup task was already off.");
+        if (IsTaskInstalled(TrayTaskName))
         {
-            return new RunResult(0, "Tray startup is already off.");
+            taskResult = RunHidden("schtasks.exe", "/Delete /TN " + Quote(TrayTaskName) + " /F", 10000);
         }
-        RunResult result = RunHidden("schtasks.exe", "/Delete /TN " + Quote(TrayTaskName) + " /F", 10000);
-        if (result.ExitCode == 0)
-        {
-            return new RunResult(0, "Tray startup removed. Current Smart Nap session kept running.");
-        }
-        return result;
+        RunResult registryResult = RemoveStartupRegistry();
+        if (taskResult.ExitCode != 0) { return taskResult; }
+        if (registryResult.ExitCode != 0) { return registryResult; }
+        return new RunResult(0, "Tray startup disabled. Current Smart Nap session kept running.");
     }
+
+    private static bool IsStartupInstalled()
+    {
+        return IsTaskInstalled(TrayTaskName) || IsStartupRegistryInstalled();
+    }
+
     private static RunResult InstallComplete()
     {
         RunResult auto = InstallAutomatic();
         RunResult startup = InstallStartup();
+        EnsureSmartLearningDefaultEnabled();
         return RunResult.Combine(auto, startup);
     }
 
@@ -2044,6 +2248,13 @@ internal static class SmartBackgroundNap
         return result.ExitCode == 0;
     }
 
+    private static string ShortTaskError(string output)
+    {
+        if (String.IsNullOrWhiteSpace(output)) { return "Task Scheduler unavailable."; }
+        string compact = Regex.Replace(output, @"\s+", " ").Trim();
+        if (compact.Length > 180) { compact = compact.Substring(0, 180).TrimEnd() + "..."; }
+        return compact;
+    }
     private static bool IsCurrentProcessElevated()
     {
         try
@@ -2966,6 +3177,9 @@ internal static class SmartBackgroundNap
         private System.Windows.Forms.Timer foregroundWakeTimer;
         private System.Windows.Forms.Timer trayTelemetryTimer;
         private System.Windows.Forms.Timer energyIdleGuardTimer;
+        private System.Windows.Forms.Timer localAutoEngineTimer;
+        private bool localAutoEngineBusy;
+        private DateTime lastLocalAutoEngineRunAt = DateTime.MinValue;
         private DateTime lastTrayTelemetryRefreshAt = DateTime.MinValue;
         private string lastTrayTelemetryText = "";
         private int lastForegroundPid;
@@ -3025,6 +3239,7 @@ internal static class SmartBackgroundNap
             StartForegroundWakeTimer();
             StartTrayTelemetryTimer();
             StartEnergyIdleGuardTimer();
+            StartLocalAutoEngineTimer();
         }
 
         private ModernMainWindow CreateMainWindow()
@@ -3062,8 +3277,8 @@ internal static class SmartBackgroundNap
         {
             menu.Items.Clear();
             string mode = GetSessionMode();
-            bool motorOn = IsTaskInstalled(AutoTaskName);
-            bool startupOn = IsTaskInstalled(TrayTaskName);
+            bool motorOn = IsAutomaticEngineEnabled();
+            bool startupOn = IsStartupInstalled();
             PowerPlanSnapshot plan = GetActivePowerPlan();
             string planName = plan == null || String.IsNullOrWhiteSpace(plan.Name) ? "plano nao identificado" : plan.Name;
 
@@ -3199,6 +3414,12 @@ internal static class SmartBackgroundNap
                 energyIdleGuardTimer.Dispose();
                 energyIdleGuardTimer = null;
             }
+            if (localAutoEngineTimer != null)
+            {
+                localAutoEngineTimer.Stop();
+                localAutoEngineTimer.Dispose();
+                localAutoEngineTimer = null;
+            }
             try { showDashboardEvent.Set(); } catch { }
             notifyIcon.Visible = false;
             notifyIcon.Dispose();
@@ -3311,6 +3532,58 @@ internal static class SmartBackgroundNap
             energyIdleGuardTimer.Start();
         }
 
+        private void StartLocalAutoEngineTimer()
+        {
+            localAutoEngineTimer = new System.Windows.Forms.Timer();
+            localAutoEngineTimer.Interval = 15000;
+            localAutoEngineTimer.Tick += delegate { CheckLocalAutoEngine(); };
+            localAutoEngineTimer.Start();
+            lastLocalAutoEngineRunAt = DateTime.UtcNow.AddMinutes(-LoadAutomationIntervalMinutes());
+            CheckLocalAutoEngine();
+        }
+
+        private void CheckLocalAutoEngine()
+        {
+            try
+            {
+                if (!IsLocalAutoEngineEnabled() || localAutoEngineBusy) { return; }
+                int intervalMinutes = LoadAutomationIntervalMinutes();
+                if ((DateTime.UtcNow - lastLocalAutoEngineRunAt).TotalMinutes < intervalMinutes) { return; }
+
+                localAutoEngineBusy = true;
+                lastLocalAutoEngineRunAt = DateTime.UtcNow;
+                ThreadPool.QueueUserWorkItem(delegate
+                {
+                    try
+                    {
+                        RunResult result = RunApplyNow();
+                        AppendOperationalLog("action=local-auto status=" + (result.ExitCode == 0 ? "OK" : "FAIL") + " exitCode=" + result.ExitCode.ToString(CultureInfo.InvariantCulture));
+                    }
+                    catch (Exception ex)
+                    {
+                        AppendOperationalLog("action=local-auto status=failed error=" + ex.GetType().Name);
+                    }
+                    finally
+                    {
+                        localAutoEngineBusy = false;
+                        try
+                        {
+                            if (dispatchForm != null && !dispatchForm.IsDisposed)
+                            {
+                                dispatchForm.BeginInvoke(new System.Windows.Forms.MethodInvoker(delegate { UpdateTrayTelemetryText(true); }));
+                            }
+                        }
+                        catch
+                        {
+                        }
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                WriteCrash(ex);
+            }
+        }
         private void CheckEnergyIdleGuard()
         {
             try
@@ -3424,9 +3697,7 @@ internal static class SmartBackgroundNap
 
         private void ShowTrayMessage(string text)
         {
-            notifyIcon.BalloonTipTitle = AppName;
-            notifyIcon.BalloonTipText = text;
-            notifyIcon.ShowBalloonTip(2500);
+            // Silent by design: the tray tooltip/menu already exposes live status.
         }
 
         private void RunFromTray(string actionName, Func<RunResult> action)
@@ -4385,7 +4656,7 @@ internal static class SmartBackgroundNap
                 }
                 if (String.Equals(action, "toggleStartup", StringComparison.OrdinalIgnoreCase))
                 {
-                    bool startupInstalled = IsTaskInstalled(TrayTaskName);
+                    bool startupInstalled = IsStartupInstalled();
                     RunUserAction(
                         startupInstalled ? "Disabling tray startup..." : "Enabling tray startup...",
                         startupInstalled ? "Tray startup is off." : "The tray will start with Windows.",
@@ -4701,7 +4972,7 @@ internal static class SmartBackgroundNap
         {
             if (busy) { return; }
 
-            bool installed = IsTaskInstalled(AutoTaskName);
+            bool installed = IsAutomaticEngineEnabled();
             RunUserAction(
                 installed ? "Pausing background motor..." : "Starting background motor...",
                 installed ? "Background motor paused." : "Background motor active.",
@@ -4847,8 +5118,8 @@ internal static class SmartBackgroundNap
 
         private WebDashboardState BuildState()
         {
-            bool autoInstalled = IsTaskInstalled(AutoTaskName);
-            bool startupInstalled = IsTaskInstalled(TrayTaskName);
+            bool autoInstalled = IsAutomaticEngineEnabled();
+            bool startupInstalled = IsStartupInstalled();
             bool learningEnabled = IsSmartLearningEnabled();
             bool behaviorEnabled = IsBehaviorEngineEnabled();
             List<WebManagerRow> rows = LoadManagerRows();
@@ -6743,8 +7014,8 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             }
             if (busy) { return; }
 
-            bool autoInstalled = IsTaskInstalled(AutoTaskName);
-            bool startupInstalled = IsTaskInstalled(TrayTaskName);
+            bool autoInstalled = IsAutomaticEngineEnabled();
+            bool startupInstalled = IsStartupInstalled();
             autoModeActive = autoInstalled;
             startupModeActive = startupInstalled;
 
@@ -6915,7 +7186,7 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
         {
             if (busy) { return; }
 
-            bool installed = IsTaskInstalled(AutoTaskName);
+            bool installed = IsAutomaticEngineEnabled();
             autoModeActive = installed;
             RunUserAction(
                 installed ? "Pausing background motor..." : "Starting background motor...",
@@ -8111,8 +8382,8 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
         {
             if (busy) { return; }
             loading = true;
-            bool autoInstalled = IsTaskInstalled(AutoTaskName);
-            bool startupInstalled = IsTaskInstalled(TrayTaskName);
+            bool autoInstalled = IsAutomaticEngineEnabled();
+            bool startupInstalled = IsStartupInstalled();
             autoModeActive = autoInstalled;
             startupModeActive = startupInstalled;
 
@@ -8634,7 +8905,7 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                 return;
             }
 
-            bool installed = IsTaskInstalled(AutoTaskName);
+            bool installed = IsAutomaticEngineEnabled();
             autoModeActive = installed;
             RunUserAction(
                 installed ? "Pausing background motor..." : "Starting background motor...",
