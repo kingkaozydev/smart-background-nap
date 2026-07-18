@@ -1,4 +1,4 @@
-param(
+﻿param(
     [ValidateSet("Install", "Uninstall", "Status", "RunNow")]
     [string]$Action = "Status",
 
@@ -91,7 +91,7 @@ function Get-TaskDefinitionXml {
     <Principal id="Author">
       <UserId>$sid</UserId>
       <LogonType>InteractiveToken</LogonType>
-      <RunLevel>LeastPrivilege</RunLevel>
+      <RunLevel>HighestAvailable</RunLevel>
     </Principal>
   </Principals>
   <Settings>
@@ -154,8 +154,8 @@ switch ($Action) {
     "Install" {
         $xml = Get-TaskDefinitionXml
         try {
-            Register-ScheduledTask -TaskName $taskName -Xml $xml -Force | Out-Null
-            Start-ScheduledTask -TaskName $taskName
+            Register-ScheduledTask -TaskName $taskName -Xml $xml -Force -ErrorAction Stop | Out-Null
+            Start-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
             Get-TaskStatusObject
         } catch {
             [pscustomobject]@{
@@ -178,7 +178,7 @@ switch ($Action) {
         if (-not $task) {
             throw "Task is not installed: $taskName"
         }
-        Start-ScheduledTask -TaskName $taskName
+        Start-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
         Get-TaskStatusObject
     }
     "Status" {

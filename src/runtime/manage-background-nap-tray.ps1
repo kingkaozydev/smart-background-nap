@@ -1,4 +1,4 @@
-param(
+﻿param(
     [ValidateSet("Install", "Uninstall", "Status", "RunNow")]
     [string]$Action = "Status",
 
@@ -71,7 +71,7 @@ function Get-TrayTaskDefinitionXml {
     <Principal id="Author">
       <UserId>$sid</UserId>
       <LogonType>InteractiveToken</LogonType>
-      <RunLevel>LeastPrivilege</RunLevel>
+      <RunLevel>HighestAvailable</RunLevel>
     </Principal>
   </Principals>
   <Settings>
@@ -141,8 +141,8 @@ switch ($Action) {
     "Install" {
         $xml = Get-TrayTaskDefinitionXml
         try {
-            Register-ScheduledTask -TaskName $taskName -Xml $xml -Force | Out-Null
-            Start-ScheduledTask -TaskName $taskName
+            Register-ScheduledTask -TaskName $taskName -Xml $xml -Force -ErrorAction Stop | Out-Null
+            Start-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
             Start-Sleep -Seconds 2
             Get-TrayStatusObject
         } catch {
@@ -169,7 +169,7 @@ switch ($Action) {
         if (-not $task) {
             throw "Tray task is not installed: $taskName"
         }
-        Start-ScheduledTask -TaskName $taskName
+        Start-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
         Start-Sleep -Seconds 2
         Get-TrayStatusObject
     }

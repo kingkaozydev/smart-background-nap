@@ -29,7 +29,7 @@ using Microsoft.Web.WebView2.Wpf;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.5.9";
+    private const string AppVersion = "0.5.19";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
@@ -262,12 +262,16 @@ internal static class SmartBackgroundNap
         }
         if (HasArg(args, "--install"))
         {
-            Environment.ExitCode = InstallComplete().ExitCode;
+            RunResult install = InstallComplete();
+            MarkAdminSetupCompletedIfReady("install", install);
+            Environment.ExitCode = install.ExitCode;
             return;
         }
         if (HasArg(args, "--repair-install") || HasArg(args, "--setup-elevated"))
         {
-            Environment.ExitCode = InstallComplete(false).ExitCode;
+            RunResult install = InstallComplete(false);
+            MarkAdminSetupCompletedIfReady("repair", install);
+            Environment.ExitCode = install.ExitCode;
             return;
         }
         if (HasArg(args, "--uninstall"))
@@ -315,6 +319,7 @@ internal static class SmartBackgroundNap
             return;
         }
 
+        EnsureAdminSetupForCurrentVersion();
         EnsureFirstRunDefaults();
         EnsureInstallRepairOnLaunch();
 
@@ -426,6 +431,7 @@ internal static class SmartBackgroundNap
         appPolicyPath = Path.Combine(outputsPath, "background-nap-app-policies.json");
         radarPath = Path.Combine(outputsPath, "background-nap-radar-latest.json");
         safetyReportPath = Path.Combine(outputsPath, "SmartBackgroundNap-SafetyReport.txt");
+        MigrateConfigForCurrentRuntime();
     }
 
     [DllImport("user32.dll")]
@@ -1241,6 +1247,76 @@ internal static class SmartBackgroundNap
         SaveUiSettings(settings);
     }
 
+    private static void SavePendingPostUpdateNotice(string version, string body)
+    {
+        try
+        {
+            string normalized = NormalizeVersionLabel(version);
+            if (String.IsNullOrWhiteSpace(normalized)) { return; }
+            IDictionary<string, object> settings = LoadUiSettings();
+            settings["PendingPostUpdateVersion"] = normalized;
+            settings["PendingPostUpdateBody"] = String.IsNullOrWhiteSpace(body) ? "" : body.Trim();
+            settings["PendingPostUpdateAt"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+            SaveUiSettings(settings);
+        }
+        catch (Exception ex)
+        {
+            WriteCrash(ex);
+        }
+    }
+
+    private static bool ShouldShowPostUpdateNotice()
+    {
+        string pending = NormalizeVersionLabel(GetUiSettingString("PendingPostUpdateVersion"));
+        if (String.IsNullOrWhiteSpace(pending)) { return false; }
+        if (!String.Equals(pending, NormalizeVersionLabel(AppVersion), StringComparison.OrdinalIgnoreCase)) { return false; }
+        string seen = NormalizeVersionLabel(GetUiSettingString("PostUpdateNoticeSeenVersion"));
+        return !String.Equals(seen, pending, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void MarkPostUpdateNoticeSeen()
+    {
+        try
+        {
+            IDictionary<string, object> settings = LoadUiSettings();
+            settings["PostUpdateNoticeSeenVersion"] = NormalizeVersionLabel(AppVersion);
+            settings["PostUpdateNoticeSeenAt"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+            SaveUiSettings(settings);
+        }
+        catch (Exception ex)
+        {
+            WriteCrash(ex);
+        }
+    }
+
+    private static string GetPostUpdateNoticeBody()
+    {
+        string body = GetUiSettingString("PendingPostUpdateBody");
+        if (String.IsNullOrWhiteSpace(body)) { return ""; }
+        string compact = Regex.Replace(body, @"\s+", " ").Trim();
+        if (compact.Length > 180) { compact = compact.Substring(0, 180).TrimEnd() + "..."; }
+        return compact;
+    }
+
+    private static List<string> GetPostUpdateNoticeItems()
+    {
+        List<string> items = new List<string>();
+        string body = GetUiSettingString("PendingPostUpdateBody");
+        if (String.IsNullOrWhiteSpace(body)) { return items; }
+        string[] lines = body.Replace("\r", "\n").Split(new char[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        foreach (string raw in lines)
+        {
+            string line = raw.Trim();
+            line = Regex.Replace(line, @"^[#>*\-\s]+", "").Trim();
+            line = Regex.Replace(line, @"`([^`]+)`", "$1");
+            line = Regex.Replace(line, @"\[([^\]]+)\]\([^\)]+\)", "$1");
+            if (String.IsNullOrWhiteSpace(line)) { continue; }
+            if (line.Length > 96) { line = line.Substring(0, 96).TrimEnd() + "..."; }
+            items.Add(line);
+            if (items.Count >= 5) { break; }
+        }
+        return items;
+    }
     private static bool LoadAutoUpdateChecks()
     {
         string value = GetUiSettingString("AutoUpdateChecks").Trim();
@@ -1347,13 +1423,12 @@ internal static class SmartBackgroundNap
 
         if (!ShouldApplyFirstRunDefaults()) { return; }
 
-        RunResult setup = RunElevatedSetupIfNeeded();
-        RunResult install = setup.ExitCode == 0 && IsAutomaticEngineEnabled() && IsStartupInstalled()
-            ? setup
+        RunResult install = IsAutomaticEngineEnabled() && IsStartupInstalled()
+            ? new RunResult(0, "Initial defaults already prepared.")
             : InstallComplete(false);
         EnsureSmartLearningDefaultEnabled();
         SaveAutoUpdateChecks(true);
-        string summary = "setup=" + setup.ExitCode.ToString(CultureInfo.InvariantCulture) + "; install=" + install.ExitCode.ToString(CultureInfo.InvariantCulture) + "; auto=" + IsAutomaticEngineEnabled().ToString(CultureInfo.InvariantCulture) + "; startup=" + IsStartupInstalled().ToString(CultureInfo.InvariantCulture);
+        string summary = "install=" + install.ExitCode.ToString(CultureInfo.InvariantCulture) + "; auto=" + IsAutomaticEngineEnabled().ToString(CultureInfo.InvariantCulture) + "; startup=" + IsStartupInstalled().ToString(CultureInfo.InvariantCulture) + "; adminSetup=" + IsAdminSetupCurrentForVersion().ToString(CultureInfo.InvariantCulture);
         MarkInitialDefaultsApplied(summary);
         AppendOperationalLog("action=first-run-defaults " + summary);
     }
@@ -1368,10 +1443,12 @@ internal static class SmartBackgroundNap
             bool wantsStartup = IsStartupInstalled();
             bool needsRepair = (wantsAuto && !IsTaskInstalled(AutoTaskName)) || (wantsStartup && !IsTaskInstalled(TrayTaskName));
             if (!needsRepair) { return; }
+            if (WasAdminSetupPromptedForCurrentVersion() && !WasAdminSetupCompletedForCurrentVersion()) { return; }
             if (!ShouldAttemptElevatedSetupRepair()) { return; }
 
             MarkElevatedSetupRepairAttempt();
             RunResult setup = RunElevatedInstallComplete();
+            MarkAdminSetupCompletedIfReady("launch-repair", setup);
             AppendOperationalLog("action=launch-install-repair exitCode=" + setup.ExitCode.ToString(CultureInfo.InvariantCulture));
         }
         catch (Exception ex)
@@ -1394,6 +1471,103 @@ internal static class SmartBackgroundNap
         IDictionary<string, object> settings = LoadUiSettings();
         settings["LastElevatedSetupRepairAttemptUtc"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
         SaveUiSettings(settings);
+    }
+    private static bool WasAdminSetupPromptedForCurrentVersion()
+    {
+        return String.Equals(GetUiSettingString("AdminSetupPromptedVersion").Trim(), AppVersion, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool WasAdminSetupCompletedForCurrentVersion()
+    {
+        return String.Equals(GetUiSettingString("AdminSetupCompletedVersion").Trim(), AppVersion, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsAdminSetupCurrentForVersion()
+    {
+        return WasAdminSetupCompletedForCurrentVersion() && ArePrimaryScheduledTasksInstalled();
+    }
+
+    private static bool ShouldRequestAdminSetupForCurrentVersion()
+    {
+        if (IsCurrentProcessElevated()) { return false; }
+        if (IsAdminSetupCurrentForVersion()) { return false; }
+        return !WasAdminSetupPromptedForCurrentVersion();
+    }
+
+    private static void MarkAdminSetupPromptedForCurrentVersion(string source)
+    {
+        try
+        {
+            IDictionary<string, object> settings = LoadUiSettings();
+            settings["AdminSetupPromptedVersion"] = AppVersion;
+            settings["AdminSetupPromptedAt"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+            settings["AdminSetupPromptSource"] = source ?? "setup";
+            SaveUiSettings(settings);
+        }
+        catch
+        {
+        }
+    }
+
+    private static void MarkAdminSetupCompletedForCurrentVersion(string source)
+    {
+        try
+        {
+            IDictionary<string, object> settings = LoadUiSettings();
+            settings["AdminSetupPromptedVersion"] = AppVersion;
+            settings["AdminSetupCompletedVersion"] = AppVersion;
+            settings["AdminSetupCompletedAt"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+            settings["AdminSetupRunLevel"] = "HighestAvailable";
+            settings["AdminSetupSource"] = source ?? "setup";
+            SaveUiSettings(settings);
+            SaveLocalAutoEngine(false);
+            RemoveStartupRegistry();
+            AppendOperationalLog("action=admin-setup status=completed source=" + SanitizeLogToken(source));
+        }
+        catch (Exception ex)
+        {
+            WriteCrash(ex);
+        }
+    }
+
+    private static void MarkAdminSetupCompletedIfReady(string source, RunResult result)
+    {
+        try
+        {
+            if (result != null && result.ExitCode != 0) { return; }
+            if (!ArePrimaryScheduledTasksInstalled()) { return; }
+            MarkAdminSetupCompletedForCurrentVersion(source);
+        }
+        catch (Exception ex)
+        {
+            WriteCrash(ex);
+        }
+    }
+
+    private static void EnsureAdminSetupForCurrentVersion()
+    {
+        try
+        {
+            if (IsAdminSetupCurrentForVersion()) { return; }
+
+            if (IsCurrentProcessElevated())
+            {
+                RunResult install = InstallComplete(false);
+                MarkAdminSetupCompletedIfReady("elevated-launch", install);
+                return;
+            }
+
+            if (!ShouldRequestAdminSetupForCurrentVersion()) { return; }
+
+            MarkAdminSetupPromptedForCurrentVersion("first-launch");
+            RunResult setup = RunElevatedInstallComplete();
+            MarkAdminSetupCompletedIfReady("first-launch", setup);
+            AppendOperationalLog("action=admin-setup status=attempted exitCode=" + setup.ExitCode.ToString(CultureInfo.InvariantCulture));
+        }
+        catch (Exception ex)
+        {
+            WriteCrash(ex);
+        }
     }
     private static void EnsureSmartLearningDefaultEnabled()
     {
@@ -1467,6 +1641,117 @@ internal static class SmartBackgroundNap
         }
     }
 
+
+    private static void MigrateConfigForCurrentRuntime()
+    {
+        try
+        {
+            if (String.IsNullOrWhiteSpace(configPath) || String.IsNullOrWhiteSpace(userConfigPath) || !File.Exists(configPath)) { return; }
+
+            IDictionary<string, object> defaults;
+            if (!TryReadConfigFile(configPath, out defaults) || defaults == null) { return; }
+
+            IDictionary<string, object> user = null;
+            bool hasUserConfig = File.Exists(userConfigPath);
+            if (hasUserConfig)
+            {
+                if (!TryReadConfigFile(userConfigPath, out user) || user == null)
+                {
+                    BackupBrokenConfigFile(userConfigPath);
+                    user = LoadPreviousRuntimeConfig(configPath);
+                    if (user == null) { user = defaults; }
+                }
+            }
+            else
+            {
+                user = LoadPreviousRuntimeConfig(configPath);
+            }
+
+            if (user == null) { return; }
+
+            bool changed = MergeMissingConfigValues(user, defaults);
+            if (!hasUserConfig || changed)
+            {
+                string dir = Path.GetDirectoryName(userConfigPath);
+                if (!String.IsNullOrWhiteSpace(dir)) { Directory.CreateDirectory(dir); }
+                File.WriteAllText(userConfigPath, JsonCompat.SerializeObject(user), Encoding.UTF8);
+            }
+        }
+        catch (Exception ex)
+        {
+            WriteCrash(ex);
+        }
+    }
+
+    private static bool TryReadConfigFile(string path, out IDictionary<string, object> config)
+    {
+        config = null;
+        try
+        {
+            if (String.IsNullOrWhiteSpace(path) || !File.Exists(path)) { return false; }
+            config = JsonCompat.DeserializeObject(File.ReadAllText(path, Encoding.UTF8));
+            return config != null;
+        }
+        catch
+        {
+            config = null;
+            return false;
+        }
+    }
+
+    private static IDictionary<string, object> LoadPreviousRuntimeConfig(string currentConfigPath)
+    {
+        try
+        {
+            if (String.IsNullOrWhiteSpace(appRoot) || !Directory.Exists(appRoot)) { return null; }
+            string currentFull = SafeFullPath(currentConfigPath);
+            string userFull = SafeFullPath(userConfigPath);
+            List<string> candidates = new List<string>();
+            string rootConfig = Path.Combine(appRoot, "game-session.config.json");
+            if (File.Exists(rootConfig)) { candidates.Add(rootConfig); }
+
+            foreach (string dir in Directory.GetDirectories(appRoot, "runtime-*"))
+            {
+                string candidate = Path.Combine(dir, "game-session.config.json");
+                if (File.Exists(candidate)) { candidates.Add(candidate); }
+            }
+
+            candidates.Sort(delegate(string left, string right)
+            {
+                DateTime r = File.GetLastWriteTimeUtc(right);
+                DateTime l = File.GetLastWriteTimeUtc(left);
+                return r.CompareTo(l);
+            });
+
+            foreach (string candidate in candidates)
+            {
+                string full = SafeFullPath(candidate);
+                if (!String.IsNullOrWhiteSpace(currentFull) && String.Equals(full, currentFull, StringComparison.OrdinalIgnoreCase)) { continue; }
+                if (!String.IsNullOrWhiteSpace(userFull) && String.Equals(full, userFull, StringComparison.OrdinalIgnoreCase)) { continue; }
+                IDictionary<string, object> previous;
+                if (TryReadConfigFile(candidate, out previous)) { return previous; }
+            }
+        }
+        catch
+        {
+        }
+        return null;
+    }
+
+    private static void BackupBrokenConfigFile(string path)
+    {
+        try
+        {
+            if (String.IsNullOrWhiteSpace(path) || !File.Exists(path)) { return; }
+            string dir = Path.GetDirectoryName(path);
+            string name = Path.GetFileNameWithoutExtension(path);
+            string backup = Path.Combine(String.IsNullOrWhiteSpace(dir) ? appRoot : dir, name + ".broken-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + ".json");
+            File.Copy(path, backup, true);
+        }
+        catch
+        {
+        }
+    }
     private static string ReadEmbeddedText(string resourceName)
     {
         string fullName = ResourcePrefix + resourceName;
@@ -2150,6 +2435,7 @@ internal static class SmartBackgroundNap
 
         try
         {
+            MarkAdminSetupPromptedForCurrentVersion("elevated-request");
             ProcessStartInfo start = new ProcessStartInfo();
             start.FileName = GetLaunchExecutablePath();
             start.Arguments = "--repair-install";
@@ -2170,7 +2456,9 @@ internal static class SmartBackgroundNap
                     return new RunResult(124, "O reparo elevado demorou demais e foi interrompido.");
                 }
                 AppendOperationalLog("action=elevated-setup status=done exitCode=" + process.ExitCode.ToString(CultureInfo.InvariantCulture));
-                return new RunResult(process.ExitCode, process.ExitCode == 0 ? "Setup elevated completed." : "Setup elevated exited with code " + process.ExitCode.ToString(CultureInfo.InvariantCulture) + ".");
+                RunResult result = new RunResult(process.ExitCode, process.ExitCode == 0 ? "Setup elevated completed." : "Setup elevated exited with code " + process.ExitCode.ToString(CultureInfo.InvariantCulture) + ".");
+                MarkAdminSetupCompletedIfReady("elevated-request", result);
+                return result;
             }
         }
         catch (Win32Exception ex)
@@ -2425,6 +2713,27 @@ internal static class SmartBackgroundNap
         if (compact.Length > 180) { compact = compact.Substring(0, 180).TrimEnd() + "..."; }
         return compact;
     }
+    private static string FriendlyUiError(string output)
+    {
+        if (String.IsNullOrWhiteSpace(output)) { return "Nenhum detalhe foi retornado."; }
+        string compact = Regex.Replace(output, @"\s+", " ").Trim();
+        if (compact.IndexOf("Register-ScheduledTask", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            compact.IndexOf("0x80070005", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            compact.IndexOf("Acesso negado", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            compact.IndexOf("Access is denied", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            compact.IndexOf("CategoryInfo", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            compact.IndexOf("FullyQualifiedErrorId", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            return "O Windows bloqueou o registro da tarefa elevada. O Smart Nap continua tentando manter o controle local; aceite a permissao de administrador para concluir a instalacao com inicializacao automatica completa.";
+        }
+        if (compact.IndexOf("Permissao de administrador cancelada", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            compact.IndexOf("Administrator permission was cancelled", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            return "Permissao de administrador cancelada. O Smart Nap continua aberto, mas a instalacao completa sera concluida quando a permissao for aceita.";
+        }
+        if (compact.Length > 320) { compact = compact.Substring(0, 320).TrimEnd() + "..."; }
+        return compact;
+    }
     private static bool IsCurrentProcessElevated()
     {
         try
@@ -2555,9 +2864,8 @@ internal static class SmartBackgroundNap
         {
             if (string.IsNullOrEmpty(learningSettingsPath) || !File.Exists(learningSettingsPath)) { return false; }
             IDictionary<string, object> root = JsonCompat.DeserializeObject(File.ReadAllText(learningSettingsPath, Encoding.UTF8));
-            object value;
-            if (root == null || !root.TryGetValue("LearningEnabled", out value)) { return false; }
-            enabled = Convert.ToBoolean(value, CultureInfo.InvariantCulture);
+            if (root == null || !root.ContainsKey("LearningEnabled")) { return false; }
+            enabled = GetMapBool(root, "LearningEnabled", false);
             return true;
         }
         catch
@@ -2574,9 +2882,8 @@ internal static class SmartBackgroundNap
             IDictionary<string, object> root = LoadConfigRoot();
             object smartObject;
             IDictionary<string, object> smart = root.TryGetValue("SmartMode", out smartObject) ? smartObject as IDictionary<string, object> : null;
-            object value;
-            if (smart == null || !smart.TryGetValue("LearningEnabled", out value)) { return false; }
-            enabled = Convert.ToBoolean(value, CultureInfo.InvariantCulture);
+            if (smart == null || !smart.ContainsKey("LearningEnabled")) { return false; }
+            enabled = GetMapBool(smart, "LearningEnabled", false);
             return true;
         }
         catch
@@ -2657,6 +2964,25 @@ internal static class SmartBackgroundNap
         return Convert.ToString(value, CultureInfo.InvariantCulture);
     }
 
+    private static bool GetMapBool(IDictionary<string, object> map, string key, bool fallback)
+    {
+        object value;
+        if (map == null || !map.TryGetValue(key, out value) || value == null) { return fallback; }
+        try
+        {
+            return Convert.ToBoolean(value, CultureInfo.InvariantCulture);
+        }
+        catch
+        {
+            string text = Convert.ToString(value, CultureInfo.InvariantCulture);
+            bool parsed;
+            if (Boolean.TryParse(text, out parsed)) { return parsed; }
+            int numeric;
+            if (Int32.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out numeric)) { return numeric != 0; }
+            return fallback;
+        }
+    }
+
     private static string NormalizePolicyNameForConfig(string policy)
     {
         if (String.IsNullOrWhiteSpace(policy)) { return String.Empty; }
@@ -2703,9 +3029,7 @@ internal static class SmartBackgroundNap
         try
         {
             IDictionary<string, object> smart = LoadSmartModeMap();
-            object value;
-            if (!smart.TryGetValue("AdaptiveExclusionsEnabled", out value)) { return true; }
-            return Convert.ToBoolean(value, CultureInfo.InvariantCulture);
+            return GetMapBool(smart, "AdaptiveExclusionsEnabled", true);
         }
         catch
         {
@@ -2754,6 +3078,26 @@ internal static class SmartBackgroundNap
         RunResult result = WriteSmartModeValue("AdaptiveExclusionsEnabled", enabled);
         if (result.ExitCode == 0) { AppendOperationalLog("action=adaptive-exclusions enabled=" + enabled.ToString().ToLowerInvariant()); }
         return result.ExitCode == 0 ? new RunResult(0, enabled ? "Adaptive exclusions enabled." : "Adaptive exclusions disabled.") : result;
+    }
+
+    private static bool IsNetworkUdpGuardEnabled()
+    {
+        try
+        {
+            IDictionary<string, object> smart = LoadSmartModeMap();
+            return GetMapBool(smart, "NetworkUdpGuardEnabled", false);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static RunResult SetNetworkUdpGuardEnabled(bool enabled)
+    {
+        RunResult result = WriteSmartModeValue("NetworkUdpGuardEnabled", enabled);
+        if (result.ExitCode == 0) { AppendOperationalLog("action=udp-guard enabled=" + enabled.ToString().ToLowerInvariant()); }
+        return result.ExitCode == 0 ? new RunResult(0, enabled ? "Zero Ping enabled." : "Zero Ping disabled.") : result;
     }
 
     private static int CountManualPolicies()
@@ -2859,6 +3203,15 @@ internal static class SmartBackgroundNap
         }
     }
 
+    private static string GetManagedExecutableTargetPath()
+    {
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Programs",
+            "SmartBackgroundNap",
+            "SmartBackgroundNap.exe");
+    }
+
     private static string GetLaunchExecutablePath()
     {
         if (usingLooseRuntime)
@@ -2866,24 +3219,30 @@ internal static class SmartBackgroundNap
             return Application.ExecutablePath;
         }
 
+        string target = GetManagedExecutableTargetPath();
         try
         {
-            string installDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Programs",
-                "SmartBackgroundNap");
-            Directory.CreateDirectory(installDir);
+            string installDir = Path.GetDirectoryName(target);
+            if (!String.IsNullOrWhiteSpace(installDir)) { Directory.CreateDirectory(installDir); }
 
-            string target = Path.Combine(installDir, "SmartBackgroundNap.exe");
             string current = Application.ExecutablePath;
             if (!String.Equals(Path.GetFullPath(current), Path.GetFullPath(target), StringComparison.OrdinalIgnoreCase))
             {
-                File.Copy(current, target, true);
+                StopSmartNapProcessesForUpdate(target, Process.GetCurrentProcess().Id);
+                CopyFileWithRetries(current, target, 20, 250);
             }
             return target;
         }
-        catch
+        catch (Exception ex)
         {
+            AppendOperationalLog("action=managed-copy status=failed detail=" + ShortTaskError(ex.Message));
+            try
+            {
+                if (File.Exists(target)) { return target; }
+            }
+            catch
+            {
+            }
             return Application.ExecutablePath;
         }
     }
@@ -2971,7 +3330,7 @@ internal static class SmartBackgroundNap
         report.AppendLine("Windows integration");
         report.AppendLine(BuildTaskStatusLine(AutoTaskName));
         report.AppendLine(BuildTaskStatusLine(TrayTaskName));
-        report.AppendLine("Startup method: per-user scheduled tasks, least privilege.");
+        report.AppendLine("Startup method: per-user scheduled tasks with HighestAvailable after user-approved setup; HKCU Run fallback if Task Scheduler is blocked.");
         report.AppendLine("Service installed: no.");
         report.AppendLine("Driver installed: no.");
         report.AppendLine("Startup registry key: no.");
@@ -3179,7 +3538,7 @@ internal static class SmartBackgroundNap
         OpenExternal(GitHubLatestDownloadUrl);
     }
 
-    private static RunResult StartSelfUpdate(string downloadUrl, string latestTag)
+    private static RunResult StartSelfUpdate(string downloadUrl, string latestTag, string releaseBody)
     {
         try
         {
@@ -3399,6 +3758,7 @@ internal static class SmartBackgroundNap
                 info.ReleaseName = ReadMapString(root, "name");
                 info.ReleaseUrl = FirstNonEmpty(ReadMapString(root, "html_url"), GitHubUrl + "/releases/latest");
                 info.PublishedAt = ReadMapString(root, "published_at");
+                info.ReleaseBody = ReadMapString(root, "body");
                 info.DownloadUrl = FirstNonEmpty(FindReleaseAssetUrl(root, "SmartBackgroundNap.exe"), GitHubLatestDownloadUrl);
 
                 bool newer = IsRemoteVersionNewer(info.LatestTag, AppVersion);
@@ -3489,6 +3849,7 @@ internal static class SmartBackgroundNap
         public string ReleaseUrl { get; set; }
         public string DownloadUrl { get; set; }
         public string PublishedAt { get; set; }
+        public string ReleaseBody { get; set; }
         public string Error { get; set; }
 
         public static ReleaseUpdateInfo Idle()
@@ -4573,6 +4934,7 @@ internal static class SmartBackgroundNap
         private bool updateCheckRunning;
         private DateTime updateCheckedAtUtc = DateTime.MinValue;
         private bool manualMaximized;
+        private bool initialMaximizeApplied;
         private System.Windows.Rect restoreWindowRect;
         private bool webDragActive;
         private double webDragStartX;
@@ -4625,6 +4987,7 @@ internal static class SmartBackgroundNap
 
             Loaded += async delegate
             {
+                ApplyInitialMaximizedWindow();
                 await InitializeAsync();
             };
             StateChanged += delegate
@@ -4704,6 +5067,21 @@ internal static class SmartBackgroundNap
             }
         }
 
+        private void ApplyInitialMaximizedWindow()
+        {
+            if (initialMaximizeApplied)
+            {
+                return;
+            }
+
+            initialMaximizeApplied = true;
+            if (WindowState == System.Windows.WindowState.Minimized || manualMaximized)
+            {
+                return;
+            }
+
+            ToggleManualMaximize();
+        }
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
             if (msg != WmNcHitTest)
@@ -4874,10 +5252,12 @@ internal static class SmartBackgroundNap
                     return;
                 }
 
+                System.Windows.Rect workArea = System.Windows.SystemParameters.WorkArea;
                 double currentWidth = ActualWidth > 0.0 ? ActualWidth : Width;
                 double currentHeight = ActualHeight > 0.0 ? ActualHeight : Height;
-                restoreWindowRect = new System.Windows.Rect(Left, Top, currentWidth, currentHeight);
-                System.Windows.Rect workArea = System.Windows.SystemParameters.WorkArea;
+                double currentLeft = Double.IsNaN(Left) ? workArea.Left + Math.Max(0.0, (workArea.Width - currentWidth) / 2.0) : Left;
+                double currentTop = Double.IsNaN(Top) ? workArea.Top + Math.Max(0.0, (workArea.Height - currentHeight) / 2.0) : Top;
+                restoreWindowRect = new System.Windows.Rect(currentLeft, currentTop, currentWidth, currentHeight);
                 manualMaximized = true;
                 WindowState = System.Windows.WindowState.Normal;
                 Left = workArea.Left;
@@ -5037,6 +5417,15 @@ internal static class SmartBackgroundNap
                         delegate { return SetSmartLearningEnabled(!learningEnabled); });
                     return;
                 }
+                if (String.Equals(action, "toggleUdpGuard", StringComparison.OrdinalIgnoreCase))
+                {
+                    bool udpEnabled = IsNetworkUdpGuardEnabled();
+                    RunUserAction(
+                        udpEnabled ? "Disabling Zero Ping..." : "Enabling Zero Ping...",
+                        udpEnabled ? "Zero Ping is off." : "Zero Ping is ready.",
+                        delegate { return SetNetworkUdpGuardEnabled(!udpEnabled); });
+                    return;
+                }
                 if (String.Equals(action, "setAppPolicy", StringComparison.OrdinalIgnoreCase))
                 {
                     SetAppPolicyFromMessage(message);
@@ -5099,7 +5488,7 @@ internal static class SmartBackgroundNap
                 {
                     string downloadUrl = updateInfo == null || String.IsNullOrWhiteSpace(updateInfo.DownloadUrl) ? GitHubLatestDownloadUrl : updateInfo.DownloadUrl;
                     string latestTag = updateInfo == null ? "" : updateInfo.LatestTag;
-                    RunUserAction("Baixando atualizacao...", "Atualizador iniciado.", delegate { return StartSelfUpdate(downloadUrl, latestTag); });
+                    RunUserAction("Baixando atualizacao...", "Atualizador iniciado.", delegate { return StartSelfUpdate(downloadUrl, latestTag, updateInfo == null ? "" : updateInfo.ReleaseBody); });
                     return;
                 }
                 if (String.Equals(action, "dismissUpdate", StringComparison.OrdinalIgnoreCase))
@@ -5107,6 +5496,12 @@ internal static class SmartBackgroundNap
                     string tag = updateInfo == null ? "" : updateInfo.LatestTag;
                     if (!String.IsNullOrWhiteSpace(tag)) { SaveDismissedUpdateTag(tag); }
                     if (updateInfo != null) { updateInfo.Available = false; updateInfo.Ignored = true; }
+                    SendState();
+                    return;
+                }
+                if (String.Equals(action, "ackPostUpdate", StringComparison.OrdinalIgnoreCase))
+                {
+                    MarkPostUpdateNoticeSeen();
                     SendState();
                     return;
                 }
@@ -5493,6 +5888,7 @@ internal static class SmartBackgroundNap
             bool startupInstalled = IsStartupInstalled();
             bool learningEnabled = IsSmartLearningEnabled();
             bool behaviorEnabled = IsBehaviorEngineEnabled();
+            bool networkUdpGuardEnabled = IsNetworkUdpGuardEnabled();
             List<WebManagerRow> rows = LoadManagerRows();
             ScoreMeta scoreMeta = LoadScoreMeta();
             string line = ReadLastApplyLogLine();
@@ -5524,7 +5920,21 @@ internal static class SmartBackgroundNap
             state.EnergyIdleGuardConfigured = LoadEnergyIdleGuardConfigured();
             state.EnergyIdleGuardMinutes = LoadEnergyIdleGuardMinutes();
             state.AdaptiveExclusions = IsAdaptiveExclusionsEnabled();
+            state.NetworkUdpGuard = networkUdpGuardEnabled;
+            state.NetworkUdpGuardActive = networkUdpGuardEnabled && scoreMeta.NetworkUdpGuardActive;
+            state.NetworkUdpGuardMode = networkUdpGuardEnabled
+                ? (String.IsNullOrWhiteSpace(scoreMeta.NetworkUdpGuardMode) ? "Armed" : scoreMeta.NetworkUdpGuardMode)
+                : "Off";
+            state.NetworkUdpGuardGame = networkUdpGuardEnabled ? scoreMeta.NetworkUdpGuardGame : String.Empty;
+            state.NetworkUdpGuardEndpoints = networkUdpGuardEnabled ? scoreMeta.NetworkUdpGuardEndpoints : 0;
+            state.NetworkUdpGuardProcessCount = networkUdpGuardEnabled ? scoreMeta.NetworkUdpGuardProcessCount : 0;
+            state.NetworkUdpGuardNoStackTweaks = networkUdpGuardEnabled && (scoreMeta.NetworkUdpGuardNoStackTweaks || networkUdpGuardEnabled);
+            state.StreamGuardActive = scoreMeta.StreamGuardActive;
+            state.StreamHelperCount = scoreMeta.StreamHelperCount;
+            state.StreamGameProtectedCount = scoreMeta.StreamGameProtectedCount;
             state.PolicyCount = CountManualPolicies();
+            state.AppCount = scoreMeta.AppCount > 0 ? scoreMeta.AppCount : rows.Count;
+            state.ProcessCount = scoreMeta.ProcessCount > 0 ? scoreMeta.ProcessCount : rows.Count;
             PreviewSummary preview = LoadPreviewSummary();
             state.PreviewTargets = preview.Targets;
             state.PreviewWouldTrim = preview.WouldTrim;
@@ -5536,14 +5946,17 @@ internal static class SmartBackgroundNap
             state.LearningProfiles = learningEnabled ? Math.Max(scoreMeta.LearningProfiles, GetLearningProfileCount()) : 0;
             state.Behavior = behaviorEnabled || scoreMeta.BehaviorEnabled;
             state.BehaviorProfiles = state.Behavior ? Math.Max(scoreMeta.BehaviorProfiles, GetBehaviorProfileCount()) : 0;
-            state.MemoryPressure = String.IsNullOrWhiteSpace(scoreMeta.MemoryPressure) ? ExtractLogValue(line, "pressure") : scoreMeta.MemoryPressure;
-            state.FreeMemoryMB = scoreMeta.FreeMemoryMB;
-            state.IntentKind = String.IsNullOrWhiteSpace(scoreMeta.IntentKind) ? ExtractLogValue(line, "intent") : scoreMeta.IntentKind;
-            state.IntentName = scoreMeta.IntentName;
-            state.IntentConfidence = scoreMeta.IntentConfidence;
+            double freeMemoryFallback = scoreMeta.FreeMemoryMB > 0 ? scoreMeta.FreeMemoryMB : (hardware.AvailableMemoryMB > 0 ? hardware.AvailableMemoryMB : 0);
+            string logPressure = ExtractLogValue(line, "pressure");
+            state.MemoryPressure = !String.IsNullOrWhiteSpace(scoreMeta.MemoryPressure) ? scoreMeta.MemoryPressure : (!String.IsNullOrWhiteSpace(logPressure) ? logPressure : ClassifyMemoryPressure(freeMemoryFallback));
+            state.FreeMemoryMB = freeMemoryFallback;
+            string logIntent = ExtractLogValue(line, "intent");
+            state.IntentKind = !String.IsNullOrWhiteSpace(scoreMeta.IntentKind) ? scoreMeta.IntentKind : (!String.IsNullOrWhiteSpace(logIntent) ? logIntent : "Desktop");
+            state.IntentName = !String.IsNullOrWhiteSpace(scoreMeta.IntentName) ? scoreMeta.IntentName : (!String.IsNullOrWhiteSpace(top) ? top : String.Empty);
+            state.IntentConfidence = scoreMeta.IntentConfidence > 0 ? scoreMeta.IntentConfidence : (!String.IsNullOrWhiteSpace(state.IntentName) ? 50 : 0);
             state.IntentSignals = scoreMeta.IntentSignals;
-            state.RadarTop = scoreMeta.RadarTop;
-            state.RadarCount = scoreMeta.RadarCount;
+            state.RadarTop = !String.IsNullOrWhiteSpace(scoreMeta.RadarTop) ? scoreMeta.RadarTop : (rows.Count > 0 ? rows[0].Name : String.Empty);
+            state.RadarCount = scoreMeta.RadarCount > 0 ? scoreMeta.RadarCount : rows.Count;
             state.IsElevated = IsCurrentProcessElevated();
             state.PermissionDeniedCount = scoreMeta.PermissionDeniedCount;
             state.PermissionDeniedApps = scoreMeta.PermissionDeniedApps;
@@ -5594,8 +6007,20 @@ internal static class SmartBackgroundNap
             state.UpdateDownloadUrl = currentUpdate.DownloadUrl;
             state.UpdatePublishedAt = currentUpdate.PublishedAt;
             state.UpdateError = currentUpdate.Error;
+            state.PostUpdateNotice = ShouldShowPostUpdateNotice();
+            state.PostUpdateBody = GetPostUpdateNoticeBody();
+            state.PostUpdateItems = GetPostUpdateNoticeItems();
             state.Logo = GetLogoDataUri();
             return state;
+        }
+
+        private static string ClassifyMemoryPressure(double freeMemoryMB)
+        {
+            if (freeMemoryMB <= 0) { return "Unknown"; }
+            if (freeMemoryMB <= 3072) { return "Critical"; }
+            if (freeMemoryMB <= 6144) { return "Elevated"; }
+            if (freeMemoryMB <= 8192) { return "Moderate"; }
+            return "Normal";
         }
 
         private ScoreMeta LoadScoreMeta()
@@ -5609,6 +6034,8 @@ internal static class SmartBackgroundNap
                 if (String.IsNullOrWhiteSpace(json)) { LoadRadarMeta(meta); return meta; }
                 IDictionary<string, object> root = JsonCompat.DeserializeObject(json);
                 if (root == null) { LoadRadarMeta(meta); return meta; }
+                meta.AppCount = GetInt(root, "AppCount");
+                meta.ProcessCount = GetInt(root, "ProcessCount");
                 meta.LearningEnabled = GetBool(root, "LearningEnabled");
                 meta.LearningProfiles = GetInt(root, "LearningProfiles");
                 meta.BehaviorEnabled = GetBool(root, "BehaviorEnabled");
@@ -5619,6 +6046,16 @@ internal static class SmartBackgroundNap
                 meta.IntentName = GetString(root, "IntentName");
                 meta.IntentConfidence = GetInt(root, "IntentConfidence");
                 meta.IntentSignals = ReadStringList(root, "IntentSignals");
+                meta.NetworkUdpGuardEnabled = GetBool(root, "NetworkUdpGuardEnabled");
+                meta.NetworkUdpGuardActive = GetBool(root, "NetworkUdpGuardActive");
+                meta.NetworkUdpGuardMode = GetString(root, "NetworkUdpGuardMode");
+                meta.NetworkUdpGuardGame = GetString(root, "NetworkUdpGuardGame");
+                meta.NetworkUdpGuardEndpoints = GetInt(root, "NetworkUdpGuardEndpoints");
+                meta.NetworkUdpGuardProcessCount = GetInt(root, "NetworkUdpGuardProcessCount");
+                meta.NetworkUdpGuardNoStackTweaks = GetBool(root, "NetworkUdpGuardNoStackTweaks");
+                meta.StreamGuardActive = GetBool(root, "StreamGuardActive");
+                meta.StreamHelperCount = GetInt(root, "StreamHelperCount");
+                meta.StreamGameProtectedCount = GetInt(root, "StreamGameProtectedCount");
                 object items = null;
                 if (root.TryGetValue("Items", out items) && items != null)
                 {
@@ -5952,6 +6389,9 @@ internal static class SmartBackgroundNap
                     row.Intent = GetString(map, "IntentKind");
                     row.IntentConfidence = GetInt(map, "IntentConfidence");
                     row.SwitchFastWake = GetBool(map, "SwitchFastWake");
+                    row.UdpEndpoints = GetInt(map, "UdpEndpoints");
+                    row.UdpGameProtected = GetBool(map, "UdpGameProtected");
+                    row.UdpGuardActive = GetBool(map, "UdpGuardActive");
                     row.BehaviorWakeCount = GetInt(map, "BehaviorWakeCount");
                     row.BehaviorConfidence = GetInt(map, "BehaviorConfidence");
                     row.BehaviorBias = GetInt(map, "BehaviorBias");
@@ -6035,6 +6475,9 @@ internal static class SmartBackgroundNap
             target.RawBursts += source.RawBursts;
             target.PermissionDenied = target.PermissionDenied || source.PermissionDenied;
             target.SwitchFastWake = target.SwitchFastWake || source.SwitchFastWake;
+            target.UdpEndpoints += source.UdpEndpoints;
+            target.UdpGameProtected = target.UdpGameProtected || source.UdpGameProtected;
+            target.UdpGuardActive = target.UdpGuardActive || source.UdpGuardActive;
             if (source.IntentConfidence > target.IntentConfidence)
             {
                 target.IntentConfidence = source.IntentConfidence;
@@ -6098,6 +6541,8 @@ internal static class SmartBackgroundNap
             string guard = GetString(map, "GuardReason");
             string intent = GetString(map, "IntentKind");
             int intentConfidence = GetInt(map, "IntentConfidence");
+            int udpEndpoints = GetInt(map, "UdpEndpoints");
+            bool udpProtected = GetBool(map, "UdpGameProtected");
             int behaviorConfidence = GetInt(map, "BehaviorConfidence");
             int behaviorBias = GetInt(map, "BehaviorBias");
             int behaviorWakes = GetInt(map, "BehaviorWakeCount");
@@ -6122,6 +6567,10 @@ internal static class SmartBackgroundNap
             if (!String.IsNullOrWhiteSpace(intent) && !String.Equals(intent, "Desktop", StringComparison.OrdinalIgnoreCase))
             {
                 summary += " / Intent " + intent + (intentConfidence > 0 ? " " + intentConfidence.ToString(CultureInfo.CurrentCulture) : "");
+            }
+            if (udpEndpoints > 0)
+            {
+                summary += " / Zero Ping UDP " + udpEndpoints.ToString(CultureInfo.CurrentCulture) + (udpProtected ? " protected" : "");
             }
             if (behaviorConfidence > 0)
             {
@@ -6281,9 +6730,7 @@ internal static class SmartBackgroundNap
 
         private string ShortError(string output)
         {
-            if (String.IsNullOrWhiteSpace(output)) { return "No details were returned."; }
-            output = output.Trim();
-            return output.Length > 650 ? output.Substring(0, 650) + Environment.NewLine + "..." : output;
+            return FriendlyUiError(output);
         }
 
         private string GetLogoDataUri()
@@ -6505,7 +6952,19 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public bool EnergyIdleGuardConfigured { get; set; }
             public int EnergyIdleGuardMinutes { get; set; }
             public bool AdaptiveExclusions { get; set; }
+            public bool NetworkUdpGuard { get; set; }
+            public bool NetworkUdpGuardActive { get; set; }
+            public string NetworkUdpGuardMode { get; set; }
+            public string NetworkUdpGuardGame { get; set; }
+            public int NetworkUdpGuardEndpoints { get; set; }
+            public int NetworkUdpGuardProcessCount { get; set; }
+            public bool NetworkUdpGuardNoStackTweaks { get; set; }
+            public bool StreamGuardActive { get; set; }
+            public int StreamHelperCount { get; set; }
+            public int StreamGameProtectedCount { get; set; }
             public int PolicyCount { get; set; }
+            public int AppCount { get; set; }
+            public int ProcessCount { get; set; }
             public int PreviewTargets { get; set; }
             public int PreviewWouldTrim { get; set; }
             public string PreviewTop { get; set; }
@@ -6573,7 +7032,11 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public string UpdateReleaseUrl { get; set; }
             public string UpdateDownloadUrl { get; set; }
             public string UpdatePublishedAt { get; set; }
-            public string UpdateError { get; set; }        }
+            public string UpdateError { get; set; }
+            public bool PostUpdateNotice { get; set; }
+            public string PostUpdateBody { get; set; }
+            public List<string> PostUpdateItems { get; set; }
+        }
 
         private sealed class PreviewSummary
         {
@@ -6586,6 +7049,8 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
         }
         private sealed class ScoreMeta
         {
+            public int AppCount { get; set; }
+            public int ProcessCount { get; set; }
             public bool LearningEnabled { get; set; }
             public int LearningProfiles { get; set; }
             public bool BehaviorEnabled { get; set; }
@@ -6596,6 +7061,16 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public string IntentName { get; set; }
             public int IntentConfidence { get; set; }
             public List<string> IntentSignals { get; set; }
+            public bool NetworkUdpGuardEnabled { get; set; }
+            public bool NetworkUdpGuardActive { get; set; }
+            public string NetworkUdpGuardMode { get; set; }
+            public string NetworkUdpGuardGame { get; set; }
+            public int NetworkUdpGuardEndpoints { get; set; }
+            public int NetworkUdpGuardProcessCount { get; set; }
+            public bool NetworkUdpGuardNoStackTweaks { get; set; }
+            public bool StreamGuardActive { get; set; }
+            public int StreamHelperCount { get; set; }
+            public int StreamGameProtectedCount { get; set; }
             public string RadarTop { get; set; }
             public int RadarCount { get; set; }
             public int PermissionDeniedCount { get; set; }
@@ -6619,6 +7094,9 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public string Guard { get; set; }
             public string Intent { get; set; }
             public int IntentConfidence { get; set; }
+            public int UdpEndpoints { get; set; }
+            public bool UdpGameProtected { get; set; }
+            public bool UdpGuardActive { get; set; }
             public int BehaviorConfidence { get; set; }
             public int BehaviorWakeCount { get; set; }
             public int BehaviorBias { get; set; }
@@ -7759,12 +8237,7 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
 
         private string ShortError(string output)
         {
-            if (String.IsNullOrWhiteSpace(output))
-            {
-                return "No details were returned.";
-            }
-            output = output.Trim();
-            return output.Length > 650 ? output.Substring(0, 650) + Environment.NewLine + "..." : output;
+            return FriendlyUiError(output);
         }
 
         private List<string> ReadLastLines(string path, int maxLines)
@@ -9416,12 +9889,7 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
 
         private string ShortError(string output)
         {
-            if (String.IsNullOrWhiteSpace(output))
-            {
-                return "No details were returned.";
-            }
-            output = output.Trim();
-            return output.Length > 650 ? output.Substring(0, 650) + Environment.NewLine + "..." : output;
+            return FriendlyUiError(output);
         }
 
         private void StartDashboardActivity()
