@@ -1,4 +1,4 @@
-﻿param(
+param(
     [ValidateSet("Install", "Uninstall", "Status", "RunNow")]
     [string]$Action = "Status",
 
@@ -167,11 +167,21 @@ switch ($Action) {
         }
     }
     "Uninstall" {
-        $task = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
-        if ($task) {
-            Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
+        try {
+            $task = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+            if ($task) {
+                Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction Stop
+            }
+            Get-TaskStatusObject
+        } catch {
+            [pscustomobject]@{
+                TaskName = $taskName
+                Installed = $true
+                UninstallError = $_.Exception.Message
+                Fallback = "NeedsElevation"
+            }
+            exit 5
         }
-        Get-TaskStatusObject
     }
     "RunNow" {
         $task = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue

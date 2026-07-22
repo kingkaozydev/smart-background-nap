@@ -1,4 +1,4 @@
-param(
+﻿param(
     [ValidateSet("Status", "Apply", "Restore", "Watch", "ForegroundRestore")]
     [string]$Action = "Status",
 
@@ -63,6 +63,12 @@ $behaviorStatePath = Join-Path $outDir "background-nap-behavior-latest.json"
 $appPolicyStatePath = Join-Path $outDir "background-nap-app-policies.json"
 $radarStatePath = Join-Path $outDir "background-nap-radar-latest.json"
 $previewPath = Join-Path $outDir "background-nap-preview-latest.json"
+$udpGuardStatePath = Join-Path $outDir "background-nap-udp-guard-latest.json"
+$udpProfileStatePath = Join-Path $outDir "background-nap-udp-profiles-latest.json"
+$networkQosStatePath = Join-Path $outDir "background-nap-qos-latest.json"
+$gpuPressureStatePath = Join-Path $outDir "background-nap-gpu-pressure-latest.json"
+$engineHealthStatePath = Join-Path $outDir "background-nap-engine-health-latest.json"
+$rollbackAuditStatePath = Join-Path $outDir "background-nap-rollback-audit-latest.json"
 
 $priorityClass = [string]$nap.PriorityClass
 $targetPriorityClass = [System.Enum]::Parse([System.Diagnostics.ProcessPriorityClass], $priorityClass, $true)
@@ -146,6 +152,28 @@ $networkUdpGuardProtectMinutes = 4
 $networkUdpGuardGameCpuFloor = 0.2
 $networkUdpGuardBackgroundWeightBoost = 1.18
 $networkUdpGuardNoStackTweaks = $true
+$networkUdpGuardSessionLearning = $true
+$networkUdpGuardConfidenceFloor = 58
+$networkUdpGuardConfidenceHigh = 82
+$networkUdpGuardHistoryMaxProfiles = 240
+$networkUdpGuardHelperProtectMinutes = 4
+$networkUdpGuardQosMode = "Auto"
+$networkUdpGuardQosDscp = 46
+$networkUdpGuardQosPolicyPrefix = "SmartNap Zero Ping"
+$gpuPressureMonitor = $true
+$vramPressureMode = $true
+$vramPressureHighPercent = 82.0
+$vramPressureCriticalPercent = 92.0
+$gpuHelperGuard = $true
+$gpuHelperDedicatedMemoryMB = 384.0
+$gpuHelperCpuCeiling = 3.5
+$cpuBoundAssist = $true
+$cpuBoundGameCpuPercent = 6.0
+$cpuBoundBackgroundBoost = 1.16
+$cpuBoundAffinityPercent = 45
+$engineHealthCheck = $true
+$rollbackAudit = $true
+$rollbackAuditMaxEntries = 180
 $moderateFreeMemoryMB = 8192.0
 $elevatedFreeMemoryMB = 6144.0
 $criticalFreeMemoryMB = 3072.0
@@ -167,7 +195,7 @@ $balancedNapIoPriorityName = "Low"
 $deepNapIoPriorityName = "VeryLow"
 $realtimeFriendlyDefaults = @("Discord", "Spotify", "WhatsApp", "Telegram", "Slack", "Teams", "steam", "steamwebhelper")
 $realtimeFriendlyConfigured = $null
-$knownLauncherDefaults = @("steam", "steamwebhelper", "EpicGamesLauncher", "EpicWebHelper", "Battle.net", "EADesktop", "EABackgroundService", "RiotClientServices", "RiotClientUx", "UbisoftConnect", "upc", "GalaxyClient", "GOG Galaxy", "XboxPcApp")
+$knownLauncherDefaults = @("steam", "steamwebhelper", "EpicGamesLauncher", "EpicWebHelper", "Battle.net", "EADesktop", "EABackgroundService", "EACefSubProcess", "EALauncher", "EAConnect", "RiotClientServices", "RiotClientUx", "UbisoftConnect", "upc", "GalaxyClient", "GOG Galaxy", "XboxPcApp")
 $knownCommunicationDefaults = @("Discord", "Teams", "Slack", "Zoom", "Telegram", "WhatsApp")
 $knownMediaDefaults = @("Spotify", "vlc", "mpv")
 $knownStreamingDefaults = @("obs64", "obs32", "Streamlabs Desktop", "Streamlabs", "TikTok LIVE Studio", "TikTokLiveStudio", "TikTokStudio", "PRISMLiveStudio", "XSplit.Core", "XSplitBroadcaster", "vMix64", "vMix", "TwitchStudio", "NVIDIA Broadcast", "ElgatoCameraHub")
@@ -250,6 +278,28 @@ if ($smart) {
     if ($smart.PSObject.Properties.Name -contains "NetworkUdpGuardGameCpuFloor") { $networkUdpGuardGameCpuFloor = [double]$smart.NetworkUdpGuardGameCpuFloor }
     if ($smart.PSObject.Properties.Name -contains "NetworkUdpGuardBackgroundWeightBoost") { $networkUdpGuardBackgroundWeightBoost = [double]$smart.NetworkUdpGuardBackgroundWeightBoost }
     if ($smart.PSObject.Properties.Name -contains "NetworkUdpGuardNoStackTweaks") { $networkUdpGuardNoStackTweaks = [bool]$smart.NetworkUdpGuardNoStackTweaks }
+    if ($smart.PSObject.Properties.Name -contains "NetworkUdpGuardSessionLearning") { $networkUdpGuardSessionLearning = [bool]$smart.NetworkUdpGuardSessionLearning }
+    if ($smart.PSObject.Properties.Name -contains "NetworkUdpGuardConfidenceFloor") { $networkUdpGuardConfidenceFloor = [int]$smart.NetworkUdpGuardConfidenceFloor }
+    if ($smart.PSObject.Properties.Name -contains "NetworkUdpGuardConfidenceHigh") { $networkUdpGuardConfidenceHigh = [int]$smart.NetworkUdpGuardConfidenceHigh }
+    if ($smart.PSObject.Properties.Name -contains "NetworkUdpGuardHistoryMaxProfiles") { $networkUdpGuardHistoryMaxProfiles = [int]$smart.NetworkUdpGuardHistoryMaxProfiles }
+    if ($smart.PSObject.Properties.Name -contains "NetworkUdpGuardHelperProtectMinutes") { $networkUdpGuardHelperProtectMinutes = [int]$smart.NetworkUdpGuardHelperProtectMinutes }
+    if ($smart.PSObject.Properties.Name -contains "NetworkUdpGuardQosMode") { $networkUdpGuardQosMode = [string]$smart.NetworkUdpGuardQosMode }
+    if ($smart.PSObject.Properties.Name -contains "NetworkUdpGuardQosDscp") { $networkUdpGuardQosDscp = [int]$smart.NetworkUdpGuardQosDscp }
+    if ($smart.PSObject.Properties.Name -contains "NetworkUdpGuardQosPolicyPrefix") { $networkUdpGuardQosPolicyPrefix = [string]$smart.NetworkUdpGuardQosPolicyPrefix }
+    if ($smart.PSObject.Properties.Name -contains "GpuPressureMonitor") { $gpuPressureMonitor = [bool]$smart.GpuPressureMonitor }
+    if ($smart.PSObject.Properties.Name -contains "VramPressureMode") { $vramPressureMode = [bool]$smart.VramPressureMode }
+    if ($smart.PSObject.Properties.Name -contains "VramPressureHighPercent") { $vramPressureHighPercent = [double]$smart.VramPressureHighPercent }
+    if ($smart.PSObject.Properties.Name -contains "VramPressureCriticalPercent") { $vramPressureCriticalPercent = [double]$smart.VramPressureCriticalPercent }
+    if ($smart.PSObject.Properties.Name -contains "GpuHelperGuard") { $gpuHelperGuard = [bool]$smart.GpuHelperGuard }
+    if ($smart.PSObject.Properties.Name -contains "GpuHelperDedicatedMemoryMB") { $gpuHelperDedicatedMemoryMB = [double]$smart.GpuHelperDedicatedMemoryMB }
+    if ($smart.PSObject.Properties.Name -contains "GpuHelperCpuCeiling") { $gpuHelperCpuCeiling = [double]$smart.GpuHelperCpuCeiling }
+    if ($smart.PSObject.Properties.Name -contains "CpuBoundAssist") { $cpuBoundAssist = [bool]$smart.CpuBoundAssist }
+    if ($smart.PSObject.Properties.Name -contains "CpuBoundGameCpuPercent") { $cpuBoundGameCpuPercent = [double]$smart.CpuBoundGameCpuPercent }
+    if ($smart.PSObject.Properties.Name -contains "CpuBoundBackgroundBoost") { $cpuBoundBackgroundBoost = [double]$smart.CpuBoundBackgroundBoost }
+    if ($smart.PSObject.Properties.Name -contains "CpuBoundAffinityPercent") { $cpuBoundAffinityPercent = [int]$smart.CpuBoundAffinityPercent }
+    if ($smart.PSObject.Properties.Name -contains "EngineHealthCheck") { $engineHealthCheck = [bool]$smart.EngineHealthCheck }
+    if ($smart.PSObject.Properties.Name -contains "RollbackAudit") { $rollbackAudit = [bool]$smart.RollbackAudit }
+    if ($smart.PSObject.Properties.Name -contains "RollbackAuditMaxEntries") { $rollbackAuditMaxEntries = [int]$smart.RollbackAuditMaxEntries }
     if ($smart.PSObject.Properties.Name -contains "ModerateFreeMemoryMB") { $moderateFreeMemoryMB = [double]$smart.ModerateFreeMemoryMB }
     if ($smart.PSObject.Properties.Name -contains "ElevatedFreeMemoryMB") { $elevatedFreeMemoryMB = [double]$smart.ElevatedFreeMemoryMB }
     if ($smart.PSObject.Properties.Name -contains "CriticalFreeMemoryMB") { $criticalFreeMemoryMB = [double]$smart.CriticalFreeMemoryMB }
@@ -283,9 +333,10 @@ $sessionMode = ([string]$sessionMode).Trim()
 if ([string]::IsNullOrWhiteSpace($sessionMode)) { $sessionMode = "Auto" }
 switch -Regex ($sessionMode) {
     "^(Gaming|Game|Jogo|Jogos)$" { $sessionMode = "Gaming"; break }
+    "^(Competitive|Competitivo|Ranked|Rankeado|PvP|PVP|Versus)$" { $sessionMode = "Competitive"; break }
     "^(Work|Trabalho|Creator|Create)$" { $sessionMode = "Work"; break }
     "^(Focus|Foco|DeepFocus)$" { $sessionMode = "Focus"; break }
-    "^(Streamer|Stream|Live|LiveStream|Broadcast|Transmissao|Transmissão)$" { $sessionMode = "Streamer"; break }
+    "^(Streamer|Stream|Live|LiveStream|Broadcast|Transmissao)$" { $sessionMode = "Streamer"; break }
     default { $sessionMode = "Auto"; break }
 }
 switch ($sessionMode) {
@@ -297,6 +348,17 @@ switch ($sessionMode) {
         $autoProtectForegroundMinutes = [math]::Max($autoProtectForegroundMinutes, 3)
         $lightNapTrimMinimumMB = [math]::Max($lightNapTrimMinimumMB, 260.0)
         $deepNapMaxCpuPercent = [math]::Min($deepNapMaxCpuPercent, 0.30)
+    }
+    "Competitive" {
+        $maxTargetsPerPass = [math]::Min([math]::Max($maxTargetsPerPass, 72), 96)
+        $highCpuThreshold = [math]::Max($highCpuThreshold, 12.0)
+        $fullscreenHighCpuThreshold = [math]::Max($fullscreenHighCpuThreshold, 14.0)
+        $trimCooldownMinutes = [math]::Max($trimCooldownMinutes, 10)
+        $autoProtectForegroundMinutes = [math]::Max($autoProtectForegroundMinutes, 4)
+        $foregroundSwitchProtectMinutes = [math]::Max($foregroundSwitchProtectMinutes, 8)
+        $networkUdpGuardBackgroundWeightBoost = [math]::Max($networkUdpGuardBackgroundWeightBoost, 1.22)
+        $deepNapMaxCpuPercent = [math]::Min($deepNapMaxCpuPercent, 0.42)
+        $balancedNapMaxCpuPercent = [math]::Max($balancedNapMaxCpuPercent, 3.0)
     }
     "Work" {
         $maxTargetsPerPass = [math]::Min($maxTargetsPerPass, 72)
@@ -350,6 +412,29 @@ if ($networkUdpGuardGameCpuFloor -lt 0.0) { $networkUdpGuardGameCpuFloor = 0.0 }
 if ($networkUdpGuardGameCpuFloor -gt 20.0) { $networkUdpGuardGameCpuFloor = 20.0 }
 if ($networkUdpGuardBackgroundWeightBoost -lt 1.0) { $networkUdpGuardBackgroundWeightBoost = 1.0 }
 if ($networkUdpGuardBackgroundWeightBoost -gt 2.5) { $networkUdpGuardBackgroundWeightBoost = 2.5 }
+if ($networkUdpGuardConfidenceFloor -lt 30) { $networkUdpGuardConfidenceFloor = 30 }
+if ($networkUdpGuardConfidenceFloor -gt 90) { $networkUdpGuardConfidenceFloor = 90 }
+if ($networkUdpGuardConfidenceHigh -lt $networkUdpGuardConfidenceFloor) { $networkUdpGuardConfidenceHigh = $networkUdpGuardConfidenceFloor }
+if ($networkUdpGuardConfidenceHigh -gt 98) { $networkUdpGuardConfidenceHigh = 98 }
+if ($networkUdpGuardHistoryMaxProfiles -lt 40) { $networkUdpGuardHistoryMaxProfiles = 40 }
+if ($networkUdpGuardHistoryMaxProfiles -gt 1000) { $networkUdpGuardHistoryMaxProfiles = 1000 }
+if ($networkUdpGuardHelperProtectMinutes -lt 1) { $networkUdpGuardHelperProtectMinutes = 1 }
+if ($networkUdpGuardHelperProtectMinutes -gt 30) { $networkUdpGuardHelperProtectMinutes = 30 }
+if ($networkUdpGuardQosDscp -lt 0) { $networkUdpGuardQosDscp = 0 }
+if ($networkUdpGuardQosDscp -gt 63) { $networkUdpGuardQosDscp = 63 }
+if ([string]::IsNullOrWhiteSpace($networkUdpGuardQosPolicyPrefix)) { $networkUdpGuardQosPolicyPrefix = "SmartNap Zero Ping" }
+if ($gpuHelperDedicatedMemoryMB -lt 64.0) { $gpuHelperDedicatedMemoryMB = 64.0 }
+if ($gpuHelperDedicatedMemoryMB -gt 4096.0) { $gpuHelperDedicatedMemoryMB = 4096.0 }
+if ($gpuHelperCpuCeiling -lt 0.5) { $gpuHelperCpuCeiling = 0.5 }
+if ($gpuHelperCpuCeiling -gt 25.0) { $gpuHelperCpuCeiling = 25.0 }
+if ($cpuBoundGameCpuPercent -lt 1.0) { $cpuBoundGameCpuPercent = 1.0 }
+if ($cpuBoundGameCpuPercent -gt 60.0) { $cpuBoundGameCpuPercent = 60.0 }
+if ($cpuBoundBackgroundBoost -lt 1.0) { $cpuBoundBackgroundBoost = 1.0 }
+if ($cpuBoundBackgroundBoost -gt 2.5) { $cpuBoundBackgroundBoost = 2.5 }
+if ($cpuBoundAffinityPercent -lt 20) { $cpuBoundAffinityPercent = 20 }
+if ($cpuBoundAffinityPercent -gt 75) { $cpuBoundAffinityPercent = 75 }
+if ($rollbackAuditMaxEntries -lt 40) { $rollbackAuditMaxEntries = 40 }
+if ($rollbackAuditMaxEntries -gt 1000) { $rollbackAuditMaxEntries = 1000 }
 if ($autoProtectForegroundMinutes -lt 1) { $autoProtectForegroundMinutes = 1 }
 if ($autoProtectHighCpuMinutes -lt 1) { $autoProtectHighCpuMinutes = 1 }
 if ($burstWindowMinutes -lt 1) { $burstWindowMinutes = 1 }
@@ -440,6 +525,11 @@ $script:foregroundSwitchMap = @{}
 $script:gameProfileMap = @{}
 $script:behaviorMap = @{}
 $script:appPolicyMap = @{}
+$script:udpEndpointCountByPid = @{}
+$script:currentUdpGuard = $null
+$script:currentGpuPressure = $null
+$script:currentCpuBoundAssist = $null
+$script:currentEngineHealth = $null
 
 $memoryPriorityMap = @{
     VeryLow = 1
@@ -535,9 +625,89 @@ $currentSessionId = $currentProcess.SessionId
 $currentPid = $currentProcess.Id
 $logicalProcessorCount = [Environment]::ProcessorCount
 
-$cs = @"
+$cs = @'
 using System;
 using System.Runtime.InteropServices;
+using System.Text;
+
+public enum DxgiMemorySegmentGroup {
+    Local = 0,
+    NonLocal = 1
+}
+
+[StructLayout(LayoutKind.Sequential)]
+public struct DxgiQueryVideoMemoryInfo {
+    public UInt64 Budget;
+    public UInt64 CurrentUsage;
+    public UInt64 AvailableForReservation;
+    public UInt64 CurrentReservation;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+public struct DxgiLuid {
+    public UInt32 LowPart;
+    public Int32 HighPart;
+}
+
+[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+public struct DxgiAdapterDesc1 {
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)] public string Description;
+    public UInt32 VendorId;
+    public UInt32 DeviceId;
+    public UInt32 SubSysId;
+    public UInt32 Revision;
+    public UInt64 DedicatedVideoMemory;
+    public UInt64 DedicatedSystemMemory;
+    public UInt64 SharedSystemMemory;
+    public DxgiLuid AdapterLuid;
+    public UInt32 Flags;
+}
+
+[ComImport, Guid("770AAE78-F26F-4DBA-A829-253C83D1B387"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+public interface IDXGIFactory1 {
+    [PreserveSig] Int32 SetPrivateData(ref Guid Name, UInt32 DataSize, IntPtr pData);
+    [PreserveSig] Int32 SetPrivateDataInterface(ref Guid Name, IntPtr pUnknown);
+    [PreserveSig] Int32 GetPrivateData(ref Guid Name, ref UInt32 pDataSize, IntPtr pData);
+    [PreserveSig] Int32 GetParent(ref Guid riid, out IntPtr ppParent);
+    [PreserveSig] Int32 EnumAdapters(UInt32 Adapter, out IntPtr ppAdapter);
+    [PreserveSig] Int32 MakeWindowAssociation(IntPtr WindowHandle, UInt32 Flags);
+    [PreserveSig] Int32 GetWindowAssociation(out IntPtr pWindowHandle);
+    [PreserveSig] Int32 CreateSwapChain(IntPtr pDevice, IntPtr pDesc, out IntPtr ppSwapChain);
+    [PreserveSig] Int32 CreateSoftwareAdapter(IntPtr Module, out IntPtr ppAdapter);
+    [PreserveSig] Int32 EnumAdapters1(UInt32 Adapter, out IDXGIAdapter1 ppAdapter);
+    [PreserveSig] Int32 IsCurrent();
+}
+
+[ComImport, Guid("29038F61-3839-4626-91FD-086879011A05"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+public interface IDXGIAdapter1 {
+    [PreserveSig] Int32 SetPrivateData(ref Guid Name, UInt32 DataSize, IntPtr pData);
+    [PreserveSig] Int32 SetPrivateDataInterface(ref Guid Name, IntPtr pUnknown);
+    [PreserveSig] Int32 GetPrivateData(ref Guid Name, ref UInt32 pDataSize, IntPtr pData);
+    [PreserveSig] Int32 GetParent(ref Guid riid, out IntPtr ppParent);
+    [PreserveSig] Int32 EnumOutputs(UInt32 Output, out IntPtr ppOutput);
+    [PreserveSig] Int32 GetDesc(IntPtr pDesc);
+    [PreserveSig] Int32 CheckInterfaceSupport(ref Guid InterfaceName, out Int64 pUMDVersion);
+    [PreserveSig] Int32 GetDesc1(out DxgiAdapterDesc1 pDesc);
+}
+
+[ComImport, Guid("645967A4-1392-4310-A798-8053CE3E93FD"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+public interface IDXGIAdapter3 {
+    [PreserveSig] Int32 SetPrivateData(ref Guid Name, UInt32 DataSize, IntPtr pData);
+    [PreserveSig] Int32 SetPrivateDataInterface(ref Guid Name, IntPtr pUnknown);
+    [PreserveSig] Int32 GetPrivateData(ref Guid Name, ref UInt32 pDataSize, IntPtr pData);
+    [PreserveSig] Int32 GetParent(ref Guid riid, out IntPtr ppParent);
+    [PreserveSig] Int32 EnumOutputs(UInt32 Output, out IntPtr ppOutput);
+    [PreserveSig] Int32 GetDesc(IntPtr pDesc);
+    [PreserveSig] Int32 CheckInterfaceSupport(ref Guid InterfaceName, out Int64 pUMDVersion);
+    [PreserveSig] Int32 GetDesc1(out DxgiAdapterDesc1 pDesc);
+    [PreserveSig] Int32 GetDesc2(IntPtr pDesc);
+    [PreserveSig] Int32 RegisterHardwareContentProtectionTeardownStatusEvent(IntPtr hEvent, out UInt32 pdwCookie);
+    [PreserveSig] void UnregisterHardwareContentProtectionTeardownStatus(UInt32 dwCookie);
+    [PreserveSig] Int32 QueryVideoMemoryInfo(UInt32 NodeIndex, DxgiMemorySegmentGroup MemorySegmentGroup, out DxgiQueryVideoMemoryInfo pVideoMemoryInfo);
+    [PreserveSig] Int32 SetVideoMemoryReservation(UInt32 NodeIndex, DxgiMemorySegmentGroup MemorySegmentGroup, UInt64 Reservation);
+    [PreserveSig] Int32 RegisterVideoMemoryBudgetChangeNotificationEvent(IntPtr hEvent, out UInt32 pdwCookie);
+    [PreserveSig] void UnregisterVideoMemoryBudgetChangeNotification(UInt32 dwCookie);
+}
 
 public static class BackgroundNapNative {
     private const UInt32 PROCESS_SET_INFORMATION = 0x0200;
@@ -551,6 +721,11 @@ public static class BackgroundNapNative {
     private const UInt32 PROCESS_POWER_THROTTLING_EXECUTION_SPEED = 0x1;
     private const UInt32 PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION = 0x4;
     private const UInt32 MONITOR_DEFAULTTONEAREST = 0x2;
+    private const Int32 DXGI_ERROR_NOT_FOUND = unchecked((Int32)0x887A0002);
+    private const UInt32 DXGI_ADAPTER_FLAG_SOFTWARE = 0x2;
+
+    [DllImport("dxgi.dll", EntryPoint = "CreateDXGIFactory1", SetLastError = false)]
+    private static extern Int32 CreateDXGIFactory1(ref Guid riid, out IDXGIFactory1 ppFactory);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct MEMORY_PRIORITY_INFORMATION {
@@ -754,8 +929,88 @@ public static class BackgroundNapNative {
             CloseHandle(h);
         }
     }
+    private static string JsonEscape(string value) {
+        if (value == null) { return ""; }
+        StringBuilder sb = new StringBuilder(value.Length + 8);
+        for (int i = 0; i < value.Length; i++) {
+            char c = value[i];
+            switch (c) {
+                case '\\': sb.Append("\\\\"); break;
+                case '"': sb.Append("\\\""); break;
+                case '\b': sb.Append("\\b"); break;
+                case '\f': sb.Append("\\f"); break;
+                case '\n': sb.Append("\\n"); break;
+                case '\r': sb.Append("\\r"); break;
+                case '\t': sb.Append("\\t"); break;
+                default:
+                    if (c < 32) { sb.Append("\\u"); sb.Append(((int)c).ToString("x4")); }
+                    else { sb.Append(c); }
+                    break;
+            }
+        }
+        return sb.ToString();
+    }
+
+    private static double BytesToMb(UInt64 bytes) {
+        return Math.Round((double)bytes / 1048576.0, 1);
+    }
+
+    public static string GetDxgiVideoMemoryJson() {
+        IDXGIFactory1 factory = null;
+        StringBuilder adapters = new StringBuilder();
+        int count = 0;
+        try {
+            Guid factoryGuid = new Guid("770AAE78-F26F-4DBA-A829-253C83D1B387");
+            int hr = CreateDXGIFactory1(ref factoryGuid, out factory);
+            if (hr < 0 || factory == null) {
+                return "{\"Available\":false,\"Error\":\"CreateDXGIFactory1 0x" + ((UInt32)hr).ToString("X8") + "\",\"Adapters\":[]}";
+            }
+            for (UInt32 i = 0; i < 16; i++) {
+                IDXGIAdapter1 adapter = null;
+                try {
+                    hr = factory.EnumAdapters1(i, out adapter);
+                    if (hr == DXGI_ERROR_NOT_FOUND) { break; }
+                    if (hr < 0 || adapter == null) { continue; }
+                    DxgiAdapterDesc1 desc;
+                    if (adapter.GetDesc1(out desc) < 0) { continue; }
+                    if ((desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0) { continue; }
+                    IDXGIAdapter3 adapter3 = adapter as IDXGIAdapter3;
+                    if (adapter3 == null) { continue; }
+                    DxgiQueryVideoMemoryInfo local;
+                    DxgiQueryVideoMemoryInfo nonLocal;
+                    int localHr = adapter3.QueryVideoMemoryInfo(0, DxgiMemorySegmentGroup.Local, out local);
+                    int nonLocalHr = adapter3.QueryVideoMemoryInfo(0, DxgiMemorySegmentGroup.NonLocal, out nonLocal);
+                    if (localHr < 0 && nonLocalHr < 0) { continue; }
+                    if (count > 0) { adapters.Append(','); }
+                    adapters.Append('{');
+                    adapters.Append("\"Index\":").Append(i).Append(',');
+                    adapters.Append("\"Name\":\"").Append(JsonEscape(desc.Description)).Append("\",");
+                    adapters.Append("\"VendorId\":").Append(desc.VendorId).Append(',');
+                    adapters.Append("\"DeviceId\":").Append(desc.DeviceId).Append(',');
+                    adapters.Append("\"DedicatedVideoMemoryMB\":").Append(BytesToMb(desc.DedicatedVideoMemory).ToString(System.Globalization.CultureInfo.InvariantCulture)).Append(',');
+                    adapters.Append("\"SharedSystemMemoryMB\":").Append(BytesToMb(desc.SharedSystemMemory).ToString(System.Globalization.CultureInfo.InvariantCulture)).Append(',');
+                    adapters.Append("\"LocalBudgetMB\":").Append(localHr < 0 ? "0" : BytesToMb(local.Budget).ToString(System.Globalization.CultureInfo.InvariantCulture)).Append(',');
+                    adapters.Append("\"LocalUsageMB\":").Append(localHr < 0 ? "0" : BytesToMb(local.CurrentUsage).ToString(System.Globalization.CultureInfo.InvariantCulture)).Append(',');
+                    adapters.Append("\"LocalAvailableMB\":").Append(localHr < 0 ? "0" : BytesToMb(local.AvailableForReservation).ToString(System.Globalization.CultureInfo.InvariantCulture)).Append(',');
+                    adapters.Append("\"NonLocalBudgetMB\":").Append(nonLocalHr < 0 ? "0" : BytesToMb(nonLocal.Budget).ToString(System.Globalization.CultureInfo.InvariantCulture)).Append(',');
+                    adapters.Append("\"NonLocalUsageMB\":").Append(nonLocalHr < 0 ? "0" : BytesToMb(nonLocal.CurrentUsage).ToString(System.Globalization.CultureInfo.InvariantCulture)).Append(',');
+                    adapters.Append("\"NonLocalAvailableMB\":").Append(nonLocalHr < 0 ? "0" : BytesToMb(nonLocal.AvailableForReservation).ToString(System.Globalization.CultureInfo.InvariantCulture));
+                    adapters.Append('}');
+                    count++;
+                } finally {
+                    if (adapter != null) { try { Marshal.ReleaseComObject(adapter); } catch { } }
+                }
+            }
+            return "{\"Available\":" + (count > 0 ? "true" : "false") + ",\"Error\":\"\",\"Adapters\":[" + adapters.ToString() + "]}";
+        } catch (Exception ex) {
+            return "{\"Available\":false,\"Error\":\"" + JsonEscape(ex.GetType().Name + ": " + ex.Message) + "\",\"Adapters\":[]}";
+        } finally {
+            if (factory != null) { try { Marshal.ReleaseComObject(factory); } catch { } }
+        }
+    }
+
 }
-"@
+'@
 
 if (-not ("BackgroundNapNative" -as [type])) {
     Add-Type -TypeDefinition $cs -Language CSharp
@@ -971,6 +1226,21 @@ function Get-AppIdentityKeyFromText {
     return Get-LearningKeyFromText -ProcessName $ProcessName -Path $Path
 }
 
+function Test-LauncherBrowserHelper {
+    param(
+        [string]$ProcessName,
+        [string]$Path
+    )
+
+    $name = [string]$ProcessName
+    if ($name -match "(?i)^(EACefSubProcess|CefSharp\.BrowserSubprocess|QtWebEngineProcess|EpicWebHelper|steamwebhelper|msedgewebview2)$") { return $true }
+    if ($name -match "(?i)(cefsubprocess|webhelper|webview|browserhelper)") {
+        $launcherFragments = @("\Electronic Arts\", "\EA Desktop\", "\EA Games\", "\Epic Games\Launcher\", "\Steam\", "\Ubisoft\", "\Battle.net\", "\Riot Client\", "\GOG Galaxy\")
+        if (Test-PathContainsFragment -Path $Path -Fragments $launcherFragments) { return $true }
+    }
+    return $false
+}
+
 function Get-ProcessRole {
     param(
         [string]$ProcessName,
@@ -978,26 +1248,26 @@ function Get-ProcessRole {
     )
 
     if (Test-NameInSet -Set $knownLauncherNames -Name $ProcessName) { return "Launcher" }
+    if (Test-LauncherBrowserHelper -ProcessName $ProcessName -Path $Path) { return "Launcher" }
     if (Test-NameInSet -Set $knownCommunicationNames -Name $ProcessName) { return "Communication" }
     if (Test-NameInSet -Set $knownStreamingNames -Name $ProcessName) { return "Streaming" }
     if (Test-StreamerBrowserHelper -ProcessName $ProcessName -Path $Path) { return "StreamHelper" }
     if (Test-NameInSet -Set $knownMediaNames -Name $ProcessName) { return "Media" }
     if (Test-PathContainsFragment -Path $Path -Fragments $knownGamePathFragments) { return "GameCandidate" }
-    if ($ProcessName -match '^(chrome|msedge|firefox|zen|brave|opera|vivaldi)$') { return "Browser" }
+    if ($ProcessName -match "^(chrome|msedge|firefox|zen|brave|opera|vivaldi)$") { return "Browser" }
     return "App"
 }
-
 
 function Get-UdpEndpointCountByPid {
     $map = @{}
     if (-not $networkUdpGuardEnabled) { return $map }
     try {
         foreach ($endpoint in @(Get-NetUDPEndpoint -ErrorAction Stop)) {
-            $pid = 0
-            try { $pid = [int]$endpoint.OwningProcess } catch { $pid = 0 }
-            if ($pid -le 0) { continue }
-            if (-not $map.ContainsKey($pid)) { $map[$pid] = 0 }
-            $map[$pid] = [int]$map[$pid] + 1
+            $processIdValue = 0
+            try { $processIdValue = [int]$endpoint.OwningProcess } catch { $processIdValue = 0 }
+            if ($processIdValue -le 0) { continue }
+            if (-not $map.ContainsKey($processIdValue)) { $map[$processIdValue] = 0 }
+            $map[$processIdValue] = [int]$map[$processIdValue] + 1
         }
         if ($map.Count -gt 0) { return $map }
     } catch {
@@ -1006,16 +1276,523 @@ function Get-UdpEndpointCountByPid {
         foreach ($line in @(netstat.exe -ano -p UDP 2>$null)) {
             $match = [regex]::Match([string]$line, '^\s*UDP\s+\S+\s+\*:\*\s+(\d+)\s*$')
             if (-not $match.Success) { continue }
-            $pid = [int]$match.Groups[1].Value
-            if ($pid -le 0) { continue }
-            if (-not $map.ContainsKey($pid)) { $map[$pid] = 0 }
-            $map[$pid] = [int]$map[$pid] + 1
+            $processIdValue = [int]$match.Groups[1].Value
+            if ($processIdValue -le 0) { continue }
+            if (-not $map.ContainsKey($processIdValue)) { $map[$processIdValue] = 0 }
+            $map[$processIdValue] = [int]$map[$processIdValue] + 1
         }
     } catch {
     }
     return $map
 }
 
+function Get-GameSessionRootFromPath {
+    param([string]$Path)
+
+    if ([string]::IsNullOrWhiteSpace($Path)) { return "" }
+    $full = [string]$Path
+    try { $full = [System.IO.Path]::GetFullPath($Path) } catch { }
+    $lower = $full.ToLowerInvariant()
+    foreach ($fragment in @($knownGamePathFragments)) {
+        $fragmentText = [string]$fragment
+        if ([string]::IsNullOrWhiteSpace($fragmentText)) { continue }
+        $needle = $fragmentText.ToLowerInvariant()
+        $index = $lower.IndexOf($needle, [System.StringComparison]::OrdinalIgnoreCase)
+        if ($index -lt 0) { continue }
+        $start = $index + $needle.Length
+        while ($start -lt $lower.Length -and ($lower[$start] -eq '\' -or $lower[$start] -eq '/')) { $start++ }
+        $nextSlash = $lower.IndexOf('\', $start)
+        $nextAltSlash = $lower.IndexOf('/', $start)
+        if ($nextSlash -lt 0 -or ($nextAltSlash -ge 0 -and $nextAltSlash -lt $nextSlash)) { $nextSlash = $nextAltSlash }
+        if ($nextSlash -gt $start) {
+            return $lower.Substring(0, $nextSlash).TrimEnd('\', '/')
+        }
+    }
+    try {
+        $dir = [System.IO.Path]::GetDirectoryName($full)
+        if (-not [string]::IsNullOrWhiteSpace($dir)) { return $dir.ToLowerInvariant().TrimEnd('\', '/') }
+    } catch {
+    }
+    return ""
+}
+
+function Test-SameGameSessionRoot {
+    param(
+        [string]$Left,
+        [string]$Right
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Left) -or [string]::IsNullOrWhiteSpace($Right)) { return $false }
+    $leftRoot = $Left.ToLowerInvariant().TrimEnd('\', '/')
+    $rightRoot = $Right.ToLowerInvariant().TrimEnd('\', '/')
+    if ($leftRoot.Length -lt 5 -or $rightRoot.Length -lt 5) { return $false }
+    if ($leftRoot.Equals($rightRoot, [System.StringComparison]::OrdinalIgnoreCase)) { return $true }
+    return $leftRoot.StartsWith($rightRoot + "\", [System.StringComparison]::OrdinalIgnoreCase) -or $rightRoot.StartsWith($leftRoot + "\", [System.StringComparison]::OrdinalIgnoreCase) -or $leftRoot.StartsWith($rightRoot + "/", [System.StringComparison]::OrdinalIgnoreCase) -or $rightRoot.StartsWith($leftRoot + "/", [System.StringComparison]::OrdinalIgnoreCase)
+}
+
+function Get-RelatedUdpEndpointSummary {
+    param(
+        [object]$Anchor,
+        [string]$AnchorPath,
+        [array]$Processes,
+        [hashtable]$UdpMap
+    )
+
+    $result = [ordered]@{
+        EndpointCount = 0
+        ProcessCount = 0
+        Pids = @()
+        Paths = @()
+        Root = ""
+        Signals = @()
+    }
+    if (-not $Anchor -or -not $UdpMap -or $UdpMap.Count -eq 0) { return [pscustomobject]$result }
+
+    $anchorPid = 0
+    try { $anchorPid = [int]$Anchor.Id } catch { $anchorPid = 0 }
+    $anchorName = [string]$Anchor.ProcessName
+    $anchorRole = Get-ProcessRole -ProcessName $anchorName -Path $AnchorPath
+    if ($anchorRole -in @("Browser", "Communication", "Media", "Streaming", "StreamHelper", "Launcher")) { return [pscustomobject]$result }
+
+    $anchorRoot = Get-GameSessionRootFromPath -Path $AnchorPath
+    $result.Root = $anchorRoot
+    $pidSet = New-Object "System.Collections.Generic.HashSet[int]"
+    $pathSet = New-Object "System.Collections.Generic.HashSet[string]" ([System.StringComparer]::OrdinalIgnoreCase)
+
+    foreach ($p in @($Processes)) {
+        $processIdValue = 0
+        try { $processIdValue = [int]$p.Id } catch { $processIdValue = 0 }
+        if ($processIdValue -le 0 -or -not $UdpMap.ContainsKey($processIdValue)) { continue }
+        $udpCount = [int]$UdpMap[$processIdValue]
+        if ($udpCount -lt 1) { continue }
+
+        $path = Get-ProcessPathText -Process $p
+        $sameSession = ($processIdValue -eq $anchorPid)
+        if (-not $sameSession -and -not [string]::IsNullOrWhiteSpace($anchorRoot) -and -not [string]::IsNullOrWhiteSpace($path)) {
+            $processRoot = Get-GameSessionRootFromPath -Path $path
+            $sameSession = Test-SameGameSessionRoot -Left $anchorRoot -Right $processRoot
+        }
+        if (-not $sameSession) { continue }
+
+        if ($pidSet.Add($processIdValue)) {
+            $result.EndpointCount = [int]$result.EndpointCount + $udpCount
+            if (-not [string]::IsNullOrWhiteSpace($path)) { [void]$pathSet.Add($path) }
+        }
+    }
+
+    $result.ProcessCount = [int]$pidSet.Count
+    $result.Pids = @($pidSet)
+    $result.Paths = @($pathSet)
+    if ($result.ProcessCount -gt 1) { $result.Signals = @("udp-associated-helper") }
+    return [pscustomobject]$result
+}
+
+function Get-UdpSessionProfileKey {
+    param([string]$ProcessName, [string]$Path, [string]$Root)
+    if (-not [string]::IsNullOrWhiteSpace($Root)) { return "root:" + $Root.Trim().ToLowerInvariant() }
+    if (-not [string]::IsNullOrWhiteSpace($Path)) { return "path:" + $Path.Trim().ToLowerInvariant() }
+    if (-not [string]::IsNullOrWhiteSpace($ProcessName)) { return "name:" + $ProcessName.Trim().ToLowerInvariant() }
+    return ""
+}
+
+function Read-UdpSessionProfileMap {
+    $map = @{}
+    if (-not $networkUdpGuardSessionLearning) { return $map }
+    foreach ($item in @(Read-StateArray -Path $udpProfileStatePath)) {
+        if (-not $item.Key) { continue }
+        $map[[string]$item.Key] = [pscustomobject]@{
+            Key = [string]$item.Key
+            ProcessName = [string]$item.ProcessName
+            Root = [string]$item.Root
+            Observations = [int]$item.Observations
+            ArmedObservations = [int]$item.ArmedObservations
+            LastSeenAt = [string]$item.LastSeenAt
+            LastConfidence = [int]$item.LastConfidence
+            LastEndpoints = [int]$item.LastEndpoints
+        }
+    }
+    return $map
+}
+
+function Save-UdpSessionProfileMap {
+    param([hashtable]$Map)
+    if (-not $networkUdpGuardSessionLearning -or -not $Map) { return }
+    $items = @($Map.Values | Sort-Object @{Expression = "LastSeenAt"; Descending = $true} | Select-Object -First $networkUdpGuardHistoryMaxProfiles)
+    Write-StateArray -Path $udpProfileStatePath -Items $items
+}
+
+function Get-UdpProfileBonus {
+    param([hashtable]$Map, [string]$ProcessName, [string]$Path, [string]$Root)
+    if (-not $networkUdpGuardSessionLearning -or -not $Map) { return 0 }
+    $key = Get-UdpSessionProfileKey -ProcessName $ProcessName -Path $Path -Root $Root
+    if ([string]::IsNullOrWhiteSpace($key) -or -not $Map.ContainsKey($key)) { return 0 }
+    $obs = [int]$Map[$key].Observations
+    if ($obs -le 0) { return 0 }
+    return [math]::Min(14, 4 + $obs)
+}
+
+function Update-UdpSessionProfile {
+    param([hashtable]$Map, [object]$Context)
+    if (-not $networkUdpGuardSessionLearning -or -not $Map -or -not $Context -or -not [bool]$Context.Enabled) { return }
+    $key = Get-UdpSessionProfileKey -ProcessName ([string]$Context.Game) -Path ([string]$Context.GamePath) -Root ([string]$Context.GameRoot)
+    if ([string]::IsNullOrWhiteSpace($key)) { return }
+    $item = if ($Map.ContainsKey($key)) { $Map[$key] } else { [pscustomobject]@{ Key = $key; ProcessName = [string]$Context.Game; Root = [string]$Context.GameRoot; Observations = 0; ArmedObservations = 0; LastSeenAt = ""; LastConfidence = 0; LastEndpoints = 0 } }
+    if ([bool]$Context.Active) { $item.Observations = [int]$item.Observations + 1 } else { $item.ArmedObservations = [int]$item.ArmedObservations + 1 }
+    $item.ProcessName = [string]$Context.Game
+    $item.Root = [string]$Context.GameRoot
+    $item.LastSeenAt = (Get-Date).ToString("o")
+    $item.LastConfidence = [int]$Context.Confidence
+    $item.LastEndpoints = [int]$Context.EndpointCount
+    $Map[$key] = $item
+    Save-UdpSessionProfileMap -Map $Map
+}
+
+function Get-UdpConfidenceLabel {
+    param([int]$Confidence)
+    if ($Confidence -ge $networkUdpGuardConfidenceHigh) { return "High" }
+    if ($Confidence -ge $networkUdpGuardConfidenceFloor) { return "Medium" }
+    if ($Confidence -gt 0) { return "Low" }
+    return "None"
+}
+
+function Get-UdpConfidenceReason {
+    param([string[]]$Signals, [string]$Source)
+    $set = New-Object "System.Collections.Generic.HashSet[string]" ([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($s in @($Signals)) { if ($s) { [void]$set.Add([string]$s) } }
+    if ($set.Contains("direct-udp")) { return "UDP direto no jogo" }
+    if ($set.Contains("foreground-associated")) { return "UDP em helper relacionado ao jogo" }
+    if ($set.Contains("known-game-path")) { return "Processo reconhecido como jogo" }
+    if ($set.Contains("fullscreen")) { return "Tela cheia com sinais UDP" }
+    if ([string]::Equals($Source, "Associated", [System.StringComparison]::OrdinalIgnoreCase)) { return "Sessao online associada ao foreground" }
+    return "Sessao UDP local detectada"
+}
+
+function Test-ProcessElevatedRuntime {
+    try {
+        $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+        $principal = New-Object Security.Principal.WindowsPrincipal($identity)
+        return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    } catch {
+        return $false
+    }
+}
+
+function Get-StableShortHash {
+    param([string]$Text)
+    if ([string]::IsNullOrWhiteSpace($Text)) { return "unknown" }
+    try {
+        $sha = [System.Security.Cryptography.SHA1]::Create()
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($Text.ToLowerInvariant())
+        $hash = $sha.ComputeHash($bytes)
+        return -join ($hash[0..5] | ForEach-Object { $_.ToString("x2") })
+    } catch { return ([math]::Abs($Text.GetHashCode())).ToString([System.Globalization.CultureInfo]::InvariantCulture) }
+}
+function Get-ZeroPingQosPolicyPrefix {
+    $prefix = ([string]$networkUdpGuardQosPolicyPrefix).Trim()
+    if ([string]::IsNullOrWhiteSpace($prefix)) { $prefix = "SmartNap Zero Ping" }
+    return $prefix
+}
+
+function Get-ZeroPingQosManagedPolicies {
+    try {
+        if (-not (Get-Command Get-NetQosPolicy -ErrorAction SilentlyContinue)) { return @() }
+        $prefix = Get-ZeroPingQosPolicyPrefix
+        return @(Get-NetQosPolicy -PolicyStore ActiveStore -ErrorAction SilentlyContinue | Where-Object { [string]$_.Name -like ($prefix + "*") })
+    } catch {
+        return @()
+    }
+}
+
+function Remove-ZeroPingQosManagedPolicies {
+    param([string[]]$KeepNames = @())
+    try {
+        if (-not (Test-ProcessElevatedRuntime)) { return "NeedsAdmin" }
+        if (-not (Get-Command Remove-NetQosPolicy -ErrorAction SilentlyContinue)) { return "Unavailable" }
+        $keep = New-Object "System.Collections.Generic.HashSet[string]" ([System.StringComparer]::OrdinalIgnoreCase)
+        foreach ($name in @($KeepNames)) { if (-not [string]::IsNullOrWhiteSpace([string]$name)) { [void]$keep.Add([string]$name) } }
+        foreach ($policy in @(Get-ZeroPingQosManagedPolicies)) {
+            $name = [string]$policy.Name
+            if ([string]::IsNullOrWhiteSpace($name) -or $keep.Contains($name)) { continue }
+            try { Remove-NetQosPolicy -Name $name -PolicyStore ActiveStore -Confirm:$false -ErrorAction Stop | Out-Null } catch { }
+        }
+        return "OK"
+    } catch {
+        return "Unavailable"
+    }
+}
+
+function Ensure-ZeroPingQosPolicy {
+    param([object]$Context)
+    if ([string]::IsNullOrWhiteSpace([string]$networkUdpGuardQosMode) -or [string]::Equals([string]$networkUdpGuardQosMode, "Off", [System.StringComparison]::OrdinalIgnoreCase)) {
+        [void](Remove-ZeroPingQosManagedPolicies)
+        return "Off"
+    }
+    if (-not $networkUdpGuardEnabled) {
+        [void](Remove-ZeroPingQosManagedPolicies)
+        return "Off"
+    }
+    if (-not $Context -or -not [bool]$Context.Active) {
+        [void](Remove-ZeroPingQosManagedPolicies)
+        return "Ready"
+    }
+    if (-not (Test-ProcessElevatedRuntime)) { return "NeedsAdmin" }
+    if (-not (Get-Command New-NetQosPolicy -ErrorAction SilentlyContinue)) { return "Unavailable" }
+
+    $paths = New-Object System.Collections.ArrayList
+    foreach ($path in (@([string]$Context.GamePath) + @($Context.ProtectedPaths))) {
+        $p = [string]$path
+        if ([string]::IsNullOrWhiteSpace($p)) { continue }
+        if (-not ($p.EndsWith(".exe", [System.StringComparison]::OrdinalIgnoreCase))) { continue }
+        if (-not (Test-Path -LiteralPath $p -PathType Leaf)) { continue }
+        if (-not $paths.Contains($p)) { [void]$paths.Add($p) }
+        if ($paths.Count -ge 6) { break }
+    }
+    if ($paths.Count -eq 0) { return "NoPath" }
+
+    $prefix = Get-ZeroPingQosPolicyPrefix
+    $targetNames = New-Object System.Collections.ArrayList
+    foreach ($path in @($paths)) {
+        $name = $prefix + " " + (Get-StableShortHash -Text ([string]$path))
+        if (-not $targetNames.Contains($name)) { [void]$targetNames.Add($name) }
+    }
+    [void](Remove-ZeroPingQosManagedPolicies -KeepNames ([string[]]@($targetNames)))
+
+    $createdOrKept = 0
+    foreach ($path in @($paths)) {
+        $name = $prefix + " " + (Get-StableShortHash -Text ([string]$path))
+        try {
+            $existing = Get-NetQosPolicy -PolicyStore ActiveStore -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq $name } | Select-Object -First 1
+            if (-not $existing) {
+                New-NetQosPolicy -Name $name -AppPathNameMatchCondition ([string]$path) -IPProtocolMatchCondition UDP -DSCPAction ([int]$networkUdpGuardQosDscp) -PolicyStore ActiveStore -ErrorAction Stop | Out-Null
+            }
+            $createdOrKept++
+        } catch {
+        }
+    }
+    if ($createdOrKept -gt 0) { return "Active" }
+    return "Unavailable"
+}
+function Get-DxgiVideoMemorySnapshot {
+    try {
+        if (-not ("BackgroundNapNative" -as [type])) { return $null }
+        $json = [BackgroundNapNative]::GetDxgiVideoMemoryJson()
+        if ([string]::IsNullOrWhiteSpace($json)) { return $null }
+        $snapshot = $json | ConvertFrom-Json
+        if ($snapshot -and [bool]$snapshot.Available) { return $snapshot }
+    } catch {
+    }
+    return $null
+}
+
+function Get-GpuPressureSnapshot {
+    param([array]$Processes)
+    $procNames = @{}
+    foreach ($p in @($Processes)) { try { $procNames[[int]$p.Id] = [string]$p.ProcessName } catch { } }
+    $dedicated = @{}
+    $shared = @{}
+    $gpuUtil = @{}
+    $counterAdapterDedicated = 0.0
+    $counterAdapterShared = 0.0
+    $available = $false
+    try {
+        $samples = @(Get-Counter -Counter @('\GPU Process Memory(*)\Dedicated Usage','\GPU Process Memory(*)\Shared Usage') -ErrorAction Stop).CounterSamples
+        foreach ($sample in $samples) {
+            if (-not $sample.Path -or $sample.Path -notmatch 'pid_(\d+)') { continue }
+            $processIdValue = [int]$matches[1]
+            $mb = [double]$sample.CookedValue / 1MB
+            if ($mb -lt 0) { $mb = 0.0 }
+            if ($sample.Path -match '\Dedicated Usage$') {
+                if (-not $dedicated.ContainsKey($processIdValue)) { $dedicated[$processIdValue] = 0.0 }
+                $dedicated[$processIdValue] = [double]$dedicated[$processIdValue] + $mb
+            } elseif ($sample.Path -match '\Shared Usage$') {
+                if (-not $shared.ContainsKey($processIdValue)) { $shared[$processIdValue] = 0.0 }
+                $shared[$processIdValue] = [double]$shared[$processIdValue] + $mb
+            }
+        }
+        $available = $true
+    } catch { }
+    try {
+        $adapterSamples = @(Get-Counter -Counter @('\GPU Adapter Memory(*)\Dedicated Usage','\GPU Adapter Memory(*)\Shared Usage') -ErrorAction Stop).CounterSamples
+        foreach ($sample in $adapterSamples) {
+            $mb = [double]$sample.CookedValue / 1MB
+            if ($mb -lt 0) { $mb = 0.0 }
+            if ($sample.Path -match '\Dedicated Usage$') { $counterAdapterDedicated += $mb }
+            elseif ($sample.Path -match '\Shared Usage$') { $counterAdapterShared += $mb }
+        }
+        $available = $true
+    } catch { }
+    try {
+        $engineSamples = @(Get-Counter -Counter @('\GPU Engine(*)\Utilization Percentage') -ErrorAction Stop).CounterSamples
+        foreach ($sample in $engineSamples) {
+            if (-not $sample.Path -or $sample.Path -notmatch 'pid_(\d+)') { continue }
+            $processIdValue = [int]$matches[1]
+            $value = [double]$sample.CookedValue
+            if ($value -lt 0) { $value = 0.0 }
+            if (-not $gpuUtil.ContainsKey($processIdValue)) { $gpuUtil[$processIdValue] = 0.0 }
+            $gpuUtil[$processIdValue] = [double]$gpuUtil[$processIdValue] + $value
+        }
+        $available = $true
+    } catch { }
+
+    $dxgi = Get-DxgiVideoMemorySnapshot
+    $dxgiAvailable = $false
+    $dxgiAdapters = @()
+    if ($dxgi -and [bool]$dxgi.Available) { $dxgiAvailable = $true; $dxgiAdapters = @($dxgi.Adapters); $available = $true }
+    $dxgiLocalBudget = 0.0; $dxgiLocalUsage = 0.0; $dxgiLocalAvailable = 0.0
+    $dxgiNonLocalBudget = 0.0; $dxgiNonLocalUsage = 0.0; $dxgiNonLocalAvailable = 0.0
+    $primaryAdapter = $null
+    if ($dxgiAvailable) {
+        foreach ($adapter in @($dxgiAdapters)) {
+            try { $dxgiLocalBudget += [double]$adapter.LocalBudgetMB } catch { }
+            try { $dxgiLocalUsage += [double]$adapter.LocalUsageMB } catch { }
+            try { $dxgiLocalAvailable += [double]$adapter.LocalAvailableMB } catch { }
+            try { $dxgiNonLocalBudget += [double]$adapter.NonLocalBudgetMB } catch { }
+            try { $dxgiNonLocalUsage += [double]$adapter.NonLocalUsageMB } catch { }
+            try { $dxgiNonLocalAvailable += [double]$adapter.NonLocalAvailableMB } catch { }
+        }
+        $primary = @($dxgiAdapters | Sort-Object @{ Expression = { try { [double]$_.LocalUsageMB } catch { 0.0 } }; Descending = $true }, @{ Expression = { try { [double]$_.DedicatedVideoMemoryMB } catch { 0.0 } }; Descending = $true } | Select-Object -First 1)
+        if ($primary.Count -gt 0) { $primaryAdapter = $primary[0] }
+    }
+
+    $topPid = 0
+    $topValue = -1.0
+    foreach ($processIdValue in @($gpuUtil.Keys)) {
+        $value = [double]$gpuUtil[$processIdValue]
+        if ($value -gt $topValue) { $topValue = $value; $topPid = [int]$processIdValue }
+    }
+    if ($topPid -le 0) {
+        foreach ($processIdValue in @($dedicated.Keys)) {
+            $value = [double]$dedicated[$processIdValue]
+            if ($value -gt $topValue) { $topValue = $value; $topPid = [int]$processIdValue }
+        }
+    }
+    $topDedicated = if ($topPid -gt 0 -and $dedicated.ContainsKey($topPid)) { [double]$dedicated[$topPid] } else { 0.0 }
+    $topPercent = if ($topPid -gt 0 -and $gpuUtil.ContainsKey($topPid)) { [double]$gpuUtil[$topPid] } else { 0.0 }
+    $totalUtil = 0.0
+    foreach ($value in @($gpuUtil.Values)) { $totalUtil += [double]$value }
+    if ($totalUtil -gt 100.0) { $totalUtil = 100.0 }
+
+    $adapterDedicatedForState = if ($dxgiAvailable -and $dxgiLocalUsage -gt 0.0) { $dxgiLocalUsage } else { $counterAdapterDedicated }
+    $adapterSharedForState = if ($dxgiAvailable -and $dxgiNonLocalUsage -gt 0.0) { $dxgiNonLocalUsage } else { $counterAdapterShared }
+    $localUsageForDisplay = if ($dxgiAvailable -and $dxgiLocalBudget -gt 0.0) { $adapterDedicatedForState } else { $dxgiLocalUsage }
+    $localUsagePct = 0.0
+    if ($dxgiLocalBudget -gt 0.0 -and $adapterDedicatedForState -gt 0.0) { $localUsagePct = [math]::Round(($adapterDedicatedForState / $dxgiLocalBudget) * 100.0, 1) }
+    $pressure = "Unknown"
+    if ($available) {
+        if ($dxgiAvailable -and $dxgiLocalBudget -gt 0.0) {
+            if ($localUsagePct -ge $vramPressureCriticalPercent) { $pressure = "Critical" }
+            elseif ($localUsagePct -ge $vramPressureHighPercent) { $pressure = "Elevated" }
+            elseif ($totalUtil -ge 82.0) { $pressure = "Busy" }
+            else { $pressure = "Normal" }
+        } else {
+            if ($totalUtil -ge 78.0 -or $adapterDedicatedForState -ge 6144.0 -or $topDedicated -ge 1536.0) { $pressure = "Busy" }
+            elseif ($totalUtil -ge 45.0 -or $adapterDedicatedForState -ge 3072.0 -or $topDedicated -ge 768.0) { $pressure = "Elevated" }
+            else { $pressure = "Normal" }
+        }
+    }
+    $snapshot = [pscustomobject]@{
+        Available = [bool]$available
+        Provider = if ($dxgiAvailable) { "DXGI video memory budget + Windows GPU counters" } elseif ($available) { "Windows GPU counters" } else { "Unavailable" }
+        DxgiAvailable = [bool]$dxgiAvailable
+        Pressure = $pressure
+        AdapterName = if ($primaryAdapter) { [string]$primaryAdapter.Name } else { "" }
+        AdapterDedicatedVideoMemoryMB = if ($primaryAdapter) { [math]::Round([double]$primaryAdapter.DedicatedVideoMemoryMB, 1) } else { 0.0 }
+        AdapterSharedSystemMemoryMB = if ($primaryAdapter) { [math]::Round([double]$primaryAdapter.SharedSystemMemoryMB, 1) } else { 0.0 }
+        AdapterLocalBudgetMB = [math]::Round($dxgiLocalBudget, 1)
+        AdapterLocalUsageMB = [math]::Round($localUsageForDisplay, 1)
+        AdapterLocalAvailableMB = [math]::Round($dxgiLocalAvailable, 1)
+        AdapterLocalUsagePercent = [math]::Round($localUsagePct, 1)
+        AdapterNonLocalBudgetMB = [math]::Round($dxgiNonLocalBudget, 1)
+        AdapterNonLocalUsageMB = [math]::Round($dxgiNonLocalUsage, 1)
+        AdapterNonLocalAvailableMB = [math]::Round($dxgiNonLocalAvailable, 1)
+        AdapterDedicatedUsageMB = [math]::Round($adapterDedicatedForState, 1)
+        AdapterSharedUsageMB = [math]::Round($adapterSharedForState, 1)
+        TotalGpuUtilPercent = [math]::Round($totalUtil, 1)
+        TopProcess = if ($topPid -gt 0 -and $procNames.ContainsKey($topPid)) { [string]$procNames[$topPid] } else { "" }
+        TopProcessPid = [int]$topPid
+        TopProcessPercent = [math]::Round($topPercent, 1)
+        TopProcessDedicatedMB = [math]::Round($topDedicated, 1)
+        ProcessGpuPercentByPid = $gpuUtil
+        ProcessDedicatedMBByPid = $dedicated
+        ProcessSharedMBByPid = $shared
+    }
+    try { $snapshot | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $gpuPressureStatePath -Encoding UTF8 } catch { }
+    return $snapshot
+}
+
+function Get-GpuMetricForPid {
+    param([int]$ProcessId)
+    $percent = 0.0
+    $dedicated = 0.0
+    $shared = 0.0
+    if ($script:currentGpuPressure) {
+        if ($script:currentGpuPressure.ProcessGpuPercentByPid -and $script:currentGpuPressure.ProcessGpuPercentByPid.ContainsKey($ProcessId)) { $percent = [double]$script:currentGpuPressure.ProcessGpuPercentByPid[$ProcessId] }
+        if ($script:currentGpuPressure.ProcessDedicatedMBByPid -and $script:currentGpuPressure.ProcessDedicatedMBByPid.ContainsKey($ProcessId)) { $dedicated = [double]$script:currentGpuPressure.ProcessDedicatedMBByPid[$ProcessId] }
+        if ($script:currentGpuPressure.ProcessSharedMBByPid -and $script:currentGpuPressure.ProcessSharedMBByPid.ContainsKey($ProcessId)) { $shared = [double]$script:currentGpuPressure.ProcessSharedMBByPid[$ProcessId] }
+    }
+    [pscustomobject]@{ Percent = [math]::Round($percent, 1); DedicatedMB = [math]::Round($dedicated, 1); SharedMB = [math]::Round($shared, 1) }
+}
+
+function Test-GpuHelperPressure {
+    param([string]$Role, [double]$CpuPercent, [double]$GpuPercent, [double]$GpuDedicatedMB, [bool]$UdpProtected, [object]$GuardReason, [bool]$SwitchFastWake)
+    if (-not $gpuHelperGuard -or -not $script:currentGpuPressure -or -not [bool]$script:currentGpuPressure.Available) { return $false }
+    if ($UdpProtected -or $GuardReason -or $SwitchFastWake) { return $false }
+    if ($Role -notin @("Browser", "Launcher", "StreamHelper")) { return $false }
+    if ($CpuPercent -gt $gpuHelperCpuCeiling -and $GpuPercent -lt 8.0) { return $false }
+    return ($GpuDedicatedMB -ge $gpuHelperDedicatedMemoryMB -or $GpuPercent -ge 8.0)
+}
+function Get-CpuBoundAssistContext {
+    param([object]$Foreground, [hashtable]$CpuMap, [object]$GpuSnapshot, [object]$UdpGuard)
+    $base = [pscustomobject]@{ Enabled = [bool]$cpuBoundAssist; Active = $false; Game = ""; GamePid = 0; CpuPercent = 0.0; GpuPercent = 0.0; Confidence = 0; Reason = "" }
+    if (-not $cpuBoundAssist -or -not $Foreground -or [int]$Foreground.Id -le 0) { return $base }
+    $processIdValue = [int]$Foreground.Id
+    $cpu = if ($CpuMap -and $CpuMap.ContainsKey($processIdValue)) { [double]$CpuMap[$processIdValue] } else { 0.0 }
+    $gpu = 0.0
+    if ($GpuSnapshot -and $GpuSnapshot.ProcessGpuPercentByPid -and $GpuSnapshot.ProcessGpuPercentByPid.ContainsKey($processIdValue)) { $gpu = [double]$GpuSnapshot.ProcessGpuPercentByPid[$processIdValue] }
+    $path = [string]$Foreground.Path
+    $role = Get-ProcessRole -ProcessName ([string]$Foreground.ProcessName) -Path $path
+    $looksGame = ([bool]$Foreground.IsFullscreen) -or ($role -eq "GameCandidate") -or (Test-PathContainsFragment -Path $path -Fragments $knownGamePathFragments) -or ($UdpGuard -and [bool]$UdpGuard.Active -and [int]$UdpGuard.GamePid -eq $processIdValue)
+    if (-not $looksGame -or $cpu -lt $cpuBoundGameCpuPercent) { return $base }
+    $confidence = 42
+    $confidence += [math]::Min(24, [int]($cpu * 2.0))
+    if ($gpu -lt 35.0) { $confidence += 16 } elseif ($gpu -lt 55.0) { $confidence += 10 }
+    if ([bool]$Foreground.IsFullscreen) { $confidence += 10 }
+    if ($role -eq "GameCandidate" -or (Test-PathContainsFragment -Path $path -Fragments $knownGamePathFragments)) { $confidence += 8 }
+    if ($UdpGuard -and [bool]$UdpGuard.Active) { $confidence += 8 }
+    if ($confidence -gt 100) { $confidence = 100 }
+    $active = $confidence -ge 62
+    return [pscustomobject]@{ Enabled = $true; Active = [bool]$active; Game = [string]$Foreground.ProcessName; GamePid = $processIdValue; CpuPercent = [math]::Round($cpu, 1); GpuPercent = [math]::Round($gpu, 1); Confidence = [int]$confidence; Reason = if ($active) { "CPU-bound assist ativo" } else { "Observando jogo ativo" } }
+}
+
+function Test-CpuBoundBackgroundCandidate {
+    param([object]$Row)
+    if (-not $cpuBoundAssist -or -not $script:currentCpuBoundAssist -or -not [bool]$script:currentCpuBoundAssist.Active -or -not $Row) { return $false }
+    if ($Row.GuardReason -or [bool]$Row.SwitchFastWake -or [bool]$Row.UdpGameProtected) { return $false }
+    if ([string]$Row.AppPolicy -in @("Protect", "Light")) { return $false }
+    if ($realtimeFriendlyNames.Contains([string]$Row.ProcessName)) { return $false }
+    if ([string]$Row.Role -in @("Streaming", "Communication", "Media", "GameCandidate", "Launcher", "Browser", "StreamHelper")) { return $false }
+    if ([double]$Row.CpuPercent -gt 10.0) { return $false }
+    return $true
+}
+
+function Write-RollbackAudit {
+    param([string]$ActionName, [array]$Results)
+    try {
+        $items = @($Results)
+        $state = [pscustomobject]@{
+            Timestamp = (Get-Date).ToString("o")
+            Action = [string]$ActionName
+            Count = $items.Count
+            PriorityOk = @($items | Where-Object { [string]$_.PriorityRestore -eq "OK" -or [string]$_.Priority -eq "OK" }).Count
+            MemoryOk = @($items | Where-Object { [string]$_.MemoryPriority -eq "OK" }).Count
+            IoOk = @($items | Where-Object { [string]$_.IoPriority -eq "OK" }).Count
+            AffinityOk = @($items | Where-Object { [string]$_.CpuAffinity -eq "OK" -or [string]$_.CpuAffinity -eq "Already" -or [string]$_.CpuAffinity -eq "Disabled" }).Count
+            EcoOk = @($items | Where-Object { [string]$_.PowerThrottling -eq "OK" }).Count
+            Errors = @($items | Where-Object { ([string]$_.PriorityRestore + [string]$_.Priority + [string]$_.MemoryPriority + [string]$_.IoPriority + [string]$_.CpuAffinity + [string]$_.PowerThrottling) -match "Error|Denied|Access" } | Select-Object -First 12)
+        }
+        $state | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $rollbackAuditStatePath -Encoding UTF8
+    } catch { }
+}
 function Test-UdpGameCandidate {
     param(
         [int]$ProcessId,
@@ -1039,92 +1816,120 @@ function Test-UdpGameCandidate {
     return $false
 }
 
-function Test-UdpProtectedProcess {
-    param(
-        [int]$ProcessId,
-        [string]$ProcessName,
-        [string]$Path
-    )
 
+
+function Test-VramPressureActive {
+    if (-not $vramPressureMode -or -not $script:currentGpuPressure -or -not [bool]$script:currentGpuPressure.Available) { return $false }
+    return ([string]$script:currentGpuPressure.Pressure -in @("Elevated", "Critical", "Busy"))
+}
+
+function Write-EngineHealthState {
+    param([array]$Rows, [array]$Results)
+    if (-not $engineHealthCheck) { return }
+    try {
+        $denied = @($Results | Where-Object { ([string]$_.Priority + [string]$_.MemoryPriority + [string]$_.IoPriority + [string]$_.CpuAffinity + [string]$_.PowerThrottling) -match "Denied|Access|0x00000005" })
+        $state = [pscustomobject]@{
+            Timestamp = (Get-Date).ToString("o")
+            Status = if ($denied.Count -gt 0) { "Attention" } else { "OK" }
+            Summary = if ($denied.Count -gt 0) { "Permissoes: " + $denied.Count } else { "Motor OK" }
+            Rows = @($Rows).Count
+            Results = @($Results).Count
+            ZeroPing = if ($script:currentUdpGuard) { [string]$script:currentUdpGuard.QosStatus } else { "Off" }
+            Vram = if ($script:currentGpuPressure) { [string]$script:currentGpuPressure.Pressure } else { "Unknown" }
+            CpuBound = if ($script:currentCpuBoundAssist -and [bool]$script:currentCpuBoundAssist.Active) { "Active" } else { "Ready" }
+            Elevated = (Test-ProcessElevatedRuntime)
+        }
+        $script:currentEngineHealth = $state
+        $state | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $engineHealthStatePath -Encoding UTF8
+    } catch { }
+}
+function Test-UdpProtectedProcess {
+    param([int]$ProcessId, [string]$ProcessName, [string]$Path)
     if (-not $networkUdpGuardEnabled -or -not $script:currentUdpGuard -or -not [bool]$script:currentUdpGuard.Active) { return $false }
+    foreach ($processIdValue in @($script:currentUdpGuard.ProtectedPids)) { try { if ([int]$processIdValue -eq $ProcessId) { return $true } } catch { } }
     if ([int]$script:currentUdpGuard.GamePid -eq $ProcessId) { return $true }
-    $guardPath = [string]$script:currentUdpGuard.GamePath
-    if (-not [string]::IsNullOrWhiteSpace($Path) -and -not [string]::IsNullOrWhiteSpace($guardPath)) {
-        if ($Path.Equals($guardPath, [System.StringComparison]::OrdinalIgnoreCase)) { return $true }
+    foreach ($guardPath in @($script:currentUdpGuard.ProtectedPaths)) {
+        if (-not [string]::IsNullOrWhiteSpace($Path) -and -not [string]::IsNullOrWhiteSpace([string]$guardPath)) {
+            if ($Path.Equals([string]$guardPath, [System.StringComparison]::OrdinalIgnoreCase)) { return $true }
+            if (Test-SameGameSessionRoot -Left $Path -Right ([string]$guardPath)) { return $true }
+        }
     }
     return $false
 }
 
 function Get-UdpGuardContext {
-    param(
-        [object]$Foreground,
-        [array]$Processes,
-        [hashtable]$CpuMap,
-        [hashtable]$UdpMap
-    )
-
+    param([object]$Foreground, [array]$Processes, [hashtable]$CpuMap, [hashtable]$UdpMap)
     $processCount = if ($UdpMap) { [int]$UdpMap.Count } else { 0 }
-    $base = [pscustomobject]@{
-        Enabled = [bool]$networkUdpGuardEnabled
-        Active = $false
-        Mode = if ($networkUdpGuardEnabled) { "Armed" } else { "Off" }
-        Game = ""
-        GamePid = 0
-        GamePath = ""
-        EndpointCount = 0
-        ProcessCount = $processCount
-        Signals = @()
-        NoStackTweaks = [bool]$networkUdpGuardNoStackTweaks
-    }
-    if (-not $networkUdpGuardEnabled -or -not $UdpMap -or $UdpMap.Count -eq 0) { return $base }
-
-    $best = $null
-    $bestScore = -1.0
+    $base = [pscustomobject]@{ Enabled=[bool]$networkUdpGuardEnabled; Active=$false; Mode=if($networkUdpGuardEnabled){"Armed"}else{"Off"}; Game=""; GamePid=0; GamePath=""; GameRoot=""; EndpointCount=0; ProcessCount=$processCount; Confidence=0; ConfidenceLabel="None"; Reason=""; Source=""; ShieldMode="Off"; ProtectedCount=0; ProtectedPids=@(); ProtectedPaths=@(); Signals=@(); QosStatus=if($networkUdpGuardEnabled){"Ready"}else{"Off"}; NoStackTweaks=[bool]$networkUdpGuardNoStackTweaks }
+    if (-not $networkUdpGuardEnabled) { $base.QosStatus = Ensure-ZeroPingQosPolicy -Context $null; return $base }
+    if (-not $UdpMap -or $UdpMap.Count -eq 0) { $base.QosStatus = Ensure-ZeroPingQosPolicy -Context $null; return $base }
+    $profileMap = Read-UdpSessionProfileMap
+    $best = $null; $bestScore = -1.0
     foreach ($p in @($Processes)) {
-        $pid = 0
-        try { $pid = [int]$p.Id } catch { $pid = 0 }
-        if ($pid -le 0 -or -not $UdpMap.ContainsKey($pid)) { continue }
-        $udpCount = [int]$UdpMap[$pid]
-        $cpu = 0.0
-        if ($CpuMap -and $CpuMap.ContainsKey($pid)) { $cpu = [double]$CpuMap[$pid] }
+        $processIdValue = 0; try { $processIdValue = [int]$p.Id } catch { }
+        if ($processIdValue -le 0 -or -not $UdpMap.ContainsKey($processIdValue)) { continue }
+        $udpCount = [int]$UdpMap[$processIdValue]
+        $cpu = if ($CpuMap -and $CpuMap.ContainsKey($processIdValue)) { [double]$CpuMap[$processIdValue] } else { 0.0 }
         $path = Get-ProcessPathText -Process $p
         $role = Get-ProcessRole -ProcessName $p.ProcessName -Path $path
-        if (-not (Test-UdpGameCandidate -ProcessId $pid -ProcessName $p.ProcessName -Path $path -Role $role -Foreground $Foreground -CpuPercent $cpu -UdpEndpoints $udpCount)) { continue }
-        $score = ([double]$udpCount * 18.0) + ([double]$cpu * 8.0)
-        if ($Foreground -and [int]$Foreground.Id -eq $pid) { $score += 80.0 }
-        if ($role -eq "GameCandidate") { $score += 42.0 }
-        if ($Foreground -and [bool]$Foreground.IsFullscreen -and [int]$Foreground.Id -eq $pid) { $score += 30.0 }
-        if ($score -gt $bestScore) {
-            $bestScore = $score
-            $best = [pscustomobject]@{ Process = $p; Path = $path; Role = $role; Cpu = $cpu; Udp = $udpCount; Score = $score }
+        if (-not (Test-UdpGameCandidate -ProcessId $processIdValue -ProcessName $p.ProcessName -Path $path -Role $role -Foreground $Foreground -CpuPercent $cpu -UdpEndpoints $udpCount)) { continue }
+        $root = Get-GameSessionRootFromPath -Path $path
+        $signals = @("udp-session", "direct-udp", "local-contention-only")
+        if ($Foreground -and [int]$Foreground.Id -eq $processIdValue) { $signals += "foreground-udp" }
+        if ($role -eq "GameCandidate") { $signals += "known-game-path" }
+        if ($Foreground -and [bool]$Foreground.IsFullscreen -and [int]$Foreground.Id -eq $processIdValue) { $signals += "fullscreen" }
+        $confidence = 42 + [math]::Min(24, ($udpCount * 8)) + [math]::Min(14, [int]($cpu * 4.0))
+        if ($Foreground -and [int]$Foreground.Id -eq $processIdValue) { $confidence += 18 }
+        if ($role -eq "GameCandidate") { $confidence += 12 }
+        if ($Foreground -and [bool]$Foreground.IsFullscreen -and [int]$Foreground.Id -eq $processIdValue) { $confidence += 10 }
+        $confidence += Get-UdpProfileBonus -Map $profileMap -ProcessName ([string]$p.ProcessName) -Path $path -Root $root
+        if ($confidence -gt 100) { $confidence = 100 }
+        $score = ([double]$udpCount * 18.0) + ([double]$cpu * 8.0) + ([double]$confidence * 2.0)
+        if ($score -gt $bestScore) { $bestScore=$score; $best=[pscustomobject]@{ Process=$p; Path=$path; Root=$root; Role=$role; Cpu=$cpu; Udp=$udpCount; Score=$score; Source="Direct"; Confidence=[int]$confidence; Signals=@($signals) } }
+    }
+    if (-not $best -and $Foreground -and [int]$Foreground.Id -gt 0) {
+        $anchor = Get-Process -Id ([int]$Foreground.Id) -ErrorAction SilentlyContinue
+        if ($anchor) {
+            $anchorPath = if ($Foreground.Path) { [string]$Foreground.Path } else { Get-ProcessPathText -Process $anchor }
+            $anchorRole = Get-ProcessRole -ProcessName $anchor.ProcessName -Path $anchorPath
+            $anchorRoot = Get-GameSessionRootFromPath -Path $anchorPath
+            $anchorCpu = if ($CpuMap -and $CpuMap.ContainsKey([int]$anchor.Id)) { [double]$CpuMap[[int]$anchor.Id] } else { 0.0 }
+            if (-not [string]::IsNullOrWhiteSpace($anchorRoot) -and ([bool]$Foreground.IsFullscreen -or $anchorRole -eq "GameCandidate" -or (Test-PathContainsFragment -Path $anchorPath -Fragments $knownGamePathFragments) -or $anchorCpu -ge $networkUdpGuardGameCpuFloor)) {
+                $related = Get-RelatedUdpEndpointSummary -Anchor $anchor -AnchorPath $anchorPath -Processes $Processes -UdpMap $UdpMap
+                if ([int]$related.EndpointCount -ge $networkUdpGuardMinEndpoints) {
+                    $signals = @("udp-session", "foreground-associated", "local-contention-only") + @($related.Signals)
+                    if ([bool]$Foreground.IsFullscreen) { $signals += "fullscreen" }
+                    if ($anchorRole -eq "GameCandidate" -or (Test-PathContainsFragment -Path $anchorPath -Fragments $knownGamePathFragments)) { $signals += "known-game-path" }
+                    $confidence = 52 + [math]::Min(18, ([int]$related.EndpointCount * 6)) + [math]::Min(12, [int]($anchorCpu * 4.0))
+                    if ([bool]$Foreground.IsFullscreen) { $confidence += 10 }
+                    if ($anchorRole -eq "GameCandidate" -or (Test-PathContainsFragment -Path $anchorPath -Fragments $knownGamePathFragments)) { $confidence += 8 }
+                    $confidence += Get-UdpProfileBonus -Map $profileMap -ProcessName ([string]$anchor.ProcessName) -Path $anchorPath -Root $anchorRoot
+                    if ($confidence -gt 100) { $confidence = 100 }
+                    $best=[pscustomobject]@{ Process=$anchor; Path=$anchorPath; Root=$anchorRoot; Role=$anchorRole; Cpu=$anchorCpu; Udp=[int]$related.EndpointCount; Score=70.0 + ([int]$related.EndpointCount * 12.0) + ([double]$confidence * 2.0); Source="Associated"; Related=$related; Confidence=[int]$confidence; Signals=@($signals) }
+                }
+            }
         }
     }
-
     if (-not $best) { return $base }
-    $signals = @("udp-session", "local-contention-only")
-    if ([string]$best.Role -eq "GameCandidate") { $signals += "known-game-path" }
-    if ($Foreground -and [int]$Foreground.Id -eq [int]$best.Process.Id) { $signals += "foreground" }
-    if ($Foreground -and [bool]$Foreground.IsFullscreen -and [int]$Foreground.Id -eq [int]$best.Process.Id) { $signals += "fullscreen" }
-    return [pscustomobject]@{
-        Enabled = $true
-        Active = $true
-        Mode = "SessionGuard"
-        Game = [string]$best.Process.ProcessName
-        GamePid = [int]$best.Process.Id
-        GamePath = [string]$best.Path
-        EndpointCount = [int]$best.Udp
-        ProcessCount = $processCount
-        Signals = @($signals | Select-Object -Unique)
-        NoStackTweaks = [bool]$networkUdpGuardNoStackTweaks
-    }
+    $relatedSummary = if ($best.PSObject.Properties.Name -contains "Related") { $best.Related } else { Get-RelatedUdpEndpointSummary -Anchor $best.Process -AnchorPath ([string]$best.Path) -Processes $Processes -UdpMap $UdpMap }
+    $protectedPids = @([int]$best.Process.Id); $protectedPaths=@()
+    if ($best.Path) { $protectedPaths += [string]$best.Path }
+    if ($relatedSummary) { foreach($processIdValue in @($relatedSummary.Pids)){try{$protectedPids += [int]$processIdValue}catch{}}; foreach($p in @($relatedSummary.Paths)){ if($p){$protectedPaths += [string]$p} } }
+    $protectedPids=@($protectedPids|Sort-Object -Unique); $protectedPaths=@($protectedPaths|Select-Object -Unique)
+    $endpointCount=[int]$best.Udp; if($relatedSummary -and [int]$relatedSummary.EndpointCount -gt $endpointCount){$endpointCount=[int]$relatedSummary.EndpointCount}
+    $signals=@($best.Signals); if($relatedSummary){$signals += @($relatedSummary.Signals)}; $signals=@($signals|Where-Object{$_}|Select-Object -Unique)
+    $confidence=[int]$best.Confidence; $active=$confidence -ge $networkUdpGuardConfidenceFloor
+    $context=[pscustomobject]@{ Enabled=$true; Active=[bool]$active; Mode=if(-not $active){"Armed"}elseif(@($protectedPids).Count -gt 1){"NetcodeShieldAssociated"}else{"NetcodeShield"}; Game=[string]$best.Process.ProcessName; GamePid=[int]$best.Process.Id; GamePath=[string]$best.Path; GameRoot=if($relatedSummary){[string]$relatedSummary.Root}else{[string]$best.Root}; EndpointCount=$endpointCount; ProcessCount=$processCount; Confidence=$confidence; ConfidenceLabel=Get-UdpConfidenceLabel -Confidence $confidence; Reason=Get-UdpConfidenceReason -Signals $signals -Source ([string]$best.Source); Source=[string]$best.Source; ShieldMode=if($active){"LocalShield"}else{"Observe"}; ProtectedCount=@($protectedPids).Count; ProtectedPids=@($protectedPids); ProtectedPaths=@($protectedPaths); Signals=@($signals); QosStatus="Ready"; NoStackTweaks=[bool]$networkUdpGuardNoStackTweaks }
+    $context.QosStatus = Ensure-ZeroPingQosPolicy -Context $context
+    Update-UdpSessionProfile -Map $profileMap -Context $context
+    return $context
 }
 
 function Write-UdpGuardState {
     try {
-        $state = if ($script:currentUdpGuard) { $script:currentUdpGuard } else { [pscustomobject]@{ Enabled = [bool]$networkUdpGuardEnabled; Active = $false; Mode = "Off"; Game = ""; GamePid = 0; EndpointCount = 0; ProcessCount = 0; Signals = @(); NoStackTweaks = [bool]$networkUdpGuardNoStackTweaks } }
-        $state | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $udpGuardStatePath -Encoding UTF8
-    } catch {
-    }
+        $state = if ($script:currentUdpGuard) { $script:currentUdpGuard } else { [pscustomobject]@{ Enabled=[bool]$networkUdpGuardEnabled; Active=$false; Mode="Off"; Game=""; GamePid=0; GamePath=""; GameRoot=""; EndpointCount=0; ProcessCount=0; Confidence=0; ConfidenceLabel="None"; Reason=""; Source=""; ShieldMode="Off"; ProtectedCount=0; ProtectedPids=@(); ProtectedPaths=@(); Signals=@(); QosStatus=if($networkUdpGuardEnabled){"Ready"}else{"Off"}; NoStackTweaks=[bool]$networkUdpGuardNoStackTweaks } }
+        $state | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $udpGuardStatePath -Encoding UTF8
+    } catch { }
 }
 
 function Read-AppPolicyMap {
@@ -2539,6 +3344,9 @@ function Get-CandidateWeight {
             $weight *= $networkUdpGuardBackgroundWeightBoost
         }
     }
+    if ([bool]$Row.CpuBoundAssist) { $weight *= $cpuBoundBackgroundBoost }
+    if ([bool]$Row.GpuHelperPressure) { $weight *= 1.24 }
+    if ([bool]$Row.VramPressureActive -and -not [bool]$Row.UdpGameProtected -and -not $Row.GuardReason -and -not [bool]$Row.SwitchFastWake) { $weight *= 1.12 }
     if (($sessionMode -eq "Streamer") -or ($script:currentIntent -and [string]$script:currentIntent.Kind -eq "Streaming")) {
         if ([string]$Row.Role -in @("Streaming", "Communication", "Media", "GameCandidate")) {
             $weight *= 0.20
@@ -2621,6 +3429,23 @@ function Get-NapPolicy {
         $tier = "Light"
         $reason = if ([string]$Row.BehaviorReason) { [string]$Row.BehaviorReason } else { "behavior-guard" }
         $policySource = "behavior"
+    } elseif ([bool]$Row.CpuBoundAssist) {
+        if ([double]$Row.WorkingSetMB -ge $deepMinimum -and [double]$Row.CpuPercent -le [math]::Max(1.0, $deepCpuLimit) -and [int]$Row.BurstCount -eq 0) {
+            $tier = "Deep"
+            $reason = "cpu-bound-assist-background"
+        } else {
+            $tier = "Balanced"
+            $reason = "cpu-bound-assist-balance"
+        }
+        $policySource = "cpu-bound"
+    } elseif ([bool]$Row.GpuHelperPressure) {
+        $tier = "Balanced"
+        $reason = "gpu-helper-guard"
+        $policySource = "gpu"
+    } elseif ([bool]$Row.VramPressureActive -and -not [bool]$Row.SwitchFastWake -and -not $Row.GuardReason -and -not [bool]$Row.UdpGameProtected -and ([string]$Row.Role -notin @("Streaming", "Communication", "Media", "GameCandidate"))) {
+        $tier = if ([double]$Row.CpuPercent -le [math]::Max(1.0, $deepCpuLimit) -and [double]$Row.WorkingSetMB -ge $balancedNapMinimumMB) { "Balanced" } else { "Light" }
+        $reason = "vram-pressure-background"
+        $policySource = "gpu"
     } elseif ($networkUdpGuardEnabled -and $script:currentUdpGuard -and [bool]$script:currentUdpGuard.Active -and -not [bool]$Row.SwitchFastWake -and -not $Row.GuardReason -and -not [bool]$Row.UdpGameProtected -and ([string]$Row.Role -notin @("Streaming", "Communication", "Media", "GameCandidate", "Launcher", "Browser", "StreamHelper")) -and -not ($realtimeFriendlyNames.Contains([string]$Row.ProcessName))) {
         if ([double]$Row.WorkingSetMB -ge $deepMinimum -and [double]$Row.CpuPercent -le [math]::Max(1.0, $deepCpuLimit) -and [int]$Row.BurstCount -eq 0) {
             $tier = "Deep"
@@ -2750,11 +3575,13 @@ function Test-StreamerAffinityCandidate {
     )
     if (-not $streamerCpuContainment) { return $false }
     $streamingPressure = ($sessionMode -eq "Streamer") -or ($script:currentIntent -and [string]$script:currentIntent.Kind -eq "Streaming")
-    if (-not $streamingPressure) { return $false }
+    $cpuBoundPressure = Test-CpuBoundBackgroundCandidate -Row $Row
+    if (-not $streamingPressure -and -not $cpuBoundPressure) { return $false }
     if (-not $Policy -or [string]$Policy.Tier -eq "Light") { return $false }
     if ($Row.GuardReason -or [bool]$Row.SwitchFastWake) { return $false }
     if ([string]$Row.AppPolicy -in @("Protect", "Light")) { return $false }
     if ($realtimeFriendlyNames.Contains([string]$Row.ProcessName)) { return $false }
+    if ($cpuBoundPressure) { return ([double]$Row.CpuPercent -le 8.0) }
     if ([string]$Row.Role -eq "StreamHelper") {
         if (-not $streamerBrowserHelperGuard) { return $false }
         return ([double]$Row.CpuPercent -ge $streamerBrowserHelperCpuThreshold -or [double]$Row.CpuPercent -ge $streamerHelperBurstCpuThreshold -or [int]$Row.BurstCount -gt 0)
@@ -2907,18 +3734,27 @@ function Get-BackgroundProcessRows {
     }
 
     $cpuPercentByPid = @{}
-    if ($skipHighCpu -or $intentEngine -or $downloadLauncherGuard -or $mediaCallProtection -or $behaviorEngine -or $networkUdpGuardEnabled -or $streamerCpuContainment) {
+    if ($skipHighCpu -or $intentEngine -or $downloadLauncherGuard -or $mediaCallProtection -or $behaviorEngine -or $networkUdpGuardEnabled -or $streamerCpuContainment -or $gpuPressureMonitor -or $cpuBoundAssist) {
         $cpuPercentByPid = Get-ProcessCpuPercentMap
     }
     $all = @(Get-Process -ErrorAction SilentlyContinue | Sort-Object ProcessName, Id)
     $script:udpEndpointCountByPid = Get-UdpEndpointCountByPid
+    $script:currentGpuPressure = Get-GpuPressureSnapshot -Processes $all
     $script:currentIntent = Get-IntentContext -Foreground $foreground -Pressure $script:currentMemoryPressure -Processes $all -CpuMap $cpuPercentByPid -UdpMap $script:udpEndpointCountByPid
     $script:currentUdpGuard = Get-UdpGuardContext -Foreground $foreground -Processes $all -CpuMap $cpuPercentByPid -UdpMap $script:udpEndpointCountByPid
+    $script:currentCpuBoundAssist = Get-CpuBoundAssistContext -Foreground $foreground -CpuMap $cpuPercentByPid -GpuSnapshot $script:currentGpuPressure -UdpGuard $script:currentUdpGuard
     Write-IntentState
     Write-UdpGuardState
-    if ($smartAutoProtect -and $script:currentUdpGuard -and [bool]$script:currentUdpGuard.Active -and [int]$script:currentUdpGuard.GamePid -gt 0) {
-        $udpProc = Get-Process -Id ([int]$script:currentUdpGuard.GamePid) -ErrorAction SilentlyContinue
-        if ($udpProc) { Add-TemporaryProtection -Map $protectMap -Process $udpProc -Path ([string]$script:currentUdpGuard.GamePath) -Reason "UdpSessionGuard" -Minutes $networkUdpGuardProtectMinutes }
+    if ($smartAutoProtect -and $script:currentUdpGuard -and [bool]$script:currentUdpGuard.Active) {
+        $guardPids = @($script:currentUdpGuard.ProtectedPids)
+        if ($guardPids.Count -eq 0 -and [int]$script:currentUdpGuard.GamePid -gt 0) { $guardPids = @([int]$script:currentUdpGuard.GamePid) }
+        foreach ($guardPid in $guardPids) {
+            $udpProc = Get-Process -Id ([int]$guardPid) -ErrorAction SilentlyContinue
+            if ($udpProc) {
+                $udpPath = if ([int]$udpProc.Id -eq [int]$script:currentUdpGuard.GamePid) { [string]$script:currentUdpGuard.GamePath } else { Get-ProcessPathText -Process $udpProc }
+                Add-TemporaryProtection -Map $protectMap -Process $udpProc -Path $udpPath -Reason "NetcodeShield" -Minutes $networkUdpGuardHelperProtectMinutes
+            }
+        }
     }
     $currentGameProfile = Get-CurrentGameProfile
     $rows = @()
@@ -2950,7 +3786,14 @@ function Get-BackgroundProcessRows {
         $burstCount = if ($path) { Get-BurstCount -Map $burstMap -Process $p -Path $path } else { 0 }
         $udpEndpoints = if ($script:udpEndpointCountByPid -and $script:udpEndpointCountByPid.ContainsKey([int]$p.Id)) { [int]$script:udpEndpointCountByPid[[int]$p.Id] } else { 0 }
         $udpGameProtected = Test-UdpProtectedProcess -ProcessId ([int]$p.Id) -ProcessName $p.ProcessName -Path $path
+        $switchFastWake = if ($switchProfile) { [bool]$switchProfile.FastWake } else { $false }
         $guardDecision = Get-GuardDecision -ProcessId ([int]$p.Id) -ProcessName $p.ProcessName -Path $path -Role $role -CpuPercent $cpuPercent -BurstCount $burstCount -Foreground $foreground -SwitchProfile $switchProfile -UdpEndpoints $udpEndpoints -UdpGameProtected:$udpGameProtected
+        $gpuMetric = Get-GpuMetricForPid -ProcessId ([int]$p.Id)
+        $vramPressureActive = Test-VramPressureActive
+        $guardReasonText = if ($guardDecision) { [string]$guardDecision.Reason } else { "" }
+        $gpuHelperPressure = Test-GpuHelperPressure -Role $role -CpuPercent $cpuPercent -GpuPercent ([double]$gpuMetric.Percent) -GpuDedicatedMB ([double]$gpuMetric.DedicatedMB) -UdpProtected:$udpGameProtected -GuardReason $guardReasonText -SwitchFastWake:$switchFastWake
+        $cpuBoundBackground = $false
+        if ($cpuBoundAssist -and $script:currentCpuBoundAssist -and [bool]$script:currentCpuBoundAssist.Active -and [int]$p.Id -ne [int]$script:currentCpuBoundAssist.GamePid -and -not $guardDecision -and -not $udpGameProtected -and -not $switchFastWake -and [string]$appPolicy.Policy -notin @("Protect", "Light") -and ([string]$role -notin @("Streaming", "Communication", "Media", "GameCandidate", "Launcher", "Browser", "StreamHelper")) -and -not ($realtimeFriendlyNames.Contains([string]$p.ProcessName)) -and $cpuPercent -le 10.0) { $cpuBoundBackground = $true }
         $skip = Get-SkipReason -Process $p -Foreground $foreground -CpuPercent $cpuPercent -ProtectMap $protectMap -CpuProtectThreshold $effectiveHighCpuThreshold -Path $path -AppPolicy $appPolicy -GuardDecision $guardDecision -Role $role
         $learningProfile = $null
         if ($smartLearning) {
@@ -2986,7 +3829,18 @@ function Get-BackgroundProcessRows {
             UdpEndpoints = $udpEndpoints
             UdpGameProtected = [bool]$udpGameProtected
             UdpGuardActive = if ($script:currentUdpGuard) { [bool]$script:currentUdpGuard.Active } else { $false }
-            SwitchFastWake = if ($switchProfile) { [bool]$switchProfile.FastWake } else { $false }
+            UdpConfidence = if ($script:currentUdpGuard) { [int]$script:currentUdpGuard.Confidence } else { 0 }
+            UdpConfidenceLabel = if ($script:currentUdpGuard) { [string]$script:currentUdpGuard.ConfidenceLabel } else { "None" }
+            UdpConfidenceReason = if ($script:currentUdpGuard) { [string]$script:currentUdpGuard.Reason } else { "" }
+            UdpShieldMode = if ($script:currentUdpGuard) { [string]$script:currentUdpGuard.ShieldMode } else { "Off" }
+            UdpQosStatus = if ($script:currentUdpGuard) { [string]$script:currentUdpGuard.QosStatus } else { "Off" }
+            GpuPercent = [double]$gpuMetric.Percent
+            GpuDedicatedMB = [double]$gpuMetric.DedicatedMB
+            GpuSharedMB = [double]$gpuMetric.SharedMB
+            GpuHelperPressure = [bool]$gpuHelperPressure
+            VramPressureActive = [bool]$vramPressureActive
+            CpuBoundAssist = [bool]$cpuBoundBackground
+            SwitchFastWake = [bool]$switchFastWake
             SwitchWakeCount = if ($switchProfile) { [int]$switchProfile.WakeCount } else { 0 }
             IntentKind = if ($script:currentIntent) { [string]$script:currentIntent.Kind } else { "Desktop" }
             IntentConfidence = if ($script:currentIntent) { [int]$script:currentIntent.Confidence } else { 0 }
@@ -3140,6 +3994,17 @@ function Convert-NapResultGroupToScoreItem {
     $udpEndpoints = 0
     $udpProtected = $false
     $udpGuardActive = $false
+    $udpConfidence = 0
+    $udpConfidenceLabel = "None"
+    $udpConfidenceReason = ""
+    $udpShieldMode = "Off"
+    $udpQosStatus = "Off"
+    $gpuPercent = 0.0
+    $gpuDedicated = 0.0
+    $gpuShared = 0.0
+    $gpuHelperPressure = $false
+    $vramPressureActive = $false
+    $cpuBoundActive = $false
     $ids = @()
     foreach ($item in $items) {
         if ($item.Id -ne $null) { $ids += [int]$item.Id }
@@ -3150,6 +4015,19 @@ function Convert-NapResultGroupToScoreItem {
         if ($item.UdpEndpoints -ne $null) { $udpEndpoints += [int]$item.UdpEndpoints }
         if ($item.UdpGameProtected -ne $null -and [bool]$item.UdpGameProtected) { $udpProtected = $true }
         if ($item.UdpGuardActive -ne $null -and [bool]$item.UdpGuardActive) { $udpGuardActive = $true }
+        if ($item.UdpConfidence -ne $null -and [int]$item.UdpConfidence -gt $udpConfidence) {
+            $udpConfidence = [int]$item.UdpConfidence
+            $udpConfidenceLabel = [string]$item.UdpConfidenceLabel
+            $udpConfidenceReason = [string]$item.UdpConfidenceReason
+            $udpShieldMode = [string]$item.UdpShieldMode
+            $udpQosStatus = [string]$item.UdpQosStatus
+        }
+        if ($item.GpuPercent -ne $null) { $gpuPercent += [double]$item.GpuPercent }
+        if ($item.GpuDedicatedMB -ne $null) { $gpuDedicated += [double]$item.GpuDedicatedMB }
+        if ($item.GpuSharedMB -ne $null) { $gpuShared += [double]$item.GpuSharedMB }
+        if ($item.GpuHelperPressure -ne $null -and [bool]$item.GpuHelperPressure) { $gpuHelperPressure = $true }
+        if ($item.VramPressureActive -ne $null -and [bool]$item.VramPressureActive) { $vramPressureActive = $true }
+        if ($item.CpuBoundAssist -ne $null -and [bool]$item.CpuBoundAssist) { $cpuBoundActive = $true }
         if ($item.NapScore -ne $null) { $score += [double]$item.NapScore }
     }
     $deltaMB = $before - $after
@@ -3203,6 +4081,17 @@ function Convert-NapResultGroupToScoreItem {
         UdpEndpoints = $udpEndpoints
         UdpGameProtected = [bool]$udpProtected
         UdpGuardActive = [bool]$udpGuardActive
+        UdpConfidence = [int]$udpConfidence
+        UdpConfidenceLabel = if ([string]::IsNullOrWhiteSpace($udpConfidenceLabel)) { "None" } else { $udpConfidenceLabel }
+        UdpConfidenceReason = $udpConfidenceReason
+        UdpShieldMode = $udpShieldMode
+        UdpQosStatus = $udpQosStatus
+        GpuPercent = [math]::Round($gpuPercent, 1)
+        GpuDedicatedMB = [math]::Round($gpuDedicated, 1)
+        GpuSharedMB = [math]::Round($gpuShared, 1)
+        GpuHelperPressure = [bool]$gpuHelperPressure
+        VramPressureActive = [bool]$vramPressureActive
+        CpuBoundAssist = [bool]$cpuBoundActive
         Path = $p.Path
     }
 }
@@ -3220,6 +4109,8 @@ function Write-NapScore {
         [void]$groups[$key].Add($result)
     }
     $items = @($groups.Values | ForEach-Object { Convert-NapResultGroupToScoreItem -Group ([array]$_.ToArray()) } | Where-Object { $_ } | Sort-Object Score -Descending | Select-Object -First 25)
+    $healthStatus = if ($script:currentEngineHealth) { [string]$script:currentEngineHealth.Status } else { "Unknown" }
+    $healthSummary = if ($script:currentEngineHealth) { [string]$script:currentEngineHealth.Summary } else { "Pending" }
 
     [pscustomobject]@{
         Timestamp = (Get-Date).ToString("o")
@@ -3244,7 +4135,43 @@ function Write-NapScore {
         NetworkUdpGuardGamePid = if ($script:currentUdpGuard) { [int]$script:currentUdpGuard.GamePid } else { 0 }
         NetworkUdpGuardEndpoints = if ($script:currentUdpGuard) { [int]$script:currentUdpGuard.EndpointCount } else { 0 }
         NetworkUdpGuardProcessCount = if ($script:currentUdpGuard) { [int]$script:currentUdpGuard.ProcessCount } else { 0 }
+        NetworkUdpGuardConfidence = if ($script:currentUdpGuard) { [int]$script:currentUdpGuard.Confidence } else { 0 }
+        NetworkUdpGuardConfidenceLabel = if ($script:currentUdpGuard) { [string]$script:currentUdpGuard.ConfidenceLabel } else { "None" }
+        NetworkUdpGuardReason = if ($script:currentUdpGuard) { [string]$script:currentUdpGuard.Reason } else { "" }
+        NetworkUdpGuardShieldMode = if ($script:currentUdpGuard) { [string]$script:currentUdpGuard.ShieldMode } else { "Off" }
+        NetworkUdpGuardProtectedCount = if ($script:currentUdpGuard) { [int]$script:currentUdpGuard.ProtectedCount } else { 0 }
+        NetworkUdpGuardQosStatus = if ($script:currentUdpGuard) { [string]$script:currentUdpGuard.QosStatus } else { "Off" }
+        NetworkUdpGuardSignals = if ($script:currentUdpGuard) { @($script:currentUdpGuard.Signals) } else { @() }
         NetworkUdpGuardNoStackTweaks = [bool]$networkUdpGuardNoStackTweaks
+        GpuPressureAvailable = if ($script:currentGpuPressure) { [bool]$script:currentGpuPressure.Available } else { $false }
+        GpuPressureProvider = if ($script:currentGpuPressure -and [bool]$script:currentGpuPressure.Available) { [string]$script:currentGpuPressure.Provider } else { "Unavailable" }
+        GpuPressureLevel = if ($script:currentGpuPressure) { [string]$script:currentGpuPressure.Pressure } else { "Unknown" }
+        GpuPressureDxgiAvailable = if ($script:currentGpuPressure) { [bool]$script:currentGpuPressure.DxgiAvailable } else { $false }
+        GpuPressureAdapterName = if ($script:currentGpuPressure) { [string]$script:currentGpuPressure.AdapterName } else { "" }
+        GpuAdapterDedicatedVideoMemoryMB = if ($script:currentGpuPressure) { [double]$script:currentGpuPressure.AdapterDedicatedVideoMemoryMB } else { 0.0 }
+        GpuAdapterSharedSystemMemoryMB = if ($script:currentGpuPressure) { [double]$script:currentGpuPressure.AdapterSharedSystemMemoryMB } else { 0.0 }
+        GpuAdapterLocalBudgetMB = if ($script:currentGpuPressure) { [double]$script:currentGpuPressure.AdapterLocalBudgetMB } else { 0.0 }
+        GpuAdapterLocalUsageMB = if ($script:currentGpuPressure) { [double]$script:currentGpuPressure.AdapterLocalUsageMB } else { 0.0 }
+        GpuAdapterLocalAvailableMB = if ($script:currentGpuPressure) { [double]$script:currentGpuPressure.AdapterLocalAvailableMB } else { 0.0 }
+        GpuAdapterLocalUsagePercent = if ($script:currentGpuPressure) { [double]$script:currentGpuPressure.AdapterLocalUsagePercent } else { 0.0 }
+        GpuAdapterNonLocalBudgetMB = if ($script:currentGpuPressure) { [double]$script:currentGpuPressure.AdapterNonLocalBudgetMB } else { 0.0 }
+        GpuAdapterNonLocalUsageMB = if ($script:currentGpuPressure) { [double]$script:currentGpuPressure.AdapterNonLocalUsageMB } else { 0.0 }
+        GpuAdapterNonLocalAvailableMB = if ($script:currentGpuPressure) { [double]$script:currentGpuPressure.AdapterNonLocalAvailableMB } else { 0.0 }
+        GpuAdapterDedicatedUsageMB = if ($script:currentGpuPressure) { [double]$script:currentGpuPressure.AdapterDedicatedUsageMB } else { 0.0 }
+        GpuAdapterSharedUsageMB = if ($script:currentGpuPressure) { [double]$script:currentGpuPressure.AdapterSharedUsageMB } else { 0.0 }
+        GpuTotalUtilPercent = if ($script:currentGpuPressure) { [double]$script:currentGpuPressure.TotalGpuUtilPercent } else { 0.0 }
+        GpuTopProcess = if ($script:currentGpuPressure) { [string]$script:currentGpuPressure.TopProcess } else { "" }
+        GpuTopProcessPid = if ($script:currentGpuPressure) { [int]$script:currentGpuPressure.TopProcessPid } else { 0 }
+        GpuTopProcessPercent = if ($script:currentGpuPressure) { [double]$script:currentGpuPressure.TopProcessPercent } else { 0.0 }
+        GpuTopProcessDedicatedMB = if ($script:currentGpuPressure) { [double]$script:currentGpuPressure.TopProcessDedicatedMB } else { 0.0 }
+        CpuBoundAssistActive = if ($script:currentCpuBoundAssist) { [bool]$script:currentCpuBoundAssist.Active } else { $false }
+        CpuBoundAssistGame = if ($script:currentCpuBoundAssist) { [string]$script:currentCpuBoundAssist.Game } else { "" }
+        CpuBoundAssistGamePid = if ($script:currentCpuBoundAssist) { [int]$script:currentCpuBoundAssist.GamePid } else { 0 }
+        CpuBoundAssistConfidence = if ($script:currentCpuBoundAssist) { [int]$script:currentCpuBoundAssist.Confidence } else { 0 }
+        CpuBoundAssistReason = if ($script:currentCpuBoundAssist) { [string]$script:currentCpuBoundAssist.Reason } else { "" }
+        EngineHealthStatus = $healthStatus
+        EngineHealthSummary = $healthSummary
+        RollbackAuditEnabled = [bool]$rollbackAudit
         StreamGuardActive = (($sessionMode -eq "Streamer") -or ($script:currentIntent -and [string]$script:currentIntent.Kind -eq "Streaming"))
         StreamHelperCount = @($Results | Where-Object { [string]$_.Role -eq "StreamHelper" }).Count
         StreamGameProtectedCount = @($Results | Where-Object { [string]$_.GuardReason -eq "StreamGameGuard" }).Count
@@ -3309,7 +4236,7 @@ function Invoke-ApplyOnce {
         $affinityStatus = "Disabled"
         $affinityTarget = [UInt64]0
         if (Test-StreamerAffinityCandidate -Row $row -Policy $policy) {
-            $affinityTarget = if ([string]$row.Role -eq "StreamHelper") { Get-StreamerAffinityMask -Percent $streamerBrowserHelperAffinityPercent } else { Get-StreamerAffinityMask }
+            $affinityTarget = if ([bool]$row.CpuBoundAssist) { Get-StreamerAffinityMask -Percent $cpuBoundAffinityPercent } elseif ([string]$row.Role -eq "StreamHelper") { Get-StreamerAffinityMask -Percent $streamerBrowserHelperAffinityPercent } else { Get-StreamerAffinityMask }
             if ($affinityTarget -gt 0) {
                 if ($PreviewMode) {
                     $affinityStatus = "WouldLimit"
@@ -3335,7 +4262,7 @@ function Invoke-ApplyOnce {
                 $trimThreshold = [math]::Max(24.0, [math]::Round($trimThreshold * 0.82, 1))
             }
         }
-        if ([string]$row.Role -eq "StreamHelper") {
+        if ([string]$row.Role -eq "StreamHelper" -or [bool]$row.GpuHelperPressure -or ([bool]$row.VramPressureActive -and [double]$row.GpuDedicatedMB -gt 0.0)) {
             $trimThreshold = [math]::Max($trimThreshold, ([double]$row.WorkingSetMB + 1.0))
         }
 
@@ -3404,6 +4331,17 @@ function Invoke-ApplyOnce {
             UdpEndpoints = $row.UdpEndpoints
             UdpGameProtected = $row.UdpGameProtected
             UdpGuardActive = $row.UdpGuardActive
+            UdpConfidence = $row.UdpConfidence
+            UdpConfidenceLabel = $row.UdpConfidenceLabel
+            UdpConfidenceReason = $row.UdpConfidenceReason
+            UdpShieldMode = $row.UdpShieldMode
+            UdpQosStatus = $row.UdpQosStatus
+            GpuPercent = $row.GpuPercent
+            GpuDedicatedMB = $row.GpuDedicatedMB
+            GpuSharedMB = $row.GpuSharedMB
+            GpuHelperPressure = $row.GpuHelperPressure
+            VramPressureActive = $row.VramPressureActive
+            CpuBoundAssist = $row.CpuBoundAssist
             Priority = $priorityStatus
             MemoryPriority = $memoryStatus
             IoPriority = $ioStatus
@@ -3430,6 +4368,7 @@ function Invoke-ApplyOnce {
         Update-BehaviorProfiles -Rows $rows -Results $results
         Write-ContentionRadar -Rows $rows -Results $results
     }
+    Write-EngineHealthState -Rows $rows -Results $results
     return $results
 }
 
@@ -3452,7 +4391,7 @@ function Invoke-Restore {
         throw "No background nap state found to restore."
     }
 
-    foreach ($item in @($state.Processes)) {
+    $restoreResults = foreach ($item in @($state.Processes)) {
         $p = Get-Process -Id $item.Id -ErrorAction SilentlyContinue
         if (-not $p) {
             continue
@@ -3483,6 +4422,8 @@ function Invoke-Restore {
             StatePath = $StatePath
         }
     }
+    Write-RollbackAudit -ActionName "restore" -Results $restoreResults
+    return $restoreResults
 }
 
 function Invoke-ForegroundRestore {

@@ -87,7 +87,7 @@ button{font:inherit}
 .permissionBox{display:none;border:1px solid rgba(255,166,41,.42);border-radius:12px;background:linear-gradient(145deg,rgba(255,166,41,.14),rgba(12,23,38,.92));padding:12px}.permissionBox.show{display:grid;gap:8px}.permissionBox small{display:block;color:var(--amber);font-size:10px;font-weight:950;text-transform:uppercase}.permissionBox b{display:block;font-size:15px}.permissionBox p{margin:0;color:#afbfd2;font-size:11px;line-height:1.4}.permissionBox .btn{height:36px}
 .timeline{min-height:0;border:1px solid #1d3048;border-radius:10px;background:#08111d;padding:8px;overflow:auto;scrollbar-color:#2e4565 #09111e;scrollbar-width:thin}.eventLine{display:grid;grid-template-columns:58px minmax(0,1fr);gap:8px;border-bottom:1px solid rgba(255,255,255,.05);padding:7px 2px;color:#dce8f8;font-family:Consolas,monospace;font-size:11px;line-height:1.35}.eventLine:last-child{border-bottom:0}.eventLine time{color:var(--amber);font-weight:900}.eventLine span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .feedbox{display:none}.status{display:none}.footer{display:none}
-.modeDeckHero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:start;position:relative}.modeDeckHero small{display:block;color:#8aa0ba;font-size:10px;font-weight:950;text-transform:uppercase}.modeDeckHero h3{margin:3px 0 0;font-size:22px;line-height:1.1}.modeDeckHero p{margin:7px 0 0;color:#aec0d6;font-size:12px;line-height:1.35;max-width:760px}.modeDeckStatus{display:grid;gap:7px;justify-items:end}.modeDeckStatus b,.modeDeckStatus span{display:inline-flex;align-items:center;min-height:27px;border-radius:999px;border:1px solid #2c4362;background:#0b1728;padding:0 11px;font-size:11px;font-weight:950;white-space:nowrap}.modeDeckStatus b{border-color:rgba(255,166,41,.55);color:#ffc266;background:rgba(255,166,41,.10)}.modeDeckStatus span{max-width:260px;color:#a9bad0;overflow:hidden;text-overflow:ellipsis}.modeRow{grid-template-columns:repeat(5,minmax(126px,1fr))}.modeBtn{position:relative;min-height:96px;border-radius:14px;padding:13px;overflow:hidden;background:linear-gradient(145deg,#0b1728,#07111f);border-color:#243853}.modeBtn:before{content:"";position:absolute;inset:0 auto auto 0;width:100%;height:3px;background:var(--mode-color,#4091ff)}.modeBtn:after{content:"";position:absolute;right:-28px;top:-28px;width:86px;height:86px;border-radius:999px;background:radial-gradient(circle, color-mix(in srgb,var(--mode-color,#4091ff) 34%, transparent), transparent 70%);opacity:.55;transition:160ms ease}.modeBtn b{position:relative;font-size:14px}.modeBtn span{position:relative;margin-top:2px;display:block;font-size:10.5px;color:#a7b8cd}.modeBtn:hover{border-color:color-mix(in srgb,var(--mode-color,#4091ff) 74%, #fff);box-shadow:0 12px 30px rgba(0,0,0,.22),0 0 0 1px color-mix(in srgb,var(--mode-color,#4091ff) 22%, transparent) inset}.modeBtn:hover:after{transform:scale(1.2);opacity:.85}.modeBtn.active{border-color:color-mix(in srgb,var(--mode-color,#4091ff) 82%, #fff);background:linear-gradient(145deg,color-mix(in srgb,var(--mode-color,#4091ff) 22%, #101d30),#091321);box-shadow:0 0 0 1px color-mix(in srgb,var(--mode-color,#4091ff) 32%, transparent) inset,0 0 30px color-mix(in srgb,var(--mode-color,#4091ff) 15%, transparent)}.modeBtn.active:before{height:4px;box-shadow:0 0 18px var(--mode-color,#4091ff)}.modeBtn.active span{color:#f5fbff}.modeBtn strong{position:absolute;right:11px;bottom:10px;font-size:9px;color:color-mix(in srgb,var(--mode-color,#4091ff) 80%, #fff);border:1px solid color-mix(in srgb,var(--mode-color,#4091ff) 50%, transparent);border-radius:999px;padding:3px 7px;background:rgba(4,10,18,.55)}#modeAuto{--mode-color:#58b9ff}#modeGaming{--mode-color:#ffa629}#modeStreamer{--mode-color:#2ee184;animation:livePulse 2.6s ease-in-out infinite}#modeWork{--mode-color:#9a72ff}#modeFocus{--mode-color:#ff6674}@keyframes livePulse{0%,100%{box-shadow:0 0 0 rgba(46,225,132,0)}50%{box-shadow:0 0 26px rgba(46,225,132,.12)}}.modeInsight{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(260px,.85fr);gap:10px}.selectedMode{background:linear-gradient(145deg,#091523,#07111f);border-radius:13px}.selectedMode p{font-size:13px}.modeFacts{grid-template-columns:repeat(3,minmax(0,1fr))}.modeFact{background:linear-gradient(145deg,#07111f,#09182a);border-color:#223752}.modeFact.accent{border-color:rgba(255,166,41,.45)}.modeFact.live{border-color:rgba(46,225,132,.42)}.modeFact b{font-size:14px}.energyOverlay{position:fixed;inset:0;z-index:24;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(1,5,10,.72);backdrop-filter:blur(14px)}.energyOverlay.open{display:flex}.energyPanel{width:min(620px,calc(100vw - 48px));border:1px solid rgba(255,166,41,.42);border-radius:18px;background:radial-gradient(circle at 12% 0%,rgba(255,166,41,.20),transparent 35%),linear-gradient(145deg,#101b2d,#08111f);box-shadow:0 28px 90px rgba(0,0,0,.56);padding:22px;display:grid;gap:14px}.energyPanel small{color:#ffa629;font-size:10px;text-transform:uppercase;font-weight:950}.energyPanel h2{margin:0;font-size:25px}.energyPanel p{margin:0;color:#b1c1d5;font-size:13px;line-height:1.5}.energySummary{border:1px solid #243955;border-radius:12px;background:#081421;padding:11px;display:grid;gap:4px}.energySummary b{font-size:13px}.energySummary span{color:#8fa2ba;font-size:11px}.energyActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.energyActions .btn{height:40px}.energyActions .btn.primary{grid-column:auto}.energyActions .btn.wide{grid-column:1/-1}.btn.green{background:linear-gradient(180deg,#2ee184,#17b86a);border-color:#2ee184;color:#04120c}.btn.violet{background:linear-gradient(180deg,#9a72ff,#7952e8);border-color:#9a72ff;color:#fff}.btn.ghost{background:#0b1728;color:#c7d7eb;border-color:#2a405f}.energyIdleBox{border:1px solid #243955;border-radius:14px;background:linear-gradient(145deg,rgba(9,20,34,.96),rgba(6,13,23,.96));padding:12px;display:grid;grid-template-columns:minmax(0,1fr) 132px;gap:12px;align-items:center}.energyIdleBox.disabled{opacity:.72}.energyCheck{display:grid;grid-template-columns:38px minmax(0,1fr);gap:10px;align-items:center;min-width:0}.energyCheck input{width:38px;height:22px;accent-color:#2ee184;cursor:pointer}.energyCheck b{display:block;font-size:13px}.energyCheck em{display:block;margin-top:3px;color:#8fa2ba;font-size:11px;line-height:1.35;font-style:normal}.energyMinutes{display:grid;gap:5px}.energyMinutes span{color:#8fa2ba;font-size:10px;font-weight:900}.energyMinutes input{height:36px;border-radius:10px;border:1px solid #2a405f;background:#081421;color:#f4f7fb;padding:0 10px;font-weight:900}.energyModeBrief{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.energyModeBrief div{border:1px solid #243955;border-radius:12px;background:#081421;padding:10px}.energyModeBrief b{display:block;font-size:12px}.energyModeBrief span{display:block;margin-top:4px;color:#8fa2ba;font-size:11px;line-height:1.35}
+.modeDeckHero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:start;position:relative}.modeDeckHero small{display:block;color:#8aa0ba;font-size:10px;font-weight:950;text-transform:uppercase}.modeDeckHero h3{margin:3px 0 0;font-size:22px;line-height:1.1}.modeDeckHero p{margin:7px 0 0;color:#aec0d6;font-size:12px;line-height:1.35;max-width:760px}.modeDeckStatus{display:grid;gap:7px;justify-items:end}.modeDeckStatus b,.modeDeckStatus span{display:inline-flex;align-items:center;min-height:27px;border-radius:999px;border:1px solid #2c4362;background:#0b1728;padding:0 11px;font-size:11px;font-weight:950;white-space:nowrap}.modeDeckStatus b{border-color:rgba(255,166,41,.55);color:#ffc266;background:rgba(255,166,41,.10)}.modeDeckStatus span{max-width:260px;color:#a9bad0;overflow:hidden;text-overflow:ellipsis}.modeRow{grid-template-columns:repeat(6,minmax(118px,1fr))}.modeBtn{position:relative;min-height:96px;border-radius:14px;padding:13px;overflow:hidden;background:linear-gradient(145deg,#0b1728,#07111f);border-color:#243853}.modeBtn:before{content:"";position:absolute;inset:0 auto auto 0;width:100%;height:3px;background:var(--mode-color,#4091ff)}.modeBtn:after{content:"";position:absolute;right:-28px;top:-28px;width:86px;height:86px;border-radius:999px;background:radial-gradient(circle, color-mix(in srgb,var(--mode-color,#4091ff) 34%, transparent), transparent 70%);opacity:.55;transition:160ms ease}.modeBtn b{position:relative;font-size:14px}.modeBtn span{position:relative;margin-top:2px;display:block;font-size:10.5px;color:#a7b8cd}.modeBtn:hover{border-color:color-mix(in srgb,var(--mode-color,#4091ff) 74%, #fff);box-shadow:0 12px 30px rgba(0,0,0,.22),0 0 0 1px color-mix(in srgb,var(--mode-color,#4091ff) 22%, transparent) inset}.modeBtn:hover:after{transform:scale(1.2);opacity:.85}.modeBtn.active{border-color:color-mix(in srgb,var(--mode-color,#4091ff) 82%, #fff);background:linear-gradient(145deg,color-mix(in srgb,var(--mode-color,#4091ff) 22%, #101d30),#091321);box-shadow:0 0 0 1px color-mix(in srgb,var(--mode-color,#4091ff) 32%, transparent) inset,0 0 30px color-mix(in srgb,var(--mode-color,#4091ff) 15%, transparent)}.modeBtn.active:before{height:4px;box-shadow:0 0 18px var(--mode-color,#4091ff)}.modeBtn.active span{color:#f5fbff}.modeBtn strong{position:absolute;right:11px;bottom:10px;font-size:9px;color:color-mix(in srgb,var(--mode-color,#4091ff) 80%, #fff);border:1px solid color-mix(in srgb,var(--mode-color,#4091ff) 50%, transparent);border-radius:999px;padding:3px 7px;background:rgba(4,10,18,.55)}#modeAuto{--mode-color:#58b9ff}#modeGaming{--mode-color:#ffa629}#modeCompetitive{--mode-color:#38d9ff}#modeStreamer{--mode-color:#2ee184;animation:livePulse 2.6s ease-in-out infinite}#modeWork{--mode-color:#9a72ff}#modeFocus{--mode-color:#ff6674}@keyframes livePulse{0%,100%{box-shadow:0 0 0 rgba(46,225,132,0)}50%{box-shadow:0 0 26px rgba(46,225,132,.12)}}.modeInsight{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(260px,.85fr);gap:10px}.selectedMode{background:linear-gradient(145deg,#091523,#07111f);border-radius:13px}.selectedMode p{font-size:13px}.modeFacts{grid-template-columns:repeat(3,minmax(0,1fr))}.modeFact{background:linear-gradient(145deg,#07111f,#09182a);border-color:#223752}.modeFact.accent{border-color:rgba(255,166,41,.45)}.modeFact.live{border-color:rgba(46,225,132,.42)}.modeFact b{font-size:14px}.energyOverlay{position:fixed;inset:0;z-index:24;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(1,5,10,.72);backdrop-filter:blur(14px)}.energyOverlay.open{display:flex}.energyPanel{width:min(620px,calc(100vw - 48px));border:1px solid rgba(255,166,41,.42);border-radius:18px;background:radial-gradient(circle at 12% 0%,rgba(255,166,41,.20),transparent 35%),linear-gradient(145deg,#101b2d,#08111f);box-shadow:0 28px 90px rgba(0,0,0,.56);padding:22px;display:grid;gap:14px}.energyPanel small{color:#ffa629;font-size:10px;text-transform:uppercase;font-weight:950}.energyPanel h2{margin:0;font-size:25px}.energyPanel p{margin:0;color:#b1c1d5;font-size:13px;line-height:1.5}.energySummary{border:1px solid #243955;border-radius:12px;background:#081421;padding:11px;display:grid;gap:4px}.energySummary b{font-size:13px}.energySummary span{color:#8fa2ba;font-size:11px}.energyActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.energyActions .btn{height:40px}.energyActions .btn.primary{grid-column:auto}.energyActions .btn.wide{grid-column:1/-1}.btn.green{background:linear-gradient(180deg,#2ee184,#17b86a);border-color:#2ee184;color:#04120c}.btn.violet{background:linear-gradient(180deg,#9a72ff,#7952e8);border-color:#9a72ff;color:#fff}.btn.ghost{background:#0b1728;color:#c7d7eb;border-color:#2a405f}.energyIdleBox{border:1px solid #243955;border-radius:14px;background:linear-gradient(145deg,rgba(9,20,34,.96),rgba(6,13,23,.96));padding:12px;display:grid;grid-template-columns:minmax(0,1fr) 132px;gap:12px;align-items:center}.energyIdleBox.disabled{opacity:.72}.energyCheck{display:grid;grid-template-columns:38px minmax(0,1fr);gap:10px;align-items:center;min-width:0}.energyCheck input{width:38px;height:22px;accent-color:#2ee184;cursor:pointer}.energyCheck b{display:block;font-size:13px}.energyCheck em{display:block;margin-top:3px;color:#8fa2ba;font-size:11px;line-height:1.35;font-style:normal}.energyMinutes{display:grid;gap:5px}.energyMinutes span{color:#8fa2ba;font-size:10px;font-weight:900}.energyMinutes input{height:36px;border-radius:10px;border:1px solid #2a405f;background:#081421;color:#f4f7fb;padding:0 10px;font-weight:900}.energyModeBrief{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.energyModeBrief div{border:1px solid #243955;border-radius:12px;background:#081421;padding:10px}.energyModeBrief b{display:block;font-size:12px}.energyModeBrief span{display:block;margin-top:4px;color:#8fa2ba;font-size:11px;line-height:1.35}
 .languageOverlay{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(1,5,10,.72);backdrop-filter:blur(14px)}
 .languageOverlay.open{display:flex}
 .languagePanel{width:min(720px,calc(100vw - 48px));border:1px solid rgba(75,147,255,.34);border-radius:18px;background:radial-gradient(circle at 20% 0%,rgba(255,166,41,.18),transparent 34%),linear-gradient(145deg,#101b2c,#08111e);box-shadow:0 28px 80px rgba(0,0,0,.5);padding:22px}
@@ -172,6 +172,167 @@ body:before{content:"";position:fixed;inset:-18%;pointer-events:none;background:
 }
 .cards{grid-template-columns:repeat(auto-fit,minmax(176px,1fr))}
 .enginePulseTop b{white-space:normal;overflow:visible;text-overflow:clip}
+
+/* v0.5.22 premium glass system: cohesive app shell, liquid feedback, better bento density */
+:root{--bg:#09090b;--bg2:#0b0f17;--rail:rgba(8,12,20,.72);--panel:rgba(12,18,30,.66);--panel2:rgba(15,24,39,.72);--line:rgba(156,185,230,.18);--text:#f8fafc;--soft:#bac7d8;--muted:#7d8ca3;--amber:#ffad2f;--green:#35e89a;--blue:#62a8ff;--violet:#a78bfa;--red:#ff5d78;--glass:linear-gradient(145deg,rgba(16,24,39,.70),rgba(7,12,22,.58));--glass-strong:linear-gradient(145deg,rgba(19,29,47,.82),rgba(7,12,22,.72));--shadow:0 24px 70px rgba(0,0,0,.38);--radius:22px;--radius-sm:16px;--ease:cubic-bezier(.2,.8,.2,1)}
+html,body{background:#09090b!important;font-family:Inter,"SF Pro Display","Segoe UI Variable Display","Segoe UI",system-ui,sans-serif!important;letter-spacing:0!important}body:before{inset:-26%!important;background:radial-gradient(circle at 12% 8%,rgba(255,173,47,.20),transparent 25%),radial-gradient(circle at 82% 2%,rgba(99,102,241,.20),transparent 30%),radial-gradient(circle at 72% 70%,rgba(53,232,154,.13),transparent 30%),radial-gradient(circle at 35% 108%,rgba(98,168,255,.14),transparent 32%)!important;filter:blur(22px)!important;opacity:.95!important;animation:ambientDrift 22s ease-in-out infinite alternate!important}body:after{content:"";position:fixed;inset:0;pointer-events:none;background:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.014) 1px,transparent 1px);background-size:38px 38px;mask-image:radial-gradient(circle at 50% 20%,black,transparent 78%);z-index:0}.app{border:0!important;background:linear-gradient(135deg,rgba(9,9,11,.98),rgba(7,12,21,.96) 58%,rgba(9,9,11,.98))!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.rail{background:linear-gradient(180deg,rgba(10,15,25,.84),rgba(4,7,12,.92))!important;backdrop-filter:blur(22px);border-right:1px solid rgba(255,255,255,.06)!important;padding-top:20px!important}.brandMark{border-radius:18px!important;background:linear-gradient(145deg,rgba(255,173,47,.14),rgba(98,168,255,.10))!important;border-color:rgba(255,255,255,.13)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 16px 32px rgba(0,0,0,.28)}.nav{border-radius:16px!important;background:rgba(13,22,36,.62)!important;border-color:rgba(156,185,230,.13)!important;backdrop-filter:blur(14px)}.nav:hover{border-color:rgba(255,173,47,.42)!important;transform:translateY(-2px) scale(1.02)!important;background:rgba(20,31,49,.76)!important}.nav.active{background:linear-gradient(145deg,rgba(255,173,47,.22),rgba(15,24,39,.68))!important;box-shadow:0 0 28px rgba(255,173,47,.10),inset 0 1px 0 rgba(255,255,255,.08)}
+.workspace{padding:24px 28px 22px!important;background:transparent!important}.workspaceInner{gap:18px!important}.topbar{height:58px!important;padding:0 2px!important}.titleBlock b{font-size:25px!important;font-weight:900!important;letter-spacing:0!important}.titleBlock span{color:#9fb0c6!important;font-size:12px!important}.statusBar{gap:10px!important;padding-right:116px!important}.pill,.startupAction,.langButton{height:34px!important;border-radius:999px!important;border-color:rgba(167,139,250,.34)!important;background:rgba(18,21,36,.62)!important;backdrop-filter:blur(16px);box-shadow:inset 0 1px 0 rgba(255,255,255,.07)}.pill.good{border-color:rgba(53,232,154,.30)!important;background:rgba(53,232,154,.10)!important}.startupAction:hover,.langButton:hover,.pill:hover{transform:translateY(-1px)!important;box-shadow:0 14px 34px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.08)!important}.windowControls{top:10px!important;right:12px!important;border:1px solid rgba(156,185,230,.12);border-radius:16px;padding:4px;background:rgba(7,10,16,.74)!important;box-shadow:0 16px 42px rgba(0,0,0,.28)}.chromeBtn{border-radius:11px!important}
+.dashboard{grid-template-columns:minmax(0,1fr) minmax(350px,390px)!important;gap:18px!important}.leftCol,.rightCol{gap:18px!important}.panel,.engineCard,.controlDeck,.card,.systemTile,.feature,.intelligencePanel,.sidePanel,.manager{border-radius:var(--radius)!important;border:1px solid var(--line)!important;background:var(--glass)!important;backdrop-filter:blur(22px) saturate(1.12);box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.055)!important}.panel:hover,.engineCard:hover,.controlDeck:hover,.systemTile:hover,.intelligencePanel:hover{border-color:rgba(98,168,255,.34)!important;box-shadow:0 28px 80px rgba(0,0,0,.42),0 0 0 1px rgba(98,168,255,.05) inset!important}
+.command{grid-template-columns:minmax(0,1fr) minmax(390px,.48fr)!important;gap:22px!important;padding:22px!important;border-radius:var(--radius)!important;background:radial-gradient(circle at 0 0,rgba(255,173,47,.12),transparent 34%),radial-gradient(circle at 84% 20%,rgba(167,139,250,.12),transparent 36%),var(--glass)!important}.commandHero{gap:18px!important}.headline{font-size:clamp(36px,2.9vw,56px)!important;line-height:.98!important;font-weight:950!important;letter-spacing:0!important;text-wrap:balance}.subline{font-size:14px!important;color:#b9c6d8!important;max-width:820px}.featureGrid{gap:12px!important}.feature{border-radius:18px!important;padding:14px!important;background:rgba(8,14,25,.56)!important}.feature b{font-size:15px!important;white-space:normal!important}.feature p{font-size:12px!important;color:#9dafc6!important}.intelligencePanel{border-radius:22px!important;padding:16px!important;background:linear-gradient(145deg,rgba(20,27,48,.64),rgba(8,14,25,.66))!important}.intelligencePanel:before{height:1px!important;background:linear-gradient(90deg,rgba(53,232,154,.9),rgba(98,168,255,.75),rgba(167,139,250,.85))!important}.networkPanel{background:linear-gradient(145deg,rgba(8,27,31,.62),rgba(13,16,31,.68))!important}.learningToggle{height:42px!important;border-radius:999px!important;background:rgba(167,139,250,.12)!important;transition:transform .18s var(--ease),box-shadow .18s var(--ease),background .18s var(--ease)!important}.learningToggle:hover{transform:translateY(-1px)!important;box-shadow:0 14px 34px rgba(0,0,0,.25)}.learningToggle.on{background:rgba(53,232,154,.15)!important}
+.engineCard{padding:18px!important;gap:14px!important;min-height:100%!important}.engineHead h2{font-size:22px!important;letter-spacing:0!important}.state{border-radius:999px!important;padding:7px 11px!important;background:rgba(53,232,154,.12)!important}.detail{font-size:13px!important;color:#aebdd1!important}.engineSummary,.engineLiveStrip{gap:10px!important}.engineSummary span,.engineLiveStrip span,.mini,.focusLine,.modeFact{border-radius:16px!important;background:rgba(7,13,23,.58)!important;border-color:rgba(156,185,230,.15)!important}.meter{grid-template-columns:104px minmax(0,1fr)!important}.ring{width:104px!important;height:104px!important;box-shadow:0 0 34px rgba(53,232,154,.14),inset 0 0 0 1px rgba(255,255,255,.06)!important}.actions{gap:10px!important}.btn{height:42px!important;border-radius:14px!important;border-color:rgba(156,185,230,.20)!important;background:rgba(16,28,45,.72)!important;transition:transform .18s var(--ease),box-shadow .18s var(--ease),filter .18s var(--ease),border-color .18s var(--ease)!important}.btn:hover{transform:translateY(-2px)!important;box-shadow:0 16px 34px rgba(0,0,0,.28)!important}.btn.primary{background:linear-gradient(180deg,#ffc15f,#ff9f21)!important;border-color:rgba(255,193,95,.82)!important;color:#100d08!important;box-shadow:0 18px 42px rgba(255,173,47,.20)!important}.btn:active,.startupAction:active,.langButton:active,.learningToggle:active,.modeBtn:active{transform:translateY(1px) scale(.985)!important}.enginePulse{border-radius:18px!important;background:rgba(5,10,18,.46)!important}.pulseStep{border-radius:14px!important;background:rgba(9,16,28,.62)!important}.bar{border-radius:999px!important;height:4px!important;border-color:rgba(156,185,230,.22)!important;background:rgba(8,14,25,.9)!important}.bar i{border-radius:999px!important}
+.cards{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:14px!important}.card{min-height:96px!important;padding:16px!important;background:linear-gradient(145deg,rgba(17,28,46,.66),rgba(8,14,25,.56))!important}.card:before,.systemTile:before{height:1px!important}.card small,.mini small,.focusLine small,.systemTile small,.modeFact small{color:#8fa1bc!important;font-size:10px!important;text-transform:none!important}.card b{font-size:20px!important;line-height:1.16!important}.controlDeck{padding:18px!important;gap:16px!important}.modeDeckHero h3{font-size:24px!important}.modeDeckHero p{font-size:13px!important}.modeRow{grid-template-columns:repeat(6,minmax(124px,1fr))!important;gap:12px!important}.modeBtn{border-radius:20px!important;min-height:112px!important;padding:15px!important;background:linear-gradient(145deg,rgba(15,24,39,.72),rgba(7,13,23,.62))!important;backdrop-filter:blur(16px)}.modeBtn b{font-size:15px!important}.modeBtn span{font-size:11.5px!important}.modeBtn strong{right:13px!important;bottom:12px!important}.modeInsight{gap:12px!important}.selectedMode{border-radius:18px!important;background:rgba(7,13,23,.58)!important}.systemPanel{padding:18px!important}.systemGrid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:12px!important}.systemTile{border-radius:18px!important;padding:14px!important}.systemTile b{font-size:16px!important}.systemTile p{font-size:12px!important;color:#a4b4ca!important}.manager{padding:18px!important}.panelTitle h3{font-size:19px!important}.table{border-radius:18px!important;border-color:rgba(156,185,230,.16)!important;background:rgba(6,11,20,.54)!important}.thead{background:rgba(22,35,55,.82)!important}.row{min-height:48px!important;background:rgba(9,16,28,.62)!important}.row:nth-child(even){background:rgba(12,21,35,.66)!important}.row:hover{background:rgba(18,31,50,.78)!important;box-shadow:inset 3px 0 0 rgba(255,173,47,.75)!important}.decisionSummary,.badgeGroup,.policyButtons{border-radius:14px!important;background:rgba(7,14,25,.60)!important}.badge,.policyBtn{border-radius:9px!important}.policyBtn{height:24px!important}.sidePanel{padding:18px!important}.focusBox{grid-template-columns:1fr!important;gap:10px!important}.timeline{border-radius:18px!important;background:rgba(5,10,18,.58)!important}.eventLine{grid-template-columns:64px minmax(0,1fr)!important;font-size:11.5px!important}.eventLine span{white-space:normal!important;-webkit-line-clamp:2!important}.languagePanel,.infoPanel,.energyPanel{border-radius:28px!important;background:radial-gradient(circle at 14% 0,rgba(255,173,47,.16),transparent 32%),linear-gradient(145deg,rgba(18,27,45,.88),rgba(7,12,22,.88))!important;backdrop-filter:blur(24px) saturate(1.14);box-shadow:0 30px 100px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.06)!important}.locale{border-radius:18px!important;background:rgba(8,15,27,.66)!important}.locale:hover,.locale.active{transform:translateY(-1px);box-shadow:0 18px 36px rgba(0,0,0,.24)}
+@media(min-width:1500px){.dashboard{grid-template-columns:minmax(0,1fr) minmax(380px,420px)!important}.command{grid-template-columns:minmax(0,1.1fr) minmax(420px,.52fr)!important}.workspace{padding-left:32px!important;padding-right:32px!important}}@media(max-width:1320px){.dashboard{grid-template-columns:1fr!important}.command{grid-template-columns:1fr!important}.rightCol{grid-template-rows:auto!important}.sidePanel{max-height:none!important}.cards{grid-template-columns:repeat(2,minmax(0,1fr))!important}.systemGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.modeRow{grid-template-columns:repeat(3,minmax(0,1fr))!important}}@media(max-width:880px){.workspace{padding:16px!important}.topbar{height:auto!important;flex-direction:column!important;align-items:flex-start!important}.statusBar{justify-content:flex-start!important;padding-right:112px!important}.cards,.featureGrid,.systemGrid,.modeRow,.modeInsight,.modeFacts{grid-template-columns:1fr!important}.meter{grid-template-columns:1fr!important}.ring{margin:auto}.engineSummary,.engineLiveStrip{grid-template-columns:1fr!important}.headline{font-size:34px!important}.table{max-width:calc(100vw - 102px)!important}}@media(max-aspect-ratio:4/5){.dashboard,.command,.modeInsight{grid-template-columns:1fr!important}.cards,.systemGrid,.featureGrid,.modeRow{grid-template-columns:1fr!important}.engineCard{min-height:0!important}.sidePanel{max-height:none!important}.workspace{padding:14px!important}.headline{font-size:32px!important}.statusBar{padding-right:104px!important}.table{max-height:54vh!important}}
+
+/* v0.5.22 pulse readability: explicit action names, no ugly ellipsis */
+.enginePulse{min-height:142px!important}
+.pulseTrack{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+.pulseStep{min-height:52px!important;padding:8px 10px!important;align-content:start!important}
+.pulseStep b{font-size:11.5px!important;line-height:1.15!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:normal!important}
+.pulseStep em{font-size:10px!important;line-height:1.2!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
+@media(max-width:520px){.pulseTrack{grid-template-columns:1fr!important}}
+
+/* v0.5.22 signal board: make live telemetry feel designed, not like tiny form fields */
+.engineSummary{grid-template-columns:minmax(0,.92fr) minmax(0,1.34fr)!important;gap:9px!important}
+.engineSummary span,.engineLiveStrip span{position:relative;isolation:isolate;overflow:hidden!important;border-radius:18px!important;background:linear-gradient(145deg,rgba(9,18,31,.72),rgba(5,10,18,.68))!important;border-color:rgba(162,190,230,.17)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.045)}
+.engineSummary span:before,.engineLiveStrip span:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--blue),rgba(98,168,255,.18));opacity:.9}
+.engineSummary span:after,.engineLiveStrip span:after{content:"";position:absolute;right:-28px;top:-28px;width:82px;height:82px;border-radius:999px;background:radial-gradient(circle,rgba(98,168,255,.11),transparent 68%);z-index:-1}
+.engineSummary span:nth-child(2):before{background:linear-gradient(180deg,var(--amber),rgba(255,173,47,.16))}
+.engineSummary span:nth-child(2):after{background:radial-gradient(circle,rgba(255,173,47,.12),transparent 68%)}
+.engineSummary span:nth-child(3){grid-column:1/-1;min-height:48px!important;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px}
+.engineSummary span:nth-child(3):before{background:linear-gradient(180deg,var(--green),rgba(53,232,154,.14))}
+.engineSummary span:nth-child(3):after{background:radial-gradient(circle,rgba(53,232,154,.12),transparent 68%)}
+.engineSummary span:nth-child(3) small{margin:0!important}
+.engineSummary span:nth-child(3) b{margin:0!important;text-align:right;color:#f6fbff!important}
+.engineSummary small,.engineLiveStrip small{font-size:9.5px!important;letter-spacing:.02em!important;text-transform:none!important;color:#8ea0b8!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
+.engineSummary b,.engineLiveStrip b{font-size:14px!important;line-height:1.18!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:normal!important}
+.engineSummary span:nth-child(1) b{font-size:16px!important}
+.engineSummary span:nth-child(2) b{font-size:13.5px!important}
+.engineLiveStrip{grid-template-columns:minmax(0,1.18fr) minmax(0,.82fr)!important;gap:9px!important}
+.engineLiveStrip span:nth-child(1):before{background:linear-gradient(180deg,var(--violet),rgba(167,139,250,.12))}
+.engineLiveStrip span:nth-child(1):after{background:radial-gradient(circle,rgba(167,139,250,.12),transparent 68%)}
+.engineLiveStrip span:nth-child(2):before{background:linear-gradient(180deg,var(--green),rgba(53,232,154,.12))}
+.engineLiveStrip span:nth-child(2):after{background:radial-gradient(circle,rgba(53,232,154,.10),transparent 68%)}
+@media(max-width:520px){.engineSummary,.engineLiveStrip{grid-template-columns:1fr!important}.engineSummary span:nth-child(3){grid-template-columns:1fr}.engineSummary span:nth-child(3) b{text-align:left}}
+
+/* v0.5.22 telemetry rail polish: clearer right column and premium navigation */
+.rail{width:78px!important;position:relative;overflow:visible!important;z-index:5;background:linear-gradient(180deg,rgba(10,14,22,.88),rgba(4,7,12,.96))!important}
+.rail:before{content:"";position:absolute;top:18px;bottom:76px;left:50%;width:1px;transform:translateX(-50%);background:linear-gradient(180deg,transparent,rgba(255,173,47,.28),rgba(98,168,255,.20),rgba(53,232,154,.18),transparent);opacity:.42}
+.rail:after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 8%,rgba(255,173,47,.12),transparent 20%),radial-gradient(circle at 50% 62%,rgba(98,168,255,.08),transparent 32%);pointer-events:none}
+.brandMark,.navStack,.version{position:relative;z-index:1}
+.brandMark{width:50px!important;height:50px!important;border-radius:20px!important;background:radial-gradient(circle at 34% 24%,rgba(255,255,255,.18),transparent 22%),linear-gradient(145deg,rgba(255,173,47,.18),rgba(98,168,255,.11) 56%,rgba(8,14,24,.78))!important;box-shadow:0 18px 40px rgba(0,0,0,.34),0 0 24px rgba(255,173,47,.10),inset 0 1px 0 rgba(255,255,255,.14)!important}
+.brandMark:after{content:"";position:absolute;inset:-1px;border-radius:inherit;border:1px solid rgba(255,173,47,.26);filter:drop-shadow(0 0 10px rgba(255,173,47,.16));pointer-events:none}
+.brandMark img{width:35px!important;height:35px!important}
+.navStack{gap:12px!important;margin-top:14px!important}
+.nav{width:52px!important;height:52px!important;border-radius:18px!important;position:relative;isolation:isolate;color:#9db0c8!important;background:linear-gradient(145deg,rgba(16,25,41,.68),rgba(7,12,21,.66))!important;border:1px solid rgba(156,185,230,.14)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 12px 26px rgba(0,0,0,.20)!important}
+.nav:before{content:"";position:absolute;left:-14px;top:50%;width:3px;height:0;border-radius:999px;background:linear-gradient(180deg,var(--amber),var(--blue));transform:translateY(-50%);opacity:0;transition:height .18s var(--ease),opacity .18s var(--ease)}
+.nav:after{content:attr(title);position:absolute;left:62px;top:50%;width:max-content;max-width:190px;min-height:34px;padding:0 12px;border-radius:12px;display:flex;align-items:center;color:#ecf4ff;background:linear-gradient(145deg,rgba(13,21,35,.96),rgba(5,10,18,.92));border:1px solid rgba(156,185,230,.20);box-shadow:0 18px 38px rgba(0,0,0,.36),inset 0 1px 0 rgba(255,255,255,.06);font-size:12px;font-weight:900;white-space:nowrap;opacity:0;pointer-events:none;transform:translate(-8px,-50%) scale(.98);transition:opacity .16s var(--ease),transform .16s var(--ease);z-index:40}
+.nav:hover{color:#f7fbff!important;border-color:rgba(98,168,255,.34)!important;background:linear-gradient(145deg,rgba(22,34,54,.76),rgba(8,14,25,.72))!important;box-shadow:0 18px 36px rgba(0,0,0,.28),0 0 28px rgba(98,168,255,.08)!important}
+.nav:hover:after{opacity:1;transform:translate(0,-50%) scale(1)}
+.nav.active{color:#ffbd58!important;border-color:rgba(255,173,47,.48)!important;background:linear-gradient(145deg,rgba(255,173,47,.22),rgba(16,24,39,.76) 58%,rgba(7,12,21,.72))!important;box-shadow:0 18px 38px rgba(0,0,0,.30),0 0 30px rgba(255,173,47,.11),inset 0 1px 0 rgba(255,255,255,.10)!important}
+.nav.active:before{height:30px;opacity:1}
+.nav.active:hover:after{opacity:1;transform:translate(0,-50%) scale(1)}
+.nav svg{width:22px!important;height:22px!important;filter:drop-shadow(0 4px 8px rgba(0,0,0,.25))}
+.version{padding:6px 8px;border-radius:999px;background:rgba(8,14,24,.58);border:1px solid rgba(156,185,230,.10);color:#86a0bd!important}
+.sidePanel{overflow:hidden!important;gap:14px!important;background:linear-gradient(160deg,rgba(13,20,33,.72),rgba(5,10,18,.70))!important}
+.sidePanel:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 12% 0,rgba(255,173,47,.10),transparent 28%),radial-gradient(circle at 100% 18%,rgba(98,168,255,.09),transparent 32%),linear-gradient(180deg,rgba(255,255,255,.035),transparent 16%);pointer-events:none}
+.sidePanel .panelTitle{position:relative;z-index:1;padding:2px 2px 0}
+.sidePanel .panelTitle h3{font-size:20px!important;letter-spacing:-.01em}
+.sidePanel .panelTitle span{min-height:24px;padding:5px 10px;border-radius:999px;background:rgba(98,168,255,.10);border:1px solid rgba(98,168,255,.18);color:#a9c9ff!important}
+.focusBox{position:relative;z-index:1;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+.focusLine{position:relative;isolation:isolate;min-height:76px!important;padding:13px 13px 12px 14px!important;border-radius:18px!important;background:linear-gradient(145deg,rgba(9,16,28,.70),rgba(5,10,18,.66))!important;border:1px solid rgba(156,185,230,.15)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 12px 24px rgba(0,0,0,.16)!important;transition:transform .18s var(--ease),border-color .18s var(--ease),background .18s var(--ease),box-shadow .18s var(--ease)!important}
+.focusLine:before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:999px;background:linear-gradient(180deg,rgba(98,168,255,.95),rgba(98,168,255,.18));box-shadow:0 0 16px rgba(98,168,255,.14)}
+.focusLine:after{content:"";position:absolute;right:-34px;top:-36px;width:96px;height:96px;border-radius:999px;background:radial-gradient(circle,rgba(98,168,255,.10),transparent 68%);z-index:-1}
+.focusLine:hover{transform:translateY(-2px);border-color:rgba(98,168,255,.34)!important;background:linear-gradient(145deg,rgba(12,22,38,.78),rgba(6,12,22,.70))!important;box-shadow:0 18px 36px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.06)!important}
+.focusLine small{font-size:10px!important;line-height:1.15!important;color:#8ea0b8!important;letter-spacing:.01em!important;text-transform:none!important}
+.focusLine b{margin-top:7px!important;font-size:16px!important;line-height:1.2!important;color:#f7fbff!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;display:block!important;overflow-wrap:anywhere!important;-webkit-line-clamp:unset!important}
+.focusLine:nth-child(1){grid-column:1/-1;min-height:82px!important;padding-right:18px!important;background:radial-gradient(circle at 100% 12%,rgba(255,173,47,.14),transparent 42%),linear-gradient(145deg,rgba(15,23,37,.78),rgba(6,12,22,.70))!important}
+.focusLine:nth-child(1):before{background:linear-gradient(180deg,var(--amber),rgba(255,173,47,.18));box-shadow:0 0 18px rgba(255,173,47,.18)}
+.focusLine:nth-child(1):after{background:radial-gradient(circle,rgba(255,173,47,.13),transparent 68%)}
+.focusLine:nth-child(1) b{font-size:22px!important;letter-spacing:-.01em}
+.focusLine:nth-child(2):before,.focusLine:nth-child(5):before{background:linear-gradient(180deg,var(--green),rgba(53,232,154,.16));box-shadow:0 0 16px rgba(53,232,154,.13)}
+.focusLine:nth-child(2):after,.focusLine:nth-child(5):after{background:radial-gradient(circle,rgba(53,232,154,.10),transparent 68%)}
+.focusLine:nth-child(3):before,.focusLine:nth-child(4):before{background:linear-gradient(180deg,var(--violet),rgba(167,139,250,.16));box-shadow:0 0 16px rgba(167,139,250,.13)}
+.focusLine:nth-child(3):after,.focusLine:nth-child(4):after{background:radial-gradient(circle,rgba(167,139,250,.10),transparent 68%)}
+.focusLine:nth-child(6),.focusLine:nth-child(7){grid-column:1/-1;min-height:70px!important}
+.focusLine:nth-child(6) b,.focusLine:nth-child(7) b{font-size:15px!important}
+.focusLine:nth-child(8){grid-column:1/-1;min-height:92px!important;background:radial-gradient(circle at 100% 0,rgba(53,232,154,.12),transparent 36%),linear-gradient(145deg,rgba(5,25,28,.72),rgba(7,12,22,.68))!important}
+.focusLine:nth-child(8):before{background:linear-gradient(180deg,var(--green),var(--blue));box-shadow:0 0 20px rgba(53,232,154,.18)}
+.focusLine:nth-child(8):after{background:radial-gradient(circle,rgba(53,232,154,.14),transparent 68%)}
+.focusLine:nth-child(8) b{font-size:17px!important}
+.focusLine:nth-child(9):before,.focusLine:nth-child(10):before{background:linear-gradient(180deg,var(--blue),var(--violet));box-shadow:0 0 16px rgba(98,168,255,.14)}
+.focusLine:nth-child(9):after,.focusLine:nth-child(10):after{background:radial-gradient(circle,rgba(98,168,255,.11),transparent 68%)}
+.focusLine:nth-child(11),.focusLine:nth-child(12){grid-column:1/-1;min-height:66px!important}
+.focusLine:nth-child(11):before{background:linear-gradient(180deg,var(--green),rgba(53,232,154,.14))}
+.focusLine:nth-child(12):before{background:linear-gradient(180deg,var(--amber),rgba(255,173,47,.14))}
+.timeline{position:relative;z-index:1;border-radius:20px!important;border-color:rgba(156,185,230,.14)!important;background:linear-gradient(180deg,rgba(5,10,18,.72),rgba(3,7,13,.64))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.035)!important}
+.eventLine:first-child{background:linear-gradient(90deg,rgba(255,173,47,.10),rgba(98,168,255,.04),transparent)!important;border-radius:12px}
+@media(max-width:1320px){.focusBox{grid-template-columns:repeat(2,minmax(0,1fr))!important}.focusLine:nth-child(1),.focusLine:nth-child(6),.focusLine:nth-child(7),.focusLine:nth-child(8),.focusLine:nth-child(11),.focusLine:nth-child(12){grid-column:1/-1}}
+@media(max-width:640px){.focusBox{grid-template-columns:1fr!important}.focusLine{grid-column:1/-1!important}.rail{width:64px!important}.nav{width:46px!important;height:46px!important}.brandMark{width:46px!important;height:46px!important}}
+
+/* v0.5.22 final polish: action buttons keep intent colors, GPU/VRAM uses the telemetry rail width */
+.energyActions .btn.green,.btn.green{background:linear-gradient(180deg,#35e89a,#18bd70)!important;border-color:rgba(53,232,154,.82)!important;color:#04120c!important;box-shadow:0 18px 40px rgba(53,232,154,.16),inset 0 1px 0 rgba(255,255,255,.22)!important}
+.energyActions .btn.violet,.btn.violet{background:linear-gradient(180deg,#a78bfa,#7c5bf0)!important;border-color:rgba(167,139,250,.82)!important;color:#fff!important;box-shadow:0 18px 40px rgba(167,139,250,.16),inset 0 1px 0 rgba(255,255,255,.16)!important}
+.energyActions .btn.green:hover,.btn.green:hover{filter:brightness(1.05)!important;box-shadow:0 22px 46px rgba(53,232,154,.20),inset 0 1px 0 rgba(255,255,255,.24)!important}
+.energyActions .btn.violet:hover,.btn.violet:hover{filter:brightness(1.05)!important;box-shadow:0 22px 46px rgba(167,139,250,.20),inset 0 1px 0 rgba(255,255,255,.18)!important}
+.focusLine:nth-child(9){grid-column:1/-1!important;min-height:78px!important}
+.focusLine:nth-child(9) b{font-size:18px!important;line-height:1.18!important;max-width:100%}
+.focusLine:nth-child(9):after{right:-18px;top:-42px;width:128px;height:128px;background:radial-gradient(circle,rgba(98,168,255,.13),rgba(167,139,250,.08) 42%,transparent 72%)}
+
+/* v0.5.22 mode clarity: the active engine mode must be obvious at a glance */
+.modeRow{align-items:stretch!important}
+.modeBtn{opacity:.78!important;filter:saturate(.88)!important;transition:opacity .18s var(--ease),filter .18s var(--ease),transform .18s var(--ease),box-shadow .18s var(--ease),border-color .18s var(--ease),background .18s var(--ease)!important}
+.modeBtn:hover{opacity:.98!important;filter:saturate(1.04) brightness(1.03)!important}
+.modeBtn.active{opacity:1!important;filter:saturate(1.18) brightness(1.07)!important;transform:translateY(-4px)!important;border-width:1px!important;border-color:color-mix(in srgb,var(--mode-color,#58b9ff) 88%, #fff)!important;background:radial-gradient(circle at 84% 10%,color-mix(in srgb,var(--mode-color,#58b9ff) 34%, transparent),transparent 42%),linear-gradient(145deg,color-mix(in srgb,var(--mode-color,#58b9ff) 26%, #142238),rgba(8,14,25,.90) 62%)!important;box-shadow:0 24px 54px rgba(0,0,0,.34),0 0 0 1px color-mix(in srgb,var(--mode-color,#58b9ff) 34%, transparent) inset,0 0 32px color-mix(in srgb,var(--mode-color,#58b9ff) 22%, transparent)!important}
+.modeBtn.active:before{height:5px!important;background:linear-gradient(90deg,#fff,color-mix(in srgb,var(--mode-color,#58b9ff) 88%, #fff),var(--mode-color,#58b9ff))!important;box-shadow:0 0 20px color-mix(in srgb,var(--mode-color,#58b9ff) 48%, transparent)!important}
+.modeBtn.active:after{opacity:.95!important;transform:scale(1.22)!important}
+.modeBtn.active b{color:#fff!important;text-shadow:0 0 18px color-mix(in srgb,var(--mode-color,#58b9ff) 36%, transparent)}
+.modeBtn.active b:after{content:"Ativo";display:inline-flex;align-items:center;height:18px;margin-left:8px;padding:0 7px;border-radius:999px;border:1px solid color-mix(in srgb,var(--mode-color,#58b9ff) 58%, transparent);background:rgba(5,10,18,.58);color:#fff;font-size:9px;font-weight:950;vertical-align:2px;box-shadow:0 0 16px color-mix(in srgb,var(--mode-color,#58b9ff) 18%, transparent)}
+.modeBtn.active span{color:#edf6ff!important}
+.modeBtn.active strong{border-color:color-mix(in srgb,var(--mode-color,#58b9ff) 72%, transparent)!important;background:color-mix(in srgb,var(--mode-color,#58b9ff) 18%, rgba(4,10,18,.62))!important;color:#fff!important}
+
+/* v0.5.22 official brand integration: logo lives beside the wordmark, not inside the rail */
+.brandMark{display:none!important}
+.rail{padding-top:42px!important}
+.navStack{margin-top:0!important;gap:14px!important}
+.brandLockup{display:flex;align-items:center;gap:14px;min-width:0}
+.brandCopy{display:grid;gap:2px;min-width:0}
+.wordmarkLogo{
+  width:58px;
+  height:58px;
+  flex:0 0 58px;
+  object-fit:contain;
+  transform-origin:50% 52%;
+  filter:drop-shadow(0 0 18px rgba(255,116,33,.34)) drop-shadow(0 0 22px rgba(147,91,255,.22));
+  animation:officialLogoSpinElastic 6.8s cubic-bezier(.2,.9,.18,1) infinite;
+  will-change:transform,filter;
+}
+.brandLockup:hover .wordmarkLogo{animation-duration:6.8s;filter:drop-shadow(0 0 24px rgba(255,116,33,.50)) drop-shadow(0 0 32px rgba(147,91,255,.36))}
+.titleBlock b{
+  font-size:27px!important;
+  line-height:1!important;
+  background:linear-gradient(98deg,#ffffff 0%,#ffffff 28%,#ff9f1c 40%,#b875ff 50%,#ffb342 60%,#ffffff 72%,#ffffff 100%)!important;
+  background-size:185% 100%!important;
+  -webkit-background-clip:text!important;
+  background-clip:text!important;
+  -webkit-text-fill-color:transparent!important;
+  color:transparent!important;
+  text-shadow:0 0 26px rgba(255,159,28,.08),0 0 32px rgba(184,117,255,.06)!important;
+  animation:brandTextSweep 4.7s cubic-bezier(.45,0,.2,1) infinite!important;
+}
+.titleBlock span{margin-top:0!important}
+@keyframes officialLogoSpinElastic{
+  0%,48%,100%{transform:rotate(0deg) scale(1)}
+  55%{transform:rotate(-7deg) scale(.965)}
+  68%{transform:rotate(365deg) scale(1.08)}
+  78%{transform:rotate(352deg) scale(.99)}
+  88%{transform:rotate(360deg) scale(1.025)}
+}
+@keyframes brandTextSweep{0%,14%{background-position:115% 0}56%,100%{background-position:-36% 0}}
+@media(max-width:900px){.rail{padding-top:34px!important}.wordmarkLogo{width:50px;height:50px;flex-basis:50px}.titleBlock b{font-size:24px!important}}
+@media(prefers-reduced-motion:reduce){.wordmarkLogo,.titleBlock b{animation:none!important}}
+
+
 </style>
 </head>
 <body>
@@ -182,7 +343,6 @@ body:before{content:"";position:fixed;inset:-18%;pointer-events:none;background:
     <button class="chromeBtn close" title="Close" onclick="send('close')">x</button>
   </div>
   <aside class="rail">
-    <div class="brandMark"><img id="logo" alt=""></div>
     <nav class="navStack">
       <button class="nav active" title="Painel" data-title-key="navDashboard"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 11.5 12 4l9 7.5v8.5h-6v-5H9v5H3z"/></svg></button>
       <button class="nav" title="Log de atividade" data-title-key="navLog" onclick="send('log')"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M5 4h14v16H5zm3 4v2h8V8zm0 4v2h8v-2zm0 4v2h5v-2z"/></svg></button>
@@ -194,9 +354,9 @@ body:before{content:"";position:fixed;inset:-18%;pointer-events:none;background:
   <main class="workspace">
     <div class="workspaceInner">
       <section class="topbar">
-        <div class="titleBlock"><b data-i18n="appTitle">Smart Nap</b><span data-i18n="appSubtitle">Background control for gaming and multitasking</span></div>
+        <div class="titleBlock"><div class="brandLockup"><img id="logo" class="wordmarkLogo" alt=""><div class="brandCopy"><b data-i18n="appTitle">Smart Nap</b><span data-i18n="appSubtitle">Background control for gaming and multitasking</span></div></div></div>
         <div class="statusBar">
-          <button class="langButton" id="languageButton" onclick="openLanguagePicker(false)">Language</button>
+          <button class="langButton" id="languageButton" onclick="openLanguagePicker(false)">Português BR</button>
           <button class="startupAction" id="startup" type="button" onclick="send('toggleStartup')"><span id="startupText">Inicialização</span></button>
           <button class="startupAction updateAction" id="updateAction" type="button" onclick="openUpdateInfo()"><span id="updateActionText">Procurar atualizações</span></button>
           <span class="pill good" id="live"><i class="pulseDot"></i>Atualizando</span>
@@ -308,6 +468,7 @@ body:before{content:"";position:fixed;inset:-18%;pointer-events:none;background:
             <div class="modeRow">
               <button class="modeBtn" id="modeAuto" onclick="setSessionMode('Auto')"><b data-i18n="modeAuto">Auto</b><span data-i18n="modeAutoD">Equilíbrio automático para uso diário.</span><strong data-i18n="modeAutoPill">Uso diário</strong></button>
               <button class="modeBtn" id="modeGaming" onclick="setSessionMode('Gaming')"><b data-i18n="modeGaming">Gaming</b><span data-i18n="modeGamingD">Fast foreground recovery.</span><strong data-i18n="modeGamingPill">Power</strong></button>
+              <button class="modeBtn" id="modeCompetitive" onclick="setSessionMode('Competitive')"><b data-i18n="modeCompetitive">Competitivo</b><span data-i18n="modeCompetitiveD">Prioriza partidas online e voz.</span><strong data-i18n="modeCompetitivePill">Netcode</strong></button>
               <button class="modeBtn" id="modeStreamer" onclick="setSessionMode('Streamer')"><b data-i18n="modeStreamer">Live</b><span data-i18n="modeStreamerD">Protect stream and game.</span><strong data-i18n="modeStreamerPill">Stream guard</strong></button>
               <button class="modeBtn" id="modeWork" onclick="setSessionMode('Work')"><b data-i18n="modeWork">Trabalho</b><span data-i18n="modeWorkD">Mantém apps responsivos.</span><strong data-i18n="modeWorkPill">Estável</strong></button>
               <button class="modeBtn" id="modeFocus" onclick="setSessionMode('Focus')"><b data-i18n="modeFocus">Foco</b><span data-i18n="modeFocusD">Alivia apps em segundo plano parados com mais firmeza.</span><strong data-i18n="modeFocusPill">Fundo leve</strong></button>
@@ -335,7 +496,7 @@ body:before{content:"";position:fixed;inset:-18%;pointer-events:none;background:
             </div>
           </section>
           <section class="panel manager">
-            <div class="panelTitle"><h3 data-i18n="liveManager">Live Manager</h3><span id="managerStatus">Waiting for score data.</span></div>
+            <div class="panelTitle"><h3 data-i18n="liveManager">Gerenciador ao vivo</h3><span id="managerStatus">Aguardando dados do motor.</span></div>
             <div class="table">
               <div class="thead"><span data-i18n="colApp">App</span><span data-i18n="colScore">Impacto</span><span data-i18n="colDelta">RAM</span><span data-i18n="colCpu">CPU</span><span data-i18n="colBursts">Picos</span><span data-i18n="colAction">Decisão</span></div>
               <div id="rows"></div>
@@ -354,6 +515,9 @@ body:before{content:"";position:fixed;inset:-18%;pointer-events:none;background:
               <div class="focusLine"><small data-i18n="intentState">Intent engine</small><b id="intentState">-</b></div>
               <div class="focusLine"><small data-i18n="contentionRadar">Contention radar</small><b id="radarState">-</b></div>
               <div class="focusLine"><small data-i18n="udpTelemetryK">Zero Ping</small><b id="udpTelemetry">-</b></div>
+              <div class="focusLine"><small data-i18n="gpuPressureK">GPU/VRAM</small><b id="gpuPressureState">-</b></div>
+              <div class="focusLine"><small data-i18n="cpuBoundK">CPU-Bound Assist</small><b id="cpuBoundState">-</b></div>
+              <div class="focusLine"><small data-i18n="engineHealthK">Saúde do motor</small><b id="engineHealthState">-</b></div>
               <div class="focusLine"><small data-i18n="streamTelemetryK">Live Guard</small><b id="streamTelemetry">-</b></div>
             </div>
             <div class="permissionBox" id="permissionBox">
@@ -709,6 +873,7 @@ Object.keys(LANGS).forEach(k=>{
   LANGS[k].pressureElevated = LANGS[k].pressureElevated || "Elevated";
   LANGS[k].pressureCritical = LANGS[k].pressureCritical || "Critical";
   LANGS[k].pressureUnknown = LANGS[k].pressureUnknown || "Unknown";
+  LANGS[k].pressureBusy = LANGS[k].pressureBusy || "Busy";
   LANGS[k].systemProfile = LANGS[k].systemProfile || "PC Profile";
   LANGS[k].cpuLabel = LANGS[k].cpuLabel || "CPU";
   LANGS[k].ramLabel = LANGS[k].ramLabel || "RAM";
@@ -728,14 +893,14 @@ Object.keys(LANGS).forEach(k=>{
   LANGS[k].updateDismiss = LANGS[k].updateDismiss || "Do not remind this version";
   LANGS[k].updateCheck = LANGS[k].updateCheck || "Check";
   LANGS[k].sessionK = LANGS[k].sessionK || "Session"; LANGS[k].sessionT = LANGS[k].sessionT || "Engine mode";
-  LANGS[k].modeAuto = LANGS[k].modeAuto || "Auto"; LANGS[k].modeGaming = LANGS[k].modeGaming || "Gaming"; LANGS[k].modeStreamer = LANGS[k].modeStreamer || "Streamer"; LANGS[k].modeWork = LANGS[k].modeWork || "Work"; LANGS[k].modeFocus = LANGS[k].modeFocus || "Focus"; LANGS[k].modeAutoD = LANGS[k].modeAutoD || "Balanced daily behavior."; LANGS[k].modeGamingD = LANGS[k].modeGamingD || "Fast foreground recovery."; LANGS[k].modeStreamerD = LANGS[k].modeStreamerD || "Protect stream and game."; LANGS[k].modeWorkD = LANGS[k].modeWorkD || "Keeps tools responsive."; LANGS[k].modeFocusD = LANGS[k].modeFocusD || "Stronger idle cleanup.";
-  LANGS[k].managedAppsK = LANGS[k].managedAppsK || "Managed apps"; LANGS[k].treatmentK = LANGS[k].treatmentK || "Treatment"; LANGS[k].policyK = LANGS[k].policyK || "Policies"; LANGS[k].clearPolicies = LANGS[k].clearPolicies || "Clear policies"; LANGS[k].selectedModeK = LANGS[k].selectedModeK || "Selected behavior"; LANGS[k].autoPolicyK = LANGS[k].autoPolicyK || "App decisions"; LANGS[k].autoPolicyV = LANGS[k].autoPolicyV || "Automatic"; LANGS[k].manualPoliciesK = LANGS[k].manualPoliciesK || "Manual policies"; LANGS[k].learningShortK = LANGS[k].learningShortK || "Learning"; LANGS[k].energyPlanK = LANGS[k].energyPlanK || "Energy plan"; LANGS[k].modeAutoPill = LANGS[k].modeAutoPill || "Daily"; LANGS[k].modeGamingPill = LANGS[k].modeGamingPill || "Power"; LANGS[k].modeStreamerPill = LANGS[k].modeStreamerPill || "Stream guard"; LANGS[k].modeWorkPill = LANGS[k].modeWorkPill || "Stable"; LANGS[k].modeFocusPill = LANGS[k].modeFocusPill || "Deep";
+  LANGS[k].modeAuto = LANGS[k].modeAuto || "Auto"; LANGS[k].modeGaming = LANGS[k].modeGaming || "Gaming"; LANGS[k].modeCompetitive = LANGS[k].modeCompetitive || "Competitive"; LANGS[k].modeStreamer = LANGS[k].modeStreamer || "Streamer"; LANGS[k].modeWork = LANGS[k].modeWork || "Work"; LANGS[k].modeFocus = LANGS[k].modeFocus || "Focus"; LANGS[k].modeAutoD = LANGS[k].modeAutoD || "Balanced daily behavior."; LANGS[k].modeGamingD = LANGS[k].modeGamingD || "Fast foreground recovery."; LANGS[k].modeCompetitiveD = LANGS[k].modeCompetitiveD || "Online game, voice, and input priority."; LANGS[k].modeStreamerD = LANGS[k].modeStreamerD || "Protect stream and game."; LANGS[k].modeWorkD = LANGS[k].modeWorkD || "Keeps tools responsive."; LANGS[k].modeFocusD = LANGS[k].modeFocusD || "Stronger idle cleanup.";
+  LANGS[k].managedAppsK = LANGS[k].managedAppsK || "Managed apps"; LANGS[k].treatmentK = LANGS[k].treatmentK || "Treatment"; LANGS[k].policyK = LANGS[k].policyK || "Policies"; LANGS[k].clearPolicies = LANGS[k].clearPolicies || "Clear policies"; LANGS[k].selectedModeK = LANGS[k].selectedModeK || "Selected behavior"; LANGS[k].autoPolicyK = LANGS[k].autoPolicyK || "App decisions"; LANGS[k].autoPolicyV = LANGS[k].autoPolicyV || "Automatic"; LANGS[k].manualPoliciesK = LANGS[k].manualPoliciesK || "Manual policies"; LANGS[k].learningShortK = LANGS[k].learningShortK || "Learning"; LANGS[k].energyPlanK = LANGS[k].energyPlanK || "Energy plan"; LANGS[k].modeAutoPill = LANGS[k].modeAutoPill || "Daily"; LANGS[k].modeGamingPill = LANGS[k].modeGamingPill || "Power"; LANGS[k].modeCompetitivePill = LANGS[k].modeCompetitivePill || "Netcode"; LANGS[k].modeStreamerPill = LANGS[k].modeStreamerPill || "Stream guard"; LANGS[k].modeWorkPill = LANGS[k].modeWorkPill || "Stable"; LANGS[k].modeFocusPill = LANGS[k].modeFocusPill || "Deep";
 });
-Object.assign(LANGS["pt-BR"],{engineVitalsK:"Leitura atual",engineFocusK:"Foco atual",engineLearningK:"Aprendizado",enginePermissionK:"Permissões",engineStreamK:"Live Guard",foregroundProtected:"Retorno protegido",learningProfilesValue:"{count} perfis",learningActiveHint:"Ajustando por histórico local",learningOffHint:"Opcional desligado",permissionOk:"Tudo OK",permissionOkHint:"Sem bloqueios no último passe",permissionDenialsShort:"{count} apps",permissionAdminHint:"Admin pode liberar mais controle",permissionElevatedHint:"Rodando com permissão alta",streamWaiting:"Aguardando live",streamWaitingHint:"OBS/Streamlabs/TikTok não detectado",streamActiveHint:"Protegendo encoder e helpers",ramFreeNowK:"RAM livre agora",ramFreeValue:"{free} livres",ramInstalledK:"RAM instalada",pagefileFreeK:"Paginação livre",controlTitle:"Controle em tempo real",systemProfile:"Perfil do PC",ramLabel:"Memória RAM livre",systemLabel:"Sistema",gpuHint:"GPU",localSnapshot:"",freeNow:"{free} livre agora",ramShort:"RAM",pagefileShort:"Paginação",loadShort:"carga",behaviorEngine:"Aprendizado",behaviorK:"Aprendizado",behaviorT:"Motor comportamental",behaviorProfilesLabel:"Perfis locais",behaviorD:"Cria perfis locais por CPU, memória recuperada, picos de uso e retorno de janela.",behaviorMode:"modo",behaviorAdaptive:"adaptativo",behaviorOn:"ligado",behaviorOff:"desligado",profilesShort:"perfis",pressureNormal:"Normal",pressureModerate:"Moderada",pressureElevated:"Elevada",pressureCritical:"Crítica",pressureUnknown:"Desconhecida",intentDesktop:"Uso comum",intentMemoryPressure:"Memória pressionada",intentMediaCall:"Mídia ou chamada",intentGaming:"Jogo em foco",intentDownloadInstall:"Download ou instalação",intentStreaming:"Live/stream",browserRole:"Navegador",streamingRole:"Streaming",streamHelperRole:"Helper da live",mediaCallRole:"Mídia",behaviorGuardLabel:"Protegido",cpuBadge:"CPU",memoryBadge:"RAM",ioBadge:"I/O",trimBadge:"RAM",ecoBadge:"Eco",cooldownBadge:"Pausa",trimSkipBadge:"RAM ignorada",adminNeededBadge:"Admin",startupHintOn:"Desativar iniciar com Windows",startupHintOff:"Ativar iniciar com Windows",updateK:"Atualização oficial",updateTitle:"Nova versão disponível",updateBody:"A versão {version} saiu no GitHub oficial. Baixe o EXE mais novo quando quiser atualizar.",updateDownload:"Atualizar",updateDismiss:"Não lembrar esta versão",updateCheck:"Checar",updateAction:"Procurar atualizações",updateModalTitle:"Atualizações",updateModalBody:"Verifique o canal oficial do GitHub e escolha se o Smart Nap pode procurar novas versões automaticamente.",updateAuto:"Atualização automática",updateAutoHint:"Quando ligado, o Smart Nap consulta o GitHub Releases de tempos em tempos e só mostra um lembrete.",updateAutoOn:"Auto ligado",updateAutoOff:"Auto desligado",updateStatusReady:"Pronto para consultar o canal oficial.",updateStatusChecking:"Consultando GitHub Releases agora.",updateStatusAvailable:"A versão {version} está disponível.",updateStatusCurrent:"Você já está na versão atual.",updateStatusIgnored:"Esta versão está oculta até sair uma release mais nova.",sessionK:"Sessão",sessionT:"Modo do motor",modeAuto:"Auto",modeGaming:"Jogos",modeStreamer:"Live",modeWork:"Trabalho",modeFocus:"Foco",modeAutoD:"Equilíbrio automático para uso diário.",modeGamingD:"Prioriza o jogo ativo sem fechar o resto.",modeStreamerD:"Protege live, encoder e jogo.",modeWorkD:"Mantém apps responsivos.",modeFocusD:"Alivia apps parados com mais firmeza.",selectedModeK:"Modo selecionado",autoPolicyK:"Decisão automática",autoPolicyV:"Automática",manualPoliciesK:"Políticas manuais",treatmentK:"Tratamento",learningShortK:"Aprendizado",energyPlanK:"Energia",modeAutoPill:"Uso diário",modeGamingPill:"Desempenho",modeStreamerPill:"Live segura",modeWorkPill:"Estável",modeFocusPill:"Fundo leve",policyK:"Políticas",clearPolicies:"Limpar políticas"});
-Object.assign(LANGS["en-US"],{engineVitalsK:"Current read",engineFocusK:"Current focus",engineLearningK:"Learning",enginePermissionK:"Permissions",engineStreamK:"Live Guard",foregroundProtected:"Fast wake protected",learningProfilesValue:"{count} profiles",learningActiveHint:"Tuned by local history",learningOffHint:"Optional feature off",permissionOk:"All OK",permissionOkHint:"No blocked changes in last pass",permissionDenialsShort:"{count} apps",permissionAdminHint:"Admin can unlock more control",permissionElevatedHint:"Running with high permission",streamWaiting:"Waiting for live",streamWaitingHint:"OBS/Streamlabs/TikTok not detected",streamActiveHint:"Protecting encoder and helpers",ramFreeNowK:"Free RAM now",ramFreeValue:"{free} free",ramInstalledK:"Installed RAM",pagefileFreeK:"Free pagefile",systemProfile:"PC Profile",ramLabel:"Free RAM",systemLabel:"System",gpuHint:"Graphics adapter",localSnapshot:"",freeNow:"{free} free now",ramShort:"RAM",pagefileShort:"Pagefile",loadShort:"load",behaviorEngine:"Behavior Engine",behaviorK:"Core intelligence",behaviorT:"Behavior Engine",behaviorD:"Profiles apps locally by CPU, memory return, bursts and wake events.",behaviorMode:"mode",behaviorAdaptive:"adaptive",behaviorOn:"on",behaviorOff:"off",profilesShort:"profiles"});
-Object.assign(LANGS["es-ES"],{ramFreeNowK:"RAM libre ahora",ramFreeValue:"{free} libres",ramInstalledK:"RAM instalada",pagefileFreeK:"Paginación libre",systemProfile:"Perfil del PC",ramLabel:"RAM libre",systemLabel:"Sistema",gpuHint:"GPU",localSnapshot:"",freeNow:"{free} libre ahora",ramShort:"RAM",pagefileShort:"Paginación",loadShort:"carga",behaviorEngine:"Behavior Engine",behaviorK:"Inteligencia central",behaviorT:"Behavior Engine",behaviorD:"Crea perfiles locales por CPU, retorno de memória, rafagas y eventos wake.",behaviorMode:"modo",behaviorAdaptive:"adaptativo",behaviorOn:"activo",behaviorOff:"apagado",profilesShort:"perfiles",pressureNormal:"Normal",pressureModerate:"Moderada",pressureElevated:"Elevada",pressureCritical:"Crítica",pressureUnknown:"Desconocida"});
-Object.assign(LANGS["fr-FR"],{ramFreeNowK:"RAM libre maintenant",ramFreeValue:"{free} libres",ramInstalledK:"RAM installee",pagefileFreeK:"Pagination libre",systemProfile:"Profil PC",ramLabel:"RAM libre",systemLabel:"Systeme",gpuHint:"Adaptateur graphique",localSnapshot:"",freeNow:"{free} libre maintenant",ramShort:"RAM",pagefileShort:"Pagination",loadShort:"charge",behaviorEngine:"Behavior Engine",behaviorK:"Intelligence centrale",behaviorT:"Behavior Engine",behaviorD:"Profile localement les apps par CPU, retour memoire, rafales et evenements wake.",behaviorMode:"mode",behaviorAdaptive:"adaptatif",behaviorOn:"actif",behaviorOff:"inactif",profilesShort:"profils",pressureNormal:"Normale",pressureModerate:"Moderee",pressureElevated:"Elevee",pressureCritical:"Critique",pressureUnknown:"Inconnue"});
-Object.assign(LANGS["de-DE"],{ramFreeNowK:"RAM jetzt frei",ramFreeValue:"{free} frei",ramInstalledK:"Installierter RAM",pagefileFreeK:"Freie Auslagerung",systemProfile:"PC Profil",ramLabel:"Freier RAM",systemLabel:"System",gpuHint:"Grafikadapter",localSnapshot:"",freeNow:"{free} frei",ramShort:"RAM",pagefileShort:"Auslagerung",loadShort:"Last",behaviorEngine:"Behavior Engine",behaviorK:"Kernintelligenz",behaviorT:"Behavior Engine",behaviorD:"Profile Apps lokal nach CPU, Speicher-Rueckkehr, Bursts und Wake-Ereignissen.",behaviorMode:"Modus",behaviorAdaptive:"adaptiv",behaviorOn:"an",behaviorOff:"aus",profilesShort:"Profile",pressureNormal:"Normal",pressureModerate:"Moderat",pressureElevated:"Erhoeht",pressureCritical:"Kritisch",pressureUnknown:"Unbekannt"});
+Object.assign(LANGS["pt-BR"],{engineVitalsK:"Leitura atual",engineFocusK:"Foco atual",engineLearningK:"Aprendizado",enginePermissionK:"Permissões",engineStreamK:"Live Guard",foregroundProtected:"Retorno protegido",learningProfilesValue:"{count} perfis",learningActiveHint:"Ajustando por histórico local",learningOffHint:"Opcional desligado",permissionOk:"Tudo OK",permissionOkHint:"Sem bloqueios no último passe",permissionDenialsShort:"{count} apps",permissionAdminHint:"Admin pode liberar mais controle",permissionElevatedHint:"Rodando com permissão alta",streamWaiting:"Aguardando live",streamWaitingHint:"OBS/Streamlabs/TikTok não detectado",streamActiveHint:"Protegendo encoder e helpers",ramFreeNowK:"RAM livre agora",ramFreeValue:"{free} livres",ramInstalledK:"RAM instalada",pagefileFreeK:"Paginação livre",controlTitle:"Controle em tempo real",systemProfile:"Perfil do PC",ramLabel:"Memória RAM livre",systemLabel:"Sistema",gpuHint:"GPU",localSnapshot:"",freeNow:"{free} livre agora",ramShort:"RAM",freeSuffix:"livre",pagefileShort:"Paginação",loadShort:"carga",behaviorEngine:"Aprendizado",behaviorK:"Aprendizado",behaviorT:"Motor comportamental",behaviorProfilesLabel:"Perfis locais",behaviorD:"Cria perfis locais por CPU, memória recuperada, picos de uso e retorno de janela.",behaviorMode:"modo",behaviorAdaptive:"adaptativo",behaviorOn:"ligado",behaviorOff:"desligado",profilesShort:"perfis",pressureNormal:"Normal",pressureModerate:"Moderada",pressureElevated:"Elevada",pressureCritical:"Crítica",pressureUnknown:"Desconhecida",pressureBusy:"Ocupada",intentDesktop:"Uso comum",intentMemoryPressure:"Memória pressionada",intentMediaCall:"Mídia ou chamada",intentGaming:"Jogo em foco",intentDownloadInstall:"Download ou instalação",intentStreaming:"Live/stream",browserRole:"Navegador",streamingRole:"Streaming",streamHelperRole:"Helper da live",mediaCallRole:"Mídia",behaviorGuardLabel:"Protegido",cpuBadge:"CPU",memoryBadge:"RAM",ioBadge:"I/O",trimBadge:"RAM",ecoBadge:"Eco",cooldownBadge:"Pausa",trimSkipBadge:"RAM ignorada",adminNeededBadge:"Admin",startupHintOn:"Desativar iniciar com Windows",startupHintOff:"Ativar iniciar com Windows",updateK:"Atualização oficial",updateTitle:"Nova versão disponível",updateBody:"A versão {version} saiu no GitHub oficial. Baixe o EXE mais novo quando quiser atualizar.",updateDownload:"Atualizar",updateDismiss:"Não lembrar esta versão",updateCheck:"Checar",updateAction:"Procurar atualizações",updateModalTitle:"Atualizações",updateModalBody:"Verifique o canal oficial do GitHub e escolha se o Smart Nap pode procurar novas versões automaticamente.",updateAuto:"Atualização automática",updateAutoHint:"Quando ligado, o Smart Nap consulta o GitHub Releases de tempos em tempos e só mostra um lembrete.",updateAutoOn:"Auto ligado",updateAutoOff:"Auto desligado",updateStatusReady:"Pronto para consultar o canal oficial.",updateStatusChecking:"Consultando GitHub Releases agora.",updateStatusAvailable:"A versão {version} está disponível.",updateStatusCurrent:"Você já está na versão atual.",updateStatusIgnored:"Esta versão está oculta até sair uma release mais nova.",sessionK:"Sessão",sessionT:"Modo do motor",modeAuto:"Auto",modeGaming:"Jogos",modeStreamer:"Live",modeWork:"Trabalho",modeFocus:"Foco",modeAutoD:"Equilíbrio automático para uso diário.",modeGamingD:"Prioriza o jogo ativo sem fechar o resto.",modeCompetitive:"Competitivo",modeCompetitiveD:"Prioriza partidas online, voz e entrada.",modeCompetitivePill:"Netcode",modeStreamerD:"Protege live, encoder e jogo.",modeWorkD:"Mantém apps responsivos.",modeFocusD:"Alivia apps parados com mais firmeza.",selectedModeK:"Modo selecionado",autoPolicyK:"Decisão automática",autoPolicyV:"Automática",manualPoliciesK:"Políticas manuais",treatmentK:"Tratamento",learningShortK:"Aprendizado",energyPlanK:"Energia",modeAutoPill:"Uso diário",modeGamingPill:"Desempenho",modeStreamerPill:"Live segura",modeWorkPill:"Estável",modeFocusPill:"Fundo leve",policyK:"Políticas",clearPolicies:"Limpar políticas"});
+Object.assign(LANGS["en-US"],{engineVitalsK:"Current read",engineFocusK:"Current focus",engineLearningK:"Learning",enginePermissionK:"Permissions",engineStreamK:"Live Guard",foregroundProtected:"Fast wake protected",learningProfilesValue:"{count} profiles",learningActiveHint:"Tuned by local history",learningOffHint:"Optional feature off",permissionOk:"All OK",permissionOkHint:"No blocked changes in last pass",permissionDenialsShort:"{count} apps",permissionAdminHint:"Admin can unlock more control",permissionElevatedHint:"Running with high permission",streamWaiting:"Waiting for live",streamWaitingHint:"OBS/Streamlabs/TikTok not detected",streamActiveHint:"Protecting encoder and helpers",ramFreeNowK:"Free RAM now",ramFreeValue:"{free} free",ramInstalledK:"Installed RAM",pagefileFreeK:"Free pagefile",systemProfile:"PC Profile",ramLabel:"Free RAM",systemLabel:"System",gpuHint:"Graphics adapter",localSnapshot:"",freeNow:"{free} free now",ramShort:"RAM",freeSuffix:"free",pagefileShort:"Pagefile",loadShort:"load",behaviorEngine:"Behavior Engine",behaviorK:"Core intelligence",behaviorT:"Behavior Engine",behaviorD:"Profiles apps locally by CPU, memory return, bursts and wake events.",behaviorMode:"mode",behaviorAdaptive:"adaptive",behaviorOn:"on",behaviorOff:"off",profilesShort:"profiles"});
+Object.assign(LANGS["es-ES"],{ramFreeNowK:"RAM libre ahora",ramFreeValue:"{free} libres",ramInstalledK:"RAM instalada",pagefileFreeK:"Paginación libre",systemProfile:"Perfil del PC",ramLabel:"RAM libre",systemLabel:"Sistema",gpuHint:"GPU",localSnapshot:"",freeNow:"{free} libre ahora",ramShort:"RAM",freeSuffix:"libre",pagefileShort:"Paginación",loadShort:"carga",behaviorEngine:"Behavior Engine",behaviorK:"Inteligencia central",behaviorT:"Behavior Engine",behaviorD:"Crea perfiles locales por CPU, retorno de memória, rafagas y eventos wake.",behaviorMode:"modo",behaviorAdaptive:"adaptativo",behaviorOn:"activo",behaviorOff:"apagado",profilesShort:"perfiles",pressureNormal:"Normal",pressureModerate:"Moderada",pressureElevated:"Elevada",pressureCritical:"Crítica",pressureUnknown:"Desconocida"});
+Object.assign(LANGS["fr-FR"],{ramFreeNowK:"RAM libre maintenant",ramFreeValue:"{free} libres",ramInstalledK:"RAM installee",pagefileFreeK:"Pagination libre",systemProfile:"Profil PC",ramLabel:"RAM libre",systemLabel:"Systeme",gpuHint:"Adaptateur graphique",localSnapshot:"",freeNow:"{free} libre maintenant",ramShort:"RAM",freeSuffix:"libre",pagefileShort:"Pagination",loadShort:"charge",behaviorEngine:"Behavior Engine",behaviorK:"Intelligence centrale",behaviorT:"Behavior Engine",behaviorD:"Profile localement les apps par CPU, retour memoire, rafales et evenements wake.",behaviorMode:"mode",behaviorAdaptive:"adaptatif",behaviorOn:"actif",behaviorOff:"inactif",profilesShort:"profils",pressureNormal:"Normale",pressureModerate:"Moderee",pressureElevated:"Elevee",pressureCritical:"Critique",pressureUnknown:"Inconnue"});
+Object.assign(LANGS["de-DE"],{ramFreeNowK:"RAM jetzt frei",ramFreeValue:"{free} frei",ramInstalledK:"Installierter RAM",pagefileFreeK:"Freie Auslagerung",systemProfile:"PC Profil",ramLabel:"Freier RAM",systemLabel:"System",gpuHint:"Grafikadapter",localSnapshot:"",freeNow:"{free} frei",ramShort:"RAM",freeSuffix:"frei",pagefileShort:"Auslagerung",loadShort:"Last",behaviorEngine:"Behavior Engine",behaviorK:"Kernintelligenz",behaviorT:"Behavior Engine",behaviorD:"Profile Apps lokal nach CPU, Speicher-Rueckkehr, Bursts und Wake-Ereignissen.",behaviorMode:"Modus",behaviorAdaptive:"adaptiv",behaviorOn:"an",behaviorOff:"aus",profilesShort:"Profile",pressureNormal:"Normal",pressureModerate:"Moderat",pressureElevated:"Erhoeht",pressureCritical:"Kritisch",pressureUnknown:"Unbekannt"});
 LANGS["ru-RU"] = Object.assign({}, LANGS["en-US"], {languageName:"Русский",appTitle:"Smart Nap",appSubtitle:"Контроль фоновых приложений для игр и многозадачности",navDashboard:"Панель",navScore:"Nap Score",navLog:"Журнал",navFiles:"Файлы",navGithub:"GitHub",headline:"Фоновые приложения под контролем",subline:"Открытые приложения становятся легче, а активное окно быстро возвращает приоритет.",feature1K:"Активное окно",feature1T:"Быстрый возврат",feature1D:"Восстанавливает приоритет сразу после переключения окна.",feature2K:"Память",feature2T:"Адаптивная очистка",feature2D:"Снижает лишнюю нагрузку на RAM с паузами, чтобы не быть агрессивным.",feature3K:"Планировщик",feature3T:"Уровни Nap",feature3D:"Light, Balanced и Deep по реальному поведению процесса.",languageTitle:"Выберите язык",languageSubtitle:"Меняется только текст лаунчера. Оптимизатор продолжает безопасно работать в фоне.",apply:"Оптимизировать",stop:"Стоп",pauseMotor:"Пауза",resumeMotor:"Запустить",restore:"Восстановить",on:"Вкл",off:"Выкл",live:"Обновление",motorActive:"Мотор активен",manual:"Ручной",startupOn:"Запуск с Windows",startupOff:"Автозапуск выкл",apps:"apps",intelK:"Обучение",intelT:"Решения по поведению",smartLearning:"Smart Learning",learningOn:"Вкл",learningOff:"Выкл",updateK:"Официальное обновление",updateTitle:"Доступна новая версия",updateBody:"Версия {version} опубликована в официальном GitHub Release.",updateDownload:"Обновить",updateDismiss:"Не напоминать об этой версии",updateCheck:"Проверить",updateCheckingTitle:"Проверка обновлений",updateCheckingBody:"Проверяем официальный канал релизов GitHub."});
 Object.assign(LANGS["pt-BR"],{colScore:"Impacto",colDelta:"RAM",colCpu:"CPU",colBursts:"Picos",colAction:"Decisão",groupContext:"Tipo",groupProfile:"Perfil",groupActions:"Ajustes",groupPolicy:"Controle",decisionAuto:"Decisão automática",decisionManual:"Regra manual",decisionAutoHint:"O motor escolhe a cada ciclo",decisionManualHint:"Controle escolhido pelo usuário",instancesLabel:"instâncias",profileLabel:"Perfil",learnedProfileLabel:"Aprendido",napLevelLabel:"Nap",tierLight:"Leve",tierBalanced:"Equilibrado",tierDeep:"Forte",tierProtect:"Protegido",coresLabel:"Núcleos",coresOffLabel:"Núcleos livres",coresPreviewLabel:"Núcleos preview",planUnknown:"Plano não identificado",policyAutoShort:"Auto",policyProtectShort:"Proteger",policyLightShort:"Leve",policyBalancedShort:"Médio",policyDeepShort:"Forte",guardMediaCall:"Mídia/chamada",guardStreaming:"Live",guardProtected:"Protegido",guardLauncher:"Launcher",detailArmed:"Retorno rápido armado. Apps em segundo plano são ajustados por nível."});
 Object.assign(LANGS["en-US"],{colScore:"Impact",colDelta:"RAM",colCpu:"CPU",colBursts:"Peaks",colAction:"Decision",groupContext:"Type",groupProfile:"Profile",groupActions:"Applied",groupPolicy:"Control",decisionAuto:"Automatic decision",decisionManual:"Manual rule",decisionAutoHint:"Engine chooses every cycle",decisionManualHint:"User-selected control",instancesLabel:"instances",profileLabel:"Profile",learnedProfileLabel:"Learned",napLevelLabel:"Nap",tierLight:"Light",tierBalanced:"Balanced",tierDeep:"Deep",tierProtect:"Protected",coresLabel:"Cores",coresOffLabel:"Cores free",coresPreviewLabel:"Cores preview",planUnknown:"Plan not detected",policyAutoShort:"Auto",policyProtectShort:"Protect",policyLightShort:"Light",policyBalancedShort:"Balanced",policyDeepShort:"Deep",guardMediaCall:"Media/call",guardStreaming:"Live",guardProtected:"Protected",guardLauncher:"Launcher"});
@@ -747,11 +912,13 @@ Object.assign(LANGS["en-US"],{engineProcessesK:"Analyzed processes",engineAction
 Object.assign(LANGS["es-ES"],{engineProcessesK:"Procesos analizados",engineActionsK:"Acciones aplicadas",engineAccessK:"Permisos",engineIntentK:"Contexto detectado",engineMemoryK:"RAM libre",enginePassK:"Ultimo pase",pulseCpuK:"Prioridad CPU",pulseRamK:"Memoria",pulseIoK:"Prioridad I/O",pulseEcoK:"EcoQoS",cardProcessesK:"Procesos leidos",cardGroupedK:"Apps agrupadas",cardFreeRamK:"RAM libre",cardNextK:"Proximo ciclo",cardDeniedK:"Bloqueos",modeIntentK:"Contexto detectado",modePoliciesK:"Reglas manuales",modeAccessK:"Permisos",processesLabel:"procesos",accessClear:"Sin bloqueos",manualRuleSingular:"regla",manualRulePlural:"reglas",noAppliedActions:"Sin cambios nuevos",actionSummaryShort:"CPU {cpu} / I/O {io} / Eco {eco}",notTouched:"Sin ajuste",ramPulseTrim:"{trim} trim / {memory} prioridad",ramPulsePriority:"{memory} prioridades",ramPulseCooldown:"{count} en pausa",passAppliedTitle:"{apps} apps agrupadas en {processes} procesos"});
 Object.assign(LANGS["fr-FR"],{engineProcessesK:"Processus analyses",engineActionsK:"Actions appliquees",engineAccessK:"Permissions",engineIntentK:"Contexte detecte",engineMemoryK:"RAM libre",enginePassK:"Dernier passage",pulseCpuK:"Priorite CPU",pulseRamK:"Memoire",pulseIoK:"Priorite I/O",pulseEcoK:"EcoQoS",cardProcessesK:"Processus lus",cardGroupedK:"Apps groupees",cardFreeRamK:"RAM libre",cardNextK:"Prochain cycle",cardDeniedK:"Blocages",modeIntentK:"Contexte detecte",modePoliciesK:"Regles manuelles",modeAccessK:"Permissions",processesLabel:"processus",accessClear:"Aucun blocage",manualRuleSingular:"regle",manualRulePlural:"regles",noAppliedActions:"Aucun changement",actionSummaryShort:"CPU {cpu} / I/O {io} / Eco {eco}",notTouched:"Aucun ajustement",ramPulseTrim:"{trim} trim / {memory} priorite",ramPulsePriority:"{memory} priorites",ramPulseCooldown:"{count} en pause",passAppliedTitle:"{apps} apps groupees sur {processes} processus"});
 Object.assign(LANGS["de-DE"],{engineProcessesK:"Analysierte Prozesse",engineActionsK:"Angewandte Aktionen",engineAccessK:"Rechte",engineIntentK:"Erkannter Kontext",engineMemoryK:"Freier RAM",enginePassK:"Letzter Durchlauf",pulseCpuK:"CPU-Prioritaet",pulseRamK:"Speicher",pulseIoK:"I/O-Prioritaet",pulseEcoK:"EcoQoS",cardProcessesK:"Gelesene Prozesse",cardGroupedK:"Gruppierte Apps",cardFreeRamK:"Freier RAM",cardNextK:"Naechster Zyklus",cardDeniedK:"Blockiert",modeIntentK:"Erkannter Kontext",modePoliciesK:"Manuelle Regeln",modeAccessK:"Rechte",processesLabel:"Prozesse",accessClear:"Keine Blockaden",manualRuleSingular:"Regel",manualRulePlural:"Regeln",noAppliedActions:"Keine neuen Aenderungen",actionSummaryShort:"CPU {cpu} / I/O {io} / Eco {eco}",notTouched:"Keine Aenderung",ramPulseTrim:"{trim} trim / {memory} Prioritaet",ramPulsePriority:"{memory} Prioritaeten",ramPulseCooldown:"{count} Pause",passAppliedTitle:"{apps} gruppierte Apps in {processes} Prozessen"});
-Object.assign(LANGS["pt-BR"],{cardPassActionsK:"Ações no passe",cardBurstsK:"Picos recentes",cardUdpK:"Zero Ping",cardPowerK:"Plano ativo",virtualFreeK:"Virtual livre",accessNeedsAdmin:"{count} bloqueios",noBursts:"Sem picos",burstSummary:"{bursts} picos / {apps} apps",actionSummaryShort:"CPU {cpu} / RAM {ram} / I/O {io} / Eco {eco}"});
-Object.assign(LANGS["en-US"],{cardPassActionsK:"Pass actions",cardBurstsK:"Recent peaks",cardUdpK:"Zero Ping",cardPowerK:"Active power plan",virtualFreeK:"Free virtual",accessNeedsAdmin:"{count} blocks",noBursts:"No peaks",burstSummary:"{bursts} peaks / {apps} apps",actionSummaryShort:"CPU {cpu} / RAM {ram} / I/O {io} / Eco {eco}"});
-Object.assign(LANGS["es-ES"],{cardPassActionsK:"Acciones del pase",cardBurstsK:"Picos recientes",cardUdpK:"Zero Ping",cardPowerK:"Plan activo",virtualFreeK:"Virtual libre",accessNeedsAdmin:"{count} bloqueos",noBursts:"Sin picos",burstSummary:"{bursts} picos / {apps} apps",actionSummaryShort:"CPU {cpu} / RAM {ram} / I/O {io} / Eco {eco}"});
-Object.assign(LANGS["fr-FR"],{cardPassActionsK:"Actions du passage",cardBurstsK:"Pics recents",cardUdpK:"Zero Ping",cardPowerK:"Mode actif",virtualFreeK:"Virtuel libre",accessNeedsAdmin:"{count} blocages",noBursts:"Aucun pic",burstSummary:"{bursts} pics / {apps} apps",actionSummaryShort:"CPU {cpu} / RAM {ram} / I/O {io} / Eco {eco}"});
-Object.assign(LANGS["de-DE"],{cardPassActionsK:"Durchlaufaktionen",cardBurstsK:"Letzte Peaks",cardUdpK:"Zero Ping",cardPowerK:"Aktiver Energieplan",virtualFreeK:"Virtuell frei",accessNeedsAdmin:"{count} Blockaden",noBursts:"Keine Peaks",burstSummary:"{bursts} Peaks / {apps} Apps",actionSummaryShort:"CPU {cpu} / RAM {ram} / I/O {io} / Eco {eco}"});
+Object.assign(LANGS["pt-BR"],{cardPassActionsK:"Ações no passe",cardBurstsK:"Picos recentes",cardUdpK:"Zero Ping",cardPowerK:"Plano ativo",accessNeedsAdmin:"{count} bloqueios",noBursts:"Sem picos",burstSummary:"{bursts} picos / {apps} apps",actionSummaryShort:"CPU {cpu} / RAM {ram} / I/O {io} / Eco {eco}"});
+Object.assign(LANGS["en-US"],{cardPassActionsK:"Pass actions",cardBurstsK:"Recent peaks",cardUdpK:"Zero Ping",cardPowerK:"Active power plan",accessNeedsAdmin:"{count} blocks",noBursts:"No peaks",burstSummary:"{bursts} peaks / {apps} apps",actionSummaryShort:"CPU {cpu} / RAM {ram} / I/O {io} / Eco {eco}"});
+Object.assign(LANGS["es-ES"],{cardPassActionsK:"Acciones del pase",cardBurstsK:"Picos recientes",cardUdpK:"Zero Ping",cardPowerK:"Plan activo",accessNeedsAdmin:"{count} bloqueos",noBursts:"Sin picos",burstSummary:"{bursts} picos / {apps} apps",actionSummaryShort:"CPU {cpu} / RAM {ram} / I/O {io} / Eco {eco}"});
+Object.assign(LANGS["fr-FR"],{cardPassActionsK:"Actions du passage",cardBurstsK:"Pics recents",cardUdpK:"Zero Ping",cardPowerK:"Mode actif",accessNeedsAdmin:"{count} blocages",noBursts:"Aucun pic",burstSummary:"{bursts} pics / {apps} apps",actionSummaryShort:"CPU {cpu} / RAM {ram} / I/O {io} / Eco {eco}"});
+Object.assign(LANGS["de-DE"],{cardPassActionsK:"Durchlaufaktionen",cardBurstsK:"Letzte Peaks",cardUdpK:"Zero Ping",cardPowerK:"Aktiver Energieplan",accessNeedsAdmin:"{count} Blockaden",noBursts:"Keine Peaks",burstSummary:"{bursts} Peaks / {apps} Apps",actionSummaryShort:"CPU {cpu} / RAM {ram} / I/O {io} / Eco {eco}"});
+Object.assign(LANGS["pt-BR"],{udpConfidenceHigh:"Confiança alta",udpConfidenceMedium:"Confiança média",udpConfidenceLow:"Confiança baixa",qosActive:"ativo",qosNeedsAdmin:"precisa admin",qosNoPath:"sem caminho",qosUnavailable:"indisponível",qosTip:"QoS/DSCP por aplicativo para priorizar pacotes UDP quando o Windows e a rede respeitam a marcação.",udpConfidenceTip:"Confiança da sessão Zero Ping baseada em jogo ativo, UDP, helper, tela cheia e histórico.",gpuPressureK:"GPU/VRAM",gpuPressureUnavailable:"Sem leitura",gpuHelperBadge:"GPU helper",gpuHelperTip:"App em segundo plano com uso de GPU; o motor reduz contenção sem mexer no driver.",vramPressureTip:"Pressão de VRAM detectada; o motor reduz disputa local em volta do jogo.",cpuBoundK:"CPU-Bound Assist",cpuBoundTip:"Jogo preso em CPU; o motor reduz disputa de fundo para liberar mais tempo ao jogo.",engineHealthK:"Saúde do motor",ready:"Pronto"});
+Object.assign(LANGS["en-US"],{udpConfidenceHigh:"High confidence",udpConfidenceMedium:"Medium confidence",udpConfidenceLow:"Low confidence",qosActive:"active",qosNeedsAdmin:"needs admin",qosNoPath:"no path",qosUnavailable:"unavailable",qosTip:"Per-app QoS/DSCP for UDP packets when Windows and the network honor the mark.",udpConfidenceTip:"Zero Ping session confidence based on active game, UDP, helper, fullscreen and history.",gpuPressureK:"GPU/VRAM",gpuPressureUnavailable:"No read",gpuHelperBadge:"GPU helper",gpuHelperTip:"Background GPU app; the engine reduces contention without touching the driver.",vramPressureTip:"VRAM pressure detected; the engine reduces local contention around the game.",cpuBoundK:"CPU-Bound Assist",cpuBoundTip:"CPU-bound game; the engine reduces background contention to free more time for the game.",engineHealthK:"Engine health",ready:"Ready"});
 const LANGUAGE_ORDER = ["pt-BR","en-US","ru-RU","es-ES","fr-FR","de-DE"];
 let currentLanguage = "pt-BR";
 let lastState = null;
@@ -762,6 +929,7 @@ let pendingEnergyMode = "";
 function normalizedModeName(mode){
   const m=String(mode||"Auto").toLowerCase();
   if(m==="gaming"||m==="game"||m==="jogos") return "Gaming";
+  if(m==="competitive"||m==="competitivo"||m==="ranked"||m==="rankeado"||m==="pvp"||m==="versus") return "Competitive";
   if(m==="streamer"||m==="stream"||m==="live") return "Streamer";
   if(m==="work"||m==="trabalho") return "Work";
   if(m==="focus"||m==="foco") return "Focus";
@@ -1118,6 +1286,9 @@ function paintState(state){
   txt("intentState",safeFormat(()=>formatIntent(s),"-"));
   txt("radarState",safeFormat(()=>formatRadar(s),"-"));
   txt("udpTelemetry",safeFormat(()=>formatUdpTelemetry(s),"-"));
+  txt("gpuPressureState",safeFormat(()=>formatGpuPressure(s),"-"));
+  txt("cpuBoundState",safeFormat(()=>formatCpuBoundAssist(s),"-"));
+  txt("engineHealthState",safeFormat(()=>formatEngineHealth(s),"-"));
   txt("streamTelemetry",safeFormat(()=>formatStreamTelemetry(s),"-"));
   updateEnginePulse(s);
   updatePermissionGuard(s);
@@ -1172,6 +1343,7 @@ function translatePressure(level){
   if(key==="moderate") return t("pressureModerate");
   if(key==="elevated") return t("pressureElevated");
   if(key==="critical") return t("pressureCritical");
+  if(key==="busy") return t("pressureBusy");
   if(key==="unknown") return t("pressureUnknown");
   return level || "-";
 }
@@ -1195,11 +1367,11 @@ function formatHardwareFree(s){
 }
 function formatHardwareSystem(s){
   const pageFree=formatMb(s.HardwarePageFileFreeMB);
-  const virtualFree=formatMb(s.HardwareVirtualFreeMB);
+  const ramFree=formatMb(s.HardwareRamFreeMB);
   const load=Number(s.HardwareMemoryLoad||0);
   const parts=[];
   if(pageFree) parts.push(t("pagefileFreeK")+" "+pageFree);
-  if(virtualFree) parts.push(t("virtualFreeK")+" "+virtualFree);
+  if(ramFree) parts.push(t("ramShort")+" "+t("freeSuffix")+" "+ramFree);
   if(load>0) parts.push(load+"% "+t("loadShort"));
   return parts.length ? parts.join(" | ") : (s.HardwareSystemDetail || "-");
 }
@@ -1219,6 +1391,7 @@ function translateIntentKind(kind){
   if(raw==="MediaCall") return t("intentMediaCall");
   if(raw==="Gaming") return t("intentGaming");
   if(raw==="Streaming") return t("intentStreaming");
+  if(raw==="Competitive") return t("modeCompetitive");
   if(raw==="DownloadInstall") return t("intentDownloadInstall");
   return raw || "-";
 }
@@ -1228,16 +1401,43 @@ function formatRadar(s){
   if(count<=0) return "-";
   return count + (top ? " / " + top : "");
 }
+function formatUdpConfidenceLabel(raw){
+  const value=String(raw||"").trim();
+  if(!value || value==="None") return "";
+  if(value==="High") return t("udpConfidenceHigh");
+  if(value==="Medium") return t("udpConfidenceMedium");
+  if(value==="Low") return t("udpConfidenceLow");
+  return value;
+}
+function formatUdpQos(raw){
+  const value=String(raw||"").trim();
+  if(!value || value==="Off") return "";
+  if(value==="Active") return t("qosActive");
+  if(value==="NeedsAdmin") return t("qosNeedsAdmin");
+  if(value==="NoPath") return t("qosNoPath");
+  if(value==="Unavailable") return t("qosUnavailable");
+  return value;
+}
 function formatUdpState(s){
   if(!s || !s.NetworkUdpGuard) return t("off");
-  return s.NetworkUdpGuardActive ? t("active") : t("armed");
+  const base=s.NetworkUdpGuardActive ? t("active") : t("armed");
+  const confidence=formatUdpConfidenceLabel(s.NetworkUdpGuardConfidenceLabel);
+  return confidence ? base+" · "+confidence : base;
 }
 function formatUdpTelemetry(s){
   if(!s || !s.NetworkUdpGuard) return t("off");
   const endpoints=Number(s.NetworkUdpGuardEndpoints||0);
   const proc=Number(s.NetworkUdpGuardProcessCount||0);
-  if(s.NetworkUdpGuardActive) return (s.NetworkUdpGuardGame||t("gameDetected"))+" / "+endpoints+" "+t("onlineSignalsShort");
-  return t("armed")+" / "+proc+" "+t("udpProcesses");
+  const confidence=formatUdpConfidenceLabel(s.NetworkUdpGuardConfidenceLabel);
+  const qos=formatUdpQos(s.NetworkUdpGuardQosStatus);
+  const reason=String(s.NetworkUdpGuardReason||"").trim();
+  const parts=[];
+  parts.push(s.NetworkUdpGuardActive ? (s.NetworkUdpGuardGame||t("gameDetected")) : t("armed"));
+  if(confidence) parts.push(confidence);
+  if(endpoints>0) parts.push(endpoints+" "+t("onlineSignalsShort")); else if(proc>0) parts.push(proc+" "+t("udpProcesses"));
+  if(qos) parts.push("QoS "+qos);
+  if(reason) parts.push(reason);
+  return parts.join(" / ");
 }
 function formatStreamTelemetry(s){
   if(!s || !s.StreamGuardActive) return t("off");
@@ -1300,7 +1500,31 @@ function formatUdpQuick(s){
   if(!(s&&s.NetworkUdpGuard)) return t("off");
   const state=formatUdpState(s);
   const endpoints=Number(s.NetworkUdpGuardEndpoints||0);
+  const protectedCount=Number(s.NetworkUdpGuardProtectedCount||0);
+  if(protectedCount>0) return state+" / "+protectedCount+" "+t("protectedGames");
   return endpoints>0 ? state+" / "+endpoints+" UDP" : state;
+}
+function formatGpuPressure(s){
+  if(!s || !s.GpuPressureAvailable) return t("gpuPressureUnavailable");
+  const level=translatePressure(String(s.GpuPressureLevel||"Unknown"));
+  const util=Number(s.GpuTotalUtilPercent||0);
+  const dedicated=formatMb(s.GpuAdapterDedicatedUsageMB||0);
+  const bits=[level];
+  if(util>0) bits.push(Math.round(util)+"% GPU");
+  if(dedicated) bits.push(dedicated+" VRAM");
+  return bits.join(" / ");
+}
+function formatCpuBoundAssist(s){
+  if(!s || !s.CpuBoundAssistActive) return t("ready");
+  const conf=Number(s.CpuBoundAssistConfidence||0);
+  const game=String(s.CpuBoundAssistGame||t("gameDetected")).trim();
+  return game+(conf>0?" / "+conf+"%":"");
+}
+function formatEngineHealth(s){
+  const status=String(s&&s.EngineHealthStatus||"").trim();
+  const summary=String(s&&s.EngineHealthSummary||"").trim();
+  if(!status && !summary) return t("ready");
+  return summary || status;
 }
 function formatPowerPlanSummary(s){
   return planLabel(statePick(s,"PowerPlanName","powerPlanName","powerPlanDisplay"),statePick(s,"PowerPlanGuid","powerPlanGuid"));
@@ -1365,10 +1589,14 @@ function updateEnginePulse(s){
   updatePulseStep("pulseEco",stats.eco>0?"net":"",pulseActionText(stats.eco));
   setMetricLineVisible("streamTelemetry",!!(s&&s.StreamGuardActive));
   setMetricLineVisible("udpTelemetry",!!(s&&s.NetworkUdpGuard));
+  setMetricLineVisible("gpuPressureState",!!(s&&s.GpuPressureAvailable));
+  setMetricLineVisible("cpuBoundState",!!(s&&s.CpuBoundAssistActive));
+  setMetricLineVisible("engineHealthState",!!(s&&s.EngineHealthStatus));
 }
 function sessionHint(mode){
   const m=String(mode||"Auto").toLowerCase();
   if(m==="gaming") return isPt()?"Protege o retorno rápido e reduz agressividade durante jogo ou tela cheia.":"Protects fast wake and softens aggression during games or fullscreen.";
+  if(m==="competitive") return isPt()?"Para partidas online: prioriza jogo, voz e entrada enquanto o Zero Ping protege a sessão UDP quando ativado.":"For online matches: prioritizes game, voice, and input while Zero Ping protects the UDP session when enabled.";
   if(m==="streamer") return isPt()?"Para lives: protege encoder, chamada e jogo enquanto comprime tarefas comuns de fundo, inclusive nucleos quando seguro.":"For livestreams: protects encoder, calls, and the game while containing ordinary background work, including CPU cores when safe.";
   if(m==="work") return isPt()?"Mantém comunicação, mídia e ferramentas responsivas durante multitarefa.":"Keeps communication, media and tools responsive while multitasking.";
   if(m==="focus") return isPt()?"Modo mais firme para aliviar apps parados quando a memória fica pressionada.":"Firmer mode for quiet idle background apps when memory pressure rises.";
@@ -1377,6 +1605,7 @@ function sessionHint(mode){
 function displayModeName(mode){
   const m=normalizedModeName(mode);
   if(m==="Gaming") return t("modeGaming");
+  if(m==="Competitive") return t("modeCompetitive");
   if(m==="Streamer") return t("modeStreamer");
   if(m==="Work") return t("modeWork");
   if(m==="Focus") return t("modeFocus");
@@ -1385,6 +1614,7 @@ function displayModeName(mode){
 function modeImpactTitle(mode){
   const m=normalizedModeName(mode), pt=isPt();
   if(m==="Gaming") return pt?"Jogo em primeiro plano, fundo contido":"Foreground game protected, background contained";
+  if(m==="Competitive") return pt?"Partida online com prioridade local":"Online match with local priority";
   if(m==="Streamer") return pt?"Live protegida com folga para encoder e jogo":"Stream protected with headroom for encoder and game";
   if(m==="Work") return pt?"Multitarefa responsiva sem prejudicar comunicação":"Responsive multitasking without squeezing communication";
   if(m==="Focus") return pt?"Apps parados ficam mais leves":"Idle background work gets stronger treatment";
@@ -1393,6 +1623,7 @@ function modeImpactTitle(mode){
 function modeTreatmentSummary(mode){
   const m=normalizedModeName(mode), pt=isPt();
   if(m==="Gaming") return pt?"Prioridade alta":"High priority";
+  if(m==="Competitive") return pt?"Netcode protegido":"Netcode protected";
   if(m==="Streamer") return pt?"Live segura":"Stream safe";
   if(m==="Work") return pt?"Responsivo":"Responsive";
   if(m==="Focus") return pt?"Fundo contido":"Contained background";
@@ -1403,6 +1634,7 @@ function modeDecisionSummary(mode,s){
   const manual=Number.parseInt(s.PolicyCount||"0",10)||0;
   if(manual>0) return manual+" "+(pt?"regra"+(manual===1?"":"s"):"manual rule"+(manual===1?"":"s"));
   if(m==="Gaming") return pt?"Jogo protegido":"Game protected";
+  if(m==="Competitive") return pt?"Online protegido":"Online protected";
   if(m==="Streamer") return pt?"Live protegida":"Stream protected";
   if(m==="Work") return pt?"Resposta equilibrada":"Balanced response";
   if(m==="Focus") return pt?"Fundo mais leve":"Lighter background";
@@ -1411,6 +1643,7 @@ function modeDecisionSummary(mode,s){
 function modeImpactDetail(mode){
   const m=normalizedModeName(mode), pt=isPt();
   if(m==="Gaming") return pt?"Instala o plano Smart Nap MODO JOGO, mas so ativa se você confirmar. O motor prioriza retorno rapido do jogo e reduz disputa de CPU/RAM/I/O no fundo.":"Installs the Smart Nap gaming plan, but activates it only if you confirm. The engine protects game wake and reduces CPU/RAM/I/O contention in the background.";
+  if(m==="Competitive") return pt?"Mantém voz e input protegidos, reforça o jogo online e usa o Zero Ping para classificar UDP, helpers e histórico sem mexer em DNS, IP ou driver.":"Keeps voice and input protected, reinforces the online game, and uses Zero Ping to classify UDP, helpers, and history without touching DNS, IP, or drivers.";
   if(m==="Streamer") return pt?"Protege OBS, Streamlabs, TikTok Studio e similares. Helpers de browser da live podem ter CPU contida com seguranca, sem cortar encoder, chamada, jogo ou fonte principal.":"Protects OBS, Streamlabs, TikTok Studio and similar apps. Stream browser helpers can be safely CPU-contained without touching encoder, call, game, or the main source.";
   if(m==="Work") return pt?"Mantém navegadores, chamadas e ferramentas acordando rapido enquanto apps realmente ociosos continuam leves.":"Keeps browsers, calls and tools waking quickly while truly idle apps remain lighter.";
   if(m==="Focus") return pt?"Quando a memória pressiona, apps parados podem receber nap mais profundo. Ao voltar para eles, o foreground restore desfaz o aperto.":"When memory pressure rises, idle apps can receive deeper naps. Foreground restore backs off when you return to them.";
@@ -1426,8 +1659,8 @@ function updateV5Panels(s){
   txt("powerPlanChip",(isPt()?"Energia: ":"Power: ")+plan+(s.EnergyIdleGuardEnabled?(isPt()?" + proteção":" + guard"):""));
   txt("modeIntentState",safeFormat(()=>formatIntent(s),"-"));
   const deck=$("modeDeck");
-  if(deck){ ["auto","gaming","streamer","work","focus"].forEach(c=>deck.classList.remove(c)); deck.classList.add(mode.toLowerCase()); }
-  ["Auto","Gaming","Streamer","Work","Focus"].forEach(m=>{ const el=$("mode"+m); if(el) el.classList.toggle("active",mode.toLowerCase()===m.toLowerCase()); });
+  if(deck){ ["auto","gaming","competitive","streamer","work","focus"].forEach(c=>deck.classList.remove(c)); deck.classList.add(mode.toLowerCase()); }
+  ["Auto","Gaming","Competitive","Streamer","Work","Focus"].forEach(m=>{ const el=$("mode"+m); if(el) el.classList.toggle("active",mode.toLowerCase()===m.toLowerCase()); });
   txt("modePoliciesState",formatPolicyCount(s));
   txt("modeAccessState",formatAccessSummary(s));
 }
@@ -1493,7 +1726,7 @@ function ensureLiveRowShape(div){
 function rowActionsSignature(row){
   return [
     currentLanguage,row.Policy,row.BehaviorTier,row.BehaviorConfidence,row.BehaviorWakeCount,row.BehaviorBias,
-    row.IntentKind,row.IntentConfidence,row.SwitchFastWake,row.UdpEndpoints,row.UdpGameProtected,row.UdpGuardActive,row.MediaCallGuard,row.StreamingGuard,row.ProtectedGuard,
+    row.IntentKind,row.IntentConfidence,row.SwitchFastWake,row.UdpEndpoints,row.UdpGameProtected,row.UdpGuardActive,row.UdpConfidence,row.UdpConfidenceLabel,row.UdpQosStatus,row.GpuHelperPressure,row.VramPressureActive,row.CpuBoundAssist,row.MediaCallGuard,row.StreamingGuard,row.ProtectedGuard,
     row.LauncherGuard,row.AdminNeeded,row.Action,row.Key,row.ProcessName,row.Path
   ].map(x=>String(x == null ? "" : x)).join("|");
 }
@@ -1659,7 +1892,14 @@ function metaBadges(row){
   if(guard) out.push('<b class="badge cool" title="'+esc(badgeTooltip(guard,guard))+'">'+esc(formatGuardLabel(guard))+'</b>');
   if(intent && intent!=="Desktop") out.push('<b class="badge balanced" title="'+esc(translateIntentKind(intent)+' '+(row.IntentConfidence||""))+'">'+esc(translateIntentKind(intent))+'</b>');
   const udp=Number(row.UdpEndpoints||0);
-  if(udp>0) out.push('<b class="badge '+(row.UdpGameProtected?'ok':'balanced')+'" title="'+esc(row.UdpGameProtected?t("udpProtectedTip"):t("udpObservedTip"))+'">'+esc((row.UdpGameProtected?t("udpProtectedBadge"):t("udpObservedBadge"))+" "+udp)+'</b>');
+  const udpConfidence=Number(row.UdpConfidence||0);
+  const udpConfidenceLabel=formatUdpConfidenceLabel(row.UdpConfidenceLabel);
+  if(udp>0) out.push('<b class="badge '+(row.UdpGameProtected?'ok':'balanced')+'" title="'+esc((row.UdpConfidenceReason||'') || (row.UdpGameProtected?t("udpProtectedTip"):t("udpObservedTip")))+'">'+esc((row.UdpGameProtected?t("udpProtectedBadge"):t("udpObservedBadge"))+" "+udp)+'</b>');
+  if(udpConfidence>0) out.push('<b class="badge net" title="'+esc(row.UdpConfidenceReason||t("udpConfidenceTip"))+'">'+esc((udpConfidenceLabel||"UDP")+" "+udpConfidence+"%")+'</b>');
+  if(row.UdpQosStatus && row.UdpQosStatus!=="Off") out.push('<b class="badge balanced" title="'+esc(t("qosTip"))+'">'+esc("QoS "+formatUdpQos(row.UdpQosStatus))+'</b>');
+  if(row.GpuHelperPressure) out.push('<b class="badge balanced" title="'+esc(t("gpuHelperTip"))+'">'+esc(t("gpuHelperBadge"))+'</b>');
+  if(row.VramPressureActive) out.push('<b class="badge warn" title="'+esc(t("vramPressureTip"))+'">'+esc("VRAM")+'</b>');
+  if(row.CpuBoundAssist) out.push('<b class="badge deep" title="'+esc(t("cpuBoundTip"))+'">'+esc("CPU-bound")+'</b>');
   if(row.SwitchFastWake) out.push('<b class="badge light" title="'+esc(policyTooltip("Light"))+'">'+esc(t("fastWake"))+'</b>');
   return out.join("");
 }
@@ -1758,3 +1998,5 @@ window.addEventListener("DOMContentLoaded",()=>{ currentLanguage=bestLanguage(na
 </script>
 </body>
 </html>
+
+

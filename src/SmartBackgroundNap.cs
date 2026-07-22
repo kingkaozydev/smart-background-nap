@@ -29,10 +29,11 @@ using Microsoft.Web.WebView2.Wpf;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.5.19";
+    private const string AppVersion = "0.5.24";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
+    private const string DashboardTaskName = "SmartBackgroundNapDashboard";
     private const string GitHubUrl = "https://github.com/kingkaozydev/smart-background-nap";
     private const string GitHubLatestReleaseApi = "https://api.github.com/repos/kingkaozydev/smart-background-nap/releases/latest";
     private const string GitHubLatestDownloadUrl = "https://github.com/kingkaozydev/smart-background-nap/releases/latest/download/SmartBackgroundNap.exe";
@@ -171,6 +172,13 @@ internal static class SmartBackgroundNap
         public ulong CapacityBytes;
     }
 
+    private sealed class RegistryGpuInfo
+    {
+        public string Name;
+        public ulong MemoryBytes;
+        public string DriverVersion;
+        public string Display;
+    }
     private sealed class HardwareSnapshot
     {
         public string Cpu;
@@ -299,6 +307,11 @@ internal static class SmartBackgroundNap
             Environment.ExitCode = UninstallStartup().ExitCode;
             return;
         }
+        if (HasArg(args, "--uninstall-dashboard"))
+        {
+            Environment.ExitCode = UninstallDashboardTask().ExitCode;
+            return;
+        }
         if (HasArg(args, "--safety-report"))
         {
             WriteSafetyReport();
@@ -307,6 +320,15 @@ internal static class SmartBackgroundNap
         }
 
         bool trayOnly = HasArg(args, "--tray");
+        if (!trayOnly && !IsCurrentProcessElevated())
+        {
+            EnsureAdminSetupForCurrentVersion();
+            if (TryDelegateInteractiveLaunchToElevatedTask())
+            {
+                return;
+            }
+        }
+
         bool ownsMutex;
         singleInstanceMutex = new Mutex(true, MutexName, out ownsMutex);
         showDashboardEvent = new EventWaitHandle(false, EventResetMode.AutoReset, ShowDashboardEventName);
@@ -383,6 +405,7 @@ internal static class SmartBackgroundNap
         string exePath = Application.ExecutablePath;
         string exeDir = Path.GetDirectoryName(exePath);
         string looseRoot;
+        string currentRuntimeRoot = "";
         if (String.Equals(Path.GetFileName(exeDir), "bin", StringComparison.OrdinalIgnoreCase))
         {
             looseRoot = Path.GetFullPath(Path.Combine(exeDir, ".."));
@@ -403,6 +426,7 @@ internal static class SmartBackgroundNap
             string runtimeRoot = Path.Combine(appRoot, "runtime-" + AppVersion);
             EnsureRuntimeFiles(runtimeRoot);
             looseRoot = runtimeRoot;
+            currentRuntimeRoot = runtimeRoot;
             usingLooseRuntime = false;
         }
 
@@ -432,6 +456,10 @@ internal static class SmartBackgroundNap
         radarPath = Path.Combine(outputsPath, "background-nap-radar-latest.json");
         safetyReportPath = Path.Combine(outputsPath, "SmartBackgroundNap-SafetyReport.txt");
         MigrateConfigForCurrentRuntime();
+        if (!usingLooseRuntime)
+        {
+            CleanupOldRuntimeFolders(currentRuntimeRoot);
+        }
     }
 
     [DllImport("user32.dll")]
@@ -461,6 +489,9 @@ internal static class SmartBackgroundNap
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
+
+    [DllImport("shell32.dll")]
+    private static extern void SHChangeNotify(uint wEventId, uint uFlags, IntPtr dwItem1, IntPtr dwItem2);
 
     [DllImport("powrprof.dll", SetLastError = true)]
     private static extern uint CallNtPowerInformation(int informationLevel, IntPtr inputBuffer, uint inputBufferSize, IntPtr outputBuffer, uint outputBufferSize);
@@ -512,14 +543,33 @@ internal static class SmartBackgroundNap
             bool expired = hardwareSnapshotCache == null || (DateTime.UtcNow - hardwareSnapshotAtUtc).TotalMinutes >= 10.0;
             if (expired)
             {
-                hardwareSnapshotCache = ProbeHardwareSnapshot(memory);
-                hardwareSnapshotAtUtc = DateTime.UtcNow;
+                HardwareSnapshot probed = ProbeHardwareSnapshot(memory);
+                if (hardwareSnapshotCache == null || IsHardwareSnapshotReliable(probed))
+                {
+                    hardwareSnapshotCache = probed;
+                    hardwareSnapshotAtUtc = DateTime.UtcNow;
+                }
+                else
+                {
+                    hardwareSnapshotAtUtc = DateTime.UtcNow.AddMinutes(-9.75);
+                    AppendOperationalLog("action=hardware-probe status=kept-last-good");
+                }
             }
 
             HardwareSnapshot snapshot = hardwareSnapshotCache.Clone();
             ApplyMemoryToHardwareSnapshot(snapshot, memory);
             return snapshot;
         }
+    }
+
+    private static bool IsHardwareSnapshotReliable(HardwareSnapshot snapshot)
+    {
+        if (snapshot == null) { return false; }
+        bool hasCpu = !String.IsNullOrWhiteSpace(snapshot.Cpu) &&
+            snapshot.Cpu.IndexOf("unavailable", StringComparison.OrdinalIgnoreCase) < 0;
+        bool hasGpu = !String.IsNullOrWhiteSpace(snapshot.Gpu) &&
+            snapshot.Gpu.IndexOf("unavailable", StringComparison.OrdinalIgnoreCase) < 0;
+        return hasCpu && hasGpu;
     }
 
     private static MemorySnapshot GetMemorySnapshot()
@@ -613,6 +663,23 @@ internal static class SmartBackgroundNap
         {
         }
 
+        if (String.IsNullOrWhiteSpace(snapshot.Gpu))
+        {
+            RegistryGpuInfo registryGpu = GetRegistryGpuInfo("");
+            if (registryGpu != null && !String.IsNullOrWhiteSpace(registryGpu.Name))
+            {
+                snapshot.Gpu = registryGpu.Name;
+                snapshot.GpuDetail = BuildGpuDetail(snapshot.Gpu, registryGpu.MemoryBytes, registryGpu.DriverVersion, registryGpu.Display);
+            }
+        }
+        else if (String.IsNullOrWhiteSpace(snapshot.GpuDetail) || snapshot.GpuDetail.IndexOf("unavailable", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            RegistryGpuInfo registryGpu = GetRegistryGpuInfo(snapshot.Gpu);
+            if (registryGpu != null && registryGpu.MemoryBytes > 0)
+            {
+                snapshot.GpuDetail = BuildGpuDetail(snapshot.Gpu, registryGpu.MemoryBytes, FirstNonEmpty(registryGpu.DriverVersion, ""), registryGpu.Display);
+            }
+        }
         if (String.IsNullOrWhiteSpace(snapshot.Cpu)) { snapshot.Cpu = "CPU unavailable"; }
         if (String.IsNullOrWhiteSpace(snapshot.Gpu)) { snapshot.Gpu = "GPU unavailable"; }
         if (String.IsNullOrWhiteSpace(snapshot.GpuDetail)) { snapshot.GpuDetail = "GPU detail unavailable"; }
@@ -801,6 +868,54 @@ internal static class SmartBackgroundNap
         return snapshot;
     }
 
+    private static RegistryGpuInfo GetRegistryGpuInfo(string gpuName)
+    {
+        RegistryGpuInfo bestAny = null;
+        RegistryGpuInfo bestMatch = null;
+        try
+        {
+            using (RegistryKey root = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\Video"))
+            {
+                if (root == null) { return null; }
+                foreach (string adapterKeyName in root.GetSubKeyNames())
+                {
+                    using (RegistryKey adapterKey = root.OpenSubKey(adapterKeyName))
+                    {
+                        if (adapterKey == null) { continue; }
+                        foreach (string childName in adapterKey.GetSubKeyNames())
+                        {
+                            if (!String.Equals(childName, "0000", StringComparison.OrdinalIgnoreCase) && !String.Equals(childName, "0001", StringComparison.OrdinalIgnoreCase)) { continue; }
+                            using (RegistryKey child = adapterKey.OpenSubKey(childName))
+                            {
+                                if (child == null) { continue; }
+                                ulong bytes = ReadRegistryUInt64(child.GetValue("HardwareInformation.qwMemorySize"));
+                                string driver = CleanHardwareValue(Convert.ToString(child.GetValue("DriverDesc"), CultureInfo.InvariantCulture));
+                                string adapter = CleanHardwareValue(Convert.ToString(child.GetValue("HardwareInformation.AdapterString"), CultureInfo.InvariantCulture));
+                                string chip = CleanHardwareValue(Convert.ToString(child.GetValue("HardwareInformation.ChipType"), CultureInfo.InvariantCulture));
+                                string registryVersion = CleanHardwareValue(Convert.ToString(child.GetValue("DriverVersion"), CultureInfo.InvariantCulture));
+                                string name = FirstNonEmpty(adapter, FirstNonEmpty(driver, chip));
+                                if (String.IsNullOrWhiteSpace(name) && bytes == 0) { continue; }
+                                RegistryGpuInfo info = new RegistryGpuInfo();
+                                info.Name = name;
+                                info.MemoryBytes = bytes;
+                                info.DriverVersion = registryVersion;
+                                info.Display = "";
+                                if (bestAny == null || info.MemoryBytes > bestAny.MemoryBytes) { bestAny = info; }
+                                if (!String.IsNullOrWhiteSpace(gpuName) && (NamesLookRelated(gpuName, driver) || NamesLookRelated(gpuName, adapter) || NamesLookRelated(gpuName, chip)))
+                                {
+                                    if (bestMatch == null || info.MemoryBytes > bestMatch.MemoryBytes) { bestMatch = info; }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch
+        {
+        }
+        return bestMatch ?? bestAny;
+    }
     private static ulong GetVideoMemoryBytes(string gpuName)
     {
         ulong bestAny = 0;
@@ -1441,7 +1556,7 @@ internal static class SmartBackgroundNap
 
             bool wantsAuto = IsAutomaticEngineEnabled();
             bool wantsStartup = IsStartupInstalled();
-            bool needsRepair = (wantsAuto && !IsTaskInstalled(AutoTaskName)) || (wantsStartup && !IsTaskInstalled(TrayTaskName));
+            bool needsRepair = (wantsAuto && !IsTaskInstalled(AutoTaskName)) || (wantsStartup && !IsTaskInstalled(TrayTaskName)) || !IsTaskInstalled(DashboardTaskName);
             if (!needsRepair) { return; }
             if (WasAdminSetupPromptedForCurrentVersion() && !WasAdminSetupCompletedForCurrentVersion()) { return; }
             if (!ShouldAttemptElevatedSetupRepair()) { return; }
@@ -1683,6 +1798,35 @@ internal static class SmartBackgroundNap
         }
     }
 
+    private static void CleanupOldRuntimeFolders(string currentRuntimeRoot)
+    {
+        try
+        {
+            if (usingLooseRuntime || String.IsNullOrWhiteSpace(appRoot) || !Directory.Exists(appRoot)) { return; }
+            string root = SafeFullPath(appRoot).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            string current = SafeFullPath(currentRuntimeRoot).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            foreach (string dir in Directory.GetDirectories(appRoot, "runtime-*"))
+            {
+                string full = SafeFullPath(dir).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                if (String.IsNullOrWhiteSpace(full) || String.Equals(full, current, StringComparison.OrdinalIgnoreCase)) { continue; }
+                if (String.IsNullOrWhiteSpace(root) || !full.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) { continue; }
+                try
+                {
+                    Directory.Delete(full, true);
+                    AppendOperationalLog("action=runtime-cleanup status=removed folder=" + SanitizeLogToken(Path.GetFileName(full)));
+                }
+                catch (Exception ex)
+                {
+                    AppendOperationalLog("action=runtime-cleanup status=deferred folder=" + SanitizeLogToken(Path.GetFileName(full)) + " detail=" + ShortTaskError(ex.Message));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            WriteCrash(ex);
+        }
+    }
+
     private static bool TryReadConfigFile(string path, out IDictionary<string, object> config)
     {
         config = null;
@@ -1783,11 +1927,47 @@ internal static class SmartBackgroundNap
             if (existingMap != null && defaultMap != null && MergeMissingConfigValues(existingMap, defaultMap))
             {
                 changed = true;
+                continue;
+            }
+
+            System.Collections.IList existingList = existing as System.Collections.IList;
+            System.Collections.IEnumerable defaultList = pair.Value as System.Collections.IEnumerable;
+            if (existingList != null && defaultList != null && !(pair.Value is string) && MergeMissingScalarListValues(existingList, defaultList))
+            {
+                changed = true;
             }
         }
         return changed;
     }
 
+    private static bool MergeMissingScalarListValues(System.Collections.IList current, System.Collections.IEnumerable defaults)
+    {
+        bool changed = false;
+        foreach (object item in defaults)
+        {
+            if (item == null || item is IDictionary<string, object> || (item is System.Collections.IEnumerable && !(item is string))) { continue; }
+            string text = Convert.ToString(item, CultureInfo.InvariantCulture);
+            if (String.IsNullOrWhiteSpace(text)) { continue; }
+
+            bool exists = false;
+            foreach (object existing in current)
+            {
+                string existingText = Convert.ToString(existing, CultureInfo.InvariantCulture);
+                if (String.Equals(existingText, text, StringComparison.OrdinalIgnoreCase))
+                {
+                    exists = true;
+                    break;
+                }
+            }
+
+            if (!exists)
+            {
+                current.Add(item);
+                changed = true;
+            }
+        }
+        return changed;
+    }
 
     private static void ExtractResource(string resourceName, string targetPath)
     {
@@ -2067,7 +2247,7 @@ internal static class SmartBackgroundNap
         {
             string tail = output.Substring(match.Index + match.Length).Trim();
             tail = tail.Replace("*", "").Trim();
-            tail = Regex.Replace(tail, @"^[\s:\-–—]+", "").Trim();
+            tail = Regex.Replace(tail, @"^[\s:\-â€“â€”]+", "").Trim();
             name = tail.Trim('(', ')', '*', ' ');
         }
         return new PowerPlanSnapshot { Guid = match.Value, Name = FriendlyPowerPlanName(match.Value, name) };
@@ -2408,16 +2588,36 @@ internal static class SmartBackgroundNap
 
     private static bool ArePrimaryScheduledTasksInstalled()
     {
-        return IsTaskInstalled(AutoTaskName) && IsTaskInstalled(TrayTaskName);
+        return IsTaskInstalled(AutoTaskName) && IsTaskInstalled(TrayTaskName) && IsTaskInstalled(DashboardTaskName);
     }
 
+    private static bool TryDelegateInteractiveLaunchToElevatedTask()
+    {
+        try
+        {
+            if (IsCurrentProcessElevated()) { return false; }
+            if (!IsTaskInstalled(DashboardTaskName)) { return false; }
+            RunResult result = RunHidden("schtasks.exe", "/Run /TN " + Quote(DashboardTaskName), 12000);
+            if (result.ExitCode == 0)
+            {
+                AppendOperationalLog("action=dashboard-elevated-task status=requested");
+                return true;
+            }
+            AppendOperationalLog("action=dashboard-elevated-task status=failed detail=" + ShortTaskError(result.Output));
+        }
+        catch (Exception ex)
+        {
+            WriteCrash(ex);
+        }
+        return false;
+    }
     private static RunResult RunElevatedSetupIfNeeded()
     {
         if (ArePrimaryScheduledTasksInstalled())
         {
             SaveLocalAutoEngine(false);
             RemoveStartupRegistry();
-            return new RunResult(0, "Scheduled tasks already installed.");
+            return new RunResult(0, "Elevated task base is ready.");
         }
         if (IsCurrentProcessElevated())
         {
@@ -2426,6 +2626,50 @@ internal static class SmartBackgroundNap
         return RunElevatedInstallComplete();
     }
 
+    private static RunResult RunElevatedSelfCommand(string arguments, string actionName, int timeoutMs)
+    {
+        if (String.IsNullOrWhiteSpace(arguments)) { return new RunResult(1, "Missing elevated command."); }
+        try
+        {
+            ProcessStartInfo start = new ProcessStartInfo();
+            start.FileName = GetLaunchExecutablePath();
+            start.Arguments = arguments;
+            start.UseShellExecute = true;
+            start.Verb = "runas";
+            start.WindowStyle = ProcessWindowStyle.Hidden;
+
+            using (Process process = Process.Start(start))
+            {
+                if (process == null)
+                {
+                    return new RunResult(1, "Nao consegui iniciar a acao elevada do Smart Nap.");
+                }
+                if (!process.WaitForExit(timeoutMs))
+                {
+                    try { process.Kill(); } catch { }
+                    AppendOperationalLog("action=" + SanitizeLogToken(actionName) + " status=timeout elevated=true");
+                    return new RunResult(124, "A acao elevada demorou demais e foi interrompida.");
+                }
+                AppendOperationalLog("action=" + SanitizeLogToken(actionName) + " status=done elevated=true exitCode=" + process.ExitCode.ToString(CultureInfo.InvariantCulture));
+                return new RunResult(process.ExitCode, process.ExitCode == 0 ? "Elevated action completed." : "Elevated action exited with code " + process.ExitCode.ToString(CultureInfo.InvariantCulture) + ".");
+            }
+        }
+        catch (Win32Exception ex)
+        {
+            if (ex.NativeErrorCode == 1223)
+            {
+                AppendOperationalLog("action=" + SanitizeLogToken(actionName) + " status=cancelled elevated=true");
+                return new RunResult(1223, "Permissao de administrador cancelada.");
+            }
+            AppendOperationalLog("action=" + SanitizeLogToken(actionName) + " status=failed elevated=true detail=" + ShortTaskError(ex.Message));
+            return new RunResult(1, "Nao consegui solicitar permissao de administrador para concluir esta acao.");
+        }
+        catch (Exception ex)
+        {
+            AppendOperationalLog("action=" + SanitizeLogToken(actionName) + " status=failed elevated=true detail=" + ShortTaskError(ex.Message));
+            return new RunResult(1, "Nao consegui concluir a acao elevada.");
+        }
+    }
     private static RunResult RunElevatedInstallComplete()
     {
         if (IsCurrentProcessElevated())
@@ -2491,6 +2735,116 @@ internal static class SmartBackgroundNap
         return RunPowerShellScript(backgroundScriptPath, "-ConfigPath " + Quote(GetEffectiveConfigPath()) + " -Action ForegroundRestore -TargetPid " + pid.ToString() + " -StateMode Latest -Quiet -LogPath " + Quote(logPath), 30000);
     }
 
+    private static string BuildInteractiveTaskXml(string taskDescription, string arguments, bool hidden)
+    {
+        string sid = WindowsIdentity.GetCurrent().User.Value;
+        string author = Environment.UserDomainName + "\\" + Environment.UserName;
+        string command = GetLaunchExecutablePath();
+        string workDir = Path.GetDirectoryName(command);
+        if (String.IsNullOrWhiteSpace(workDir)) { workDir = appRoot; }
+        string xmlArguments = arguments ?? "";
+        string hiddenText = hidden ? "true" : "false";
+        return @"<?xml version=""1.0"" encoding=""UTF-16""?>
+<Task version=""1.4"" xmlns=""http://schemas.microsoft.com/windows/2004/02/mit/task"">
+  <RegistrationInfo>
+    <Author>" + XmlText(author) + @"</Author>
+    <Description>" + XmlText(taskDescription) + @"</Description>
+  </RegistrationInfo>
+  <Principals>
+    <Principal id=""Author"">
+      <UserId>" + XmlText(sid) + @"</UserId>
+      <LogonType>InteractiveToken</LogonType>
+      <RunLevel>HighestAvailable</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>false</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <Enabled>true</Enabled>
+    <Hidden>" + hiddenText + @"</Hidden>
+    <RunOnlyIfIdle>false</RunOnlyIfIdle>
+    <DisallowStartOnRemoteAppSession>false</DisallowStartOnRemoteAppSession>
+    <UseUnifiedSchedulingEngine>true</UseUnifiedSchedulingEngine>
+    <WakeToRun>false</WakeToRun>
+    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+    <Priority>7</Priority>
+  </Settings>
+  <Actions Context=""Author"">
+    <Exec>
+      <Command>" + XmlText(command) + @"</Command>
+      <Arguments>" + XmlText(xmlArguments) + @"</Arguments>
+      <WorkingDirectory>" + XmlText(workDir) + @"</WorkingDirectory>
+    </Exec>
+  </Actions>
+</Task>";
+    }
+
+    private static string XmlText(string value)
+    {
+        return System.Security.SecurityElement.Escape(value ?? "") ?? "";
+    }
+
+    private static RunResult RegisterXmlScheduledTask(string taskName, string xml)
+    {
+        string tempPath = Path.Combine(Path.GetTempPath(), taskName + "-" + Process.GetCurrentProcess().Id.ToString(CultureInfo.InvariantCulture) + ".xml");
+        try
+        {
+            File.WriteAllText(tempPath, xml, Encoding.Unicode);
+            return RunHidden("schtasks.exe", "/Create /TN " + Quote(taskName) + " /XML " + Quote(tempPath) + " /F", 30000);
+        }
+        finally
+        {
+            try { if (File.Exists(tempPath)) { File.Delete(tempPath); } } catch { }
+        }
+    }
+
+    private static RunResult InstallDashboardTask()
+    {
+        if (!IsCurrentProcessElevated())
+        {
+            return IsTaskInstalled(DashboardTaskName)
+                ? new RunResult(0, "Elevated launcher task already installed.")
+                : new RunResult(5, "Administrator permission is required to prepare the elevated launcher task.");
+        }
+
+        string xml = BuildInteractiveTaskXml("Smart Nap elevated launcher. Opens the dashboard with the same elevated control base used by the engine.", "", false);
+        RunResult result = RegisterXmlScheduledTask(DashboardTaskName, xml);
+        if (result.ExitCode == 0)
+        {
+            AppendOperationalLog("action=install-dashboard-task status=OK");
+            return new RunResult(0, "Elevated launcher task installed.");
+        }
+        AppendOperationalLog("action=install-dashboard-task status=FAIL detail=" + ShortTaskError(result.Output));
+        return result;
+    }
+
+    private static RunResult UninstallDashboardTask()
+    {
+        if (!IsTaskInstalled(DashboardTaskName))
+        {
+            return new RunResult(0, "Elevated launcher task was already off.");
+        }
+
+        RunResult result = RunHidden("schtasks.exe", "/Delete /TN " + Quote(DashboardTaskName) + " /F", 10000);
+        if (result.ExitCode != 0 && !IsCurrentProcessElevated() && LooksLikeAccessDenied(result.Output))
+        {
+            result = RunElevatedSelfCommand("--uninstall-dashboard", "uninstall-dashboard", 120000);
+        }
+        if (IsTaskInstalled(DashboardTaskName))
+        {
+            return new RunResult(result.ExitCode == 0 ? 1 : result.ExitCode, "Nao consegui remover a tarefa elevada do launcher. Aceite a permissao de administrador para concluir.");
+        }
+        return result.ExitCode == 0 ? new RunResult(0, "Elevated launcher task removed.") : result;
+    }
     private static RunResult InstallAutomatic()
     {
         return InstallAutomatic(true);
@@ -2526,8 +2880,16 @@ internal static class SmartBackgroundNap
         if (IsTaskInstalled(AutoTaskName))
         {
             result = RunPowerShellScript(autoManagerPath, "-Action Uninstall", 60000);
+            if (result.ExitCode != 0 && !IsCurrentProcessElevated() && LooksLikeAccessDenied(result.Output))
+            {
+                result = RunElevatedSelfCommand("--uninstall-auto", "uninstall-auto", 120000);
+            }
         }
         SaveLocalAutoEngine(false);
+        if (IsTaskInstalled(AutoTaskName))
+        {
+            return new RunResult(result.ExitCode == 0 ? 1 : result.ExitCode, "Nao consegui desativar a tarefa do motor. Aceite a permissao de administrador para concluir a alteracao.");
+        }
         if (result.ExitCode != 0) { return result; }
         return new RunResult(0, "Automatic engine disabled.");
     }
@@ -2664,8 +3026,16 @@ internal static class SmartBackgroundNap
         if (IsTaskInstalled(TrayTaskName))
         {
             taskResult = RunHidden("schtasks.exe", "/Delete /TN " + Quote(TrayTaskName) + " /F", 10000);
+            if (taskResult.ExitCode != 0 && !IsCurrentProcessElevated() && LooksLikeAccessDenied(taskResult.Output))
+            {
+                taskResult = RunElevatedSelfCommand("--uninstall-startup", "uninstall-startup", 120000);
+            }
         }
         RunResult registryResult = RemoveStartupRegistry();
+        if (IsTaskInstalled(TrayTaskName))
+        {
+            return new RunResult(taskResult.ExitCode == 0 ? 1 : taskResult.ExitCode, "Nao consegui desativar a inicializacao automatica. Aceite a permissao de administrador para remover a tarefa elevada.");
+        }
         if (taskResult.ExitCode != 0) { return taskResult; }
         if (registryResult.ExitCode != 0) { return registryResult; }
         return new RunResult(0, "Tray startup disabled. Current Smart Nap session kept running.");
@@ -2683,21 +3053,43 @@ internal static class SmartBackgroundNap
 
     private static RunResult InstallComplete(bool allowElevatedRepair)
     {
-        RunResult auto = InstallAutomatic(allowElevatedRepair);
-        RunResult startup = InstallStartup(allowElevatedRepair);
+                if (allowElevatedRepair && !IsCurrentProcessElevated() && !ArePrimaryScheduledTasksInstalled())
+        {
+            RunResult elevated = RunElevatedInstallComplete();
+            if (ArePrimaryScheduledTasksInstalled())
+            {
+                return elevated.ExitCode == 0 ? elevated : new RunResult(0, "Elevated task base repaired.");
+            }
+            AppendOperationalLog("action=install-complete-elevated-fallback exitCode=" + elevated.ExitCode.ToString(CultureInfo.InvariantCulture));
+        }
+
+        RunResult dashboard = InstallDashboardTask();
+        RunResult auto = InstallAutomatic(false);
+        RunResult startup = InstallStartup(false);
         RunResult power = EnsureSmartNapPowerPlans();
         if (power.ExitCode != 0)
         {
             AppendOperationalLog("action=install-power-plans status=deferred detail=" + ShortTaskError(power.Output));
         }
         EnsureSmartLearningDefaultEnabled();
-        return RunResult.Combine(auto, startup);
+        RunResult shortcuts = InstallStartMenuShortcuts();
+        if (shortcuts.ExitCode != 0)
+        {
+            AppendOperationalLog("action=install-start-menu-shortcut status=deferred detail=" + ShortTaskError(shortcuts.Output));
+        }
+        return RunResult.Combine(RunResult.Combine(dashboard, auto), startup);
     }
     private static RunResult UninstallComplete()
     {
-        RunResult startup = UninstallStartup();
+                RunResult startup = UninstallStartup();
         RunResult auto = UninstallAutomatic();
-        return RunResult.Combine(startup, auto);
+        RunResult dashboard = UninstallDashboardTask();
+        RunResult shortcuts = RemoveStartMenuShortcuts();
+        if (shortcuts.ExitCode != 0)
+        {
+            AppendOperationalLog("action=uninstall-start-menu-shortcut status=deferred detail=" + ShortTaskError(shortcuts.Output));
+        }
+        return RunResult.Combine(RunResult.Combine(startup, auto), dashboard);
     }
 
     private static bool IsTaskInstalled(string taskName)
@@ -2706,6 +3098,16 @@ internal static class SmartBackgroundNap
         return result.ExitCode == 0;
     }
 
+    private static bool LooksLikeAccessDenied(string output)
+    {
+        if (String.IsNullOrWhiteSpace(output)) { return false; }
+        string compact = Regex.Replace(output, @"\s+", " ").Trim();
+        return compact.IndexOf("0x80070005", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            compact.IndexOf("Acesso negado", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            compact.IndexOf("Access is denied", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            compact.IndexOf("PermissionDenied", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            compact.IndexOf("UnauthorizedAccess", StringComparison.OrdinalIgnoreCase) >= 0;
+    }
     private static string ShortTaskError(string output)
     {
         if (String.IsNullOrWhiteSpace(output)) { return "Task Scheduler unavailable."; }
@@ -2997,6 +3399,7 @@ internal static class SmartBackgroundNap
     {
         string value = String.IsNullOrWhiteSpace(mode) ? "Auto" : mode.Trim();
         if (String.Equals(value, "Gaming", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Game", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Jogos", StringComparison.OrdinalIgnoreCase)) { return "Gaming"; }
+        if (String.Equals(value, "Competitive", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Competitivo", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Ranked", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Rankeado", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "PvP", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Versus", StringComparison.OrdinalIgnoreCase)) { return "Competitive"; }
         if (String.Equals(value, "Work", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Trabalho", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Creator", StringComparison.OrdinalIgnoreCase)) { return "Work"; }
         if (String.Equals(value, "Focus", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Foco", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "DeepFocus", StringComparison.OrdinalIgnoreCase)) { return "Focus"; }
         if (String.Equals(value, "Streamer", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Stream", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Live", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Transmissao", StringComparison.OrdinalIgnoreCase) || String.Equals(value, "Transmiss\u00e3o", StringComparison.OrdinalIgnoreCase)) { return "Streamer"; }
@@ -3212,6 +3615,128 @@ internal static class SmartBackgroundNap
             "SmartBackgroundNap.exe");
     }
 
+    private static string GetStartMenuProgramsPath()
+    {
+        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.StartMenu), "Programs");
+    }
+
+    private static string GetPrimaryStartMenuShortcutPath()
+    {
+        return Path.Combine(GetStartMenuProgramsPath(), "Smart Nap.lnk");
+    }
+
+    private static string[] GetStartMenuShortcutCandidates()
+    {
+        string root = GetStartMenuProgramsPath();
+        return new string[]
+        {
+            Path.Combine(root, "Smart Nap.lnk"),
+            Path.Combine(root, "Smart Background Nap.lnk"),
+            Path.Combine(root, "SmartBackgroundNap.lnk")
+        };
+    }
+
+    private static void NotifyShellIconChanged()
+    {
+        try { SHChangeNotify(0x08000000, 0, IntPtr.Zero, IntPtr.Zero); }
+        catch { }
+    }
+
+    private static RunResult InstallStartMenuShortcuts()
+    {
+        try
+        {
+            string target = GetLaunchExecutablePath();
+            string icon = File.Exists(iconPath) ? iconPath : target;
+            string primary = GetPrimaryStartMenuShortcutPath();
+            CreateStartMenuShortcut(primary, target, icon);
+
+            foreach (string candidate in GetStartMenuShortcutCandidates())
+            {
+                try
+                {
+                    if (!String.Equals(candidate, primary, StringComparison.OrdinalIgnoreCase) && File.Exists(candidate))
+                    {
+                        File.Delete(candidate);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    AppendOperationalLog("action=start-menu-shortcut-legacy-remove status=deferred file=" + SanitizeLogToken(Path.GetFileName(candidate)) + " detail=" + ShortTaskError(ex.Message));
+                }
+            }
+            NotifyShellIconChanged();
+            return new RunResult(0, "Start menu shortcut updated.");
+        }
+        catch (Exception ex)
+        {
+            AppendOperationalLog("action=start-menu-shortcut status=failed detail=" + ShortTaskError(ex.Message));
+            return new RunResult(1, "Could not update Start menu shortcut: " + ex.Message);
+        }
+    }
+
+    private static RunResult RemoveStartMenuShortcuts()
+    {
+        try
+        {
+            foreach (string shortcutPath in GetStartMenuShortcutCandidates())
+            {
+                try
+                {
+                    if (File.Exists(shortcutPath)) { File.Delete(shortcutPath); }
+                }
+                catch (Exception ex)
+                {
+                    AppendOperationalLog("action=start-menu-shortcut-remove status=deferred file=" + SanitizeLogToken(Path.GetFileName(shortcutPath)) + " detail=" + ShortTaskError(ex.Message));
+                }
+            }
+            NotifyShellIconChanged();
+            return new RunResult(0, "Start menu shortcut removed.");
+        }
+        catch (Exception ex)
+        {
+            return new RunResult(1, "Could not remove Start menu shortcut: " + ex.Message);
+        }
+    }
+
+    private static void AddUniquePath(List<string> paths, string path)
+    {
+        if (String.IsNullOrWhiteSpace(path)) { return; }
+        foreach (string existing in paths)
+        {
+            if (String.Equals(existing, path, StringComparison.OrdinalIgnoreCase)) { return; }
+        }
+        paths.Add(path);
+    }
+
+    private static void CreateStartMenuShortcut(string shortcutPath, string target, string icon)
+    {
+        string dir = Path.GetDirectoryName(shortcutPath);
+        if (!String.IsNullOrWhiteSpace(dir)) { Directory.CreateDirectory(dir); }
+
+        object shell = null;
+        object shortcut = null;
+        try
+        {
+            Type shellType = Type.GetTypeFromProgID("WScript.Shell");
+            if (shellType == null) { throw new InvalidOperationException("WScript.Shell is unavailable."); }
+            shell = Activator.CreateInstance(shellType);
+            shortcut = shellType.InvokeMember("CreateShortcut", BindingFlags.InvokeMethod, null, shell, new object[] { shortcutPath });
+            Type shortcutType = shortcut.GetType();
+            shortcutType.InvokeMember("TargetPath", BindingFlags.SetProperty, null, shortcut, new object[] { target });
+            shortcutType.InvokeMember("Arguments", BindingFlags.SetProperty, null, shortcut, new object[] { "" });
+            shortcutType.InvokeMember("WorkingDirectory", BindingFlags.SetProperty, null, shortcut, new object[] { Path.GetDirectoryName(target) ?? "" });
+            shortcutType.InvokeMember("IconLocation", BindingFlags.SetProperty, null, shortcut, new object[] { icon + ",0" });
+            shortcutType.InvokeMember("Description", BindingFlags.SetProperty, null, shortcut, new object[] { "Smart Nap background optimizer" });
+            shortcutType.InvokeMember("Save", BindingFlags.InvokeMethod, null, shortcut, null);
+        }
+        finally
+        {
+            try { if (shortcut != null && Marshal.IsComObject(shortcut)) { Marshal.FinalReleaseComObject(shortcut); } } catch { }
+            try { if (shell != null && Marshal.IsComObject(shell)) { Marshal.FinalReleaseComObject(shell); } } catch { }
+        }
+    }
+
     private static string GetLaunchExecutablePath()
     {
         if (usingLooseRuntime)
@@ -3330,6 +3855,7 @@ internal static class SmartBackgroundNap
         report.AppendLine("Windows integration");
         report.AppendLine(BuildTaskStatusLine(AutoTaskName));
         report.AppendLine(BuildTaskStatusLine(TrayTaskName));
+        report.AppendLine(BuildTaskStatusLine(DashboardTaskName));
         report.AppendLine("Startup method: per-user scheduled tasks with HighestAvailable after user-approved setup; HKCU Run fallback if Task Scheduler is blocked.");
         report.AppendLine("Service installed: no.");
         report.AppendLine("Driver installed: no.");
@@ -3570,6 +4096,13 @@ internal static class SmartBackgroundNap
                 File.WriteAllBytes(downloadedPath, bytes);
             }
 
+            RunResult validation = ValidateDownloadedUpdateExecutable(downloadedPath, latestTag);
+            if (validation.ExitCode != 0)
+            {
+                try { File.Delete(downloadedPath); } catch { }
+                return validation;
+            }
+
             string targetPath = GetLaunchExecutablePath();
             if (String.IsNullOrWhiteSpace(targetPath) || !File.Exists(downloadedPath))
             {
@@ -3593,6 +4126,56 @@ internal static class SmartBackgroundNap
         }
     }
 
+    private static RunResult ValidateDownloadedUpdateExecutable(string path, string expectedTag)
+    {
+        try
+        {
+            if (String.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            {
+                return new RunResult(1, "O arquivo de atualizacao nao foi encontrado.");
+            }
+            using (FileStream stream = File.OpenRead(path))
+            {
+                if (stream.Length < 256 * 1024) { return new RunResult(1, "O arquivo de atualizacao parece incompleto."); }
+                if (stream.ReadByte() != 'M' || stream.ReadByte() != 'Z') { return new RunResult(1, "O arquivo baixado nao parece ser um executavel do Windows."); }
+                stream.Seek(0x3c, SeekOrigin.Begin);
+                byte[] offsetBytes = new byte[4];
+                if (stream.Read(offsetBytes, 0, offsetBytes.Length) != offsetBytes.Length) { return new RunResult(1, "Nao consegui validar o cabecalho da atualizacao."); }
+                int peOffset = BitConverter.ToInt32(offsetBytes, 0);
+                if (peOffset <= 0 || peOffset > stream.Length - 4) { return new RunResult(1, "O executavel da atualizacao esta com cabecalho invalido."); }
+                stream.Seek(peOffset, SeekOrigin.Begin);
+                if (stream.ReadByte() != 'P' || stream.ReadByte() != 'E' || stream.ReadByte() != 0 || stream.ReadByte() != 0)
+                {
+                    return new RunResult(1, "O arquivo baixado nao passou na validacao PE.");
+                }
+            }
+
+            FileVersionInfo versionInfo = FileVersionInfo.GetVersionInfo(path);
+            string fileVersion = FirstNonEmpty(versionInfo.ProductVersion, versionInfo.FileVersion);
+            if (String.IsNullOrWhiteSpace(fileVersion))
+            {
+                return new RunResult(1, "Nao consegui validar a versao do executavel baixado.");
+            }
+
+            if (!String.IsNullOrWhiteSpace(expectedTag) && !String.Equals(NormalizeVersionLabel(expectedTag), NormalizeVersionLabel(fileVersion), StringComparison.OrdinalIgnoreCase))
+            {
+                AppendOperationalLog("action=self-update-validation status=tag-version-mismatch tag=" + SanitizeLogToken(expectedTag) + " fileVersion=" + SanitizeLogToken(fileVersion));
+            }
+
+            if (!IsRemoteVersionNewer(fileVersion, AppVersion) && !String.Equals(NormalizeVersionLabel(fileVersion), NormalizeVersionLabel(AppVersion), StringComparison.OrdinalIgnoreCase))
+            {
+                return new RunResult(1, "A atualizacao baixada nao parece ser mais nova que a versao instalada.");
+            }
+
+            AppendOperationalLog("action=self-update-validation status=ok version=" + SanitizeLogToken(fileVersion) + " sha256=" + ComputeFileSha256(path));
+            return new RunResult(0, "Update executable validated.");
+        }
+        catch (Exception ex)
+        {
+            AppendOperationalLog("action=self-update-validation status=failed detail=" + ShortTaskError(ex.Message));
+            return new RunResult(1, "Nao consegui validar a atualizacao baixada.");
+        }
+    }
     private static bool IsOfficialUpdateHost(string host)
     {
         if (String.IsNullOrWhiteSpace(host)) { return false; }
@@ -3941,11 +4524,7 @@ internal static class SmartBackgroundNap
             {
                 if (uiContext != null)
                 {
-                    uiContext.Post(delegate { ShowTrayMessage("Still running in the tray."); }, null);
-                }
-                else
-                {
-                    ShowTrayMessage("Still running in the tray.");
+                    uiContext.Post(delegate {  }, null);
                 }
             });
 #else
@@ -3955,10 +4534,6 @@ internal static class SmartBackgroundNap
             if (!trayOnly)
             {
                 ShowMainWindow();
-            }
-            else
-            {
-                ShowTrayMessage("Ready. Automatic mode can be controlled from the tray.");
             }
 
             StartShowListener();
@@ -3977,7 +4552,6 @@ internal static class SmartBackgroundNap
                 {
                     e.Cancel = true;
                     window.Hide();
-                    ShowTrayMessage("Still running in the tray.");
                 }
             };
             return window;
@@ -4008,12 +4582,13 @@ internal static class SmartBackgroundNap
             PowerPlanSnapshot plan = GetActivePowerPlan();
             string planName = plan == null || String.IsNullOrWhiteSpace(plan.Name) ? "plano nao identificado" : plan.Name;
 
-            AddTrayHeader(menu, "Smart Nap", "Modo " + DisplaySessionMode(mode) + " | " + (motorOn ? "motor ativo" : "motor pausado"));
-            AddTrayStatus(menu, "Energia: " + TrimTrayText(planName, 38));
+            AddTrayHeader(menu, "Smart Nap", "Modo " + DisplaySessionMode(mode));
+            AddTrayStatus(menu, motorOn ? "Motor ativo" : "Motor pausado");
+            AddTrayStatus(menu, "Energia: " + TrimTrayText(planName, 42));
             AddTrayStatus(menu, BuildCompactTrayTelemetryText());
             menu.Items.Add(new ToolStripSeparator());
 
-            AddTrayItem(menu, "Abrir launcher", delegate { ShowMainWindow(); }, true, false);
+            AddTrayItem(menu, "Abrir painel", delegate { ShowMainWindow(); }, true, false);
             AddTrayItem(menu, "Otimizar agora", delegate { RunFromTray("Otimizar agora", RunApplyNow); }, true, false);
             AddTrayItem(menu, motorOn ? "Pausar motor" : "Retomar motor", delegate { RunFromTray(motorOn ? "Motor pausado" : "Motor iniciado", motorOn ? (Func<RunResult>)UninstallAutomatic : InstallAutomatic); }, true, false);
             AddTrayItem(menu, startupOn ? "Iniciar com Windows: ligado" : "Iniciar com Windows: desligado", delegate { RunFromTray(startupOn ? "Inicializacao desligada" : "Inicializacao ligada", startupOn ? (Func<RunResult>)UninstallStartup : InstallStartup); }, true, startupOn);
@@ -4022,6 +4597,7 @@ internal static class SmartBackgroundNap
             ToolStripMenuItem modes = AddTraySubmenu(menu, "Modo do motor");
             AddModeTrayItem(modes, "Auto", "Auto", mode, "Mantem decisao automatica por app.", "keep");
             AddModeTrayItem(modes, "Jogos", "Gaming", mode, "Prioriza o jogo ativo e contem o fundo.", "keep");
+            AddModeTrayItem(modes, "Competitivo", "Competitive", mode, "Prioriza jogo online, voz e entrada com contencao mais direta.", "keep");
             AddModeTrayItem(modes, "Live / Streamer", "Streamer", mode, "Protege encoder, jogo e apps de live.", "keep");
             AddModeTrayItem(modes, "Trabalho", "Work", mode, "Mantem multitarefa responsiva.", "keep");
             AddModeTrayItem(modes, "Foco", "Focus", mode, "Aperta apps parados com mais firmeza.", "keep");
@@ -4047,9 +4623,9 @@ internal static class SmartBackgroundNap
         {
             ToolStripMenuItem item = new ToolStripMenuItem(title + " - " + subtitle);
             item.Enabled = false;
-            item.Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
-            item.ForeColor = Color.FromArgb(255, 166, 41);
-            item.BackColor = Color.FromArgb(7, 15, 26);
+            item.Font = new Font("Segoe UI Variable Display", 10.0f, FontStyle.Bold);
+            item.ForeColor = Color.FromArgb(255, 173, 47);
+            item.BackColor = Color.FromArgb(9, 9, 11);
             menu.Items.Add(item);
         }
 
@@ -4057,9 +4633,9 @@ internal static class SmartBackgroundNap
         {
             ToolStripMenuItem item = new ToolStripMenuItem(text);
             item.Enabled = false;
-            item.Font = new Font("Segoe UI", 8.5f, FontStyle.Regular);
-            item.ForeColor = Color.FromArgb(156, 177, 204);
-            item.BackColor = Color.FromArgb(7, 15, 26);
+            item.Font = new Font("Segoe UI Variable Text", 8.8f, FontStyle.Regular);
+            item.ForeColor = Color.FromArgb(176, 190, 210);
+            item.BackColor = Color.FromArgb(9, 9, 11);
             menu.Items.Add(item);
         }
 
@@ -4085,7 +4661,7 @@ internal static class SmartBackgroundNap
         {
             ToolStripMenuItem item = new ToolStripMenuItem(text);
             item.Checked = isChecked;
-            item.Font = new Font("Segoe UI", 9.0f, bold ? FontStyle.Bold : FontStyle.Regular);
+            item.Font = new Font("Segoe UI Variable Text", 9.2f, bold ? FontStyle.Bold : FontStyle.Regular);
             StyleTrayItem(item, bold);
             item.Click += delegate { action(); };
             items.Add(item);
@@ -4103,8 +4679,8 @@ internal static class SmartBackgroundNap
 
         private void StyleTrayItem(ToolStripMenuItem item, bool accent)
         {
-            item.BackColor = Color.FromArgb(7, 15, 26);
-            item.ForeColor = accent ? Color.FromArgb(255, 166, 41) : Color.FromArgb(236, 245, 255);
+            item.BackColor = Color.FromArgb(9, 9, 11);
+            item.ForeColor = accent ? Color.FromArgb(255, 173, 47) : Color.FromArgb(238, 244, 252);
         }
 
         private void ConfirmPowerModeFromTray(string mode, string energyChoice, string planName)
@@ -4163,6 +4739,7 @@ internal static class SmartBackgroundNap
         {
             string normalized = NormalizeSessionMode(mode);
             if (String.Equals(normalized, "Gaming", StringComparison.OrdinalIgnoreCase)) { return "Jogos"; }
+            if (String.Equals(normalized, "Competitive", StringComparison.OrdinalIgnoreCase)) { return "Competitivo"; }
             if (String.Equals(normalized, "Streamer", StringComparison.OrdinalIgnoreCase)) { return "Live"; }
             if (String.Equals(normalized, "Work", StringComparison.OrdinalIgnoreCase)) { return "Trabalho"; }
             if (String.Equals(normalized, "Focus", StringComparison.OrdinalIgnoreCase)) { return "Foco"; }
@@ -4190,19 +4767,19 @@ internal static class SmartBackgroundNap
 
         private sealed class SmartNapTrayColors : ProfessionalColorTable
         {
-            public override Color ToolStripDropDownBackground { get { return Color.FromArgb(7, 15, 26); } }
-            public override Color ImageMarginGradientBegin { get { return Color.FromArgb(7, 15, 26); } }
-            public override Color ImageMarginGradientMiddle { get { return Color.FromArgb(7, 15, 26); } }
-            public override Color ImageMarginGradientEnd { get { return Color.FromArgb(7, 15, 26); } }
-            public override Color MenuBorder { get { return Color.FromArgb(255, 166, 41); } }
-            public override Color MenuItemBorder { get { return Color.FromArgb(255, 166, 41); } }
-            public override Color MenuItemSelected { get { return Color.FromArgb(22, 38, 60); } }
-            public override Color MenuItemSelectedGradientBegin { get { return Color.FromArgb(22, 38, 60); } }
-            public override Color MenuItemSelectedGradientEnd { get { return Color.FromArgb(16, 29, 48); } }
-            public override Color MenuItemPressedGradientBegin { get { return Color.FromArgb(16, 29, 48); } }
-            public override Color MenuItemPressedGradientEnd { get { return Color.FromArgb(7, 15, 26); } }
-            public override Color SeparatorDark { get { return Color.FromArgb(38, 56, 81); } }
-            public override Color SeparatorLight { get { return Color.FromArgb(9, 18, 31); } }
+            public override Color ToolStripDropDownBackground { get { return Color.FromArgb(9, 9, 11); } }
+            public override Color ImageMarginGradientBegin { get { return Color.FromArgb(9, 9, 11); } }
+            public override Color ImageMarginGradientMiddle { get { return Color.FromArgb(9, 9, 11); } }
+            public override Color ImageMarginGradientEnd { get { return Color.FromArgb(9, 9, 11); } }
+            public override Color MenuBorder { get { return Color.FromArgb(70, 86, 118); } }
+            public override Color MenuItemBorder { get { return Color.FromArgb(255, 173, 47); } }
+            public override Color MenuItemSelected { get { return Color.FromArgb(24, 32, 49); } }
+            public override Color MenuItemSelectedGradientBegin { get { return Color.FromArgb(28, 38, 58); } }
+            public override Color MenuItemSelectedGradientEnd { get { return Color.FromArgb(16, 24, 39); } }
+            public override Color MenuItemPressedGradientBegin { get { return Color.FromArgb(30, 38, 58); } }
+            public override Color MenuItemPressedGradientEnd { get { return Color.FromArgb(9, 9, 11); } }
+            public override Color SeparatorDark { get { return Color.FromArgb(48, 62, 86); } }
+            public override Color SeparatorLight { get { return Color.FromArgb(14, 18, 28); } }
         }
         private void StartShowListener()
         {
@@ -5929,9 +6506,45 @@ internal static class SmartBackgroundNap
             state.NetworkUdpGuardEndpoints = networkUdpGuardEnabled ? scoreMeta.NetworkUdpGuardEndpoints : 0;
             state.NetworkUdpGuardProcessCount = networkUdpGuardEnabled ? scoreMeta.NetworkUdpGuardProcessCount : 0;
             state.NetworkUdpGuardNoStackTweaks = networkUdpGuardEnabled && (scoreMeta.NetworkUdpGuardNoStackTweaks || networkUdpGuardEnabled);
+            state.NetworkUdpGuardConfidence = networkUdpGuardEnabled ? scoreMeta.NetworkUdpGuardConfidence : 0;
+            state.NetworkUdpGuardConfidenceLabel = networkUdpGuardEnabled ? scoreMeta.NetworkUdpGuardConfidenceLabel : "None";
+            state.NetworkUdpGuardReason = networkUdpGuardEnabled ? scoreMeta.NetworkUdpGuardReason : String.Empty;
+            state.NetworkUdpGuardShieldMode = networkUdpGuardEnabled ? scoreMeta.NetworkUdpGuardShieldMode : "Off";
+            state.NetworkUdpGuardProtectedCount = networkUdpGuardEnabled ? scoreMeta.NetworkUdpGuardProtectedCount : 0;
+            state.NetworkUdpGuardQosStatus = networkUdpGuardEnabled ? scoreMeta.NetworkUdpGuardQosStatus : "Off";
+            state.NetworkUdpGuardSignals = networkUdpGuardEnabled ? scoreMeta.NetworkUdpGuardSignals : new List<string>();
             state.StreamGuardActive = scoreMeta.StreamGuardActive;
             state.StreamHelperCount = scoreMeta.StreamHelperCount;
             state.StreamGameProtectedCount = scoreMeta.StreamGameProtectedCount;
+            state.GpuPressureAvailable = scoreMeta.GpuPressureAvailable;
+            state.GpuPressureProvider = scoreMeta.GpuPressureProvider;
+            state.GpuPressureLevel = scoreMeta.GpuPressureLevel;
+            state.GpuPressureDxgiAvailable = scoreMeta.GpuPressureDxgiAvailable;
+            state.GpuPressureAdapterName = scoreMeta.GpuPressureAdapterName;
+            state.GpuAdapterDedicatedVideoMemoryMB = scoreMeta.GpuAdapterDedicatedVideoMemoryMB;
+            state.GpuAdapterSharedSystemMemoryMB = scoreMeta.GpuAdapterSharedSystemMemoryMB;
+            state.GpuAdapterLocalBudgetMB = scoreMeta.GpuAdapterLocalBudgetMB;
+            state.GpuAdapterLocalUsageMB = scoreMeta.GpuAdapterLocalUsageMB;
+            state.GpuAdapterLocalAvailableMB = scoreMeta.GpuAdapterLocalAvailableMB;
+            state.GpuAdapterLocalUsagePercent = scoreMeta.GpuAdapterLocalUsagePercent;
+            state.GpuAdapterNonLocalBudgetMB = scoreMeta.GpuAdapterNonLocalBudgetMB;
+            state.GpuAdapterNonLocalUsageMB = scoreMeta.GpuAdapterNonLocalUsageMB;
+            state.GpuAdapterNonLocalAvailableMB = scoreMeta.GpuAdapterNonLocalAvailableMB;
+            state.GpuAdapterDedicatedUsageMB = scoreMeta.GpuAdapterDedicatedUsageMB;
+            state.GpuAdapterSharedUsageMB = scoreMeta.GpuAdapterSharedUsageMB;
+            state.GpuTotalUtilPercent = scoreMeta.GpuTotalUtilPercent;
+            state.GpuTopProcess = scoreMeta.GpuTopProcess;
+            state.GpuTopProcessPid = scoreMeta.GpuTopProcessPid;
+            state.GpuTopProcessPercent = scoreMeta.GpuTopProcessPercent;
+            state.GpuTopProcessDedicatedMB = scoreMeta.GpuTopProcessDedicatedMB;
+            state.CpuBoundAssistActive = scoreMeta.CpuBoundAssistActive;
+            state.CpuBoundAssistGame = scoreMeta.CpuBoundAssistGame;
+            state.CpuBoundAssistGamePid = scoreMeta.CpuBoundAssistGamePid;
+            state.CpuBoundAssistConfidence = scoreMeta.CpuBoundAssistConfidence;
+            state.CpuBoundAssistReason = scoreMeta.CpuBoundAssistReason;
+            state.EngineHealthStatus = scoreMeta.EngineHealthStatus;
+            state.EngineHealthSummary = scoreMeta.EngineHealthSummary;
+            state.RollbackAuditEnabled = scoreMeta.RollbackAuditEnabled;
             state.PolicyCount = CountManualPolicies();
             state.AppCount = scoreMeta.AppCount > 0 ? scoreMeta.AppCount : rows.Count;
             state.ProcessCount = scoreMeta.ProcessCount > 0 ? scoreMeta.ProcessCount : rows.Count;
@@ -6053,6 +6666,42 @@ internal static class SmartBackgroundNap
                 meta.NetworkUdpGuardEndpoints = GetInt(root, "NetworkUdpGuardEndpoints");
                 meta.NetworkUdpGuardProcessCount = GetInt(root, "NetworkUdpGuardProcessCount");
                 meta.NetworkUdpGuardNoStackTweaks = GetBool(root, "NetworkUdpGuardNoStackTweaks");
+                meta.NetworkUdpGuardConfidence = GetInt(root, "NetworkUdpGuardConfidence");
+                meta.NetworkUdpGuardConfidenceLabel = GetString(root, "NetworkUdpGuardConfidenceLabel");
+                meta.NetworkUdpGuardReason = GetString(root, "NetworkUdpGuardReason");
+                meta.NetworkUdpGuardShieldMode = GetString(root, "NetworkUdpGuardShieldMode");
+                meta.NetworkUdpGuardProtectedCount = GetInt(root, "NetworkUdpGuardProtectedCount");
+                meta.NetworkUdpGuardQosStatus = GetString(root, "NetworkUdpGuardQosStatus");
+                meta.NetworkUdpGuardSignals = ReadStringList(root, "NetworkUdpGuardSignals");
+                meta.GpuPressureAvailable = GetBool(root, "GpuPressureAvailable");
+                meta.GpuPressureProvider = GetString(root, "GpuPressureProvider");
+                meta.GpuPressureLevel = GetString(root, "GpuPressureLevel");
+                meta.GpuPressureDxgiAvailable = GetBool(root, "GpuPressureDxgiAvailable");
+                meta.GpuPressureAdapterName = GetString(root, "GpuPressureAdapterName");
+                meta.GpuAdapterDedicatedVideoMemoryMB = GetDouble(root, "GpuAdapterDedicatedVideoMemoryMB");
+                meta.GpuAdapterSharedSystemMemoryMB = GetDouble(root, "GpuAdapterSharedSystemMemoryMB");
+                meta.GpuAdapterLocalBudgetMB = GetDouble(root, "GpuAdapterLocalBudgetMB");
+                meta.GpuAdapterLocalUsageMB = GetDouble(root, "GpuAdapterLocalUsageMB");
+                meta.GpuAdapterLocalAvailableMB = GetDouble(root, "GpuAdapterLocalAvailableMB");
+                meta.GpuAdapterLocalUsagePercent = GetDouble(root, "GpuAdapterLocalUsagePercent");
+                meta.GpuAdapterNonLocalBudgetMB = GetDouble(root, "GpuAdapterNonLocalBudgetMB");
+                meta.GpuAdapterNonLocalUsageMB = GetDouble(root, "GpuAdapterNonLocalUsageMB");
+                meta.GpuAdapterNonLocalAvailableMB = GetDouble(root, "GpuAdapterNonLocalAvailableMB");
+                meta.GpuAdapterDedicatedUsageMB = GetDouble(root, "GpuAdapterDedicatedUsageMB");
+                meta.GpuAdapterSharedUsageMB = GetDouble(root, "GpuAdapterSharedUsageMB");
+                meta.GpuTotalUtilPercent = GetDouble(root, "GpuTotalUtilPercent");
+                meta.GpuTopProcess = GetString(root, "GpuTopProcess");
+                meta.GpuTopProcessPid = GetInt(root, "GpuTopProcessPid");
+                meta.GpuTopProcessPercent = GetDouble(root, "GpuTopProcessPercent");
+                meta.GpuTopProcessDedicatedMB = GetDouble(root, "GpuTopProcessDedicatedMB");
+                meta.CpuBoundAssistActive = GetBool(root, "CpuBoundAssistActive");
+                meta.CpuBoundAssistGame = GetString(root, "CpuBoundAssistGame");
+                meta.CpuBoundAssistGamePid = GetInt(root, "CpuBoundAssistGamePid");
+                meta.CpuBoundAssistConfidence = GetInt(root, "CpuBoundAssistConfidence");
+                meta.CpuBoundAssistReason = GetString(root, "CpuBoundAssistReason");
+                meta.EngineHealthStatus = GetString(root, "EngineHealthStatus");
+                meta.EngineHealthSummary = GetString(root, "EngineHealthSummary");
+                meta.RollbackAuditEnabled = GetBool(root, "RollbackAuditEnabled");
                 meta.StreamGuardActive = GetBool(root, "StreamGuardActive");
                 meta.StreamHelperCount = GetInt(root, "StreamHelperCount");
                 meta.StreamGameProtectedCount = GetInt(root, "StreamGameProtectedCount");
@@ -6392,6 +7041,17 @@ internal static class SmartBackgroundNap
                     row.UdpEndpoints = GetInt(map, "UdpEndpoints");
                     row.UdpGameProtected = GetBool(map, "UdpGameProtected");
                     row.UdpGuardActive = GetBool(map, "UdpGuardActive");
+                    row.UdpConfidence = GetInt(map, "UdpConfidence");
+                    row.UdpConfidenceLabel = GetString(map, "UdpConfidenceLabel");
+                    row.UdpConfidenceReason = GetString(map, "UdpConfidenceReason");
+                    row.UdpShieldMode = GetString(map, "UdpShieldMode");
+                    row.UdpQosStatus = GetString(map, "UdpQosStatus");
+                    row.GpuPercent = GetDouble(map, "GpuPercent");
+                    row.GpuDedicatedMB = GetDouble(map, "GpuDedicatedMB");
+                    row.GpuSharedMB = GetDouble(map, "GpuSharedMB");
+                    row.GpuHelperPressure = GetBool(map, "GpuHelperPressure");
+                    row.VramPressureActive = GetBool(map, "VramPressureActive");
+                    row.CpuBoundAssist = GetBool(map, "CpuBoundAssist");
                     row.BehaviorWakeCount = GetInt(map, "BehaviorWakeCount");
                     row.BehaviorConfidence = GetInt(map, "BehaviorConfidence");
                     row.BehaviorBias = GetInt(map, "BehaviorBias");
@@ -6478,6 +7138,20 @@ internal static class SmartBackgroundNap
             target.UdpEndpoints += source.UdpEndpoints;
             target.UdpGameProtected = target.UdpGameProtected || source.UdpGameProtected;
             target.UdpGuardActive = target.UdpGuardActive || source.UdpGuardActive;
+            if (source.UdpConfidence > target.UdpConfidence)
+            {
+                target.UdpConfidence = source.UdpConfidence;
+                target.UdpConfidenceLabel = source.UdpConfidenceLabel;
+                target.UdpConfidenceReason = source.UdpConfidenceReason;
+                target.UdpShieldMode = source.UdpShieldMode;
+            }
+            if (String.IsNullOrWhiteSpace(target.UdpQosStatus) || String.Equals(target.UdpQosStatus, "Off", StringComparison.OrdinalIgnoreCase)) { target.UdpQosStatus = source.UdpQosStatus; }
+            target.GpuPercent += source.GpuPercent;
+            target.GpuDedicatedMB += source.GpuDedicatedMB;
+            target.GpuSharedMB += source.GpuSharedMB;
+            target.GpuHelperPressure = target.GpuHelperPressure || source.GpuHelperPressure;
+            target.VramPressureActive = target.VramPressureActive || source.VramPressureActive;
+            target.CpuBoundAssist = target.CpuBoundAssist || source.CpuBoundAssist;
             if (source.IntentConfidence > target.IntentConfidence)
             {
                 target.IntentConfidence = source.IntentConfidence;
@@ -6543,6 +7217,12 @@ internal static class SmartBackgroundNap
             int intentConfidence = GetInt(map, "IntentConfidence");
             int udpEndpoints = GetInt(map, "UdpEndpoints");
             bool udpProtected = GetBool(map, "UdpGameProtected");
+            int udpConfidence = GetInt(map, "UdpConfidence");
+            string udpConfidenceLabel = GetString(map, "UdpConfidenceLabel");
+            string udpQosStatus = GetString(map, "UdpQosStatus");
+            bool gpuHelperPressure = GetBool(map, "GpuHelperPressure");
+            bool vramPressureActive = GetBool(map, "VramPressureActive");
+            bool cpuBoundAssist = GetBool(map, "CpuBoundAssist");
             int behaviorConfidence = GetInt(map, "BehaviorConfidence");
             int behaviorBias = GetInt(map, "BehaviorBias");
             int behaviorWakes = GetInt(map, "BehaviorWakeCount");
@@ -6572,6 +7252,14 @@ internal static class SmartBackgroundNap
             {
                 summary += " / Zero Ping UDP " + udpEndpoints.ToString(CultureInfo.CurrentCulture) + (udpProtected ? " protected" : "");
             }
+            if (udpConfidence > 0)
+            {
+                summary += " / UDP confidence " + (String.IsNullOrWhiteSpace(udpConfidenceLabel) ? udpConfidence.ToString(CultureInfo.CurrentCulture) + "%" : udpConfidenceLabel + " " + udpConfidence.ToString(CultureInfo.CurrentCulture) + "%");
+            }
+            if (!String.IsNullOrWhiteSpace(udpQosStatus) && !String.Equals(udpQosStatus, "Off", StringComparison.OrdinalIgnoreCase)) { summary += " / QoS " + udpQosStatus; }
+            if (gpuHelperPressure) { summary += " / GPU helper"; }
+            if (vramPressureActive) { summary += " / VRAM pressure"; }
+            if (cpuBoundAssist) { summary += " / CPU-bound assist"; }
             if (behaviorConfidence > 0)
             {
                 string behaviorLabel = behaviorBias < 0 ? "Guard" : (String.IsNullOrWhiteSpace(behaviorTier) ? "Auto" : behaviorTier);
@@ -6959,6 +7647,42 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public int NetworkUdpGuardEndpoints { get; set; }
             public int NetworkUdpGuardProcessCount { get; set; }
             public bool NetworkUdpGuardNoStackTweaks { get; set; }
+            public int NetworkUdpGuardConfidence { get; set; }
+            public string NetworkUdpGuardConfidenceLabel { get; set; }
+            public string NetworkUdpGuardReason { get; set; }
+            public string NetworkUdpGuardShieldMode { get; set; }
+            public int NetworkUdpGuardProtectedCount { get; set; }
+            public string NetworkUdpGuardQosStatus { get; set; }
+            public List<string> NetworkUdpGuardSignals { get; set; }
+            public bool GpuPressureAvailable { get; set; }
+            public string GpuPressureProvider { get; set; }
+            public string GpuPressureLevel { get; set; }
+            public bool GpuPressureDxgiAvailable { get; set; }
+            public string GpuPressureAdapterName { get; set; }
+            public double GpuAdapterDedicatedVideoMemoryMB { get; set; }
+            public double GpuAdapterSharedSystemMemoryMB { get; set; }
+            public double GpuAdapterLocalBudgetMB { get; set; }
+            public double GpuAdapterLocalUsageMB { get; set; }
+            public double GpuAdapterLocalAvailableMB { get; set; }
+            public double GpuAdapterLocalUsagePercent { get; set; }
+            public double GpuAdapterNonLocalBudgetMB { get; set; }
+            public double GpuAdapterNonLocalUsageMB { get; set; }
+            public double GpuAdapterNonLocalAvailableMB { get; set; }
+            public double GpuAdapterDedicatedUsageMB { get; set; }
+            public double GpuAdapterSharedUsageMB { get; set; }
+            public double GpuTotalUtilPercent { get; set; }
+            public string GpuTopProcess { get; set; }
+            public int GpuTopProcessPid { get; set; }
+            public double GpuTopProcessPercent { get; set; }
+            public double GpuTopProcessDedicatedMB { get; set; }
+            public bool CpuBoundAssistActive { get; set; }
+            public string CpuBoundAssistGame { get; set; }
+            public int CpuBoundAssistGamePid { get; set; }
+            public int CpuBoundAssistConfidence { get; set; }
+            public string CpuBoundAssistReason { get; set; }
+            public string EngineHealthStatus { get; set; }
+            public string EngineHealthSummary { get; set; }
+            public bool RollbackAuditEnabled { get; set; }
             public bool StreamGuardActive { get; set; }
             public int StreamHelperCount { get; set; }
             public int StreamGameProtectedCount { get; set; }
@@ -7068,6 +7792,42 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public int NetworkUdpGuardEndpoints { get; set; }
             public int NetworkUdpGuardProcessCount { get; set; }
             public bool NetworkUdpGuardNoStackTweaks { get; set; }
+            public int NetworkUdpGuardConfidence { get; set; }
+            public string NetworkUdpGuardConfidenceLabel { get; set; }
+            public string NetworkUdpGuardReason { get; set; }
+            public string NetworkUdpGuardShieldMode { get; set; }
+            public int NetworkUdpGuardProtectedCount { get; set; }
+            public string NetworkUdpGuardQosStatus { get; set; }
+            public List<string> NetworkUdpGuardSignals { get; set; }
+            public bool GpuPressureAvailable { get; set; }
+            public string GpuPressureProvider { get; set; }
+            public string GpuPressureLevel { get; set; }
+            public bool GpuPressureDxgiAvailable { get; set; }
+            public string GpuPressureAdapterName { get; set; }
+            public double GpuAdapterDedicatedVideoMemoryMB { get; set; }
+            public double GpuAdapterSharedSystemMemoryMB { get; set; }
+            public double GpuAdapterLocalBudgetMB { get; set; }
+            public double GpuAdapterLocalUsageMB { get; set; }
+            public double GpuAdapterLocalAvailableMB { get; set; }
+            public double GpuAdapterLocalUsagePercent { get; set; }
+            public double GpuAdapterNonLocalBudgetMB { get; set; }
+            public double GpuAdapterNonLocalUsageMB { get; set; }
+            public double GpuAdapterNonLocalAvailableMB { get; set; }
+            public double GpuAdapterDedicatedUsageMB { get; set; }
+            public double GpuAdapterSharedUsageMB { get; set; }
+            public double GpuTotalUtilPercent { get; set; }
+            public string GpuTopProcess { get; set; }
+            public int GpuTopProcessPid { get; set; }
+            public double GpuTopProcessPercent { get; set; }
+            public double GpuTopProcessDedicatedMB { get; set; }
+            public bool CpuBoundAssistActive { get; set; }
+            public string CpuBoundAssistGame { get; set; }
+            public int CpuBoundAssistGamePid { get; set; }
+            public int CpuBoundAssistConfidence { get; set; }
+            public string CpuBoundAssistReason { get; set; }
+            public string EngineHealthStatus { get; set; }
+            public string EngineHealthSummary { get; set; }
+            public bool RollbackAuditEnabled { get; set; }
             public bool StreamGuardActive { get; set; }
             public int StreamHelperCount { get; set; }
             public int StreamGameProtectedCount { get; set; }
@@ -7097,6 +7857,17 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public int UdpEndpoints { get; set; }
             public bool UdpGameProtected { get; set; }
             public bool UdpGuardActive { get; set; }
+            public int UdpConfidence { get; set; }
+            public string UdpConfidenceLabel { get; set; }
+            public string UdpConfidenceReason { get; set; }
+            public string UdpShieldMode { get; set; }
+            public string UdpQosStatus { get; set; }
+            public double GpuPercent { get; set; }
+            public double GpuDedicatedMB { get; set; }
+            public double GpuSharedMB { get; set; }
+            public bool GpuHelperPressure { get; set; }
+            public bool VramPressureActive { get; set; }
+            public bool CpuBoundAssist { get; set; }
             public int BehaviorConfidence { get; set; }
             public int BehaviorWakeCount { get; set; }
             public int BehaviorBias { get; set; }
@@ -10929,3 +11700,5 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
         }
     }
 }
+
+

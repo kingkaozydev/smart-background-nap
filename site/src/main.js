@@ -4,13 +4,23 @@ const commitsApi = `https://api.github.com/repos/${repo}/commits?per_page=5`;
 const fallbackDownload = `https://github.com/${repo}/releases/latest/download/SmartBackgroundNap.exe`;
 
 const $ = (id) => document.getElementById(id);
-const setText = (id, value) => { const el = $(id); if (el) el.textContent = value; };
-const setHref = (id, value) => { const el = $(id); if (el && value) el.href = value; };
+const setText = (id, value) => {
+  const el = $(id);
+  if (el) el.textContent = value;
+};
+const setHref = (id, value) => {
+  const el = $(id);
+  if (el && value) el.href = value;
+};
 
 function formatDate(value) {
   if (!value) return "";
   try {
-    return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value));
+    return new Intl.DateTimeFormat("pt-BR", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }).format(new Date(value));
   } catch {
     return "";
   }
@@ -37,7 +47,9 @@ function assetDownload(release) {
 
 async function loadRelease() {
   try {
-    const response = await fetch(latestReleaseApi, { headers: { Accept: "application/vnd.github+json" } });
+    const response = await fetch(latestReleaseApi, {
+      headers: { Accept: "application/vnd.github+json" },
+    });
     if (!response.ok) throw new Error(`GitHub respondeu ${response.status}`);
     const release = await response.json();
     const version = release.tag_name || release.name || "latest";
@@ -46,11 +58,16 @@ async function loadRelease() {
     setText("releaseVersion", version);
     setText("releaseMeta", date ? `publicada em ${date}` : "release oficial do GitHub");
     setText("releaseBody", shortMarkdown(release.body) || "Download oficial publicado no GitHub Releases.");
-    ["navDownload", "heroDownload", "releaseDownload", "finalDownload"].forEach((id) => setHref(id, download));
-  } catch (error) {
+    ["navDownload", "heroDownload", "releaseDownload", "finalDownload"].forEach((id) =>
+      setHref(id, download)
+    );
+  } catch {
     setText("releaseVersion", "release/latest");
     setText("releaseMeta", "usando link oficial do GitHub");
-    setText("releaseBody", "Não foi possível carregar as notas agora, mas o botão continua apontando para a última release oficial do GitHub.");
+    setText(
+      "releaseBody",
+      "Não foi possível carregar as notas agora, mas o botão continua apontando para a última release oficial do GitHub."
+    );
   }
 }
 
@@ -58,7 +75,9 @@ async function loadCommits() {
   const list = $("commitList");
   if (!list) return;
   try {
-    const response = await fetch(commitsApi, { headers: { Accept: "application/vnd.github+json" } });
+    const response = await fetch(commitsApi, {
+      headers: { Accept: "application/vnd.github+json" },
+    });
     if (!response.ok) throw new Error(`GitHub respondeu ${response.status}`);
     const commits = await response.json();
     list.innerHTML = "";
@@ -69,13 +88,17 @@ async function loadCommits() {
       li.innerHTML = `${escapeHtml(msg)}${date ? `<small>${date}</small>` : ""}`;
       list.appendChild(li);
     });
-  } catch (error) {
+  } catch {
     list.innerHTML = "<li>Não foi possível carregar os commits agora. O GitHub continua sendo a fonte oficial.</li>";
   }
 }
 
 function escapeHtml(value) {
-  return String(value).replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
+  return String(value).replace(
+    /[&<>'"]/g,
+    (char) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char])
+  );
 }
 
 function animateHeroCounter() {
