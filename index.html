@@ -12,8 +12,8 @@
     <meta property="og:image" content="https://kingkaozydev.github.io/smart-background-nap/smart-nap-social-preview.png" />
     <meta name="theme-color" content="#05080d" />
     <link rel="icon" href="smart-nap-logo.png" />
-    <link rel="stylesheet" href="src/styles.css?v=0.5.1-site2" />
-    <script type="module" src="src/main.js?v=0.5.1-site2"></script>
+    <link rel="stylesheet" href="src/styles.css?v=0.5.24-logo2" />
+    <script type="module" src="src/main.js?v=0.5.24-logo2"></script>
   </head>
   <body>
     <div class="ambient" aria-hidden="true">
@@ -23,10 +23,11 @@
     <header class="site-header">
       <a class="brand" href="#top" aria-label="Smart Background Nap">
         <img src="smart-nap-logo.png" alt="" />
-        <span><strong>Smart Nap</strong><small>Controle em segundo plano</small></span>
+        <span><strong>Smart Nap</strong><small>Background Control</small></span>
       </a>
       <nav>
         <a href="#engine">Motor</a>
+        <a href="#zero">Zero Ping</a>
         <a href="#modes">Modos</a>
         <a href="#releases">Releases</a>
         <a href="#trust">Confiança</a>
@@ -88,6 +89,20 @@
         <span>Sem fechar apps</span>
       </section>
 
+      <section class="section-shell capability-section" id="zero">
+        <div class="capability-copy">
+          <p class="eyebrow">Zero Ping</p>
+          <h2>Melhore o netcode dos seus jogos sem mexer em DNS, IP ou Winsock.</h2>
+          <p>O Zero Ping atua na contenção local em volta de jogos online: identifica sessões UDP, protege o jogo e seus helpers relacionados, reduz disputa de CPU, RAM e I/O no fundo e mostra confiança da detecção de forma clara.</p>
+        </div>
+        <div class="capability-grid">
+          <article><span>UDP</span><strong>Session Classifier</strong><p>Combina jogo ativo, árvore de processos, fullscreen, caminho e histórico para reduzir falso negativo.</p></article>
+          <article><span>Netcode</span><strong>Shield por sessão</strong><p>Cria uma área de proteção em volta do jogo online e preserva voz, encoder e overlay quando eles são importantes.</p></article>
+          <article><span>GPU/VRAM</span><strong>Pressure aware</strong><p>Evita ações agressivas quando pressão gráfica pode causar stutter e ajuda a reduzir gargalo local.</p></article>
+          <article><span>Safety</span><strong>Sem stack tweak</strong><p>Não altera DNS, Winsock, IP, adaptador ou driver. A proposta é estabilidade local, não promessa falsa.</p></article>
+        </div>
+      </section>
+
       <section class="section-shell modes-section" id="modes">
         <div class="modes-intro">
           <p class="eyebrow">Modos do motor</p>
@@ -97,6 +112,7 @@
         <div class="mode-grid">
           <article class="mode-card auto"><span>Auto</span><strong>Equilíbrio diário</strong><p>Observa a sessão e decide sozinho. Ao sair de Jogos ou Live, pode restaurar o plano de energia anterior ou usar Equilibrado para evitar alto desempenho parado.</p></article>
           <article class="mode-card gaming"><span>Jogos</span><strong>Prioridade para o jogo</strong><p>Protege tela cheia e primeiro plano, reduz disputa de CPU/RAM/I/O no fundo e oferece o plano Smart Nap MODO JOGO com retorno automático ao Equilibrado por inatividade.</p></article>
+          <article class="mode-card competitive"><span>Competitivo</span><strong>Netcode e resposta</strong><p>Um perfil entre Jogos e Foco para partidas online: protege jogo, voz e entrada sem apertar o sistema além do necessário.</p></article>
           <article class="mode-card live"><span>Live</span><strong>Stream guard</strong><p>Protege OBS, Streamlabs, TikTok LIVE Studio, encoder, áudio e jogo. Também controla helpers de navegador em segundo plano sem cortar processos importantes da transmissão.</p></article>
           <article class="mode-card work"><span>Trabalho</span><strong>Multitarefa responsiva</strong><p>Mantém comunicação, mídia, navegador e ferramentas de criação mais acordados. É o modo para trocar de janela sem sentir apps voltando lentos.</p></article>
           <article class="mode-card focus"><span>Foco</span><strong>Fundo mais leve</strong><p>Usa uma postura mais firme em apps parados quando a memória fica pressionada. Bom para sessões pesadas em PCs modestos, sem encerrar o que está aberto.</p></article>
