@@ -1,4 +1,4 @@
-param(
+﻿param(
     [ValidateSet("Status", "Apply", "Restore", "Watch", "ForegroundRestore")]
     [string]$Action = "Status",
 
@@ -1469,10 +1469,37 @@ function Get-LauncherUdpEndpointSummary {
     return [pscustomobject]$result
 }
 
+function Get-AssistiveUdpEndpointSummaryForGame {
+    param([array]$Processes, [hashtable]$UdpMap)
+    $result = [ordered]@{ EndpointCount = 0; ProcessCount = 0; Pids = @(); Paths = @(); Root = ''; Signals = @() }
+    if (-not $Processes -or -not $UdpMap -or $UdpMap.Count -eq 0) { return [pscustomobject]$result }
+    $pidSet = New-Object 'System.Collections.Generic.HashSet[int]'
+    $pathSet = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($p in @($Processes)) {
+        $pid = 0; try { $pid = [int]$p.Id } catch { $pid = 0 }
+        if ($pid -le 0 -or -not $UdpMap.ContainsKey($pid)) { continue }
+        $path = Get-ProcessPathText -Process $p
+        $role = Get-ProcessRole -ProcessName ([string]$p.ProcessName) -Path $path
+        if ($role -notin @('Launcher', 'LauncherHelper', 'Communication')) { continue }
+        if (Test-NeverGameProcess -ProcessId $pid -ProcessName ([string]$p.ProcessName) -Path $path -Role $role) { continue }
+        $udpCount = [int]$UdpMap[$pid]
+        if ($udpCount -lt 1) { continue }
+        if ($pidSet.Add($pid)) {
+            $result.EndpointCount = [int]$result.EndpointCount + $udpCount
+            if (-not [string]::IsNullOrWhiteSpace($path)) { [void]$pathSet.Add($path) }
+        }
+    }
+    $result.ProcessCount = [int]$pidSet.Count
+    $result.Pids = @($pidSet)
+    $result.Paths = @($pathSet)
+    if ($result.ProcessCount -gt 0) { $result.Signals = @('assistive-udp-near-game', 'launcher-associated-helper') }
+    return [pscustomobject]$result
+}
 function Find-OpenGameForUdpGuard {
     param([object]$Foreground, [array]$Processes, [hashtable]$CpuMap, [hashtable]$UdpMap, [hashtable]$ProfileMap)
     if (-not $Processes) { return $null }
     $launcherSummary = Get-LauncherUdpEndpointSummary -Processes $Processes -UdpMap $UdpMap
+    $assistiveSummary = Get-AssistiveUdpEndpointSummaryForGame -Processes $Processes -UdpMap $UdpMap
     $best = $null; $bestScore = -1.0
     foreach ($p in @($Processes)) {
         $pid = 0; try { $pid = [int]$p.Id } catch { $pid = 0 }
@@ -1493,6 +1520,10 @@ function Find-OpenGameForUdpGuard {
             $effectiveRelated = $launcherSummary
             $endpointCount = [int]$launcherSummary.EndpointCount
         }
+        if ($endpointCount -lt $networkUdpGuardMinEndpoints -and $knownName -and $assistiveSummary -and [int]$assistiveSummary.EndpointCount -ge $networkUdpGuardMinEndpoints) {
+            $effectiveRelated = $assistiveSummary
+            $endpointCount = [int]$assistiveSummary.EndpointCount
+        }
         if ($endpointCount -lt $networkUdpGuardMinEndpoints) { continue }
         $isForeground = $Foreground -and [int]$Foreground.Id -eq $pid
         $root = Get-GameSessionRootFromPath -Path $path
@@ -1504,10 +1535,11 @@ function Find-OpenGameForUdpGuard {
         if ($isForeground) { $signals += 'foreground-udp' }
         if ($Foreground -and [bool]$Foreground.IsFullscreen -and $isForeground) { $signals += 'fullscreen' }
         $confidence = 58 + [math]::Min(20, ($endpointCount * 5)) + [math]::Min(10, [int]($cpu * 3.0))
-        if ($knownName) { $confidence += 24 }
+        if ($knownName) { $confidence += 30 }
         if ($role -eq 'GameCandidate' -or $knownPath) { $confidence += 12 }
         if ($isForeground) { $confidence += 10 }
         if ($Foreground -and [bool]$Foreground.IsFullscreen -and $isForeground) { $confidence += 8 }
+        if ($effectiveRelated -and @($effectiveRelated.Signals) -contains 'assistive-udp-near-game') { $confidence += 12 }
         $confidence += Get-UdpProfileBonus -Map $ProfileMap -ProcessName ([string]$p.ProcessName) -Path $path -Root $root
         if ($confidence -gt 100) { $confidence = 100 }
         $score = 300.0 + ([double]$confidence * 3.0) + ([double]$endpointCount * 8.0) + ([double]$cpu * 6.0)
@@ -4795,3 +4827,5 @@ switch ($Action) {
         }
     }
 }
+
+

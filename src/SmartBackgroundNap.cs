@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -30,7 +30,7 @@ using Microsoft.Web.WebView2.Wpf;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.5.45";
+    private const string AppVersion = "0.5.46";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
@@ -2377,7 +2377,7 @@ internal static class SmartBackgroundNap
         {
             string tail = output.Substring(match.Index + match.Length).Trim();
             tail = tail.Replace("*", "").Trim();
-            tail = Regex.Replace(tail, @"^[\s:\-â€“â€”]+", "").Trim();
+            tail = Regex.Replace(tail, @"^[\s:\-Ã¢â‚¬â€œÃ¢â‚¬â€]+", "").Trim();
             name = tail.Trim('(', ')', '*', ' ');
         }
         return new PowerPlanSnapshot { Guid = match.Value, Name = FriendlyPowerPlanName(match.Value, name) };
@@ -4824,47 +4824,47 @@ internal static class SmartBackgroundNap
             PowerPlanSnapshot plan = GetActivePowerPlan();
             string planName = plan == null || String.IsNullOrWhiteSpace(plan.Name) ? "Plano nao identificado" : plan.Name;
 
-            AddTrayHeader(menu, "Smart Nap", (motorOn ? "Motor ativo" : "Motor pausado") + " • " + DisplaySessionMode(mode), notifyIcon.Icon);
-            AddTrayInfo(menu, "Estado da sessão", BuildCompactTrayTelemetryText(), motorOn ? AccentGreen : AccentOrange);
+            AddTrayHeader(menu, "Smart Nap", (motorOn ? "Motor ativo" : "Motor pausado") + " â€¢ " + DisplaySessionMode(mode), notifyIcon.Icon);
+            AddTrayInfo(menu, "Estado da sessÃ£o", BuildCompactTrayTelemetryText(), motorOn ? AccentGreen : AccentOrange);
             AddTrayInfo(menu, "Plano de energia", TrimTrayText(planName, 48), AccentBlue);
             AddTraySeparator(menu);
 
             AddTrayItem(menu, "Abrir painel", "Dashboard completo do Smart Nap.", delegate { ShowMainWindow(); }, true, false, AccentBlue, "P");
             AddTrayItem(menu, "Otimizar agora", "Executa um passe manual sem fechar seus apps.", delegate { RunFromTray("Otimizar agora", RunApplyNow); }, true, false, AccentOrange, "GO");
-            AddTrayItem(menu, motorOn ? "Pausar motor" : "Retomar motor", motorOn ? "Suspende os passes automáticos." : "Reativa o motor em segundo plano.", delegate { RunFromTray(motorOn ? "Motor pausado" : "Motor iniciado", motorOn ? (Func<RunResult>)UninstallAutomatic : InstallAutomatic); }, true, motorOn, motorOn ? AccentGreen : AccentOrange, motorOn ? "ON" : "UP");
+            AddTrayItem(menu, motorOn ? "Pausar motor" : "Retomar motor", motorOn ? "Suspende os passes automÃ¡ticos." : "Reativa o motor em segundo plano.", delegate { RunFromTray(motorOn ? "Motor pausado" : "Motor iniciado", motorOn ? (Func<RunResult>)UninstallAutomatic : InstallAutomatic); }, true, motorOn, motorOn ? AccentGreen : AccentOrange, motorOn ? "ON" : "UP");
             AddTraySeparator(menu);
 
             ToolStripMenuItem modes = AddTraySubmenu(menu, "Trocar modo", "Auto, jogos, competitivo, live e trabalho.", AccentViolet, "MD");
-            AddModeTrayItem(modes, "Auto", "Auto", mode, "Equilíbrio diário com decisão automática por app.", "keep", AccentBlue, "A");
+            AddModeTrayItem(modes, "Auto", "Auto", mode, "EquilÃ­brio diÃ¡rio com decisÃ£o automÃ¡tica por app.", "keep", AccentBlue, "A");
             AddModeTrayItem(modes, "Jogos", "Gaming", mode, "Prioriza o jogo ativo e segura launchers/browsers de fundo.", "keep", AccentOrange, "J");
-            AddModeTrayItem(modes, "Competitivo", "Competitive", mode, "Partidas online, voz e entrada com contenção mais direta.", "keep", AccentCyan, "C");
-            AddModeTrayItem(modes, "Live / Streamer", "Streamer", mode, "Protege encoder, captura, áudio e jogo.", "keep", AccentGreen, "L");
-            AddModeTrayItem(modes, "Trabalho", "Work", mode, "Mantém apps profissionais e multitarefa responsivos.", "keep", AccentViolet, "T");
+            AddModeTrayItem(modes, "Competitivo", "Competitive", mode, "Partidas online, voz e entrada com contenÃ§Ã£o mais direta.", "keep", AccentCyan, "C");
+            AddModeTrayItem(modes, "Live / Streamer", "Streamer", mode, "Protege encoder, captura, Ã¡udio e jogo.", "keep", AccentGreen, "L");
+            AddModeTrayItem(modes, "Trabalho", "Work", mode, "MantÃ©m apps profissionais e multitarefa responsivos.", "keep", AccentViolet, "T");
             AddModeTrayItem(modes, "Foco", "Focus", mode, "Alivia apps parados com mais firmeza.", "keep", AccentRose, "F");
 
-            ToolStripMenuItem resources = AddTraySubmenu(menu, "Recursos rápidos", "Ative os diferenciais sem abrir o painel.", AccentCyan, "FX");
-            AddTrayItem(resources, zeroPingOn ? "Zero Ping ligado" : "Zero Ping desligado", "Proteção opcional para netcode UDP, QoS e shield local por sessão.", delegate { RunFromTray(zeroPingOn ? "Zero Ping desligado" : "Zero Ping ligado", delegate { return SetNetworkUdpGuardEnabled(!zeroPingOn); }); }, false, zeroPingOn, AccentCyan, "ZP");
+            ToolStripMenuItem resources = AddTraySubmenu(menu, "Recursos rÃ¡pidos", "Ative os diferenciais sem abrir o painel.", AccentCyan, "FX");
+            AddTrayItem(resources, zeroPingOn ? "Zero Ping ligado" : "Zero Ping desligado", "ProteÃ§Ã£o opcional para netcode UDP, QoS e shield local por sessÃ£o.", delegate { RunFromTray(zeroPingOn ? "Zero Ping desligado" : "Zero Ping ligado", delegate { return SetNetworkUdpGuardEnabled(!zeroPingOn); }); }, false, zeroPingOn, AccentCyan, "ZP");
             AddTrayItem(resources, learningOn ? "Smart Learning ligado" : "Smart Learning desligado", "Perfis locais por comportamento, sem telemetria.", delegate { RunFromTray(learningOn ? "Smart Learning desligado" : "Smart Learning ligado", delegate { return SetSmartLearningEnabled(!learningOn); }); }, false, learningOn, AccentViolet, "AI");
-            AddTrayItem(resources, startupOn ? "Inicia com Windows" : "Nao inicia com Windows", "Controla a inicialização automática do tray.", delegate { RunFromTray(startupOn ? "Inicializacao desligada" : "Inicializacao ligada", startupOn ? (Func<RunResult>)UninstallStartup : InstallStartup); }, false, startupOn, AccentGreen, "ST");
-            AddTrayItem(resources, updateAutoOn ? "Updates automáticos ligados" : "Updates automáticos desligados", "Permite lembretes de novas versões oficiais.", delegate { SaveAutoUpdateChecks(!updateAutoOn); UpdateTrayTelemetryText(true); }, false, updateAutoOn, AccentBlue, "UP");
-            AddTrayItem(resources, "Baixar atualização oficial", "Baixa e instala direto pelo Smart Nap, sem abrir navegador.", delegate { OpenLatestDownload(); }, false, false, AccentOrange, "DL");
+            AddTrayItem(resources, startupOn ? "Inicia com Windows" : "Nao inicia com Windows", "Controla a inicializaÃ§Ã£o automÃ¡tica do tray.", delegate { RunFromTray(startupOn ? "Inicializacao desligada" : "Inicializacao ligada", startupOn ? (Func<RunResult>)UninstallStartup : InstallStartup); }, false, startupOn, AccentGreen, "ST");
+            AddTrayItem(resources, updateAutoOn ? "Updates automÃ¡ticos ligados" : "Updates automÃ¡ticos desligados", "Permite lembretes de novas versÃµes oficiais.", delegate { SaveAutoUpdateChecks(!updateAutoOn); UpdateTrayTelemetryText(true); }, false, updateAutoOn, AccentBlue, "UP");
+            AddTrayItem(resources, "Baixar atualizaÃ§Ã£o oficial", "Baixa e instala direto pelo Smart Nap, sem abrir navegador.", delegate { OpenLatestDownload(); }, false, false, AccentOrange, "DL");
 
-            ToolStripMenuItem energy = AddTraySubmenu(menu, "Energia", "Planos Smart Nap e restauração segura.", AccentOrange, "PW");
-            AddTrayItem(energy, "Jogos + plano Smart Nap", "Alto desempenho para jogo. Reversível.", delegate { ConfirmPowerModeFromTray("Gaming", "activate", "Smart Nap MODO JOGO"); }, false, String.Equals(mode, "Gaming", StringComparison.OrdinalIgnoreCase) && plan != null && String.Equals(plan.Guid, SmartNapGamePowerPlanGuid, StringComparison.OrdinalIgnoreCase), AccentOrange, "JG");
+            ToolStripMenuItem energy = AddTraySubmenu(menu, "Energia", "Planos Smart Nap e restauraÃ§Ã£o segura.", AccentOrange, "PW");
+            AddTrayItem(energy, "Jogos + plano Smart Nap", "Alto desempenho para jogo. ReversÃ­vel.", delegate { ConfirmPowerModeFromTray("Gaming", "activate", "Smart Nap MODO JOGO"); }, false, String.Equals(mode, "Gaming", StringComparison.OrdinalIgnoreCase) && plan != null && String.Equals(plan.Guid, SmartNapGamePowerPlanGuid, StringComparison.OrdinalIgnoreCase), AccentOrange, "JG");
             AddTrayItem(energy, "Competitivo + plano Smart Nap", "Mesmo alto desempenho do Modo Jogos, voltado a partidas online.", delegate { ConfirmPowerModeFromTray("Competitive", "activate", "Smart Nap MODO JOGO"); }, false, String.Equals(mode, "Competitive", StringComparison.OrdinalIgnoreCase) && plan != null && String.Equals(plan.Guid, SmartNapGamePowerPlanGuid, StringComparison.OrdinalIgnoreCase), AccentCyan, "CP");
-            AddTrayItem(energy, "Live + plano Smart Nap", "Alto desempenho para live e jogo. Reversível.", delegate { ConfirmPowerModeFromTray("Streamer", "activate", "Smart Nap MODO LIVE"); }, false, String.Equals(mode, "Streamer", StringComparison.OrdinalIgnoreCase) && plan != null && String.Equals(plan.Guid, SmartNapLivePowerPlanGuid, StringComparison.OrdinalIgnoreCase), AccentGreen, "LV");
+            AddTrayItem(energy, "Live + plano Smart Nap", "Alto desempenho para live e jogo. ReversÃ­vel.", delegate { ConfirmPowerModeFromTray("Streamer", "activate", "Smart Nap MODO LIVE"); }, false, String.Equals(mode, "Streamer", StringComparison.OrdinalIgnoreCase) && plan != null && String.Equals(plan.Guid, SmartNapLivePowerPlanGuid, StringComparison.OrdinalIgnoreCase), AccentGreen, "LV");
             AddTrayItem(energy, "Restaurar plano anterior", "Volta ao plano salvo antes do modo forte.", delegate { RunFromTray("Plano anterior", delegate { return SetSessionMode("Auto", "restore"); }); }, false, false, AccentBlue, "RS");
             AddTrayItem(energy, "Usar Equilibrado", "Plano seguro para idle e uso comum.", delegate { RunFromTray("Equilibrado", delegate { return SetSessionMode("Auto", "balanced"); }); }, false, plan != null && String.Equals(plan.Guid, BalancedPowerPlanGuid, StringComparison.OrdinalIgnoreCase), AccentNeutral, "EQ");
 
-            ToolStripMenuItem tools = AddTraySubmenu(menu, "Ferramentas", "Logs, score, segurança e repositório.", AccentNeutral, "TL");
-            AddTrayItem(tools, "Nap Score", "Abre o relatório de impacto.", delegate { OpenScore(); }, false, false, AccentBlue, "SC");
-            AddTrayItem(tools, "Log de eventos", "Mostra o histórico do motor.", delegate { OpenLog(); }, false, false, AccentOrange, "LG");
+            ToolStripMenuItem tools = AddTraySubmenu(menu, "Ferramentas", "Logs, score, seguranÃ§a e repositÃ³rio.", AccentNeutral, "TL");
+            AddTrayItem(tools, "Nap Score", "Abre o relatÃ³rio de impacto.", delegate { OpenScore(); }, false, false, AccentBlue, "SC");
+            AddTrayItem(tools, "Log de eventos", "Mostra o histÃ³rico do motor.", delegate { OpenLog(); }, false, false, AccentOrange, "LG");
             AddTrayItem(tools, "Pasta do app", "Abre arquivos locais do Smart Nap.", delegate { OpenFolder(); }, false, false, AccentCyan, "FD");
-            AddTrayItem(tools, "Relatório de segurança", "Mostra o que o app pode alterar e restaurar.", delegate { OpenSafetyReport(); }, false, false, AccentGreen, "OK");
-            AddTrayItem(tools, "GitHub", "Abre o repositório oficial.", delegate { OpenGitHub(); }, false, false, AccentViolet, "GH");
+            AddTrayItem(tools, "RelatÃ³rio de seguranÃ§a", "Mostra o que o app pode alterar e restaurar.", delegate { OpenSafetyReport(); }, false, false, AccentGreen, "OK");
+            AddTrayItem(tools, "GitHub", "Abre o repositÃ³rio oficial.", delegate { OpenGitHub(); }, false, false, AccentViolet, "GH");
 
             AddTraySeparator(menu);
-            AddTrayItem(menu, "Sair do Smart Nap", "Fecha o painel e remove o ícone do tray.", delegate { ExitFromTray(); }, true, false, AccentRose, "X");
+            AddTrayItem(menu, "Sair do Smart Nap", "Fecha o painel e remove o Ã­cone do tray.", delegate { ExitFromTray(); }, true, false, AccentRose, "X");
             menu.ResumeLayout();
         }
 
@@ -5219,7 +5219,7 @@ internal static class SmartBackgroundNap
             if (String.IsNullOrWhiteSpace(targets)) { targets = "0"; }
             if (String.IsNullOrWhiteSpace(delta)) { delta = "0"; }
             string free = hardware != null && hardware.AvailableMemoryMB > 0 ? FormatMemoryBytes((ulong)(hardware.AvailableMemoryMB * 1024.0 * 1024.0)) : "-";
-            return "RAM livre " + free + " • " + targets + " apps • " + delta + " MB aliviados";
+            return "RAM livre " + free + " â€¢ " + targets + " apps â€¢ " + delta + " MB aliviados";
         }
 
         private static string TrimTrayText(string text, int maxLength)
@@ -7101,7 +7101,7 @@ internal static class SmartBackgroundNap
                 }
                 if (String.Equals(action, "refreshGames", StringComparison.OrdinalIgnoreCase))
                 {
-                    RunUserAction("Procurando jogos instalados...", "Busca de jogos concluída.", delegate { int found = RefreshGameDiscoveryCache(); return new RunResult(0, "Busca concluída: " + found.ToString(CultureInfo.InvariantCulture) + " jogo(s) com caminho salvo. Se um jogo não aparecer, use Escolher pasta no card dele."); });
+                    RunUserAction("Procurando jogos instalados...", "Busca de jogos concluÃ­da.", delegate { int found = RefreshGameDiscoveryCache(); return new RunResult(0, "Busca concluÃ­da: " + found.ToString(CultureInfo.InvariantCulture) + " jogo(s) com caminho salvo. Se um jogo nÃ£o aparecer, use Escolher pasta no card dele."); });
                     return;
                 }
                 if (String.Equals(action, "selectGameFolder", StringComparison.OrdinalIgnoreCase))
@@ -7427,8 +7427,8 @@ internal static class SmartBackgroundNap
                     Description = "Biblioteca beta com ajustes de comunidade para cache/shader, frame pacing, CPU-bound e stutter em partidas grandes.",
                     ProcessNames = new[] { "bf6", "Battlefield6", "Battlefield" },
                     InstallKeywords = new[] { "Battlefield 6", "Battlefield6", "Battlefield" },
-                    SafeOptions = new[] { "Pipeline de shader/cache: backup e reconstrução guiada após update", "Frame pacing competitivo: cap estável por Hz e anti-stutter", "Config de engine segura: streaming e orçamento de CPU mais leve", "DX12/driver cache hygiene: remover cache antigo sem apagar saves", "Overlay/download guard: EA, Steam, Discord e capturas em modo leve", "Preset CPU-bound: reduzir pós-processamento pesado sem mudar controles" },
-                    ExperimentalOptions = new[] { "user.cfg avançado: thread budget e render queue em teste A/B", "Cache rebuild agressivo: DX/NVIDIA/AMD shader cache com aviso de stutter inicial", "Ultra low CPU fallback: streaming, efeitos e partículas em orçamento mínimo", "Overlay hard-off test: EA/Steam por config reversível com backup", "Frame cap lab: 90/120/144/165 com medição de pacing" }
+                    SafeOptions = new[] { "Pipeline de shader/cache: backup e reconstruÃ§Ã£o guiada apÃ³s update", "Frame pacing competitivo: cap estÃ¡vel por Hz e anti-stutter", "Config de engine segura: streaming e orÃ§amento de CPU mais leve", "DX12/driver cache hygiene: remover cache antigo sem apagar saves", "Overlay/download guard: EA, Steam, Discord e capturas em modo leve", "Preset CPU-bound: reduzir pÃ³s-processamento pesado sem mudar controles" },
+                    ExperimentalOptions = new[] { "user.cfg avanÃ§ado: thread budget e render queue em teste A/B", "Cache rebuild agressivo: DX/NVIDIA/AMD shader cache com aviso de stutter inicial", "Ultra low CPU fallback: streaming, efeitos e partÃ­culas em orÃ§amento mÃ­nimo", "Overlay hard-off test: EA/Steam por config reversÃ­vel com backup", "Frame cap lab: 90/120/144/165 com mediÃ§Ã£o de pacing" }
                 },
                 new GamePresetDefinition
                 {
@@ -7440,8 +7440,8 @@ internal static class SmartBackgroundNap
                     Description = "Receitas de comunidade para reduzir stutter, estabilizar frame pacing e controlar EA/Steam sem alterar gameplay.",
                     ProcessNames = new[] { "FC26", "FC25", "FC24" },
                     InstallKeywords = new[] { "EA SPORTS FC 26", "EA Sports FC 26", "FC26", "EA SPORTS FC" },
-                    SafeOptions = new[] { "FC setup sanity: detectar arquivo de settings e fazer backup", "Stutter guard: cap de FPS por Hz e estabilidade de cutscenes", "EA/Steam overlay guard: reduzir overlays e downloads durante partida", "Shader/cache refresh guiado após update de driver ou patch", "CPU/GPU balance: crowd, hair e cloth em perfil de desempenho", "Fullscreen e Hz corretos sem mexer em câmera, controle ou gameplay" },
-                    ExperimentalOptions = new[] { "FC microstutter lab: caps 60/90/120/144 com rollback", "Stadium heavy preset: reduzir crowd, cloth e hair para PC fraco", "EA overlay hard-off via user_*.ini com backup", "Cache rebuild agressivo em Documents/AppData quando há travadas", "Steam input/overlay isolation quando FC abre via Steam" }
+                    SafeOptions = new[] { "FC setup sanity: detectar arquivo de settings e fazer backup", "Stutter guard: cap de FPS por Hz e estabilidade de cutscenes", "EA/Steam overlay guard: reduzir overlays e downloads durante partida", "Shader/cache refresh guiado apÃ³s update de driver ou patch", "CPU/GPU balance: crowd, hair e cloth em perfil de desempenho", "Fullscreen e Hz corretos sem mexer em cÃ¢mera, controle ou gameplay" },
+                    ExperimentalOptions = new[] { "FC microstutter lab: caps 60/90/120/144 com rollback", "Stadium heavy preset: reduzir crowd, cloth e hair para PC fraco", "EA overlay hard-off via user_*.ini com backup", "Cache rebuild agressivo em Documents/AppData quando hÃ¡ travadas", "Steam input/overlay isolation quando FC abre via Steam" }
                 },
                 new GamePresetDefinition
                 {
@@ -7453,8 +7453,8 @@ internal static class SmartBackgroundNap
                     Description = "Receitas competitivas de comunidade para launch options limpas, autoexec, shader cache, Reflex e frame pacing.",
                     ProcessNames = new[] { "cs2" },
                     InstallKeywords = new[] { "Counter-Strike Global Offensive", "Counter-Strike 2", "csgo", "cs2" },
-                    SafeOptions = new[] { "Launch options auditor: remover comandos antigos ou prejudiciais", "Autoexec performance pack: telemetria, pacing e cvars seguras", "NVIDIA Reflex check: orientar ON quando suportado", "Shader prewarm/cache hygiene após update do jogo ou driver", "Frame cap estável por Hz para reduzir variação de frametime", "Steam overlay/download guard durante partida competitiva" },
-                    ExperimentalOptions = new[] { "-vulkan A/B test com reversão automática", "fps_max lab: 0, refresh+buffer ou cap competitivo", "DX shader cache rebuild agressivo", "Low-end cfg: partículas, decals e streaming budget reduzidos", "Workshop/custom cfg quarantine para caçar stutter" }
+                    SafeOptions = new[] { "Launch options auditor: remover comandos antigos ou prejudiciais", "Autoexec performance pack: telemetria, pacing e cvars seguras", "NVIDIA Reflex check: orientar ON quando suportado", "Shader prewarm/cache hygiene apÃ³s update do jogo ou driver", "Frame cap estÃ¡vel por Hz para reduzir variaÃ§Ã£o de frametime", "Steam overlay/download guard durante partida competitiva" },
+                    ExperimentalOptions = new[] { "-vulkan A/B test com reversÃ£o automÃ¡tica", "fps_max lab: 0, refresh+buffer ou cap competitivo", "DX shader cache rebuild agressivo", "Low-end cfg: partÃ­culas, decals e streaming budget reduzidos", "Workshop/custom cfg quarantine para caÃ§ar stutter" }
                 },
                 new GamePresetDefinition
                 {
@@ -7463,11 +7463,11 @@ internal static class SmartBackgroundNap
                     ShortName = "VALORANT",
                     Tier = "Tactical FPS",
                     Accent = "violet",
-                    Description = "Receitas seguras de comunidade para FPS alto, baixa latência, cache limpo e estabilidade sem tocar no Vanguard.",
+                    Description = "Receitas seguras de comunidade para FPS alto, baixa latÃªncia, cache limpo e estabilidade sem tocar no Vanguard.",
                     ProcessNames = new[] { "VALORANT-Win64-Shipping", "VALORANT" },
                     InstallKeywords = new[] { "VALORANT", "Riot Games" },
-                    SafeOptions = new[] { "Config backup Riot e validação de GameUserSettings", "Multithreaded Rendering check quando a CPU suporta", "NVIDIA Reflex/low latency check quando suportado", "FPS cap por menu/background para aliviar stutter térmico", "Fullscreen e Hz sanity sem tocar em sensibilidade ou mira", "Overlay/download guard sem tocar no Vanguard" },
-                    ExperimentalOptions = new[] { "FPS cap lab por cenário: menu, background e in-game", "Low-end GPU profile: material, detail e UI em modo performance", "Cache/config reset guiado com backup", "Overlay hard isolation sem mexer no Vanguard", "Frame pacing stress test por monitor" }
+                    SafeOptions = new[] { "Config backup Riot e validaÃ§Ã£o de GameUserSettings", "Multithreaded Rendering check quando a CPU suporta", "NVIDIA Reflex/low latency check quando suportado", "FPS cap por menu/background para aliviar stutter tÃ©rmico", "Fullscreen e Hz sanity sem tocar em sensibilidade ou mira", "Overlay/download guard sem tocar no Vanguard" },
+                    ExperimentalOptions = new[] { "FPS cap lab por cenÃ¡rio: menu, background e in-game", "Low-end GPU profile: material, detail e UI em modo performance", "Cache/config reset guiado com backup", "Overlay hard isolation sem mexer no Vanguard", "Frame pacing stress test por monitor" }
                 }
             };
         }
@@ -7496,7 +7496,7 @@ internal static class SmartBackgroundNap
 
                     string manualPath = FindManualGameInstallPath(definition);
                     string installedPath = !String.IsNullOrWhiteSpace(runningPath) ? runningPath : manualPath;
-                    string detectionSource = running != null ? "Rodando" : (!String.IsNullOrWhiteSpace(manualPath) ? "Pasta salva" : (!String.IsNullOrWhiteSpace(installedPath) ? "Biblioteca detectada" : "Não encontrado"));
+                    string detectionSource = running != null ? "Rodando" : (!String.IsNullOrWhiteSpace(manualPath) ? "Pasta salva" : (!String.IsNullOrWhiteSpace(installedPath) ? "Biblioteca detectada" : "NÃ£o encontrado"));
                     output.Add(new WebGamePreset
                     {
                         Id = definition.Id,
@@ -7887,7 +7887,7 @@ internal static class SmartBackgroundNap
             {
                 using (System.Windows.Forms.FolderBrowserDialog dialog = new System.Windows.Forms.FolderBrowserDialog())
                 {
-                    dialog.Description = "Escolha a pasta onde " + definition.Name + " está instalado";
+                    dialog.Description = "Escolha a pasta onde " + definition.Name + " estÃ¡ instalado";
                     dialog.ShowNewFolderButton = false;
                     string current = FindManualGameInstallPath(definition);
                     if (String.IsNullOrWhiteSpace(current)) { current = FindManualGameInstallPath(definition); }
@@ -8003,7 +8003,7 @@ internal static class SmartBackgroundNap
             string installPath = FindGameInstallPath(definition);
             if (String.IsNullOrWhiteSpace(installPath))
             {
-                return new RunResult(2, "Localize a pasta de " + definition.Name + " antes de aplicar o preset. Assim o Smart Nap só altera arquivos do jogo correto.");
+                return new RunResult(2, "Localize a pasta de " + definition.Name + " antes de aplicar o preset. Assim o Smart Nap sÃ³ altera arquivos do jogo correto.");
             }
 
             List<string> selectedSafeOptions = GetMapStringList(message, "safeOptions");
@@ -10896,8 +10896,8 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                     Description = "Biblioteca beta com ajustes de comunidade para cache/shader, frame pacing, CPU-bound e stutter em partidas grandes.",
                     ProcessNames = new[] { "bf6", "Battlefield6", "Battlefield" },
                     InstallKeywords = new[] { "Battlefield 6", "Battlefield6", "Battlefield" },
-                    SafeOptions = new[] { "Pipeline de shader/cache: backup e reconstrução guiada após update", "Frame pacing competitivo: cap estável por Hz e anti-stutter", "Config de engine segura: streaming e orçamento de CPU mais leve", "DX12/driver cache hygiene: remover cache antigo sem apagar saves", "Overlay/download guard: EA, Steam, Discord e capturas em modo leve", "Preset CPU-bound: reduzir pós-processamento pesado sem mudar controles" },
-                    ExperimentalOptions = new[] { "user.cfg avançado: thread budget e render queue em teste A/B", "Cache rebuild agressivo: DX/NVIDIA/AMD shader cache com aviso de stutter inicial", "Ultra low CPU fallback: streaming, efeitos e partículas em orçamento mínimo", "Overlay hard-off test: EA/Steam por config reversível com backup", "Frame cap lab: 90/120/144/165 com medição de pacing" }
+                    SafeOptions = new[] { "Pipeline de shader/cache: backup e reconstruÃ§Ã£o guiada apÃ³s update", "Frame pacing competitivo: cap estÃ¡vel por Hz e anti-stutter", "Config de engine segura: streaming e orÃ§amento de CPU mais leve", "DX12/driver cache hygiene: remover cache antigo sem apagar saves", "Overlay/download guard: EA, Steam, Discord e capturas em modo leve", "Preset CPU-bound: reduzir pÃ³s-processamento pesado sem mudar controles" },
+                    ExperimentalOptions = new[] { "user.cfg avanÃ§ado: thread budget e render queue em teste A/B", "Cache rebuild agressivo: DX/NVIDIA/AMD shader cache com aviso de stutter inicial", "Ultra low CPU fallback: streaming, efeitos e partÃ­culas em orÃ§amento mÃ­nimo", "Overlay hard-off test: EA/Steam por config reversÃ­vel com backup", "Frame cap lab: 90/120/144/165 com mediÃ§Ã£o de pacing" }
                 },
                 new GamePresetDefinition
                 {
@@ -10909,8 +10909,8 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                     Description = "Receitas de comunidade para reduzir stutter, estabilizar frame pacing e controlar EA/Steam sem alterar gameplay.",
                     ProcessNames = new[] { "FC26", "FC25", "FC24" },
                     InstallKeywords = new[] { "EA SPORTS FC 26", "EA Sports FC 26", "FC26", "EA SPORTS FC" },
-                    SafeOptions = new[] { "FC setup sanity: detectar arquivo de settings e fazer backup", "Stutter guard: cap de FPS por Hz e estabilidade de cutscenes", "EA/Steam overlay guard: reduzir overlays e downloads durante partida", "Shader/cache refresh guiado após update de driver ou patch", "CPU/GPU balance: crowd, hair e cloth em perfil de desempenho", "Fullscreen e Hz corretos sem mexer em câmera, controle ou gameplay" },
-                    ExperimentalOptions = new[] { "FC microstutter lab: caps 60/90/120/144 com rollback", "Stadium heavy preset: reduzir crowd, cloth e hair para PC fraco", "EA overlay hard-off via user_*.ini com backup", "Cache rebuild agressivo em Documents/AppData quando há travadas", "Steam input/overlay isolation quando FC abre via Steam" }
+                    SafeOptions = new[] { "FC setup sanity: detectar arquivo de settings e fazer backup", "Stutter guard: cap de FPS por Hz e estabilidade de cutscenes", "EA/Steam overlay guard: reduzir overlays e downloads durante partida", "Shader/cache refresh guiado apÃ³s update de driver ou patch", "CPU/GPU balance: crowd, hair e cloth em perfil de desempenho", "Fullscreen e Hz corretos sem mexer em cÃ¢mera, controle ou gameplay" },
+                    ExperimentalOptions = new[] { "FC microstutter lab: caps 60/90/120/144 com rollback", "Stadium heavy preset: reduzir crowd, cloth e hair para PC fraco", "EA overlay hard-off via user_*.ini com backup", "Cache rebuild agressivo em Documents/AppData quando hÃ¡ travadas", "Steam input/overlay isolation quando FC abre via Steam" }
                 },
                 new GamePresetDefinition
                 {
@@ -10922,8 +10922,8 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                     Description = "Receitas competitivas de comunidade para launch options limpas, autoexec, shader cache, Reflex e frame pacing.",
                     ProcessNames = new[] { "cs2" },
                     InstallKeywords = new[] { "Counter-Strike Global Offensive", "Counter-Strike 2", "csgo", "cs2" },
-                    SafeOptions = new[] { "Launch options auditor: remover comandos antigos ou prejudiciais", "Autoexec performance pack: telemetria, pacing e cvars seguras", "NVIDIA Reflex check: orientar ON quando suportado", "Shader prewarm/cache hygiene após update do jogo ou driver", "Frame cap estável por Hz para reduzir variação de frametime", "Steam overlay/download guard durante partida competitiva" },
-                    ExperimentalOptions = new[] { "-vulkan A/B test com reversão automática", "fps_max lab: 0, refresh+buffer ou cap competitivo", "DX shader cache rebuild agressivo", "Low-end cfg: partículas, decals e streaming budget reduzidos", "Workshop/custom cfg quarantine para caçar stutter" }
+                    SafeOptions = new[] { "Launch options auditor: remover comandos antigos ou prejudiciais", "Autoexec performance pack: telemetria, pacing e cvars seguras", "NVIDIA Reflex check: orientar ON quando suportado", "Shader prewarm/cache hygiene apÃ³s update do jogo ou driver", "Frame cap estÃ¡vel por Hz para reduzir variaÃ§Ã£o de frametime", "Steam overlay/download guard durante partida competitiva" },
+                    ExperimentalOptions = new[] { "-vulkan A/B test com reversÃ£o automÃ¡tica", "fps_max lab: 0, refresh+buffer ou cap competitivo", "DX shader cache rebuild agressivo", "Low-end cfg: partÃ­culas, decals e streaming budget reduzidos", "Workshop/custom cfg quarantine para caÃ§ar stutter" }
                 },
                 new GamePresetDefinition
                 {
@@ -10932,11 +10932,11 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                     ShortName = "VALORANT",
                     Tier = "Tactical FPS",
                     Accent = "violet",
-                    Description = "Receitas seguras de comunidade para FPS alto, baixa latência, cache limpo e estabilidade sem tocar no Vanguard.",
+                    Description = "Receitas seguras de comunidade para FPS alto, baixa latÃªncia, cache limpo e estabilidade sem tocar no Vanguard.",
                     ProcessNames = new[] { "VALORANT-Win64-Shipping", "VALORANT" },
                     InstallKeywords = new[] { "VALORANT", "Riot Games" },
-                    SafeOptions = new[] { "Config backup Riot e validação de GameUserSettings", "Multithreaded Rendering check quando a CPU suporta", "NVIDIA Reflex/low latency check quando suportado", "FPS cap por menu/background para aliviar stutter térmico", "Fullscreen e Hz sanity sem tocar em sensibilidade ou mira", "Overlay/download guard sem tocar no Vanguard" },
-                    ExperimentalOptions = new[] { "FPS cap lab por cenário: menu, background e in-game", "Low-end GPU profile: material, detail e UI em modo performance", "Cache/config reset guiado com backup", "Overlay hard isolation sem mexer no Vanguard", "Frame pacing stress test por monitor" }
+                    SafeOptions = new[] { "Config backup Riot e validaÃ§Ã£o de GameUserSettings", "Multithreaded Rendering check quando a CPU suporta", "NVIDIA Reflex/low latency check quando suportado", "FPS cap por menu/background para aliviar stutter tÃ©rmico", "Fullscreen e Hz sanity sem tocar em sensibilidade ou mira", "Overlay/download guard sem tocar no Vanguard" },
+                    ExperimentalOptions = new[] { "FPS cap lab por cenÃ¡rio: menu, background e in-game", "Low-end GPU profile: material, detail e UI em modo performance", "Cache/config reset guiado com backup", "Overlay hard isolation sem mexer no Vanguard", "Frame pacing stress test por monitor" }
                 }
             };
         }
@@ -13225,8 +13225,8 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                     Description = "Biblioteca beta com ajustes de comunidade para cache/shader, frame pacing, CPU-bound e stutter em partidas grandes.",
                     ProcessNames = new[] { "bf6", "Battlefield6", "Battlefield" },
                     InstallKeywords = new[] { "Battlefield 6", "Battlefield6", "Battlefield" },
-                    SafeOptions = new[] { "Pipeline de shader/cache: backup e reconstrução guiada após update", "Frame pacing competitivo: cap estável por Hz e anti-stutter", "Config de engine segura: streaming e orçamento de CPU mais leve", "DX12/driver cache hygiene: remover cache antigo sem apagar saves", "Overlay/download guard: EA, Steam, Discord e capturas em modo leve", "Preset CPU-bound: reduzir pós-processamento pesado sem mudar controles" },
-                    ExperimentalOptions = new[] { "user.cfg avançado: thread budget e render queue em teste A/B", "Cache rebuild agressivo: DX/NVIDIA/AMD shader cache com aviso de stutter inicial", "Ultra low CPU fallback: streaming, efeitos e partículas em orçamento mínimo", "Overlay hard-off test: EA/Steam por config reversível com backup", "Frame cap lab: 90/120/144/165 com medição de pacing" }
+                    SafeOptions = new[] { "Pipeline de shader/cache: backup e reconstruÃ§Ã£o guiada apÃ³s update", "Frame pacing competitivo: cap estÃ¡vel por Hz e anti-stutter", "Config de engine segura: streaming e orÃ§amento de CPU mais leve", "DX12/driver cache hygiene: remover cache antigo sem apagar saves", "Overlay/download guard: EA, Steam, Discord e capturas em modo leve", "Preset CPU-bound: reduzir pÃ³s-processamento pesado sem mudar controles" },
+                    ExperimentalOptions = new[] { "user.cfg avanÃ§ado: thread budget e render queue em teste A/B", "Cache rebuild agressivo: DX/NVIDIA/AMD shader cache com aviso de stutter inicial", "Ultra low CPU fallback: streaming, efeitos e partÃ­culas em orÃ§amento mÃ­nimo", "Overlay hard-off test: EA/Steam por config reversÃ­vel com backup", "Frame cap lab: 90/120/144/165 com mediÃ§Ã£o de pacing" }
                 },
                 new GamePresetDefinition
                 {
@@ -13238,8 +13238,8 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                     Description = "Receitas de comunidade para reduzir stutter, estabilizar frame pacing e controlar EA/Steam sem alterar gameplay.",
                     ProcessNames = new[] { "FC26", "FC25", "FC24" },
                     InstallKeywords = new[] { "EA SPORTS FC 26", "EA Sports FC 26", "FC26", "EA SPORTS FC" },
-                    SafeOptions = new[] { "FC setup sanity: detectar arquivo de settings e fazer backup", "Stutter guard: cap de FPS por Hz e estabilidade de cutscenes", "EA/Steam overlay guard: reduzir overlays e downloads durante partida", "Shader/cache refresh guiado após update de driver ou patch", "CPU/GPU balance: crowd, hair e cloth em perfil de desempenho", "Fullscreen e Hz corretos sem mexer em câmera, controle ou gameplay" },
-                    ExperimentalOptions = new[] { "FC microstutter lab: caps 60/90/120/144 com rollback", "Stadium heavy preset: reduzir crowd, cloth e hair para PC fraco", "EA overlay hard-off via user_*.ini com backup", "Cache rebuild agressivo em Documents/AppData quando há travadas", "Steam input/overlay isolation quando FC abre via Steam" }
+                    SafeOptions = new[] { "FC setup sanity: detectar arquivo de settings e fazer backup", "Stutter guard: cap de FPS por Hz e estabilidade de cutscenes", "EA/Steam overlay guard: reduzir overlays e downloads durante partida", "Shader/cache refresh guiado apÃ³s update de driver ou patch", "CPU/GPU balance: crowd, hair e cloth em perfil de desempenho", "Fullscreen e Hz corretos sem mexer em cÃ¢mera, controle ou gameplay" },
+                    ExperimentalOptions = new[] { "FC microstutter lab: caps 60/90/120/144 com rollback", "Stadium heavy preset: reduzir crowd, cloth e hair para PC fraco", "EA overlay hard-off via user_*.ini com backup", "Cache rebuild agressivo em Documents/AppData quando hÃ¡ travadas", "Steam input/overlay isolation quando FC abre via Steam" }
                 },
                 new GamePresetDefinition
                 {
@@ -13251,8 +13251,8 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                     Description = "Receitas competitivas de comunidade para launch options limpas, autoexec, shader cache, Reflex e frame pacing.",
                     ProcessNames = new[] { "cs2" },
                     InstallKeywords = new[] { "Counter-Strike Global Offensive", "Counter-Strike 2", "csgo", "cs2" },
-                    SafeOptions = new[] { "Launch options auditor: remover comandos antigos ou prejudiciais", "Autoexec performance pack: telemetria, pacing e cvars seguras", "NVIDIA Reflex check: orientar ON quando suportado", "Shader prewarm/cache hygiene após update do jogo ou driver", "Frame cap estável por Hz para reduzir variação de frametime", "Steam overlay/download guard durante partida competitiva" },
-                    ExperimentalOptions = new[] { "-vulkan A/B test com reversão automática", "fps_max lab: 0, refresh+buffer ou cap competitivo", "DX shader cache rebuild agressivo", "Low-end cfg: partículas, decals e streaming budget reduzidos", "Workshop/custom cfg quarantine para caçar stutter" }
+                    SafeOptions = new[] { "Launch options auditor: remover comandos antigos ou prejudiciais", "Autoexec performance pack: telemetria, pacing e cvars seguras", "NVIDIA Reflex check: orientar ON quando suportado", "Shader prewarm/cache hygiene apÃ³s update do jogo ou driver", "Frame cap estÃ¡vel por Hz para reduzir variaÃ§Ã£o de frametime", "Steam overlay/download guard durante partida competitiva" },
+                    ExperimentalOptions = new[] { "-vulkan A/B test com reversÃ£o automÃ¡tica", "fps_max lab: 0, refresh+buffer ou cap competitivo", "DX shader cache rebuild agressivo", "Low-end cfg: partÃ­culas, decals e streaming budget reduzidos", "Workshop/custom cfg quarantine para caÃ§ar stutter" }
                 },
                 new GamePresetDefinition
                 {
@@ -13261,11 +13261,11 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                     ShortName = "VALORANT",
                     Tier = "Tactical FPS",
                     Accent = "violet",
-                    Description = "Receitas seguras de comunidade para FPS alto, baixa latência, cache limpo e estabilidade sem tocar no Vanguard.",
+                    Description = "Receitas seguras de comunidade para FPS alto, baixa latÃªncia, cache limpo e estabilidade sem tocar no Vanguard.",
                     ProcessNames = new[] { "VALORANT-Win64-Shipping", "VALORANT" },
                     InstallKeywords = new[] { "VALORANT", "Riot Games" },
-                    SafeOptions = new[] { "Config backup Riot e validação de GameUserSettings", "Multithreaded Rendering check quando a CPU suporta", "NVIDIA Reflex/low latency check quando suportado", "FPS cap por menu/background para aliviar stutter térmico", "Fullscreen e Hz sanity sem tocar em sensibilidade ou mira", "Overlay/download guard sem tocar no Vanguard" },
-                    ExperimentalOptions = new[] { "FPS cap lab por cenário: menu, background e in-game", "Low-end GPU profile: material, detail e UI em modo performance", "Cache/config reset guiado com backup", "Overlay hard isolation sem mexer no Vanguard", "Frame pacing stress test por monitor" }
+                    SafeOptions = new[] { "Config backup Riot e validaÃ§Ã£o de GameUserSettings", "Multithreaded Rendering check quando a CPU suporta", "NVIDIA Reflex/low latency check quando suportado", "FPS cap por menu/background para aliviar stutter tÃ©rmico", "Fullscreen e Hz sanity sem tocar em sensibilidade ou mira", "Overlay/download guard sem tocar no Vanguard" },
+                    ExperimentalOptions = new[] { "FPS cap lab por cenÃ¡rio: menu, background e in-game", "Low-end GPU profile: material, detail e UI em modo performance", "Cache/config reset guiado com backup", "Overlay hard isolation sem mexer no Vanguard", "Frame pacing stress test por monitor" }
                 }
             };
         }
@@ -15076,6 +15076,7 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
         }
     }
 }
+
 
 
 
