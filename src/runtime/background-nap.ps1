@@ -1,4 +1,4 @@
-﻿param(
+param(
     [ValidateSet("Status", "Apply", "Restore", "Watch", "ForegroundRestore")]
     [string]$Action = "Status",
 
@@ -133,14 +133,14 @@ $desktopMultitaskGuard = $true
 $desktopGuardFreeMemoryMB = 4096.0
 $desktopGuardTrimFloorMB = 512.0
 $desktopGuardMaxCpuPercent = 12.0
-$desktopGuardRoles = @("Browser", "Communication", "Media", "Launcher")
+$desktopGuardRoles = @("Browser", "Communication", "Media", "Launcher", "LauncherHelper")
 $desktopGuardIntents = @("Desktop", "MediaCall", "DownloadInstall", "MemoryPressure")
 $streamerAutoDetect = $true
 $streamerCpuContainment = $true
 $streamerReserveLogicalProcessors = 2
 $streamerBackgroundAffinityPercent = 35
 $streamerBrowserHelperGuard = $true
-$streamerBrowserHelperCpuThreshold = 3.0
+$streamerBrowserHelperCpuThreshold = 1.2
 $streamerBrowserHelperAffinityPercent = 45
 $streamerProtectGameWhileLive = $true
 $streamerHelperBurstCpuThreshold = 1.2
@@ -150,7 +150,7 @@ $networkUdpGuardEnabled = $false
 $networkUdpGuardMinEndpoints = 1
 $networkUdpGuardProtectMinutes = 4
 $networkUdpGuardGameCpuFloor = 0.2
-$networkUdpGuardBackgroundWeightBoost = 1.18
+$networkUdpGuardBackgroundWeightBoost = 1.35
 $networkUdpGuardNoStackTweaks = $true
 $networkUdpGuardSessionLearning = $true
 $networkUdpGuardConfidenceFloor = 58
@@ -166,10 +166,10 @@ $vramPressureHighPercent = 82.0
 $vramPressureCriticalPercent = 92.0
 $gpuHelperGuard = $true
 $gpuHelperDedicatedMemoryMB = 384.0
-$gpuHelperCpuCeiling = 3.5
+$gpuHelperCpuCeiling = 2.4
 $cpuBoundAssist = $true
 $cpuBoundGameCpuPercent = 6.0
-$cpuBoundBackgroundBoost = 1.16
+$cpuBoundBackgroundBoost = 1.35
 $cpuBoundAffinityPercent = 45
 $engineHealthCheck = $true
 $rollbackAudit = $true
@@ -193,20 +193,28 @@ $deepNapMemoryPriorityName = "VeryLow"
 $lightNapIoPriorityName = "Low"
 $balancedNapIoPriorityName = "Low"
 $deepNapIoPriorityName = "VeryLow"
-$realtimeFriendlyDefaults = @("Discord", "Spotify", "WhatsApp", "Telegram", "Slack", "Teams", "steam", "steamwebhelper")
+$realtimeFriendlyDefaults = @("Discord", "Spotify", "WhatsApp", "Telegram", "Slack", "Teams", "steam")
 $realtimeFriendlyConfigured = $null
-$knownLauncherDefaults = @("steam", "steamwebhelper", "EpicGamesLauncher", "EpicWebHelper", "Battle.net", "EADesktop", "EABackgroundService", "EACefSubProcess", "EALauncher", "EAConnect", "RiotClientServices", "RiotClientUx", "UbisoftConnect", "upc", "GalaxyClient", "GOG Galaxy", "XboxPcApp")
+$knownLauncherDefaults = @("steam", "steamwebhelper", "EpicGamesLauncher", "EpicWebHelper", "Battle.net", "EADesktop", "EABackgroundService", "EACefSubProcess", "EALauncher", "EASteamLauncher", "EAConnect", "RiotClientServices", "RiotClientUx", "UbisoftConnect", "upc", "GalaxyClient", "GOG Galaxy", "XboxPcApp")
+$knownGameNameDefaults = @("FC26", "FC25", "FC24", "FIFA24", "FIFA23", "FIFA22", "bf6", "Battlefield6", "Battlefield", "bf2042", "bfv", "bf1", "bf4", "cs2", "csgo", "VALORANT-Win64-Shipping", "VALORANT", "FortniteClient-Win64-Shipping", "RocketLeague", "r5apex", "League of Legends", "RainbowSix", "RainbowSix_Vulkan", "cod", "ModernWarfare", "Warzone")
 $knownCommunicationDefaults = @("Discord", "Teams", "Slack", "Zoom", "Telegram", "WhatsApp")
-$knownMediaDefaults = @("Spotify", "vlc", "mpv")
+$knownMediaDefaults = @("Spotify", "vlc", "mpv", "Lightshot", "ShareX", "Greenshot", "SnippingTool", "ScreenClippingHost", "GameBar", "GameBarFTServer", "XboxGameBar", "NVIDIA Share")
 $knownStreamingDefaults = @("obs64", "obs32", "Streamlabs Desktop", "Streamlabs", "TikTok LIVE Studio", "TikTokLiveStudio", "TikTokStudio", "PRISMLiveStudio", "XSplit.Core", "XSplitBroadcaster", "vMix64", "vMix", "TwitchStudio", "NVIDIA Broadcast", "ElgatoCameraHub")
+$knownProfessionalDefaults = @("Photoshop", "Illustrator", "AfterFX", "Adobe Premiere Pro", "Adobe Media Encoder", "Lightroom", "Resolve", "Fusion", "vegas170", "vegas180", "vegas190", "vegas200", "vegas210", "vegas220", "blender", "UnrealEditor", "Unity", "acad", "Revit", "SketchUp", "Rhino", "3dsmax", "Maya", "Cinema 4D", "D5Render", "Twinmotion")
+$knownDevelopmentDefaults = @("devenv", "Code", "Code - Insiders", "cursor", "windsurf", "rider64", "idea64", "pycharm64", "webstorm64", "clion64", "datagrip64", "goland64", "phpstorm64", "rustrover64", "sublime_text", "notepad++", "zed", "codex")
 $streamerBrowserHelperNameDefaults = @("obs-browser-page", "CefSharp.BrowserSubprocess", "QtWebEngineProcess", "msedgewebview2", "chrome", "msedge", "brave", "firefox")
 $streamerBrowserHelperPathDefaults = @("\obs-studio\", "\Streamlabs\", "\TikTok LIVE Studio\", "\TikTokLiveStudio\", "\TikTokStudio\", "\PRISMLiveStudio\", "\Twitch Studio\", "\XSplit\", "\vMix\")
-$knownGamePathDefaults = @("\steamapps\common\", "\XboxGames\", "\Epic Games\", "\Riot Games\", "\Battle.net\", "\GOG Galaxy\Games\")
+$knownGamePathDefaults = @("\steamapps\common\", "\XboxGames\", "\Epic Games\", "\Riot Games\", "\Battle.net\", "\GOG Galaxy\Games\", "\EA Games\", "\Electronic Arts\Games\")
+$neverGameProcessDefaults = @("explorer", "SmartBackgroundNap", "SmartBackgroundNapTray", "background-nap", "manage-background-nap-tray", "ApplicationFrameHost", "ShellExperienceHost", "StartMenuExperienceHost", "SearchHost", "SearchApp", "SearchIndexer", "RuntimeBroker", "TextInputHost", "ctfmon", "sihost", "taskhostw", "dwm", "SystemSettings", "SecurityHealthSystray", "chrome", "msedge", "firefox", "zen", "brave", "opera", "vivaldi", "librewolf", "waterfox", "floorp", "arc", "tor", "msedgewebview2", "Lightshot", "ShareX", "Greenshot", "SnippingTool", "ScreenClippingHost", "GameBar", "GameBarFTServer", "XboxGameBar", "NVIDIA Share", "Code", "codex", "powershell", "pwsh", "cmd", "conhost", "notepad", "taskmgr")
 $knownLauncherConfigured = $null
 $knownCommunicationConfigured = $null
 $knownMediaConfigured = $null
 $knownStreamingConfigured = $null
+$knownProfessionalConfigured = $null
+$knownDevelopmentConfigured = $null
+$knownGameNameConfigured = $null
 $knownGamePathConfigured = $null
+$neverGameProcessConfigured = $null
 $streamerBrowserHelperNamesConfigured = $null
 $streamerBrowserHelperPathConfigured = $null
 
@@ -324,9 +332,13 @@ if ($smart) {
     if ($smart.PSObject.Properties.Name -contains "KnownCommunicationProcessNames") { $knownCommunicationConfigured = @($smart.KnownCommunicationProcessNames) }
     if ($smart.PSObject.Properties.Name -contains "KnownMediaProcessNames") { $knownMediaConfigured = @($smart.KnownMediaProcessNames) }
     if ($smart.PSObject.Properties.Name -contains "KnownStreamingProcessNames") { $knownStreamingConfigured = @($smart.KnownStreamingProcessNames) }
+    if ($smart.PSObject.Properties.Name -contains "KnownProfessionalProcessNames") { $knownProfessionalConfigured = @($smart.KnownProfessionalProcessNames) }
+    if ($smart.PSObject.Properties.Name -contains "KnownDevelopmentProcessNames") { $knownDevelopmentConfigured = @($smart.KnownDevelopmentProcessNames) }
     if ($smart.PSObject.Properties.Name -contains "StreamerBrowserHelperProcessNames") { $streamerBrowserHelperNamesConfigured = @($smart.StreamerBrowserHelperProcessNames) }
     if ($smart.PSObject.Properties.Name -contains "StreamerBrowserHelperPathFragments") { $streamerBrowserHelperPathConfigured = @($smart.StreamerBrowserHelperPathFragments) }
+    if ($smart.PSObject.Properties.Name -contains "KnownGameProcessNames") { $knownGameNameConfigured = @($smart.KnownGameProcessNames) }
     if ($smart.PSObject.Properties.Name -contains "KnownGamePathFragments") { $knownGamePathConfigured = @($smart.KnownGamePathFragments) }
+    if ($smart.PSObject.Properties.Name -contains "NeverGameProcessNames") { $neverGameProcessConfigured = @($smart.NeverGameProcessNames) }
     if ($smart.PSObject.Properties.Name -contains "NapScore") { $smartNapScore = [bool]$smart.NapScore }
 }
 $sessionMode = ([string]$sessionMode).Trim()
@@ -464,7 +476,7 @@ if ($behaviorStableCpuPercent -lt 0.0) { $behaviorStableCpuPercent = 0.0 }
 if ($desktopGuardFreeMemoryMB -lt 1024.0) { $desktopGuardFreeMemoryMB = 1024.0 }
 if ($desktopGuardTrimFloorMB -lt 128.0) { $desktopGuardTrimFloorMB = 128.0 }
 if ($desktopGuardMaxCpuPercent -lt 1.0) { $desktopGuardMaxCpuPercent = 1.0 }
-if (-not $desktopGuardRoles -or @($desktopGuardRoles).Count -eq 0) { $desktopGuardRoles = @("Browser", "Communication", "Media", "Launcher") }
+if (-not $desktopGuardRoles -or @($desktopGuardRoles).Count -eq 0) { $desktopGuardRoles = @("Browser", "Communication", "Media", "Launcher", "LauncherHelper") }
 if (-not $desktopGuardIntents -or @($desktopGuardIntents).Count -eq 0) { $desktopGuardIntents = @("Desktop", "MediaCall", "DownloadInstall", "MemoryPressure") }
 if ($moderateFreeMemoryMB -lt 512) { $moderateFreeMemoryMB = 512.0 }
 if ($elevatedFreeMemoryMB -lt 512) { $elevatedFreeMemoryMB = 512.0 }
@@ -505,6 +517,14 @@ $knownStreamingNames = New-Object "System.Collections.Generic.HashSet[string]" (
 $knownStreamingSource = if ($knownStreamingConfigured -ne $null) { $knownStreamingConfigured } else { $knownStreamingDefaults }
 @($knownStreamingSource) | Where-Object { $_ } | ForEach-Object { [void]$knownStreamingNames.Add([string]$_) }
 
+$knownProfessionalNames = New-Object "System.Collections.Generic.HashSet[string]" ([System.StringComparer]::OrdinalIgnoreCase)
+$knownProfessionalSource = if ($knownProfessionalConfigured -ne $null) { $knownProfessionalConfigured } else { $knownProfessionalDefaults }
+@($knownProfessionalSource) | Where-Object { $_ } | ForEach-Object { [void]$knownProfessionalNames.Add([string]$_) }
+
+$knownDevelopmentNames = New-Object "System.Collections.Generic.HashSet[string]" ([System.StringComparer]::OrdinalIgnoreCase)
+$knownDevelopmentSource = if ($knownDevelopmentConfigured -ne $null) { $knownDevelopmentConfigured } else { $knownDevelopmentDefaults }
+@($knownDevelopmentSource) | Where-Object { $_ } | ForEach-Object { [void]$knownDevelopmentNames.Add([string]$_) }
+
 $streamerBrowserHelperNames = New-Object "System.Collections.Generic.HashSet[string]" ([System.StringComparer]::OrdinalIgnoreCase)
 $streamerBrowserHelperNameSource = if ($streamerBrowserHelperNamesConfigured -ne $null) { $streamerBrowserHelperNamesConfigured } else { $streamerBrowserHelperNameDefaults }
 @($streamerBrowserHelperNameSource) | Where-Object { $_ } | ForEach-Object { [void]$streamerBrowserHelperNames.Add([string]$_) }
@@ -516,6 +536,9 @@ $streamerBrowserHelperPathSource = if ($streamerBrowserHelperPathConfigured -ne 
 $knownGamePathFragments = @()
 $knownGamePathSource = if ($knownGamePathConfigured -ne $null) { $knownGamePathConfigured } else { $knownGamePathDefaults }
 @($knownGamePathSource) | Where-Object { $_ } | ForEach-Object { $knownGamePathFragments += [string]$_ }
+
+$neverGameProcessNames = New-Object "System.Collections.Generic.HashSet[string]" ([System.StringComparer]::OrdinalIgnoreCase)
+@($neverGameProcessDefaults + $neverGameProcessConfigured + $knownLauncherSource) | Where-Object { $_ } | ForEach-Object { [void]$neverGameProcessNames.Add([string]$_) }
 
 $script:learningMap = @{}
 $script:currentMemoryPressure = [pscustomobject]@{ Level = "Unknown"; FreeMB = -1.0; UsedPercent = -1.0 }
@@ -1145,6 +1168,24 @@ function Test-NameInSet {
     try { return [bool]$Set.Contains($Name) } catch { return $false }
 }
 
+function Test-NeverGameProcess {
+    param(
+        [int]$ProcessId,
+        [string]$ProcessName,
+        [string]$Path,
+        [string]$Role
+    )
+
+    if ($ProcessId -eq $currentPid) { return $true }
+    if (Test-NameInSet -Set $knownLauncherNames -Name $ProcessName) { return $true }
+    if (Test-LauncherBrowserHelper -ProcessName $ProcessName -Path $Path) { return $true }
+    if (Test-NameInSet -Set $neverGameProcessNames -Name $ProcessName) { return $true }
+    if (Test-NameInSet -Set $systemNames -Name $ProcessName) { return $true }
+    if ($Role -in @("Browser", "Communication", "Media", "Streaming", "StreamHelper", "Launcher", "LauncherHelper", "Professional", "Development")) { return $true }
+    if (-not [string]::IsNullOrWhiteSpace($Path) -and (Test-PathContainsFragment -Path $Path -Fragments @("\Windows\", "\Program Files\WindowsApps\"))) { return $true }
+    return $false
+}
+
 function Test-PathContainsFragment {
     param(
         [string]$Path,
@@ -1233,9 +1274,9 @@ function Test-LauncherBrowserHelper {
     )
 
     $name = [string]$ProcessName
-    if ($name -match "(?i)^(EACefSubProcess|CefSharp\.BrowserSubprocess|QtWebEngineProcess|EpicWebHelper|steamwebhelper|msedgewebview2)$") { return $true }
+    if ($name -match "(?i)^(EACefSubProcess|EpicWebHelper|steamwebhelper)$") { return $true }
     if ($name -match "(?i)(cefsubprocess|webhelper|webview|browserhelper)") {
-        $launcherFragments = @("\Electronic Arts\", "\EA Desktop\", "\EA Games\", "\Epic Games\Launcher\", "\Steam\", "\Ubisoft\", "\Battle.net\", "\Riot Client\", "\GOG Galaxy\")
+        $launcherFragments = @("\Electronic Arts\EA Desktop\", "\Electronic Arts\EA app\", "\EA Desktop\", "\EA Games\Launcher\", "\Epic Games\Launcher\", "\Steam\", "\Ubisoft\", "\Battle.net\", "\Riot Client\", "\GOG Galaxy\")
         if (Test-PathContainsFragment -Path $Path -Fragments $launcherFragments) { return $true }
     }
     return $false
@@ -1247,14 +1288,18 @@ function Get-ProcessRole {
         [string]$Path
     )
 
+    if (Test-LauncherBrowserHelper -ProcessName $ProcessName -Path $Path) { return "LauncherHelper" }
     if (Test-NameInSet -Set $knownLauncherNames -Name $ProcessName) { return "Launcher" }
-    if (Test-LauncherBrowserHelper -ProcessName $ProcessName -Path $Path) { return "Launcher" }
     if (Test-NameInSet -Set $knownCommunicationNames -Name $ProcessName) { return "Communication" }
     if (Test-NameInSet -Set $knownStreamingNames -Name $ProcessName) { return "Streaming" }
     if (Test-StreamerBrowserHelper -ProcessName $ProcessName -Path $Path) { return "StreamHelper" }
     if (Test-NameInSet -Set $knownMediaNames -Name $ProcessName) { return "Media" }
+    if (Test-NameInSet -Set $knownProfessionalNames -Name $ProcessName) { return "Professional" }
+    if (Test-NameInSet -Set $knownDevelopmentNames -Name $ProcessName) { return "Development" }
+    if ($ProcessName -match "(?i)^(chrome|msedge|firefox|zen|brave|opera|vivaldi|librewolf|waterfox|floorp|arc|tor|msedgewebview2)$") { return "Browser" }
+    if ($ProcessName -match "(?i)^(Lightshot|ShareX|Greenshot|SnippingTool|ScreenClippingHost|GameBar|GameBarFTServer|XboxGameBar|NVIDIA Share)$") { return "Media" }
+    if (Test-PathContainsFragment -Path $Path -Fragments @("\Skillbrains\lightshot\", "\ShareX\", "\Greenshot\", "\WindowsApps\Microsoft.ScreenSketch")) { return "Media" }
     if (Test-PathContainsFragment -Path $Path -Fragments $knownGamePathFragments) { return "GameCandidate" }
-    if ($ProcessName -match "^(chrome|msedge|firefox|zen|brave|opera|vivaldi)$") { return "Browser" }
     return "App"
 }
 
@@ -1352,7 +1397,7 @@ function Get-RelatedUdpEndpointSummary {
     try { $anchorPid = [int]$Anchor.Id } catch { $anchorPid = 0 }
     $anchorName = [string]$Anchor.ProcessName
     $anchorRole = Get-ProcessRole -ProcessName $anchorName -Path $AnchorPath
-    if ($anchorRole -in @("Browser", "Communication", "Media", "Streaming", "StreamHelper", "Launcher")) { return [pscustomobject]$result }
+    if (Test-NeverGameProcess -ProcessId $anchorPid -ProcessName $anchorName -Path $AnchorPath -Role $anchorRole) { return [pscustomobject]$result }
 
     $anchorRoot = Get-GameSessionRootFromPath -Path $AnchorPath
     $result.Root = $anchorRoot
@@ -1387,12 +1432,103 @@ function Get-RelatedUdpEndpointSummary {
     return [pscustomobject]$result
 }
 
+
+function Test-KnownGameExecutableName {
+    param([string]$ProcessName)
+    if ([string]::IsNullOrWhiteSpace($ProcessName)) { return $false }
+    $name = ([string]$ProcessName).Trim()
+    if (Test-NameInSet -Set $knownLauncherNames -Name $name) { return $false }
+    if (Test-NameInSet -Set $neverGameProcessNames -Name $name) { return $false }
+    if (Test-NameInSet -Set $knownGameNames -Name $name) { return $true }
+    return ($name -match '(?i)^(FC2[4-9]|FIFA(22|23|24)|bf2042|bfv|bf1|bf4|Battlefield(2042|6)?|cs2|csgo|VALORANT-Win64-Shipping|VALORANT|FortniteClient-Win64-Shipping|RocketLeague|r5apex|League of Legends|RainbowSix|RainbowSix_Vulkan|cod|ModernWarfare|Warzone)$')
+}
+
+function Get-LauncherUdpEndpointSummary {
+    param([array]$Processes, [hashtable]$UdpMap)
+    $result = [ordered]@{ EndpointCount = 0; ProcessCount = 0; Pids = @(); Paths = @(); Root = ''; Signals = @() }
+    if (-not $Processes -or -not $UdpMap -or $UdpMap.Count -eq 0) { return [pscustomobject]$result }
+    $pidSet = New-Object 'System.Collections.Generic.HashSet[int]'
+    $pathSet = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($p in @($Processes)) {
+        $pid = 0; try { $pid = [int]$p.Id } catch { $pid = 0 }
+        if ($pid -le 0 -or -not $UdpMap.ContainsKey($pid)) { continue }
+        $path = Get-ProcessPathText -Process $p
+        $role = Get-ProcessRole -ProcessName ([string]$p.ProcessName) -Path $path
+        if ($role -notin @('Launcher', 'LauncherHelper')) { continue }
+        $udpCount = [int]$UdpMap[$pid]
+        if ($udpCount -lt 1) { continue }
+        if ($pidSet.Add($pid)) {
+            $result.EndpointCount = [int]$result.EndpointCount + $udpCount
+            if (-not [string]::IsNullOrWhiteSpace($path)) { [void]$pathSet.Add($path) }
+        }
+    }
+    $result.ProcessCount = [int]$pidSet.Count
+    $result.Pids = @($pidSet)
+    $result.Paths = @($pathSet)
+    if ($result.ProcessCount -gt 0) { $result.Signals = @('launcher-associated-helper') }
+    return [pscustomobject]$result
+}
+
+function Find-OpenGameForUdpGuard {
+    param([object]$Foreground, [array]$Processes, [hashtable]$CpuMap, [hashtable]$UdpMap, [hashtable]$ProfileMap)
+    if (-not $Processes) { return $null }
+    $launcherSummary = Get-LauncherUdpEndpointSummary -Processes $Processes -UdpMap $UdpMap
+    $best = $null; $bestScore = -1.0
+    foreach ($p in @($Processes)) {
+        $pid = 0; try { $pid = [int]$p.Id } catch { $pid = 0 }
+        if ($pid -le 0) { continue }
+        $path = Get-ProcessPathText -Process $p
+        $role = Get-ProcessRole -ProcessName ([string]$p.ProcessName) -Path $path
+        if (Test-NeverGameProcess -ProcessId $pid -ProcessName ([string]$p.ProcessName) -Path $path -Role $role) { continue }
+        $knownName = Test-KnownGameExecutableName -ProcessName ([string]$p.ProcessName)
+        $knownPath = Test-PathContainsFragment -Path $path -Fragments $knownGamePathFragments
+        if (-not ($role -eq 'GameCandidate' -or $knownName -or $knownPath)) { continue }
+        $cpu = if ($CpuMap -and $CpuMap.ContainsKey($pid)) { [double]$CpuMap[$pid] } else { 0.0 }
+        $directUdp = if ($UdpMap -and $UdpMap.ContainsKey($pid)) { [int]$UdpMap[$pid] } else { 0 }
+        $related = Get-RelatedUdpEndpointSummary -Anchor $p -AnchorPath $path -Processes $Processes -UdpMap $UdpMap
+        $relatedEndpointCount = if ($related) { [int]$related.EndpointCount } else { 0 }
+        $effectiveRelated = $related
+        $endpointCount = [math]::Max($directUdp, $relatedEndpointCount)
+        if ($endpointCount -lt $networkUdpGuardMinEndpoints -and $knownName -and $launcherSummary -and [int]$launcherSummary.EndpointCount -ge $networkUdpGuardMinEndpoints) {
+            $effectiveRelated = $launcherSummary
+            $endpointCount = [int]$launcherSummary.EndpointCount
+        }
+        if ($endpointCount -lt $networkUdpGuardMinEndpoints) { continue }
+        $isForeground = $Foreground -and [int]$Foreground.Id -eq $pid
+        $root = Get-GameSessionRootFromPath -Path $path
+        $signals = @('udp-session', 'open-game-lock', 'local-contention-only')
+        if ($directUdp -ge $networkUdpGuardMinEndpoints) { $signals += 'direct-udp' }
+        elseif ($effectiveRelated -and [int]$effectiveRelated.EndpointCount -gt 0) { $signals += @($effectiveRelated.Signals); $signals += 'foreground-associated' }
+        if ($knownName) { $signals += 'known-game-executable' }
+        if ($role -eq 'GameCandidate' -or $knownPath) { $signals += 'known-game-path' }
+        if ($isForeground) { $signals += 'foreground-udp' }
+        if ($Foreground -and [bool]$Foreground.IsFullscreen -and $isForeground) { $signals += 'fullscreen' }
+        $confidence = 58 + [math]::Min(20, ($endpointCount * 5)) + [math]::Min(10, [int]($cpu * 3.0))
+        if ($knownName) { $confidence += 24 }
+        if ($role -eq 'GameCandidate' -or $knownPath) { $confidence += 12 }
+        if ($isForeground) { $confidence += 10 }
+        if ($Foreground -and [bool]$Foreground.IsFullscreen -and $isForeground) { $confidence += 8 }
+        $confidence += Get-UdpProfileBonus -Map $ProfileMap -ProcessName ([string]$p.ProcessName) -Path $path -Root $root
+        if ($confidence -gt 100) { $confidence = 100 }
+        $score = 300.0 + ([double]$confidence * 3.0) + ([double]$endpointCount * 8.0) + ([double]$cpu * 6.0)
+        if ($knownName) { $score += 520.0 }
+        if ($role -eq 'GameCandidate' -or $knownPath) { $score += 180.0 }
+        if ($isForeground) { $score += 80.0 }
+        if ($knownName) { $score += 260.0 }
+        if ($score -gt $bestScore) {
+            $bestScore = $score
+            $best = [pscustomobject]@{ Process=$p; Path=$path; Root=$root; Role=$role; Cpu=$cpu; Udp=[int]$endpointCount; Score=$score; Source='OpenGameLock'; Related=$effectiveRelated; Confidence=[int]$confidence; Signals=@($signals) }
+        }
+    }
+    return $best
+}
+
 function Get-UdpSessionProfileKey {
     param([string]$ProcessName, [string]$Path, [string]$Root)
-    if (-not [string]::IsNullOrWhiteSpace($Root)) { return "root:" + $Root.Trim().ToLowerInvariant() }
-    if (-not [string]::IsNullOrWhiteSpace($Path)) { return "path:" + $Path.Trim().ToLowerInvariant() }
-    if (-not [string]::IsNullOrWhiteSpace($ProcessName)) { return "name:" + $ProcessName.Trim().ToLowerInvariant() }
-    return ""
+    if (-not [string]::IsNullOrWhiteSpace($Root)) { return 'root:' + $Root.Trim().ToLowerInvariant() }
+    if (-not [string]::IsNullOrWhiteSpace($Path)) { return 'path:' + $Path.Trim().ToLowerInvariant() }
+    if (-not [string]::IsNullOrWhiteSpace($ProcessName)) { return 'name:' + $ProcessName.Trim().ToLowerInvariant() }
+    return ''
 }
 
 function Read-UdpSessionProfileMap {
@@ -1460,6 +1596,8 @@ function Get-UdpConfidenceReason {
     $set = New-Object "System.Collections.Generic.HashSet[string]" ([System.StringComparer]::OrdinalIgnoreCase)
     foreach ($s in @($Signals)) { if ($s) { [void]$set.Add([string]$s) } }
     if ($set.Contains("direct-udp")) { return "UDP direto no jogo" }
+    if ($set.Contains("open-game-lock") -and $set.Contains("launcher-associated-helper")) { return "Jogo aberto com UDP em launcher/helper relacionado" }
+    if ($set.Contains("open-game-lock")) { return "Jogo aberto protegido pelo Zero Ping" }
     if ($set.Contains("foreground-associated")) { return "UDP em helper relacionado ao jogo" }
     if ($set.Contains("known-game-path")) { return "Processo reconhecido como jogo" }
     if ($set.Contains("fullscreen")) { return "Tela cheia com sinais UDP" }
@@ -1737,7 +1875,7 @@ function Test-GpuHelperPressure {
     param([string]$Role, [double]$CpuPercent, [double]$GpuPercent, [double]$GpuDedicatedMB, [bool]$UdpProtected, [object]$GuardReason, [bool]$SwitchFastWake)
     if (-not $gpuHelperGuard -or -not $script:currentGpuPressure -or -not [bool]$script:currentGpuPressure.Available) { return $false }
     if ($UdpProtected -or $GuardReason -or $SwitchFastWake) { return $false }
-    if ($Role -notin @("Browser", "Launcher", "StreamHelper")) { return $false }
+    if ($Role -notin @("Browser", "Launcher", "LauncherHelper", "StreamHelper")) { return $false }
     if ($CpuPercent -gt $gpuHelperCpuCeiling -and $GpuPercent -lt 8.0) { return $false }
     return ($GpuDedicatedMB -ge $gpuHelperDedicatedMemoryMB -or $GpuPercent -ge 8.0)
 }
@@ -1751,6 +1889,7 @@ function Get-CpuBoundAssistContext {
     if ($GpuSnapshot -and $GpuSnapshot.ProcessGpuPercentByPid -and $GpuSnapshot.ProcessGpuPercentByPid.ContainsKey($processIdValue)) { $gpu = [double]$GpuSnapshot.ProcessGpuPercentByPid[$processIdValue] }
     $path = [string]$Foreground.Path
     $role = Get-ProcessRole -ProcessName ([string]$Foreground.ProcessName) -Path $path
+    if (Test-NeverGameProcess -ProcessId $processIdValue -ProcessName ([string]$Foreground.ProcessName) -Path $path -Role $role) { return $base }
     $looksGame = ([bool]$Foreground.IsFullscreen) -or ($role -eq "GameCandidate") -or (Test-PathContainsFragment -Path $path -Fragments $knownGamePathFragments) -or ($UdpGuard -and [bool]$UdpGuard.Active -and [int]$UdpGuard.GamePid -eq $processIdValue)
     if (-not $looksGame -or $cpu -lt $cpuBoundGameCpuPercent) { return $base }
     $confidence = 42
@@ -1806,13 +1945,12 @@ function Test-UdpGameCandidate {
 
     if (-not $networkUdpGuardEnabled) { return $false }
     if ($UdpEndpoints -lt $networkUdpGuardMinEndpoints) { return $false }
-    if ($Role -in @("Streaming", "StreamHelper", "Communication", "Media", "Launcher")) { return $false }
-    if ($Role -eq "Browser") { return $false }
-    if ($Role -eq "GameCandidate") { return $true }
-
-    $isForeground = $Foreground -and [int]$Foreground.Id -eq $ProcessId
-    if ($isForeground -and ([bool]$Foreground.IsFullscreen -or $CpuPercent -ge $networkUdpGuardGameCpuFloor)) { return $true }
-    if (Test-PathContainsFragment -Path $Path -Fragments $knownGamePathFragments) { return $true }
+    if (Test-NameInSet -Set $knownLauncherNames -Name $ProcessName) { return $false }
+    if (Test-LauncherBrowserHelper -ProcessName $ProcessName -Path $Path) { return $false }
+    if (Test-NeverGameProcess -ProcessId $ProcessId -ProcessName $ProcessName -Path $Path -Role $Role) { return $false }
+    $knownName = Test-KnownGameExecutableName -ProcessName $ProcessName
+    $knownPath = Test-PathContainsFragment -Path $Path -Fragments $knownGamePathFragments
+    if ($Role -eq "GameCandidate" -or $knownName -or $knownPath) { return $true }
     return $false
 }
 
@@ -1864,7 +2002,8 @@ function Get-UdpGuardContext {
     if (-not $networkUdpGuardEnabled) { $base.QosStatus = Ensure-ZeroPingQosPolicy -Context $null; return $base }
     if (-not $UdpMap -or $UdpMap.Count -eq 0) { $base.QosStatus = Ensure-ZeroPingQosPolicy -Context $null; return $base }
     $profileMap = Read-UdpSessionProfileMap
-    $best = $null; $bestScore = -1.0
+    $best = Find-OpenGameForUdpGuard -Foreground $Foreground -Processes $Processes -CpuMap $CpuMap -UdpMap $UdpMap -ProfileMap $profileMap
+    $bestScore = if ($best) { [double]$best.Score } else { -1.0 }
     foreach ($p in @($Processes)) {
         $processIdValue = 0; try { $processIdValue = [int]$p.Id } catch { }
         if ($processIdValue -le 0 -or -not $UdpMap.ContainsKey($processIdValue)) { continue }
@@ -1872,19 +2011,23 @@ function Get-UdpGuardContext {
         $cpu = if ($CpuMap -and $CpuMap.ContainsKey($processIdValue)) { [double]$CpuMap[$processIdValue] } else { 0.0 }
         $path = Get-ProcessPathText -Process $p
         $role = Get-ProcessRole -ProcessName $p.ProcessName -Path $path
+        $directKnownName = Test-KnownGameExecutableName -ProcessName ([string]$p.ProcessName)
         if (-not (Test-UdpGameCandidate -ProcessId $processIdValue -ProcessName $p.ProcessName -Path $path -Role $role -Foreground $Foreground -CpuPercent $cpu -UdpEndpoints $udpCount)) { continue }
         $root = Get-GameSessionRootFromPath -Path $path
         $signals = @("udp-session", "direct-udp", "local-contention-only")
         if ($Foreground -and [int]$Foreground.Id -eq $processIdValue) { $signals += "foreground-udp" }
         if ($role -eq "GameCandidate") { $signals += "known-game-path" }
+        if ($directKnownName) { $signals += "known-game-executable" }
         if ($Foreground -and [bool]$Foreground.IsFullscreen -and [int]$Foreground.Id -eq $processIdValue) { $signals += "fullscreen" }
         $confidence = 42 + [math]::Min(24, ($udpCount * 8)) + [math]::Min(14, [int]($cpu * 4.0))
         if ($Foreground -and [int]$Foreground.Id -eq $processIdValue) { $confidence += 18 }
         if ($role -eq "GameCandidate") { $confidence += 12 }
+        if ($directKnownName) { $confidence += 18 }
         if ($Foreground -and [bool]$Foreground.IsFullscreen -and [int]$Foreground.Id -eq $processIdValue) { $confidence += 10 }
         $confidence += Get-UdpProfileBonus -Map $profileMap -ProcessName ([string]$p.ProcessName) -Path $path -Root $root
         if ($confidence -gt 100) { $confidence = 100 }
         $score = ([double]$udpCount * 18.0) + ([double]$cpu * 8.0) + ([double]$confidence * 2.0)
+        if ($directKnownName) { $score += 260.0 }
         if ($score -gt $bestScore) { $bestScore=$score; $best=[pscustomobject]@{ Process=$p; Path=$path; Root=$root; Role=$role; Cpu=$cpu; Udp=$udpCount; Score=$score; Source="Direct"; Confidence=[int]$confidence; Signals=@($signals) } }
     }
     if (-not $best -and $Foreground -and [int]$Foreground.Id -gt 0) {
@@ -2663,22 +2806,26 @@ function Get-IntentContext {
     $fgRole = Get-ProcessRole -ProcessName $name -Path $path
     $fgUdpEndpoints = 0
     if ($UdpMap -and $Foreground -and [int]$Foreground.Id -gt 0 -and $UdpMap.ContainsKey([int]$Foreground.Id)) { $fgUdpEndpoints = [int]$UdpMap[[int]$Foreground.Id] }
-    if ($networkUdpGuardEnabled -and $fgUdpEndpoints -ge $networkUdpGuardMinEndpoints -and $fgRole -notin @("Browser", "Communication", "Media", "Streaming", "StreamHelper", "Launcher")) {
+    $fgNeverGame = $Foreground -and [int]$Foreground.Id -gt 0 -and (Test-NeverGameProcess -ProcessId ([int]$Foreground.Id) -ProcessName $name -Path $path -Role $fgRole)
+    $fgKnownGameName = Test-KnownGameExecutableName -ProcessName $name
+    $fgKnownGamePath = Test-PathContainsFragment -Path $path -Fragments $knownGamePathFragments
+    $fgLooksLikeGame = (-not $fgNeverGame) -and ($fgRole -eq "GameCandidate" -or $fgKnownGameName -or $fgKnownGamePath)
+    if ($networkUdpGuardEnabled -and $fgLooksLikeGame -and $fgUdpEndpoints -ge $networkUdpGuardMinEndpoints) {
         $signals += "foreground-udp"
         $confidence = [math]::Max($confidence, 76)
         $kind = "Gaming"
     }
     if ($Foreground -and [bool]$Foreground.IsFullscreen) {
         $signals += "fullscreen"
-        $confidence += 26
-        if ($fgRole -eq "GameCandidate") {
-            $signals += "known-game-path"
+        if ($fgLooksLikeGame) {
+            $signals += "known-game-session"
             $confidence += 38
             $kind = "Gaming"
-        } elseif ($fgRole -notin @("Browser", "Communication", "Media", "Streaming") -and -not (Test-PathContainsFragment -Path $path -Fragments @("\Windows\", "\Program Files\WindowsApps\"))) {
-            $signals += "exclusive-foreground"
-            $confidence += 24
-            $kind = "Gaming"
+        } elseif ($fgNeverGame) {
+            $signals += "fullscreen-non-game"
+        } else {
+            $signals += "fullscreen-unclassified"
+            $confidence += 8
         }
     }
 
@@ -2686,6 +2833,10 @@ function Get-IntentContext {
         $signals += "foreground-streaming"
         $confidence = [math]::Max($confidence, 88)
         $kind = "Streaming"
+    } elseif ($fgRole -in @("Professional", "Development")) {
+        $signals += ("foreground-" + $fgRole.ToLowerInvariant())
+        $confidence = [math]::Max($confidence, 78)
+        $kind = "Work"
     } elseif ($fgRole -in @("Communication", "Media")) {
         $signals += ("foreground-" + $fgRole.ToLowerInvariant())
         $confidence = [math]::Max($confidence, 72)
@@ -2704,7 +2855,7 @@ function Get-IntentContext {
         $role = Get-ProcessRole -ProcessName $p.ProcessName -Path (Get-ProcessPathText -Process $p)
         $cpu = 0.0
         if ($CpuMap -and $CpuMap.ContainsKey([int]$p.Id)) { $cpu = [double]$CpuMap[[int]$p.Id] }
-        if ($role -eq "Launcher" -and $cpu -ge 0.35) { $launcherActivity++ }
+        if ($role -in @("Launcher", "LauncherHelper") -and $cpu -ge 0.35) { $launcherActivity++ }
         if ($role -in @("Communication", "Media") -and $cpu -ge 0.15) { $mediaActivity++ }
         if ($role -eq "Streaming") {
             $streamingActivity++
@@ -2734,9 +2885,13 @@ function Get-IntentContext {
     }
     if ($networkUdpGuardEnabled -and $udpGameActivity -gt 0) {
         $signals += "udp-game-session"
-        if ([string]::IsNullOrWhiteSpace($name) -or $kind -eq "Desktop") { $name = $udpGameName }
-        if ($kind -eq "Desktop") { $kind = "Gaming" }
-        if ($kind -eq "Gaming") { $confidence = [math]::Max($confidence, [math]::Min(96, 74 + [int]([math]::Min(18, $udpGameEndpoints * 3)))) }
+        if ($fgLooksLikeGame -or [string]::IsNullOrWhiteSpace($name)) {
+            if ([string]::IsNullOrWhiteSpace($name) -or $kind -eq "Desktop") { $name = $udpGameName }
+            if ($kind -eq "Desktop") { $kind = "Gaming" }
+            if ($kind -eq "Gaming") { $confidence = [math]::Max($confidence, [math]::Min(96, 74 + [int]([math]::Min(18, $udpGameEndpoints * 3)))) }
+        } else {
+            $signals += "udp-game-background"
+        }
     }
     if ($kind -eq "Desktop" -and $launcherActivity -gt 0) {
         $kind = "DownloadInstall"
@@ -2827,7 +2982,7 @@ function Get-GuardDecision {
         }
     }
 
-    if (-not $protect -and $fastWake -and $Role -in @("Browser", "Communication", "Media", "Launcher") -and $CpuPercent -lt 12.0) {
+    if (-not $protect -and $fastWake -and $Role -in @("Browser", "Communication", "Media", "Launcher", "Professional", "Development") -and $CpuPercent -lt 12.0) {
         $protect = $true
         $reason = "FastWakeGuard"
         $confidence = 66
@@ -3350,7 +3505,7 @@ function Get-CandidateWeight {
     if (($sessionMode -eq "Streamer") -or ($script:currentIntent -and [string]$script:currentIntent.Kind -eq "Streaming")) {
         if ([string]$Row.Role -in @("Streaming", "Communication", "Media", "GameCandidate")) {
             $weight *= 0.20
-        } elseif ([string]$Row.Role -eq "StreamHelper") {
+        } elseif ([string]$Row.Role -in @("StreamHelper", "LauncherHelper")) {
             if ([double]$Row.CpuPercent -ge $streamerBrowserHelperCpuThreshold -or [int]$Row.BurstCount -gt 0) { $weight *= 1.38 } else { $weight *= 1.06 }
         } elseif ([string]$Row.Role -eq "Browser") {
             $weight *= 0.92
@@ -3412,6 +3567,18 @@ function Get-NapPolicy {
             $reason = "user-deep-softened"
         }
         $policySource = "user"
+    } elseif ([string]$Row.Role -eq "LauncherHelper" -and -not [bool]$Row.SwitchFastWake -and -not $Row.GuardReason -and -not [bool]$Row.UdpGameProtected) {
+        if ([double]$Row.WorkingSetMB -ge [math]::Max(120.0, $balancedNapMinimumMB) -and [double]$Row.CpuPercent -le [math]::Max(1.0, $deepCpuLimit) -and [int]$Row.BurstCount -eq 0) {
+            $tier = "Deep"
+            $reason = "launcher-helper-deep"
+        } elseif ([double]$Row.CpuPercent -ge 0.2 -or [int]$Row.BurstCount -gt 0 -or [double]$Row.WorkingSetMB -ge 80.0) {
+            $tier = "Balanced"
+            $reason = "launcher-helper-containment"
+        } else {
+            $tier = "Light"
+            $reason = "launcher-helper-light"
+        }
+        $policySource = "launcher"
     } elseif ($realtimeFriendlyNames.Contains([string]$Row.ProcessName)) {
         $tier = "Light"
         $reason = "realtime-friendly"
@@ -3455,7 +3622,7 @@ function Get-NapPolicy {
             $reason = "udp-session-background-balance"
         }
         $policySource = "network"
-    } elseif ((($sessionMode -eq "Streamer") -or ($script:currentIntent -and [string]$script:currentIntent.Kind -eq "Streaming")) -and [string]$Row.Role -eq "StreamHelper" -and -not [bool]$Row.SwitchFastWake -and -not $Row.GuardReason) {
+    } elseif ((($sessionMode -eq "Streamer") -or ($script:currentIntent -and [string]$script:currentIntent.Kind -eq "Streaming")) -and [string]$Row.Role -in @("StreamHelper", "LauncherHelper") -and -not [bool]$Row.SwitchFastWake -and -not $Row.GuardReason) {
         if ([double]$Row.CpuPercent -ge $streamerBrowserHelperCpuThreshold -or [double]$Row.CpuPercent -ge $streamerHelperBurstCpuThreshold -or [int]$Row.BurstCount -gt 0) {
             $tier = "Balanced"
             $reason = "stream-helper-cpu-guard"
@@ -3582,7 +3749,7 @@ function Test-StreamerAffinityCandidate {
     if ([string]$Row.AppPolicy -in @("Protect", "Light")) { return $false }
     if ($realtimeFriendlyNames.Contains([string]$Row.ProcessName)) { return $false }
     if ($cpuBoundPressure) { return ([double]$Row.CpuPercent -le 8.0) }
-    if ([string]$Row.Role -eq "StreamHelper") {
+    if ([string]$Row.Role -in @("StreamHelper", "LauncherHelper")) {
         if (-not $streamerBrowserHelperGuard) { return $false }
         return ([double]$Row.CpuPercent -ge $streamerBrowserHelperCpuThreshold -or [double]$Row.CpuPercent -ge $streamerHelperBurstCpuThreshold -or [int]$Row.BurstCount -gt 0)
     }
@@ -3652,7 +3819,7 @@ function Get-SkipReason {
     if (Test-TemporaryProtected -Map $ProtectMap -Process $Process -Path $path) { return "TemporaryActiveApp" }
     if ($skipHighCpu -and $CpuPercent -ge $CpuProtectThreshold) {
         $streamingPressure = ($sessionMode -eq "Streamer") -or ($script:currentIntent -and [string]$script:currentIntent.Kind -eq "Streaming")
-        $safeToContainHotBackground = $streamingPressure -and (([string]$Role -eq "StreamHelper") -or ($Role -notin @("Streaming", "Communication", "Media", "GameCandidate", "Launcher", "Browser")))
+        $safeToContainHotBackground = $streamingPressure -and (([string]$Role -in @("StreamHelper", "LauncherHelper")) -or ($Role -notin @("Streaming", "Communication", "Media", "GameCandidate", "Launcher", "Browser")))
         if (-not $safeToContainHotBackground) { return "ActiveCpu" }
     }
 
@@ -3776,7 +3943,7 @@ function Get-BackgroundProcessRows {
         try { $handleCount = [int]$p.HandleCount } catch { $handleCount = 0 }
         try { $threadCount = @($p.Threads).Count } catch { $threadCount = 0 }
 
-        if ($path -and $smartAutoProtect -and $skipHighCpu -and $cpuPercent -ge $effectiveHighCpuThreshold -and $role -ne "StreamHelper") {
+        if ($path -and $smartAutoProtect -and $skipHighCpu -and $cpuPercent -ge $effectiveHighCpuThreshold -and $role -notin @("StreamHelper", "LauncherHelper")) {
             Add-TemporaryProtection -Map $protectMap -Process $p -Path $path -Reason "ActiveCpu" -Minutes $autoProtectHighCpuMinutes
         }
         if ($path -and $smartBurstWatcher -and $p.Id -ne $foreground.Id -and $cpuPercent -ge $burstCpuThreshold -and $cpuPercent -lt $effectiveHighCpuThreshold) {
@@ -4236,7 +4403,7 @@ function Invoke-ApplyOnce {
         $affinityStatus = "Disabled"
         $affinityTarget = [UInt64]0
         if (Test-StreamerAffinityCandidate -Row $row -Policy $policy) {
-            $affinityTarget = if ([bool]$row.CpuBoundAssist) { Get-StreamerAffinityMask -Percent $cpuBoundAffinityPercent } elseif ([string]$row.Role -eq "StreamHelper") { Get-StreamerAffinityMask -Percent $streamerBrowserHelperAffinityPercent } else { Get-StreamerAffinityMask }
+            $affinityTarget = if ([bool]$row.CpuBoundAssist) { Get-StreamerAffinityMask -Percent $cpuBoundAffinityPercent } elseif ([string]$row.Role -in @("StreamHelper", "LauncherHelper")) { Get-StreamerAffinityMask -Percent $streamerBrowserHelperAffinityPercent } else { Get-StreamerAffinityMask }
             if ($affinityTarget -gt 0) {
                 if ($PreviewMode) {
                     $affinityStatus = "WouldLimit"
@@ -4262,7 +4429,7 @@ function Invoke-ApplyOnce {
                 $trimThreshold = [math]::Max(24.0, [math]::Round($trimThreshold * 0.82, 1))
             }
         }
-        if ([string]$row.Role -eq "StreamHelper" -or [bool]$row.GpuHelperPressure -or ([bool]$row.VramPressureActive -and [double]$row.GpuDedicatedMB -gt 0.0)) {
+        if ([string]$row.Role -in @("StreamHelper", "LauncherHelper") -or [bool]$row.GpuHelperPressure -or ([bool]$row.VramPressureActive -and [double]$row.GpuDedicatedMB -gt 0.0)) {
             $trimThreshold = [math]::Max($trimThreshold, ([double]$row.WorkingSetMB + 1.0))
         }
 
@@ -4596,7 +4763,10 @@ switch ($Action) {
         }
     }
     "Restore" {
-        Invoke-Restore
+        $results = @(Invoke-Restore)
+        if (-not $Quiet) {
+            $results
+        }
     }
     "ForegroundRestore" {
         Invoke-ForegroundRestore

@@ -333,18 +333,923 @@ html,body{background:#09090b!important;font-family:Inter,"SF Pro Display","Segoe
 @media(prefers-reduced-motion:reduce){.wordmarkLogo,.titleBlock b{animation:none!important}}
 
 
+
+/* v0.5.27 aggressive premium system */
+:root{
+  --sbn-bg:#09090b;
+  --sbn-bg-soft:#0d111a;
+  --sbn-surface:rgba(12,18,30,.58);
+  --sbn-surface-strong:rgba(16,24,39,.76);
+  --sbn-surface-hot:rgba(255,173,47,.12);
+  --sbn-border:rgba(190,210,245,.14);
+  --sbn-border-hot:rgba(255,173,47,.38);
+  --sbn-border-ok:rgba(53,232,154,.34);
+  --sbn-text:#f8fafc;
+  --sbn-sub:#afbdd1;
+  --sbn-muted:#7f91aa;
+  --sbn-orange:#ffad2f;
+  --sbn-orange-2:#ff7a18;
+  --sbn-green:#35e89a;
+  --sbn-cyan:#49d9ff;
+  --sbn-blue:#62a8ff;
+  --sbn-purple:#a78bfa;
+  --sbn-red:#ff5d78;
+  --sbn-radius-xl:24px;
+  --sbn-radius-lg:20px;
+  --sbn-radius-md:16px;
+  --sbn-shadow:0 24px 90px rgba(0,0,0,.42);
+  --sbn-shadow-soft:0 16px 46px rgba(0,0,0,.28);
+  --sbn-ease:cubic-bezier(.22,1,.36,1);
+  --sbn-fast:170ms;
+  --sbn-med:240ms;
+}
+html,body{background:var(--sbn-bg)!important;color:var(--sbn-text)!important;font-family:Inter,"SF Pro Display","Segoe UI Variable Display","Segoe UI",system-ui,sans-serif!important;text-rendering:geometricPrecision;-webkit-font-smoothing:antialiased}
+body:before{animation:ambientDrift 28s var(--sbn-ease) infinite alternate!important;opacity:.82!important;filter:blur(30px)!important}
+body:after{opacity:.42!important;background-size:44px 44px!important}
+.app{border:0!important;background:linear-gradient(135deg,rgba(9,9,11,.98),rgba(9,14,24,.96) 56%,rgba(7,10,16,.98))!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.055),inset 0 0 0 2px rgba(255,173,47,.10)!important}
+.workspace{position:relative;padding:24px 30px 24px!important;container-type:inline-size}.workspace:before{content:"";position:fixed;left:78px;right:0;top:0;height:110px;pointer-events:none;background:linear-gradient(180deg,rgba(9,9,11,.78),rgba(9,9,11,0));z-index:2}.workspaceInner{position:relative;z-index:1;gap:20px!important}.topbar{position:relative;z-index:5;height:64px!important}.titleBlock{padding-left:3px}.brandLockup{display:flex;align-items:center;gap:13px;min-width:0}.wordmarkLogo{width:42px!important;height:42px!important;object-fit:contain;filter:drop-shadow(0 0 16px rgba(167,139,250,.24)) drop-shadow(0 0 10px rgba(255,173,47,.18));animation:logoIdle 6s var(--sbn-ease) infinite}.wordmarkLogo:hover{animation:logoElasticSpin .86s var(--sbn-ease) both}.brandCopy b,.titleBlock b{background:linear-gradient(110deg,#fff 0%,#fff 32%,#ffbe5b 44%,#a78bfa 54%,#fff 66%,#fff 100%);background-size:260% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:typeShine 8s var(--sbn-ease) infinite;font-weight:950!important}.brandCopy span,.titleBlock span{color:#aebbd0!important;font-weight:650!important}.statusBar{gap:10px!important}
+.rail{width:78px!important;background:linear-gradient(180deg,rgba(9,13,22,.88),rgba(5,7,12,.98))!important;backdrop-filter:blur(24px) saturate(1.14);box-shadow:inset -1px 0 0 rgba(255,255,255,.055)}.rail:after{content:"";position:absolute;right:-1px;top:72px;bottom:72px;width:1px;background:linear-gradient(180deg,transparent,var(--sbn-orange),var(--sbn-purple),var(--sbn-green),transparent);opacity:.34}.nav{position:relative;width:52px!important;height:52px!important;border-radius:18px!important;background:linear-gradient(145deg,rgba(17,25,39,.72),rgba(7,12,22,.78))!important;border-color:rgba(190,210,245,.13)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.055),0 10px 26px rgba(0,0,0,.16);transition:transform var(--sbn-fast) var(--sbn-ease),border-color var(--sbn-fast),box-shadow var(--sbn-fast),background var(--sbn-fast)}.nav:hover{transform:translateY(-2px) scale(1.035)!important;border-color:rgba(98,168,255,.40)!important;box-shadow:0 18px 34px rgba(0,0,0,.26),0 0 30px rgba(98,168,255,.08)}.nav.active{border-color:rgba(255,173,47,.48)!important;background:radial-gradient(circle at 35% 15%,rgba(255,173,47,.22),transparent 48%),linear-gradient(145deg,rgba(25,29,39,.9),rgba(13,18,29,.82))!important;color:#ffbc5d!important}.nav.active:before{content:"";position:absolute;left:-15px;top:13px;width:4px;height:26px;border-radius:999px;background:linear-gradient(180deg,var(--sbn-orange),var(--sbn-purple));box-shadow:0 0 18px rgba(255,173,47,.45)}
+.pill,.startupAction,.langButton{height:36px!important;border-radius:999px!important;background:linear-gradient(145deg,rgba(19,22,38,.72),rgba(10,13,23,.74))!important;border-color:rgba(167,139,250,.34)!important;color:#e9e3ff!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 10px 28px rgba(0,0,0,.18);transition:transform var(--sbn-fast) var(--sbn-ease),box-shadow var(--sbn-fast),border-color var(--sbn-fast),background var(--sbn-fast)}.pill.good,.state-active #motor,.state-active .state{border-color:var(--sbn-border-ok)!important;background:linear-gradient(145deg,rgba(53,232,154,.16),rgba(10,18,27,.72))!important;color:var(--sbn-green)!important}.state-paused #motor,.state-paused .state{border-color:rgba(255,173,47,.42)!important;background:linear-gradient(145deg,rgba(255,173,47,.16),rgba(12,18,28,.74))!important;color:#ffd18a!important}.state-processing #live,.state-processing .state{animation:statusFlow 1.45s linear infinite}.zero-ping-on .networkPanel{border-color:rgba(53,232,154,.42)!important;box-shadow:0 22px 70px rgba(0,0,0,.34),0 0 42px rgba(53,232,154,.08),inset 0 1px 0 rgba(255,255,255,.055)!important}.zero-ping-lock .networkPanel:after{content:"LOCK-ON";position:absolute;right:18px;top:14px;color:rgba(53,232,154,.76);font-size:10px;font-weight:950;letter-spacing:.08em}.learning-on .intelligencePanel:not(.networkPanel){border-color:rgba(167,139,250,.42)!important;box-shadow:0 22px 70px rgba(0,0,0,.34),0 0 42px rgba(167,139,250,.08),inset 0 1px 0 rgba(255,255,255,.055)!important}
+.panel,.command,.engineCard,.controlDeck,.card,.systemTile,.feature,.intelligencePanel,.sidePanel,.manager,.focusLine,.mini,.modeFact,.enginePulse{border-radius:var(--sbn-radius-xl)!important;border:1px solid var(--sbn-border)!important;background:linear-gradient(145deg,rgba(16,24,39,.68),rgba(7,12,22,.58))!important;box-shadow:var(--sbn-shadow-soft),inset 0 1px 0 rgba(255,255,255,.052)!important;backdrop-filter:blur(22px) saturate(1.12)}.command{position:relative;grid-template-columns:minmax(0,1fr) minmax(410px,.48fr)!important;padding:24px!important;gap:24px!important;overflow:hidden}.command:after{content:"";position:absolute;inset:auto 32% -160px auto;width:380px;height:380px;border-radius:999px;background:radial-gradient(circle,rgba(98,168,255,.08),transparent 65%);pointer-events:none}.headline{font-size:clamp(40px,3.4vw,64px)!important;line-height:.96!important;letter-spacing:-.01em!important;max-width:960px!important;text-wrap:balance}.subline{font-size:14.5px!important;line-height:1.55!important;color:#b8c5d7!important}.featureGrid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:14px!important}.feature{min-height:112px!important;padding:16px!important;position:relative;overflow:hidden}.feature:before,.focusLine:before,.card:before,.modeFact:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--sbn-blue),transparent);opacity:.85}.feature:nth-child(2):before{background:linear-gradient(180deg,var(--sbn-green),transparent)}.feature:nth-child(3):before{background:linear-gradient(180deg,var(--sbn-orange),transparent)}.feature b{font-size:16px!important}.feature p{font-size:12px!important;line-height:1.42!important;color:#a6b5ca!important}.intelligencePanel{padding:17px!important}.intelTop{grid-template-columns:minmax(0,1fr) minmax(132px,160px)!important}.intelCopy b{font-size:18px!important}.intelCopy p{font-size:12.5px!important;max-width:800px}.learningToggle{height:44px!important;border-radius:999px!important;font-weight:950!important}.learningToggle.on{background:linear-gradient(145deg,rgba(53,232,154,.20),rgba(8,18,27,.82))!important;border-color:rgba(53,232,154,.48)!important;color:var(--sbn-green)!important}.learningToggle:not(.on):hover{border-color:rgba(167,139,250,.70)!important;color:#fff!important}.chip{border-radius:999px!important;height:30px!important;background:rgba(12,20,34,.64)!important;border-color:rgba(190,210,245,.16)!important}.chip:hover{transform:translateY(-1px);filter:brightness(1.1)}
+.engineCard{position:relative;grid-template-rows:auto auto auto auto auto auto minmax(128px,auto)!important;padding:20px!important}.engineCard:before{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(circle at 88% 8%,rgba(53,232,154,.12),transparent 34%),radial-gradient(circle at 18% 80%,rgba(98,168,255,.10),transparent 36%);pointer-events:none}.engineCard>*{position:relative}.engineHead h2{font-size:24px!important;letter-spacing:-.005em}.state{box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}.detail{font-size:13px!important;color:#adbcd0!important;min-height:34px!important}.engineSummary,.engineLiveStrip{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}.engineSummary span:nth-child(3){grid-column:1/-1!important}.engineSummary span,.engineLiveStrip span{min-height:62px!important;padding:12px 13px!important}.engineSummary small,.engineLiveStrip small{font-size:10px!important;color:#8ca0bb!important}.engineSummary b,.engineLiveStrip b{font-size:15px!important;line-height:1.18!important;overflow-wrap:anywhere!important}.meter{grid-template-columns:112px minmax(0,1fr)!important;gap:14px!important}.ring{width:112px!important;height:112px!important;animation:ringFloat 4.8s var(--sbn-ease) infinite}.metricGrid{gap:10px!important}.mini{min-height:58px!important;padding:11px!important}.bar{height:5px!important;border-radius:999px!important;background:rgba(255,255,255,.05)!important}.actions{gap:10px!important}.btn{height:44px!important;border-radius:16px!important;background:linear-gradient(145deg,rgba(18,30,49,.76),rgba(8,14,24,.76))!important;border-color:rgba(190,210,245,.16)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.052);transition:transform var(--sbn-fast) var(--sbn-ease),box-shadow var(--sbn-fast),border-color var(--sbn-fast),filter var(--sbn-fast)}.btn:hover{transform:translateY(-2px)!important;border-color:rgba(98,168,255,.35)!important;box-shadow:0 18px 38px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.07)!important}.btn.primary{background:linear-gradient(180deg,#ffc86a,#ff9f21 76%)!important;border-color:rgba(255,200,106,.88)!important;color:#110d07!important;box-shadow:0 18px 46px rgba(255,173,47,.22),inset 0 1px 0 rgba(255,255,255,.22)!important}.btn.danger{background:linear-gradient(180deg,#ff6a7b,#e94457)!important;border-color:rgba(255,106,123,.9)!important;color:#fff!important}.btn.green,.energyActions .btn.primary.green{background:linear-gradient(180deg,#3bf0a2,#1fc878)!important;color:#03120b!important}.enginePulse{min-height:154px!important;background:linear-gradient(145deg,rgba(5,10,18,.62),rgba(10,17,29,.72))!important}.pulseTrack{grid-template-columns:repeat(4,minmax(0,1fr))!important}.pulseStep{min-height:64px!important;border-radius:16px!important;padding:10px!important}.pulseStep b,.pulseStep em{white-space:normal!important;overflow:visible!important;text-overflow:clip!important}.pulseStep.good{border-color:rgba(53,232,154,.28)!important}.pulseStep.warn{border-color:rgba(255,173,47,.30)!important}.pulseStep.hot{border-color:rgba(255,93,120,.34)!important}.pulseStep.net{border-color:rgba(98,168,255,.30)!important}
+.cards{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:16px!important}.card{min-height:104px!important;padding:17px!important;position:relative;isolation:isolate;overflow:hidden}.card:after{content:"";position:absolute;right:-36px;top:-36px;width:118px;height:118px;border-radius:999px;background:radial-gradient(circle,rgba(98,168,255,.12),transparent 68%);z-index:-1}.card:nth-child(3):after{background:radial-gradient(circle,rgba(53,232,154,.14),transparent 68%)}.card b{font-size:20px!important;line-height:1.18!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important}.controlDeck{padding:20px!important;gap:17px!important}.modeDeckHero{align-items:center!important}.modeDeckHero h3{font-size:26px!important}.modeDeckHero p{font-size:13.5px!important;color:#b5c3d6!important}.modeDeckStatus b,.modeDeckStatus span{height:30px!important;border-radius:999px!important}.modeRow{grid-template-columns:repeat(6,minmax(128px,1fr))!important;gap:13px!important}.modeBtn{min-height:126px!important;border-radius:22px!important;padding:16px!important;transition:transform var(--sbn-med) var(--sbn-ease),box-shadow var(--sbn-med),border-color var(--sbn-med),background var(--sbn-med),filter var(--sbn-med)}.modeBtn:hover{transform:translateY(-3px)!important}.modeBtn.active{transform:translateY(-1px);box-shadow:0 22px 54px rgba(0,0,0,.32),0 0 0 1px color-mix(in srgb,var(--mode-color,#4091ff) 42%, transparent) inset,0 0 34px color-mix(in srgb,var(--mode-color,#4091ff) 18%, transparent)!important}.modeBtn.active:after{opacity:.95;transform:scale(1.24)}.modeBtn.active strong{background:color-mix(in srgb,var(--mode-color,#4091ff) 20%, #07111f)!important}.modeInsight{grid-template-columns:minmax(0,1.2fr) minmax(300px,.8fr)!important;gap:12px!important}.selectedMode{padding:15px!important}.modeFacts{gap:10px!important}.modeFact{min-height:90px!important;padding:13px!important;position:relative;overflow:hidden}.modeFact b{font-size:16px!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important}.systemPanel{padding:19px!important}.systemGrid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:14px!important}.systemTile{min-height:128px!important;padding:16px!important}.systemTile b{font-size:16px!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important}.systemTile p{font-size:12px!important;line-height:1.42!important;color:#9eb0c8!important;-webkit-line-clamp:4!important;min-height:0!important}.manager{padding:19px!important}.panelTitle h3{font-size:21px!important}.table{border-radius:20px!important;background:rgba(5,10,18,.62)!important;scrollbar-gutter:stable both-edges}.thead,.row{grid-template-columns:minmax(160px,1.35fr) 78px 88px 60px 70px minmax(470px,2.8fr)!important}.thead{height:34px!important}.row{min-height:56px!important}.row:hover{transform:translateX(2px)!important}.appCell b{font-size:12.5px!important}.decisionSummary{padding:7px 8px!important}.badge{height:22px!important;border-radius:9px!important;padding:0 7px!important}.policyBtn{height:25px!important;border-radius:9px!important}.sidePanel{padding:20px!important}.focusBox{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important}.focusLine{position:relative;min-height:84px!important;padding:14px!important;display:grid;align-content:center;overflow:hidden!important}.focusLine:first-child,.focusLine:nth-child(8),.focusLine:nth-child(9),.focusLine:nth-child(10),.focusLine:nth-child(11){grid-column:1/-1}.focusLine:after{content:"";position:absolute;right:-34px;top:-34px;width:110px;height:110px;border-radius:999px;background:radial-gradient(circle,rgba(255,173,47,.10),transparent 70%);pointer-events:none}.focusLine:nth-child(2):before,.focusLine:nth-child(4):before,.focusLine:nth-child(7):before{background:linear-gradient(180deg,var(--sbn-green),transparent)}.focusLine:nth-child(3):before,.focusLine:nth-child(5):before,.focusLine:nth-child(8):before{background:linear-gradient(180deg,var(--sbn-purple),transparent)}.focusLine:nth-child(6):before,.focusLine:nth-child(9):before{background:linear-gradient(180deg,var(--sbn-blue),transparent)}.focusLine b{font-size:17px!important;line-height:1.18!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important}.timeline{border-radius:20px!important;min-height:220px;background:linear-gradient(145deg,rgba(5,10,18,.76),rgba(8,14,24,.62))!important}.eventLine{grid-template-columns:68px minmax(0,1fr)!important}.eventLine span{white-space:normal!important;overflow:visible!important;text-overflow:clip!important}.permissionBox,.updatePanel{border-radius:22px!important;box-shadow:var(--sbn-shadow-soft)}
+body.state-processing .engineCard{border-color:rgba(255,173,47,.38)!important}body.state-processing .bar i{width:100%!important;background:linear-gradient(90deg,var(--sbn-orange),var(--sbn-green),var(--sbn-blue),var(--sbn-purple))!important;animation:slide 1.1s linear infinite!important}.state-processing .pulseDot{animation:pulse .95s infinite!important}.state-paused .engineCard{filter:saturate(.86)}.state-paused .engineCard:before{background:radial-gradient(circle at 88% 8%,rgba(255,173,47,.10),transparent 34%)}.mode-gaming .command,.mode-competitive .command{border-color:rgba(255,173,47,.24)!important}.mode-streamer .command{border-color:rgba(53,232,154,.26)!important}.mode-work .command{border-color:rgba(167,139,250,.26)!important}.mode-focus .command{border-color:rgba(255,93,120,.25)!important}
+@keyframes typeShine{0%,62%{background-position:0% 50%}78%,100%{background-position:100% 50%}}@keyframes logoIdle{0%,100%{transform:translateZ(0) scale(1) rotate(0deg)}48%{transform:translateZ(0) scale(1.035) rotate(-2deg)}52%{transform:translateZ(0) scale(1.035) rotate(2deg)}}@keyframes logoElasticSpin{0%{transform:rotate(0deg) scale(1)}58%{transform:rotate(378deg) scale(1.12)}78%{transform:rotate(350deg) scale(.98)}100%{transform:rotate(360deg) scale(1)}}@keyframes statusFlow{0%{box-shadow:0 0 0 0 rgba(53,232,154,.20)}70%{box-shadow:0 0 0 8px rgba(53,232,154,0)}100%{box-shadow:0 0 0 0 rgba(53,232,154,0)}}
+@container (max-width:980px){.command{grid-template-columns:1fr!important}.focusBox{grid-template-columns:1fr!important}.cards{grid-template-columns:repeat(2,minmax(0,1fr))!important}.systemGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.modeRow{grid-template-columns:repeat(3,minmax(0,1fr))!important}.pulseTrack{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:1080px){.dashboard{grid-template-columns:1fr!important}.rightCol{grid-template-rows:auto!important}.focusBox{grid-template-columns:repeat(2,minmax(0,1fr))!important}.command{grid-template-columns:1fr!important}.engineCard{min-height:0!important}.statusBar{padding-right:114px!important}}
+@media(max-width:760px){.app{grid-template-columns:68px minmax(0,1fr)!important}.rail{width:68px!important}.workspace{padding:16px!important}.headline{font-size:34px!important}.featureGrid,.cards,.systemGrid,.modeRow,.modeInsight,.modeFacts,.focusBox,.engineSummary,.engineLiveStrip{grid-template-columns:1fr!important}.meter{grid-template-columns:1fr!important}.ring{margin:auto}.modeBtn{min-height:104px!important}.command{padding:18px!important}.focusLine:first-child,.focusLine:nth-child(8),.focusLine:nth-child(9),.focusLine:nth-child(10),.focusLine:nth-child(11){grid-column:auto}.workspace:before{left:68px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.wordmarkLogo:hover{transform:none!important}}
+
+/* v0.5.27 wordmark parity: same orange/purple sweep used on the site */
+.brandCopy b,.titleBlock b{
+  position:relative!important;
+  display:inline-block!important;
+  background:linear-gradient(98deg,#ffffff 0%,#ffffff 28%,#ff9f1c 40%,#b875ff 50%,#ffb342 60%,#ffffff 72%,#ffffff 100%)!important;
+  background-size:185% 100%!important;
+  -webkit-background-clip:text!important;
+  background-clip:text!important;
+  -webkit-text-fill-color:transparent!important;
+  color:transparent!important;
+  animation:brandTextSweep 4.7s cubic-bezier(.45,0,.2,1) infinite!important;
+  filter:drop-shadow(0 0 14px rgba(255,159,28,.12)) drop-shadow(0 0 18px rgba(184,117,255,.10));
+}
+@media(prefers-reduced-motion:reduce){.brandCopy b,.titleBlock b{animation:none!important;background-position:0 0!important}}
+
+/* v0.5.27 activity timeline redesign */
+.timeline{
+  display:grid!important;
+  gap:9px!important;
+  padding:10px!important;
+  border-radius:22px!important;
+  background:linear-gradient(145deg,rgba(4,8,15,.78),rgba(9,15,26,.64))!important;
+}
+.eventLine.eventCard{
+  position:relative!important;
+  display:grid!important;
+  grid-template-columns:66px minmax(0,1fr)!important;
+  gap:10px!important;
+  min-height:64px!important;
+  padding:10px 11px!important;
+  border:1px solid rgba(156,185,230,.12)!important;
+  border-radius:16px!important;
+  background:linear-gradient(145deg,rgba(12,20,34,.68),rgba(5,10,18,.58))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 10px 24px rgba(0,0,0,.14)!important;
+  overflow:hidden!important;
+  animation:eventCardIn .22s var(--sbn-ease,cubic-bezier(.22,1,.36,1)) both!important;
+}
+.eventLine.eventCard:before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:999px;background:linear-gradient(180deg,var(--sbn-blue,#62a8ff),transparent);box-shadow:0 0 16px rgba(98,168,255,.16)}
+.eventLine.eventCard:after{content:"";position:absolute;right:-34px;top:-42px;width:110px;height:110px;border-radius:999px;background:radial-gradient(circle,rgba(98,168,255,.10),transparent 68%);pointer-events:none}
+.eventLine.eventCard.latest{border-color:rgba(255,173,47,.24)!important;background:radial-gradient(circle at 100% 0,rgba(255,173,47,.10),transparent 44%),linear-gradient(145deg,rgba(14,22,36,.78),rgba(5,10,18,.62))!important}
+.eventLine.eventCard time{position:relative;z-index:1;align-self:start;min-height:26px;display:inline-flex;align-items:center;justify-content:center;padding:0 7px;border-radius:999px;background:rgba(255,173,47,.08);border:1px solid rgba(255,173,47,.18);color:#ffb94f!important;font-family:Consolas,"Cascadia Mono",monospace!important;font-size:10.5px!important;font-weight:950!important}
+.eventLine.eventCard span{position:relative;z-index:1;display:grid!important;gap:3px!important;min-width:0!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
+.eventLine.eventCard i{width:max-content;max-width:100%;height:18px;display:inline-flex;align-items:center;padding:0 7px;border-radius:999px;background:rgba(98,168,255,.10);border:1px solid rgba(98,168,255,.18);color:#a9cfff;font-size:9px;font-weight:950;font-style:normal;letter-spacing:.02em;text-transform:uppercase}
+.eventLine.eventCard b{display:block;color:#f7fbff;font-size:12.5px;font-weight:950;line-height:1.18;letter-spacing:0;white-space:normal;overflow-wrap:anywhere}
+.eventLine.eventCard em{display:block;color:#9fb0c8;font-size:11.2px;font-style:normal;font-weight:650;line-height:1.32;white-space:normal;overflow-wrap:anywhere}
+.eventLine.evt-pass:before{background:linear-gradient(180deg,var(--sbn-green,#35e89a),transparent);box-shadow:0 0 16px rgba(53,232,154,.16)}
+.eventLine.evt-pass:after{background:radial-gradient(circle,rgba(53,232,154,.10),transparent 68%)}
+.eventLine.evt-wake:before{background:linear-gradient(180deg,var(--sbn-orange,#ffad2f),transparent);box-shadow:0 0 16px rgba(255,173,47,.18)}
+.eventLine.evt-wake:after{background:radial-gradient(circle,rgba(255,173,47,.12),transparent 68%)}
+.eventLine.evt-radar:before,.eventLine.evt-zero:before{background:linear-gradient(180deg,#5ddcff,rgba(53,232,154,.18));box-shadow:0 0 18px rgba(93,220,255,.18)}
+.eventLine.evt-mode:before{background:linear-gradient(180deg,var(--sbn-purple,#a78bfa),transparent);box-shadow:0 0 16px rgba(167,139,250,.16)}
+.eventLine.evt-warn:before{background:linear-gradient(180deg,#ff5d78,transparent);box-shadow:0 0 16px rgba(255,93,120,.18)}
+.eventLine.evt-ok:before,.eventLine.evt-live:before{background:linear-gradient(180deg,var(--sbn-green,#35e89a),transparent)}
+@keyframes eventCardIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media(max-width:520px){.eventLine.eventCard{grid-template-columns:1fr!important}.eventLine.eventCard time{justify-self:start}}
+@media(prefers-reduced-motion:reduce){.eventLine.eventCard{animation:none!important}}
+
+/* v0.5.28 minimal product direction: Hone-inspired clarity, Smart Nap identity */
+:root{
+  --sbn-bg:#070b12!important;
+  --sbn-surface:#101928!important;
+  --sbn-surface-2:#141f31!important;
+  --sbn-surface-3:#0c1422!important;
+  --sbn-line:rgba(148,166,195,.18)!important;
+  --sbn-line-strong:rgba(148,166,195,.28)!important;
+  --sbn-text:#f8fafc!important;
+  --sbn-soft:#c3cedd!important;
+  --sbn-muted:#8390a4!important;
+  --sbn-orange:#ff9f1c!important;
+  --sbn-green:#35e89a!important;
+  --sbn-blue:#4b8cff!important;
+  --sbn-purple:#9b6dff!important;
+  --sbn-radius-lg:14px!important;
+  --sbn-radius-xl:18px!important;
+  --sbn-shadow-soft:0 16px 42px rgba(0,0,0,.22)!important;
+  --sbn-shadow-panel:0 20px 54px rgba(0,0,0,.28)!important;
+}
+html,body{background:var(--sbn-bg)!important}
+body:before{
+  inset:-12%!important;
+  background:radial-gradient(circle at 15% 4%,rgba(255,159,28,.10),transparent 30%),radial-gradient(circle at 88% 6%,rgba(75,140,255,.09),transparent 34%),radial-gradient(circle at 66% 100%,rgba(53,232,154,.055),transparent 38%)!important;
+  filter:blur(18px)!important;
+  opacity:.72!important;
+  animation:ambientDrift 34s ease-in-out infinite alternate!important;
+}
+body:after{opacity:.12!important;background-size:44px 44px!important;mask-image:linear-gradient(180deg,black,transparent 84%)!important}
+.app{
+  border:0!important;
+  background:linear-gradient(180deg,#080d15 0%,#070b12 100%)!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.045)!important;
+}
+.workspace{padding:28px 34px 28px!important;background:transparent!important}
+.workspace:before{display:none!important}
+.workspaceInner{gap:22px!important}
+.topbar{height:66px!important;padding:0 2px!important;align-items:center!important}
+.brandLockup{gap:14px!important}
+.wordmarkLogo{width:48px!important;height:48px!important;filter:drop-shadow(0 0 14px rgba(255,159,28,.18)) drop-shadow(0 0 18px rgba(155,109,255,.14))!important;animation:logoIdle 9s var(--sbn-ease) infinite!important}
+.wordmarkLogo:hover{animation:logoElasticSpin 1.08s var(--sbn-ease) both!important}
+.brandCopy b,.titleBlock b{font-size:28px!important;letter-spacing:-.01em!important;filter:none!important}
+.brandCopy span,.titleBlock span{margin-top:3px!important;color:#9eabc0!important;font-size:12px!important;font-weight:650!important}
+.statusBar{gap:10px!important;padding-right:120px!important}
+.pill,.startupAction,.langButton{
+  height:34px!important;
+  border-radius:10px!important;
+  padding:0 13px!important;
+  background:#111a29!important;
+  border:1px solid rgba(148,166,195,.18)!important;
+  color:#dce6f5!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+}
+.pill.good,.state-active #motor,.state-active .state{background:rgba(53,232,154,.10)!important;border-color:rgba(53,232,154,.34)!important;color:#48f2a7!important}
+.langButton,.startupAction{border-color:rgba(155,109,255,.30)!important;background:#111827!important;color:#eee7ff!important}
+.startupAction:hover,.langButton:hover,.pill:hover{transform:translateY(-1px)!important;background:#162236!important;border-color:rgba(148,166,195,.34)!important}
+.windowControls{top:13px!important;right:14px!important;border-radius:12px!important;background:#0b111d!important;border:1px solid rgba(148,166,195,.16)!important;box-shadow:none!important}.chromeBtn{width:30px!important;height:28px!important;border-radius:8px!important}
+.rail{
+  width:86px!important;
+  background:#0d1523!important;
+  border-right:1px solid rgba(148,166,195,.10)!important;
+  box-shadow:none!important;
+  padding-top:96px!important;
+}
+.rail:before{display:none!important}.rail:after{right:0!important;top:0!important;bottom:0!important;width:1px!important;background:linear-gradient(180deg,transparent,rgba(255,159,28,.28),rgba(75,140,255,.22),transparent)!important;opacity:.5!important}
+.navStack{gap:13px!important}.nav{width:54px!important;height:54px!important;border-radius:12px!important;background:#111c2d!important;border:1px solid rgba(148,166,195,.12)!important;color:#c6d2e3!important;box-shadow:none!important}.nav:hover{transform:none!important;background:#17243a!important;border-color:rgba(255,159,28,.34)!important;color:#fff!important;box-shadow:none!important}.nav.active{background:#1c2a40!important;border-color:rgba(255,159,28,.58)!important;color:#ffb653!important;box-shadow:inset 3px 0 0 rgba(255,159,28,.92)!important}.nav.active:before{display:none!important}.nav svg{width:23px!important;height:23px!important;filter:none!important}.nav:after{left:68px!important;border-radius:10px!important;background:#121c2d!important;box-shadow:0 12px 30px rgba(0,0,0,.24)!important}.version{margin-top:auto!important;margin-bottom:10px!important;background:transparent!important;border:0!important;color:#77859a!important}
+.dashboard{grid-template-columns:minmax(0,1fr) minmax(360px,420px)!important;gap:22px!important}.leftCol{gap:18px!important}.rightCol{gap:18px!important}
+.panel,.command,.engineCard,.controlDeck,.card,.systemTile,.feature,.intelligencePanel,.sidePanel,.manager,.focusLine,.mini,.modeFact,.enginePulse{
+  border-radius:16px!important;
+  border:1px solid rgba(148,166,195,.16)!important;
+  background:#101928!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+}
+.panel:hover,.engineCard:hover,.controlDeck:hover,.systemTile:hover,.intelligencePanel:hover{border-color:rgba(148,166,195,.24)!important;box-shadow:none!important;transform:none!important}
+.command{
+  grid-template-columns:minmax(0,1.08fr) minmax(390px,.64fr)!important;
+  gap:18px!important;
+  padding:24px!important;
+  background:#0f1725!important;
+  border-color:rgba(75,140,255,.23)!important;
+}
+.command:before,.command:after,.engineCard:after,.controlDeck:after{display:none!important}
+.commandHero{gap:18px!important}.headline{font-size:clamp(38px,3vw,58px)!important;line-height:.98!important;max-width:920px!important;font-weight:950!important;letter-spacing:-.018em!important}.subline{margin-top:12px!important;max-width:760px!important;color:#b5c1d2!important;font-size:14px!important;line-height:1.5!important}
+.featureGrid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:12px!important}.feature{min-height:96px!important;padding:16px!important;background:#111c2d!important;border-color:rgba(148,166,195,.14)!important}.feature:before{width:2px!important;top:14px!important;bottom:14px!important}.feature small{color:#8fa0b9!important}.feature b{font-size:15px!important}.feature p{font-size:12px!important;color:#a7b4c7!important}
+.intelligencePanel{padding:16px!important;background:#101a2a!important;border-color:rgba(148,166,195,.16)!important}.intelligencePanel:before{height:2px!important;background:linear-gradient(90deg,#35e89a,#4b8cff,#9b6dff)!important}.networkPanel:before{background:linear-gradient(90deg,#35e89a,#4b8cff,#ff9f1c)!important}.intelTop{grid-template-columns:minmax(0,1fr) 142px!important}.intelCopy small{font-size:10px!important}.intelCopy b{font-size:17px!important}.intelCopy p{font-size:12px!important;line-height:1.42!important}.intelStats{gap:0!important;border-top:1px solid rgba(148,166,195,.10)!important;padding-top:12px!important}.intelStats span{border-left-color:rgba(148,166,195,.12)!important}.learningToggle{height:40px!important;border-radius:12px!important;background:#171f34!important;border-color:rgba(155,109,255,.34)!important;color:#eee7ff!important}.learningToggle.on{background:rgba(53,232,154,.10)!important;color:#4ff0a9!important;border-color:rgba(53,232,154,.34)!important}.chip{height:28px!important;border-radius:8px!important;background:#111b2b!important;box-shadow:none!important}
+.engineCard{padding:20px!important;background:#111b2b!important;border-color:rgba(148,166,195,.18)!important;grid-template-rows:auto auto auto auto auto auto minmax(118px,auto)!important}.engineCard:before{display:none!important}.engineHead h2{font-size:24px!important}.state{height:28px!important;display:inline-flex;align-items:center;border-radius:8px!important;padding:0 10px!important;font-size:10px!important;box-shadow:none!important}.detail{font-size:13px!important;color:#aebacf!important}.engineSummary,.engineLiveStrip{gap:10px!important}.engineSummary span,.engineLiveStrip span,.mini{min-height:58px!important;border-radius:12px!important;background:#0d1625!important;border:1px solid rgba(148,166,195,.13)!important;padding:11px!important;box-shadow:none!important}.engineSummary span:before,.engineSummary span:after,.engineLiveStrip span:before,.engineLiveStrip span:after{display:none!important}.engineSummary small,.engineLiveStrip small,.mini small{color:#8493aa!important;font-size:10px!important}.engineSummary b,.engineLiveStrip b,.mini b{font-size:15px!important;line-height:1.18!important}.meter{grid-template-columns:92px minmax(0,1fr)!important}.ring{width:92px!important;height:92px!important;box-shadow:none!important;animation:none!important}.ring:after{display:none!important}.ring b{font-size:24px!important}.metricGrid{gap:10px!important}.bar{height:4px!important;background:#1b2a42!important;border:0!important}.btn{height:42px!important;border-radius:10px!important;background:#142238!important;border-color:rgba(148,166,195,.18)!important;color:#edf3fb!important;box-shadow:none!important}.btn:hover{transform:none!important;background:#192941!important;border-color:rgba(148,166,195,.28)!important;box-shadow:none!important}.btn.primary{background:#ff9f1c!important;border-color:#ffb04a!important;color:#0f1725!important;box-shadow:none!important}.btn.danger{background:#e94e63!important;color:#fff!important;box-shadow:none!important}.enginePulse{min-height:122px!important;padding:14px!important;background:#0d1624!important;border-radius:14px!important}.pulseTrack{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important}.pulseStep{min-height:54px!important;border-radius:10px!important;background:#101a2a!important;border-color:rgba(148,166,195,.14)!important;padding:9px!important}.pulseStep i{width:8px!important;height:8px!important}.pulseStep b{font-size:11px!important}.pulseStep em{font-size:10px!important;color:#8fa0b9!important}
+.cards{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:14px!important}.card{min-height:86px!important;padding:15px!important;background:#101928!important;border-radius:14px!important}.card:before{height:2px!important;opacity:.9!important}.card:after{display:none!important}.card small{font-size:10px!important;color:#8796ac!important}.card b{font-size:19px!important;line-height:1.16!important}
+.controlDeck{padding:20px!important;background:#101928!important}.controlDeck:before{height:2px!important}.modeDeckHero h3{font-size:23px!important}.modeDeckHero p{font-size:13px!important;color:#aebacf!important}.modeRow{grid-template-columns:repeat(6,minmax(118px,1fr))!important;gap:12px!important}.modeBtn{min-height:106px!important;border-radius:14px!important;background:#111c2d!important;border-color:rgba(148,166,195,.15)!important;padding:14px!important;box-shadow:none!important}.modeBtn:hover{transform:none!important;background:#16243a!important;border-color:rgba(148,166,195,.26)!important}.modeBtn.active{transform:none!important;background:#17263d!important;border-color:color-mix(in srgb,var(--mode-color,#4b8cff) 62%, transparent)!important;box-shadow:inset 0 3px 0 var(--mode-color,#4b8cff)!important}.modeBtn.active:before{display:none!important}.modeBtn.active:after{opacity:.18!important;transform:scale(1)!important}.modeBtn.active b:after{content:"Ativo";height:18px;margin-left:8px;padding:0 7px;border-radius:6px;background:rgba(255,255,255,.08);border:1px solid color-mix(in srgb,var(--mode-color,#4b8cff) 44%, transparent);font-size:9px;color:#fff}.modeBtn b{font-size:15px!important}.modeBtn span{font-size:11px!important;color:#9facc0!important}.modeBtn strong{right:12px!important;bottom:12px!important;border-radius:7px!important;background:#0c1422!important}.modeInsight{grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr)!important}.selectedMode,.modeFact{background:#0d1624!important;border-radius:13px!important;border-color:rgba(148,166,195,.13)!important}.modeFact{min-height:80px!important;padding:12px!important}.modeFact:before{width:2px!important}.modeFact b{font-size:15px!important}
+.systemPanel,.manager{background:#0f1725!important}.systemGrid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:12px!important}.systemTile{min-height:114px!important;border-radius:14px!important;background:#111c2d!important}.systemTile b{font-size:15.5px!important}.systemTile p{font-size:11.5px!important;color:#99a8bd!important}.table{border-radius:14px!important;background:#0b1320!important;border-color:rgba(148,166,195,.13)!important}.thead{height:34px!important;background:#17253a!important;color:#b8c6d8!important}.row{min-height:52px!important;background:#101928!important;border-top-color:rgba(148,166,195,.10)!important}.row:nth-child(even){background:#0e1726!important}.row:hover{background:#152238!important;box-shadow:inset 3px 0 0 #ff9f1c!important}.decisionSummary,.badgeGroup,.policyButtons{background:#0b1422!important;border-radius:9px!important}.badge,.policyBtn{border-radius:7px!important}
+.sidePanel{padding:20px!important;background:#0f1725!important;border-color:rgba(148,166,195,.16)!important}.sidePanel:before{display:none!important}.sidePanel .panelTitle h3{font-size:22px!important}.sidePanel .panelTitle span{background:#17243a!important;border-color:rgba(75,140,255,.24)!important;color:#b9d2ff!important}.focusBox{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}.focusLine{min-height:72px!important;padding:13px!important;border-radius:13px!important;background:#101928!important;border-color:rgba(148,166,195,.13)!important;box-shadow:none!important}.focusLine:hover{transform:none!important;background:#142036!important;box-shadow:none!important}.focusLine:before{width:2px!important;top:12px!important;bottom:12px!important}.focusLine:after{display:none!important}.focusLine:first-child{min-height:82px!important;background:#111c2d!important}.focusLine:first-child b{font-size:22px!important}.focusLine:nth-child(8),.focusLine:nth-child(9),.focusLine:nth-child(10){grid-column:1/-1!important}.focusLine b{font-size:16px!important}.focusLine small{color:#8493aa!important}
+.timeline{gap:8px!important;padding:10px!important;border-radius:14px!important;background:#0b1320!important}.eventLine.eventCard{min-height:58px!important;border-radius:12px!important;background:#101928!important;border-color:rgba(148,166,195,.12)!important;box-shadow:none!important}.eventLine.eventCard.latest{background:#132036!important;border-color:rgba(255,159,28,.22)!important}.eventLine.eventCard:after{display:none!important}.eventLine.eventCard time{border-radius:7px!important;background:rgba(255,159,28,.08)!important}.eventLine.eventCard i{border-radius:6px!important;background:#13243a!important}.eventLine.eventCard b{font-size:12.5px!important}.eventLine.eventCard em{font-size:11px!important;color:#99a8bd!important}
+.energyPanel,.languagePanel,.infoPanel{background:#101928!important;border-radius:18px!important;box-shadow:0 28px 90px rgba(0,0,0,.45)!important;border-color:rgba(148,166,195,.18)!important}.locale{border-radius:12px!important;background:#111c2d!important}.locale.active{border-color:#ff9f1c!important;background:#1a2638!important}
+@media(min-width:1500px){.dashboard{grid-template-columns:minmax(0,1fr) minmax(390px,430px)!important}.command{grid-template-columns:minmax(0,1.08fr) minmax(390px,.55fr)!important}}
+@media(max-width:1320px){.dashboard,.command{grid-template-columns:1fr!important}.sidePanel{max-height:none!important}.modeRow{grid-template-columns:repeat(3,minmax(0,1fr))!important}.cards,.systemGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:760px){.app{grid-template-columns:68px minmax(0,1fr)!important}.rail{width:68px!important;padding-top:82px!important}.nav{width:48px!important;height:48px!important}.workspace{padding:18px!important}.headline{font-size:34px!important}.featureGrid,.cards,.systemGrid,.modeRow,.modeInsight,.modeFacts,.focusBox,.engineSummary,.engineLiveStrip{grid-template-columns:1fr!important}.command{padding:18px!important}.statusBar{padding-right:112px!important}.meter{grid-template-columns:1fr!important}.ring{margin:auto!important}}
+@media(prefers-reduced-motion:reduce){.wordmarkLogo,.brandCopy b,.titleBlock b,.eventLine.eventCard{animation:none!important}}
+
+/* v0.5.28.1 realtime polish: stable feed, premium gauge and clearer live states */
+.eventLine.eventCard{
+  animation:none!important;
+  contain:layout paint;
+  transform:translateZ(0);
+  transition:background .18s var(--sbn-ease,cubic-bezier(.22,1,.36,1)),border-color .18s var(--sbn-ease,cubic-bezier(.22,1,.36,1)),box-shadow .18s var(--sbn-ease,cubic-bezier(.22,1,.36,1)),transform .18s var(--sbn-ease,cubic-bezier(.22,1,.36,1))!important;
+}
+.eventLine.eventCard.new{animation:eventCardIn .24s var(--sbn-ease,cubic-bezier(.22,1,.36,1)) both!important}
+.eventLine.eventCard:hover{background:#142136!important;border-color:rgba(148,166,195,.24)!important;box-shadow:0 10px 24px rgba(0,0,0,.18)!important;transform:translateX(2px) translateZ(0)}
+.eventLine.eventCard.latest{border-color:rgba(255,159,28,.28)!important;background:radial-gradient(circle at 96% 0,rgba(255,159,28,.12),transparent 38%),linear-gradient(145deg,rgba(19,32,54,.92),rgba(12,20,34,.90))!important}
+.eventLine.eventCard time{transition:background .18s ease,border-color .18s ease,color .18s ease!important}
+.eventLine.eventCard.latest time{background:rgba(255,159,28,.14)!important;border-color:rgba(255,159,28,.26)!important;color:#ffd28a!important}
+.ring{
+  position:relative!important;
+  isolation:isolate;
+  background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.05) 0 44%,transparent 45%),conic-gradient(from -42deg,var(--sbn-green,#35e89a) 0 118deg,var(--sbn-blue,#4b8cff) 118deg var(--ring-deg,220deg),rgba(45,63,93,.82) var(--ring-deg,220deg) 360deg)!important;
+  box-shadow:0 0 0 1px rgba(148,166,195,.10),0 0 26px rgba(75,140,255,.10),0 0 34px rgba(53,232,154,.08)!important;
+  animation:ringBreatheSoft 5.2s ease-in-out infinite!important;
+}
+.ring:before{background:linear-gradient(145deg,#0a1322,#111d31)!important;box-shadow:inset 0 0 18px rgba(75,140,255,.10)!important}
+.ring:after{
+  content:""!important;
+  display:block!important;
+  position:absolute!important;
+  inset:4px!important;
+  border-radius:999px!important;
+  border:1px solid transparent!important;
+  border-top-color:rgba(255,173,47,.62)!important;
+  border-right-color:rgba(75,140,255,.38)!important;
+  border-bottom-color:rgba(53,232,154,.18)!important;
+  opacity:.72!important;
+  animation:ringOrbitSoft 4.8s linear infinite!important;
+  pointer-events:none!important;
+}
+.state-processing .ring:after{animation-duration:2.2s!important;opacity:.9!important}
+.ring b{letter-spacing:0!important;text-shadow:0 0 18px rgba(255,255,255,.12)}
+.ring small{letter-spacing:0!important;color:#99acc6!important}
+.statusBar #live,.statusBar #motor{
+  position:relative!important;
+  overflow:hidden!important;
+  height:34px!important;
+  border-radius:12px!important;
+  padding:0 14px!important;
+  min-width:118px;
+  justify-content:center;
+  background:linear-gradient(145deg,rgba(17,26,41,.94),rgba(9,15,25,.92))!important;
+  border-color:rgba(148,166,195,.20)!important;
+  color:#dce8f8!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 10px 24px rgba(0,0,0,.16)!important;
+}
+.statusBar #live{border-color:rgba(75,140,255,.28)!important;background:linear-gradient(145deg,rgba(18,32,54,.96),rgba(10,18,31,.94))!important}
+.statusBar #motor.good,#motor.pill.good{border-color:rgba(53,232,154,.34)!important;background:linear-gradient(145deg,rgba(15,62,45,.64),rgba(10,24,28,.94))!important;color:#68ffb3!important}
+.statusBar #motor.warn,#motor.pill.warn{border-color:rgba(255,173,47,.36)!important;background:linear-gradient(145deg,rgba(68,45,12,.64),rgba(17,22,31,.94))!important;color:#ffd38a!important}
+.statusBar #live:after,.statusBar #motor:after{content:"";position:absolute;inset:1px;border-radius:inherit;background:linear-gradient(105deg,transparent 0 34%,rgba(255,255,255,.08) 48%,transparent 64%);transform:translateX(-130%);animation:statusSweepSoft 4.4s ease-in-out infinite;pointer-events:none}
+.statusBar #motor:before{content:"";width:8px;height:8px;border-radius:999px;background:currentColor;box-shadow:0 0 12px currentColor;margin-right:2px;flex:0 0 auto;animation:statusDotSoft 2.2s ease-in-out infinite}
+.pulseDot{width:8px!important;height:8px!important;border-radius:999px!important;background:#35e89a!important;box-shadow:0 0 0 4px rgba(53,232,154,.12),0 0 16px rgba(53,232,154,.42)!important;animation:statusDotSoft 1.8s ease-in-out infinite!important}
+@keyframes ringBreatheSoft{0%,100%{transform:translateZ(0) scale(1);filter:saturate(1)}50%{transform:translateZ(0) scale(1.018);filter:saturate(1.08)}}
+@keyframes ringOrbitSoft{to{transform:rotate(360deg)}}
+@keyframes statusSweepSoft{0%,58%{transform:translateX(-130%)}76%,100%{transform:translateX(130%)}}
+@keyframes statusDotSoft{0%,100%{opacity:.78;transform:scale(.92)}50%{opacity:1;transform:scale(1.08)}}
+@media(prefers-reduced-motion:reduce){.eventLine.eventCard.new,.ring,.ring:after,.statusBar #live:after,.statusBar #motor:after,.pulseDot,.statusBar #motor:before{animation:none!important}}
+
+/* v0.5.29 status and update polish */
+.statusBar #live,.statusBar #motor{min-width:auto!important;height:32px!important;border-radius:11px!important;padding:0 12px!important;gap:7px!important;justify-content:center!important;background:rgba(12,18,29,.78)!important;border:1px solid rgba(148,166,195,.18)!important;color:#c8d3e2!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.045)!important;backdrop-filter:blur(12px)!important}
+.statusBar #live:after,.statusBar #motor:after{display:none!important}
+.statusBar #live.sync{color:#b9c7da!important;border-color:rgba(98,168,255,.20)!important;background:rgba(12,18,29,.72)!important}
+.statusBar #motor.good,#motor.pill.good{color:#7cf4b7!important;border-color:rgba(53,232,154,.28)!important;background:linear-gradient(180deg,rgba(22,49,39,.56),rgba(10,18,24,.72))!important}
+.statusBar #live .pulseDot{width:7px!important;height:7px!important;background:#62a8ff!important;box-shadow:0 0 12px rgba(98,168,255,.46)!important;animation:statusBreath 2.6s ease-in-out infinite!important}
+.statusBar #motor .pulseDot{width:7px!important;height:7px!important;background:#38f4a0!important;box-shadow:0 0 12px rgba(56,244,160,.42)!important;animation:statusBreath 2.8s ease-in-out infinite!important}
+@keyframes statusBreath{0%,100%{opacity:.55;transform:scale(.82)}50%{opacity:1;transform:scale(1)}}
+#updateModalCheck.working{opacity:.82;cursor:wait;position:relative;overflow:hidden}
+#updateModalCheck.working:after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent,rgba(255,255,255,.28),transparent);transform:translateX(-120%);animation:buttonSweep 1.15s ease-in-out infinite}
+@keyframes buttonSweep{to{transform:translateX(120%)}}
+@media (prefers-reduced-motion:reduce){.statusBar #live .pulseDot,.statusBar #motor .pulseDot,#updateModalCheck.working:after{animation:none!important}}
+
+/* v0.5.31 telemetry and live manager polish */
+.sidePanel{
+  gap:14px!important;
+  padding:22px!important;
+  background:linear-gradient(180deg,#101827 0%,#0b121f 100%)!important;
+  border-color:rgba(117,145,183,.20)!important;
+}
+.sidePanel .panelTitle{
+  min-height:34px;
+  align-items:center;
+  padding:0 2px 2px!important;
+}
+.sidePanel .panelTitle h3{
+  font-size:21px!important;
+  line-height:1.1!important;
+  letter-spacing:-.01em!important;
+}
+.sidePanel .panelTitle span{
+  height:28px!important;
+  min-height:28px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  border-radius:999px!important;
+  padding:0 11px!important;
+  color:#c8d8ee!important;
+  background:#17243a!important;
+  border-color:rgba(98,168,255,.24)!important;
+}
+.focusBox.engineMetrics,.sidePanel .focusBox{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:12px!important;
+}
+.focusLine{
+  position:relative!important;
+  min-height:78px!important;
+  padding:14px 15px!important;
+  border-radius:14px!important;
+  background:#111b2b!important;
+  border-color:rgba(148,166,195,.14)!important;
+  box-shadow:none!important;
+  overflow:hidden!important;
+  isolation:isolate;
+}
+.focusLine:before{
+  content:""!important;
+  position:absolute!important;
+  left:0!important;
+  top:14px!important;
+  bottom:14px!important;
+  width:3px!important;
+  border-radius:999px!important;
+  background:linear-gradient(180deg,#4b8cff,transparent)!important;
+}
+.focusLine:after{
+  content:""!important;
+  display:block!important;
+  position:absolute!important;
+  right:-42px!important;
+  top:-42px!important;
+  width:118px!important;
+  height:118px!important;
+  border-radius:999px!important;
+  background:radial-gradient(circle,rgba(75,140,255,.09),transparent 70%)!important;
+  pointer-events:none!important;
+  z-index:-1!important;
+}
+.focusLine:hover{
+  transform:none!important;
+  background:#142136!important;
+  border-color:rgba(148,166,195,.22)!important;
+  box-shadow:none!important;
+}
+.focusLine small{
+  display:flex!important;
+  align-items:center!important;
+  gap:7px!important;
+  color:#8999ae!important;
+  font-size:10px!important;
+  font-weight:900!important;
+  letter-spacing:0!important;
+}
+.focusLine small:before{
+  content:"";
+  width:6px;
+  height:6px;
+  border-radius:999px;
+  background:#4b8cff;
+  box-shadow:0 0 12px rgba(75,140,255,.28);
+}
+.focusLine b{
+  margin-top:8px!important;
+  color:#f5f8fc!important;
+  font-size:17px!important;
+  line-height:1.2!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  overflow-wrap:anywhere!important;
+  display:block!important;
+}
+.metric-top{
+  grid-column:1/-1!important;
+  min-height:96px!important;
+  background:radial-gradient(circle at 95% 10%,rgba(255,159,28,.13),transparent 42%),#111b2b!important;
+}
+.metric-top:before{background:linear-gradient(180deg,#ff9f1c,transparent)!important}
+.metric-top small:before{background:#ff9f1c;box-shadow:0 0 12px rgba(255,159,28,.32)}
+.metric-top b{font-size:24px!important;letter-spacing:-.01em!important}
+.metric-memory:before,.metric-learning:before{background:linear-gradient(180deg,#35e89a,transparent)!important}
+.metric-memory small:before,.metric-learning small:before{background:#35e89a;box-shadow:0 0 12px rgba(53,232,154,.30)}
+.metric-profiles:before,.metric-pressure:before,.metric-cpu:before{background:linear-gradient(180deg,#9b6dff,transparent)!important}
+.metric-profiles small:before,.metric-pressure small:before,.metric-cpu small:before{background:#9b6dff;box-shadow:0 0 12px rgba(155,109,255,.30)}
+.metric-intent,.metric-radar,.metric-zero,.metric-gpu,.metric-cpu,.metric-live{grid-column:1/-1!important}
+.metric-zero{
+  min-height:92px!important;
+  background:radial-gradient(circle at 96% 14%,rgba(53,232,154,.13),transparent 44%),#0f1c25!important;
+}
+.metric-zero:before{background:linear-gradient(180deg,#35e89a,#4b8cff)!important}
+.metric-gpu{
+  min-height:92px!important;
+  display:grid!important;
+  align-content:center!important;
+  background:radial-gradient(circle at 96% 12%,rgba(155,109,255,.12),transparent 42%),#111a2a!important;
+}
+.metric-gpu:before{background:linear-gradient(180deg,#4b8cff,#9b6dff)!important}
+.metric-cpu{background:radial-gradient(circle at 96% 12%,rgba(255,159,28,.10),transparent 44%),#111a2a!important}
+.metric-cpu:before{background:linear-gradient(180deg,#9b6dff,#ff9f1c)!important}
+
+.metric-live{min-height:74px!important;background:#101927!important}
+.timeline{
+  min-height:260px!important;
+  border-radius:15px!important;
+  background:#0a111d!important;
+  border-color:rgba(148,166,195,.13)!important;
+}
+.manager{
+  background:#0f1725!important;
+  padding:20px!important;
+}
+.manager .panelTitle{
+  margin-bottom:2px;
+}
+.manager .panelTitle h3{
+  font-size:22px!important;
+  letter-spacing:-.01em!important;
+}
+.manager .panelTitle span{
+  color:#8fa0b7!important;
+  max-width:none!important;
+}
+.manager .table{
+  display:grid!important;
+  grid-template-rows:36px minmax(0,1fr)!important;
+  gap:8px!important;
+  padding:0!important;
+  background:transparent!important;
+  border:0!important;
+  border-radius:0!important;
+  overflow:auto!important;
+  scrollbar-gutter:stable both-edges!important;
+}
+.manager .thead,
+.manager .row{
+  min-width:1160px!important;
+  grid-template-columns:minmax(190px,1.15fr) 86px 88px 66px 72px minmax(620px,3fr)!important;
+}
+.manager .thead{
+  height:36px!important;
+  border-radius:12px!important;
+  background:#17243a!important;
+  color:#afbdd0!important;
+  border:1px solid rgba(148,166,195,.12)!important;
+  overflow:hidden!important;
+}
+.manager #rows{
+  display:grid!important;
+  gap:8px!important;
+  min-height:0!important;
+}
+.manager .row.liveRow{
+  position:relative!important;
+  min-height:94px!important;
+  border:1px solid rgba(148,166,195,.11)!important;
+  border-radius:14px!important;
+  background:#101928!important;
+  color:#e8f0fb!important;
+  overflow:hidden!important;
+  box-shadow:none!important;
+  transition:background .18s cubic-bezier(.22,1,.36,1),border-color .18s cubic-bezier(.22,1,.36,1)!important;
+}
+.manager .row.liveRow:before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:14px;
+  bottom:14px;
+  width:3px;
+  border-radius:999px;
+  background:linear-gradient(180deg,#4b8cff,rgba(75,140,255,.16));
+}
+.manager .row.liveRow.isHot:before{background:linear-gradient(180deg,#ff9f1c,rgba(255,159,28,.20))}
+.manager .row.liveRow.isGame:before{background:linear-gradient(180deg,#35e89a,#4b8cff)}
+.manager .row.liveRow.isProtected:before{background:linear-gradient(180deg,#9b6dff,#4b8cff)}
+.manager .row.liveRow:hover{
+  background:#142136!important;
+  border-color:rgba(148,166,195,.22)!important;
+  transform:none!important;
+  box-shadow:none!important;
+}
+.manager .row>span{
+  padding:12px 11px!important;
+  min-width:0!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+}
+.liveApp{
+  display:grid!important;
+  align-content:center!important;
+  gap:5px!important;
+}
+.liveApp b{
+  font-size:14px!important;
+  line-height:1.12!important;
+  color:#f6f8fb!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+}
+.liveApp em{
+  color:#7f8ea4!important;
+  font-size:10.5px!important;
+  font-weight:800!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+}
+.liveValue{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  font-weight:900!important;
+  white-space:normal!important;
+  overflow-wrap:anywhere!important;
+}
+.liveScore{color:#35e89a!important}.liveRam{color:#ffb454!important}.liveCpu,.liveBurst{color:#dbe7f6!important}
+.actionsCell{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  align-content:center!important;
+  gap:8px!important;
+  padding:10px 12px!important;
+  white-space:normal!important;
+}
+.actionTop{
+  display:grid!important;
+  grid-template-columns:minmax(180px,.75fr) minmax(360px,1.25fr)!important;
+  gap:9px!important;
+  align-items:stretch!important;
+  min-width:0!important;
+}
+.actionDetails{
+  display:flex!important;
+  flex-wrap:wrap!important;
+  gap:7px!important;
+  align-items:center!important;
+  min-width:0!important;
+}
+.decisionSummary{
+  min-width:0!important;
+  max-width:none!important;
+  min-height:42px!important;
+  border-radius:11px!important;
+  padding:8px 10px!important;
+  background:#0b1422!important;
+  border-color:rgba(148,166,195,.14)!important;
+}
+.decisionSummary b{
+  color:#f4f7fb!important;
+  font-size:12px!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+}
+.decisionSummary small{
+  color:#8d9cb1!important;
+  font-size:10px!important;
+  line-height:1.22!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+}
+.decisionSummary.auto{border-color:rgba(255,159,28,.38)!important;background:linear-gradient(145deg,rgba(255,159,28,.08),#0b1422)!important}
+.decisionSummary.protect{border-color:rgba(155,109,255,.40)!important;background:linear-gradient(145deg,rgba(155,109,255,.10),#0b1422)!important}
+.decisionSummary.light{border-color:rgba(75,140,255,.34)!important}
+.decisionSummary.balanced{border-color:rgba(53,232,154,.30)!important}
+.decisionSummary.deep{border-color:rgba(255,77,94,.34)!important}
+.policyButtons{
+  display:flex!important;
+  align-items:center!important;
+  gap:5px!important;
+  padding:6px!important;
+  border-radius:11px!important;
+  background:#0b1422!important;
+  border:1px solid rgba(148,166,195,.14)!important;
+  min-width:0!important;
+  overflow:hidden!important;
+}
+.policyButtons:before{
+  content:attr(data-label)!important;
+  min-width:56px!important;
+  margin:0 3px 0 0!important;
+  color:#7f8da2!important;
+  font-size:9px!important;
+  letter-spacing:0!important;
+}
+.policyBtn{
+  flex:1 1 0!important;
+  min-width:48px!important;
+  height:28px!important;
+  border-radius:8px!important;
+  background:#101b2d!important;
+  border-color:rgba(148,166,195,.16)!important;
+  color:#b8c7db!important;
+  font-size:10px!important;
+}
+.policyBtn:hover{background:#17243a!important;border-color:rgba(148,166,195,.30)!important;color:#fff!important;box-shadow:none!important}
+.policyBtn.active{
+  color:#101318!important;
+  background:#ffad33!important;
+  border-color:#ffbd5c!important;
+  box-shadow:none!important;
+}
+.badgeGroup{
+  display:inline-flex!important;
+  align-items:center!important;
+  min-height:30px!important;
+  gap:6px!important;
+  padding:4px 7px!important;
+  border-radius:10px!important;
+  background:#0b1422!important;
+  border:1px solid rgba(148,166,195,.12)!important;
+  max-width:100%!important;
+}
+.badgeGroup em{
+  margin:0!important;
+  color:#7f8da2!important;
+  font-size:9px!important;
+  letter-spacing:0!important;
+}
+.badgeWrap{
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:5px!important;
+  flex-wrap:wrap!important;
+  min-width:0!important;
+}
+.badge{
+  height:22px!important;
+  border-radius:8px!important;
+  padding:0 8px!important;
+  font-size:10px!important;
+  letter-spacing:0!important;
+  max-width:190px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.badge.ok{background:#0e2b21!important;border-color:rgba(53,232,154,.38)!important;color:#4af2a7!important}
+.badge.balanced{background:#0d2034!important;border-color:rgba(75,140,255,.34)!important;color:#89bdff!important}
+.badge.guard{background:#1b1833!important;border-color:rgba(155,109,255,.38)!important;color:#cabdff!important}
+.badge.cool,.badge.deep{background:#261c0d!important;border-color:rgba(255,159,28,.36)!important;color:#ffc66d!important}
+.badge.skip{background:#111a29!important;border-color:rgba(148,166,195,.16)!important;color:#8f9db0!important}
+@media(max-width:1320px){
+  .sidePanel .focusBox{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .metric-intent,.metric-radar,.metric-zero,.metric-gpu,.metric-cpu,.metric-live{grid-column:1/-1!important}
+}
+@media(max-width:760px){
+  .sidePanel .focusBox{grid-template-columns:1fr!important}
+  .focusLine{grid-column:1/-1!important}
+  .manager .thead,.manager .row{min-width:980px!important;grid-template-columns:minmax(170px,1fr) 76px 82px 60px 68px minmax(520px,2.8fr)!important}
+  .actionTop{grid-template-columns:1fr!important}
+  .policyButtons{flex-wrap:wrap!important}
+  .policyButtons:before{width:100%!important}
+}
+@media(prefers-reduced-motion:reduce){.manager .row.liveRow,.focusLine{transition:none!important}}
+
+/* v0.5.32 live manager and tray-aligned polish */
+.manager{position:relative!important;padding:22px!important;background:linear-gradient(180deg,#101827 0%,#0b121f 100%)!important;border-color:rgba(117,145,183,.20)!important;overflow:hidden!important}.manager:before{content:"";position:absolute;inset:-70px -120px auto auto;width:250px;height:250px;border-radius:999px;background:radial-gradient(circle,rgba(98,168,255,.10),transparent 68%);pointer-events:none}.manager>*{position:relative}.manager .panelTitle.managerTitle{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;gap:18px!important;margin:0 0 14px!important;padding:0 0 14px!important;border-bottom:1px solid rgba(148,166,195,.10)!important}.managerHeading{display:grid;grid-template-columns:38px minmax(0,1fr);grid-template-areas:"icon title" "icon subtitle";column-gap:13px;align-items:center;min-width:0}.managerHeading:before{content:"";grid-area:icon;width:38px;height:38px;border-radius:14px;background:linear-gradient(135deg,rgba(255,159,28,.24),rgba(75,140,255,.12)),radial-gradient(circle at 70% 24%,rgba(53,232,154,.28),transparent 44%);border:1px solid rgba(148,166,195,.16);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 10px 22px rgba(0,0,0,.20)}.managerHeading h3{grid-area:title;margin:0!important;font-size:22px!important;letter-spacing:-.01em!important;line-height:1.05!important}.managerHeading p{grid-area:subtitle;margin:4px 0 0!important;color:#8fa0b7!important;font-size:12px!important;line-height:1.25!important;font-weight:750!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.managerTitle #managerStatus{height:32px!important;display:inline-flex!important;align-items:center!important;gap:8px!important;max-width:360px!important;padding:0 13px!important;border-radius:999px!important;border:1px solid rgba(98,168,255,.22)!important;background:linear-gradient(145deg,rgba(22,36,58,.84),rgba(10,17,30,.78))!important;color:#b9c9dd!important;font-size:11px!important;font-weight:900!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}.managerTitle #managerStatus:before{content:"";width:7px;height:7px;border-radius:999px;flex:0 0 auto;background:#35e89a;box-shadow:0 0 14px rgba(53,232,154,.42)}.manager .table{grid-template-rows:42px minmax(0,1fr)!important;gap:10px!important;padding:10px!important;border-radius:18px!important;border:1px solid rgba(148,166,195,.14)!important;background:linear-gradient(180deg,rgba(10,18,31,.66),rgba(5,10,18,.55))!important}.manager .thead{height:42px!important;border-radius:12px!important;background:linear-gradient(180deg,#18263b,#142136)!important;border:1px solid rgba(148,166,195,.13)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.035)!important}.manager .thead span{height:100%;display:flex;align-items:center;padding:0 14px!important;color:#aebed3!important;font-size:10.5px!important;font-weight:950!important;letter-spacing:.02em!important;text-transform:uppercase}.manager .thead span+span{border-left:1px solid rgba(148,166,195,.06)}.manager #rows{gap:10px!important}.manager .row.liveRow{border-radius:15px!important;background:linear-gradient(180deg,#101a2a,#0d1726)!important}.manager .row.liveRow:hover{background:linear-gradient(180deg,#142136,#101c2d)!important;border-color:rgba(148,166,195,.24)!important}@media(max-width:760px){.manager .panelTitle.managerTitle{grid-template-columns:1fr!important;align-items:start!important}.managerTitle #managerStatus{max-width:100%!important;justify-self:start!important}}
+
+
+/* v0.5.34 beta games experience */
+[hidden]{display:none!important}.chromeBtn{font-family:Inter,'Segoe UI',system-ui,sans-serif!important;font-size:14px!important;color:#b7c5d8!important}.chromeBtn:hover{background:#182336!important;border-color:rgba(148,166,195,.22)!important}.chromeBtn.close:hover{background:rgba(255,78,99,.16)!important;border-color:rgba(255,78,99,.46)!important}.betaTag{height:24px;display:inline-flex;align-items:center;justify-content:center;margin-left:2px;padding:0 10px;border-radius:999px;border:1px solid rgba(255,159,28,.48);background:linear-gradient(135deg,rgba(255,159,28,.16),rgba(167,139,250,.13));color:#ffb85d;font-weight:950;font-size:10px;letter-spacing:.09em;box-shadow:0 0 22px rgba(255,159,28,.11),inset 0 1px 0 rgba(255,255,255,.08)}.nav .navBeta{position:absolute;right:5px;top:5px;width:7px;height:7px;border-radius:999px;background:#ff9f1c;box-shadow:0 0 12px rgba(255,159,28,.66)}.nav{position:relative}.nav[data-view].active{outline:1px solid rgba(255,159,28,.26)}.gamesView{display:grid;gap:18px;min-height:0}.gamesHero{position:relative;overflow:hidden;border-radius:24px;border:1px solid rgba(98,168,255,.22);background:radial-gradient(circle at 86% 20%,rgba(167,139,250,.16),transparent 34%),radial-gradient(circle at 12% 8%,rgba(255,159,28,.16),transparent 35%),linear-gradient(135deg,rgba(16,25,41,.94),rgba(7,12,21,.94));padding:28px;box-shadow:0 30px 90px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.055)}.gamesHero:before{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 0 42%,rgba(255,255,255,.045) 50%,transparent 60%);transform:translateX(-120%);animation:sweepLight 10s ease-in-out infinite}.gamesHero>*{position:relative}.gamesHero small{display:block;color:#ffae42;font-weight:950;text-transform:uppercase;letter-spacing:.08em;font-size:11px}.gamesHero h2{margin:8px 0 8px;font-size:42px;line-height:1.02;letter-spacing:-.035em}.gamesHero p{margin:0;color:#b3c0d2;font-size:14px;max-width:760px;line-height:1.55}.gamesGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}.gameCard{position:relative;min-height:270px;border:1px solid rgba(148,166,195,.16);border-radius:22px;overflow:hidden;background:linear-gradient(180deg,#121d30,#09111d);box-shadow:0 22px 58px rgba(0,0,0,.26),inset 0 1px 0 rgba(255,255,255,.055);cursor:pointer;transition:transform .18s cubic-bezier(.2,.8,.2,1),border-color .18s ease,box-shadow .18s ease}.gameCard:hover{transform:translateY(-4px);border-color:color-mix(in srgb,var(--game-accent,#ff9f1c) 50%, rgba(148,166,195,.16));box-shadow:0 28px 70px rgba(0,0,0,.34),0 0 0 1px color-mix(in srgb,var(--game-accent,#ff9f1c) 16%, transparent) inset}.gamePoster{height:138px;position:relative;background:radial-gradient(circle at 18% 16%,color-mix(in srgb,var(--game-accent,#ff9f1c) 38%, transparent),transparent 34%),linear-gradient(135deg,#111b2b,#050911)}.gamePoster:after{content:attr(data-mark);position:absolute;right:18px;bottom:12px;font-size:54px;font-weight:950;letter-spacing:-.08em;color:rgba(255,255,255,.08)}.gameBody{padding:16px;display:grid;gap:10px}.gameBody small{color:var(--game-accent,#ff9f1c);font-weight:950;text-transform:uppercase;font-size:10px;letter-spacing:.06em}.gameBody h3{font-size:20px;margin:0;letter-spacing:-.01em}.gameBody p{margin:0;color:#9eacc0;font-size:12px;line-height:1.42}.gameMeta{display:flex;gap:8px;flex-wrap:wrap}.gameMeta span{border:1px solid rgba(148,166,195,.16);background:rgba(9,17,30,.66);border-radius:999px;padding:5px 8px;font-size:10px;font-weight:900;color:#c8d5e7}.gameMeta .on{border-color:rgba(53,232,154,.34);color:#42e69a;background:rgba(53,232,154,.08)}.gameMeta .running{border-color:rgba(255,159,28,.42);color:#ffbd63;background:rgba(255,159,28,.10)}.gamesNote{border:1px solid rgba(255,159,28,.22);background:linear-gradient(135deg,rgba(255,159,28,.09),rgba(167,139,250,.07));border-radius:20px;padding:16px 18px;color:#b7c5d8;font-size:13px;line-height:1.55}.gameOptions{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:16px}.gameOptions h4{margin:0 0 10px;font-size:14px}.gameOptions ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}.gameOptions li{display:flex;gap:9px;align-items:flex-start;border:1px solid rgba(148,166,195,.12);background:rgba(9,17,30,.62);border-radius:13px;padding:10px;color:#dce7f5;font-size:12px}.gameOptions li:before{content:"";width:8px;height:8px;border-radius:999px;margin-top:5px;background:#35e89a;box-shadow:0 0 14px rgba(53,232,154,.45);flex:0 0 auto}.gameOptions .experimental li:before{background:#ff9f1c;box-shadow:0 0 14px rgba(255,159,28,.45)}.gameBetaHero{display:flex;align-items:center;gap:14px;margin-bottom:14px}.gameBetaHero img{width:46px;height:46px;object-fit:contain;filter:drop-shadow(0 0 18px rgba(255,159,28,.22))}.gameBetaHero b{font-size:22px}.gameActions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}@media(max-width:1320px){.gamesGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:760px){.gamesGrid,.gameOptions{grid-template-columns:1fr}.gamesHero h2{font-size:32px}}
+
+/* v0.5.34 game preset confirmation polish */
+.windowControls{top:0!important;right:0!important;height:36px!important;background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;gap:0!important;border-radius:0!important;backdrop-filter:none!important}
+.chromeBtn{width:46px!important;height:36px!important;border:0!important;border-radius:0!important;background:transparent!important;color:#c7d2e3!important;font-family:'Segoe UI Symbol','Segoe UI',Inter,system-ui,sans-serif!important;font-size:18px!important;font-weight:400!important;line-height:1!important;box-shadow:none!important;transform:none!important}
+.chromeBtn:hover{background:#182335!important;color:#ffffff!important;border:0!important;transform:none!important}
+.chromeBtn.close:hover{background:#c42b1c!important;color:#ffffff!important;border:0!important}
+.betaTag{height:20px!important;padding:0 8px!important;border-radius:4px!important;border:1px solid rgba(255,159,28,.55)!important;background:rgba(255,159,28,.08)!important;color:#ffab31!important;font-family:Inter,'Segoe UI',system-ui,sans-serif!important;font-size:10px!important;font-weight:950!important;letter-spacing:.08em!important;text-shadow:none!important;box-shadow:none!important}
+.gamePresetPanel{width:min(1000px,calc(100vw - 84px))!important;padding:0!important;border-radius:10px!important;border:1px solid rgba(38,55,78,.88)!important;background:#07111f!important;box-shadow:0 36px 120px rgba(0,0,0,.72)!important;overflow:hidden}
+.gamePresetPanel:before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 17% 22%,rgba(255,159,28,.09),transparent 28%),radial-gradient(circle at 82% 12%,rgba(88,185,255,.08),transparent 30%)}
+.gamePresetShell{position:relative;display:grid;grid-template-columns:300px minmax(0,1fr);min-height:430px}
+.gamePresetLead{padding:34px 28px;border-right:1px solid rgba(148,166,195,.12);background:linear-gradient(180deg,rgba(12,21,35,.82),rgba(5,11,20,.88));display:flex;flex-direction:column;gap:18px}
+.gamePresetBadge{display:inline-flex;align-items:center;gap:10px;color:#ffffff;font-size:12px;font-weight:950;text-transform:uppercase;letter-spacing:.06em}
+.gamePresetBadge i{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:#ff9f1c;color:#111827;font-size:22px;font-style:normal;box-shadow:0 12px 28px rgba(255,159,28,.22)}
+.gamePresetLead h2{margin:0!important;font-size:28px!important;line-height:1.08!important;letter-spacing:-.02em!important}
+.gamePresetLead p{margin:0!important;color:#aebbd0!important;font-size:13px!important;line-height:1.5!important}
+.gamePresetChip{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 16px;border:1px solid rgba(148,166,195,.16);border-radius:6px;background:#0e1a2b;color:#dce8f7;font-weight:800;font-size:13px}
+.gamePresetMeta{display:grid;gap:10px;margin-top:auto}
+.gamePresetMeta span{display:flex;justify-content:space-between;gap:16px;border:1px solid rgba(148,166,195,.12);border-radius:8px;background:#091625;padding:10px 12px;color:#93a4bb;font-size:11px;text-transform:uppercase;font-weight:900}
+.gamePresetMeta b{color:#ffffff;text-transform:none;font-size:12px}
+.gamePresetMain{position:relative;padding:34px 34px 28px;display:flex;flex-direction:column;min-width:0}
+.gamePresetTop{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:20px}
+.gamePresetTop h3{margin:0;font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#ffffff}
+.gamePresetTop p{margin:5px 0 0!important;font-size:12px!important;color:#90a0b7!important}
+.gamePresetClose{width:34px;height:34px;border:0;background:transparent;color:#b6c2d4;font-size:24px;line-height:1;cursor:pointer}
+.gamePresetClose:hover{color:#fff}
+.gameOptions{grid-template-columns:1fr 1fr!important;gap:22px!important;margin-top:0!important;min-height:230px}
+.gameOptions h4{display:flex;align-items:center;gap:8px;margin:0 0 12px!important;color:#ffffff;font-size:13px!important;text-transform:uppercase;letter-spacing:.06em}
+.gameOptions h4:before{content:'';width:8px;height:8px;border-radius:999px;background:#35e89a;box-shadow:0 0 14px rgba(53,232,154,.48)}
+.gameOptions .experimental h4:before{background:#ff9f1c;box-shadow:0 0 14px rgba(255,159,28,.48)}
+.gameOptions ul{max-height:214px;overflow:auto;padding-right:6px!important}
+.gameOptions li{padding:0!important;border:0!important;background:transparent!important}
+.gameOptionItem{display:grid;grid-template-columns:18px minmax(0,1fr);gap:10px;width:100%;align-items:start;border:1px solid rgba(148,166,195,.12);background:#0b1728;border-radius:8px;padding:10px 11px;min-height:40px;color:#dce7f5;font-size:12px;line-height:1.35;cursor:pointer;transition:background .16s ease,border-color .16s ease,transform .16s ease}
+.gameOptionItem:hover{background:#101f35;border-color:rgba(255,159,28,.32);transform:translateY(-1px)}
+.gameOptionItem input{appearance:none;width:15px;height:15px;border-radius:999px;border:2px solid #93a4bb;background:#07111f;margin-top:1px;box-shadow:inset 0 0 0 3px #07111f}
+.gameOptionItem input:checked{border-color:#35e89a;background:#35e89a}
+.experimental .gameOptionItem input:checked{border-color:#ff9f1c;background:#ff9f1c}
+.gameActions{grid-template-columns:220px 220px minmax(260px,1fr)!important;justify-content:end;margin-top:auto!important;padding-top:24px;border-top:1px solid rgba(148,166,195,.12)}
+.gameActions .btn{height:44px!important;border-radius:4px!important;font-size:13px!important;text-transform:uppercase;letter-spacing:.02em}
+.gameActions .btn.primary{background:#ff9f1c!important;color:#08111e!important;border-color:#ff9f1c!important}.gameActions .btn.danger,.gameRestoreBtn{border-color:rgba(255,77,94,.34)!important;background:linear-gradient(135deg,rgba(255,77,94,.12),rgba(255,159,28,.06))!important;color:#ffd7dc!important}.gameRestoreBtn{height:38px!important;border-radius:12px!important;padding:0 14px!important;font-size:12px!important;font-weight:900!important;white-space:nowrap!important}
+@media(max-width:900px){.gamePresetShell{grid-template-columns:1fr}.gamePresetLead{border-right:0;border-bottom:1px solid rgba(148,166,195,.12)}.gameOptions{grid-template-columns:1fr!important}.gameActions{grid-template-columns:1fr!important}}
+
+/* v0.5.42 preset modal action alignment */
+.gameActions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;align-items:stretch!important;justify-content:stretch!important}
+.gameActions .btn{width:100%!important;min-width:0!important;white-space:nowrap!important}
+.gameActions .btn.primary{grid-column:1 / -1!important}
+@media(max-width:760px){.gameActions{grid-template-columns:1fr!important}.gameActions .btn.primary{grid-column:auto!important}}
+
+/* v0.5.35 games library fixes */
+.managerHeading{grid-template-columns:minmax(0,1fr)!important;grid-template-areas:"title" "subtitle"!important;column-gap:0!important}.managerHeading:before{display:none!important;content:none!important}.manager .panelTitle.managerTitle{padding-left:0!important}.managerHeading h3{grid-area:title!important}.managerHeading p{grid-area:subtitle!important}
+.topbar .betaTag,.betaTag{position:fixed!important;left:16px!important;top:8px!important;z-index:48!important;height:22px!important;padding:0 9px!important;border-radius:4px!important;background:rgba(255,159,28,.10)!important;border:1px solid rgba(255,159,28,.58)!important;color:#ffb34d!important;box-shadow:0 0 18px rgba(255,159,28,.12)!important;letter-spacing:.08em!important}
+.gamesView{position:relative!important;gap:18px!important}.gamesHero{min-height:178px!important;padding:30px!important;display:flex!important;flex-direction:column!important;justify-content:center!important}.gamesGrid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(238px,1fr))!important;gap:18px!important}.gameCard{appearance:none!important;border:1px solid rgba(148,166,195,.17)!important;border-radius:26px!important;overflow:hidden!important;min-height:520px!important;padding:0!important;background:linear-gradient(180deg,#111c2e,#080f1b)!important;color:#fff!important;text-align:left!important;display:flex!important;flex-direction:column!important;cursor:pointer!important;box-shadow:0 24px 70px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.055)!important;transition:transform .2s cubic-bezier(.2,.8,.2,1),border-color .2s ease,box-shadow .2s ease,filter .2s ease!important}.gameCard:hover,.gameCard:focus-visible{transform:translateY(-5px)!important;border-color:color-mix(in srgb,var(--game-accent,#ff9f1c) 62%,rgba(148,166,195,.18))!important;box-shadow:0 34px 88px rgba(0,0,0,.44),0 0 0 1px color-mix(in srgb,var(--game-accent,#ff9f1c) 22%,transparent) inset!important;outline:0!important}.gamePoster{position:relative!important;height:auto!important;aspect-ratio:2/3!important;min-height:0!important;background:var(--game-fallback,linear-gradient(135deg,#131e31,#050911))!important;overflow:hidden!important}.gamePoster:after{content:""!important;position:absolute!important;inset:0!important;background:linear-gradient(180deg,rgba(5,9,15,0) 52%,rgba(5,9,15,.82) 100%),radial-gradient(circle at 18% 18%,color-mix(in srgb,var(--game-accent,#ff9f1c) 28%,transparent),transparent 38%)!important;pointer-events:none!important}.gamePoster img{width:100%!important;height:100%!important;display:block!important;object-fit:cover!important;filter:saturate(1.08) contrast(1.04)!important;transform:scale(1.012);transition:transform .24s ease,filter .24s ease!important}.gameCard:hover .gamePoster img{transform:scale(1.045);filter:saturate(1.16) contrast(1.07)!important}.posterMark{position:absolute;right:18px;bottom:16px;z-index:2;font-size:58px;font-weight:950;letter-spacing:-.08em;color:rgba(255,255,255,.12);text-shadow:0 12px 34px rgba(0,0,0,.46)}.gameBody{position:relative!important;flex:1!important;padding:18px!important;display:flex!important;flex-direction:column!important;gap:10px!important;background:linear-gradient(180deg,rgba(12,20,34,.94),rgba(8,14,24,.98))!important}.gameBody small{font-size:10.5px!important;letter-spacing:.07em!important}.gameBody h3{font-size:22px!important;line-height:1.05!important}.gameBody p{font-size:12.5px!important;line-height:1.48!important;color:#aebbd0!important}.gameMeta{margin-top:auto!important}.gameBetaInline{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;border:1px solid rgba(255,159,28,.20)!important;background:linear-gradient(135deg,rgba(255,159,28,.08),rgba(167,139,250,.055))!important;border-radius:18px!important;padding:13px 16px!important;color:#aebbd0!important;font-size:12.5px!important;line-height:1.35!important;min-height:0!important}.gameBetaInline b{color:#fff!important}.gameBetaInline span{color:#9eacc0!important}.gamesNote{min-height:0!important;padding:13px 16px!important}.gameScopedOverlay{position:absolute!important;inset:0!important;z-index:20!important;align-items:center!important;justify-content:center!important;background:rgba(3,8,14,.72)!important;backdrop-filter:blur(12px)!important}.gameScopedOverlay.open{display:flex!important}@media(max-width:900px){.gamesGrid{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))!important}.gameCard{min-height:460px!important}.gamesHero h2{font-size:34px!important}.gameBetaInline{align-items:flex-start!important;flex-direction:column!important}}
+
+/* v0.5.36 embedded covers + corner beta */
+.betaTag{display:none!important}
+.betaCorner{position:fixed!important;left:16px!important;top:9px!important;z-index:80!important;height:20px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;padding:0 8px!important;border-radius:4px!important;border:1px solid rgba(255,159,28,.60)!important;background:rgba(5,9,15,.82)!important;color:#ffb34d!important;font-family:Inter,'Segoe UI',system-ui,sans-serif!important;font-size:10px!important;font-weight:950!important;letter-spacing:.08em!important;box-shadow:0 0 18px rgba(255,159,28,.12),inset 0 1px 0 rgba(255,255,255,.08)!important;pointer-events:none!important}
+.gamePoster img{background:#050911!important}
+.gamePoster:has(img) .posterMark{display:none!important}
+/* v0.5.41 game preset mode handoff */
+.gameModePanel{width:min(760px,calc(100vw - 72px))!important;padding:24px!important;border-radius:18px!important;background:radial-gradient(circle at 12% 0%,rgba(255,159,28,.16),transparent 34%),radial-gradient(circle at 88% 10%,rgba(56,217,255,.12),transparent 32%),linear-gradient(145deg,#0d1828,#070f1b)!important;border:1px solid rgba(148,166,195,.22)!important;box-shadow:0 32px 100px rgba(0,0,0,.58)!important}.gameModeTop{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.gameModeTop small{display:block;color:#ffad42;font-size:10px;font-weight:950;text-transform:uppercase;letter-spacing:.08em}.gameModeTop h3{margin:5px 0 7px;font-size:26px;letter-spacing:-.025em}.gameModeTop p{margin:0;color:#aebbd0;font-size:13px;line-height:1.48}.gameModeCurrent{margin:16px 0 14px;border:1px solid rgba(98,168,255,.20);background:rgba(9,18,32,.72);border-radius:14px;padding:12px 14px;color:#dbe8f8;font-size:13px;font-weight:850}.gameModeChoices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.gameModeChoice{position:relative;min-height:96px;border:1px solid rgba(148,166,195,.16);border-radius:16px;background:linear-gradient(145deg,rgba(14,27,45,.88),rgba(7,14,25,.92));color:#f4f8ff;text-align:left;padding:15px;cursor:pointer;overflow:hidden;transition:transform .18s cubic-bezier(.2,.8,.2,1),border-color .18s ease,box-shadow .18s ease}.gameModeChoice:before{content:"";position:absolute;inset:0 auto auto 0;width:100%;height:3px;background:var(--choice,#62a8ff);box-shadow:0 0 18px color-mix(in srgb,var(--choice,#62a8ff) 35%,transparent)}.gameModeChoice:after{content:"";position:absolute;right:-28px;top:-30px;width:98px;height:98px;border-radius:999px;background:radial-gradient(circle,color-mix(in srgb,var(--choice,#62a8ff) 24%,transparent),transparent 70%);opacity:.7}.gameModeChoice:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--choice,#62a8ff) 58%,rgba(148,166,195,.16));box-shadow:0 18px 46px rgba(0,0,0,.30),0 0 0 1px color-mix(in srgb,var(--choice,#62a8ff) 18%,transparent) inset}.gameModeChoice b{position:relative;display:block;font-size:15px}.gameModeChoice span{position:relative;display:block;margin-top:8px;color:#9fb0c6;font-size:12px;line-height:1.42}.gameModeChoice.keep{--choice:#8fa1b8}.gameModeChoice.gaming{--choice:#ff9f1c}.gameModeChoice.competitive{--choice:#38d9ff}.gameModeChoice.streamer{--choice:#35e89a}.gameModeActiveActions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.gameModeActiveActions .btn{height:44px!important;border-radius:12px!important}@media(max-width:720px){.gameModeChoices,.gameModeActiveActions{grid-template-columns:1fr}.gameModePanel{width:min(560px,calc(100vw - 36px))!important}}
+/* v0.5.40 activity panel compact redesign */
+.activityPanel{
+  gap:14px!important;
+  padding:20px!important;
+  border-radius:22px!important;
+  background:
+    radial-gradient(circle at 12% 0%,rgba(255,159,28,.12),transparent 34%),
+    radial-gradient(circle at 92% 8%,rgba(98,168,255,.10),transparent 32%),
+    linear-gradient(180deg,rgba(14,22,35,.88),rgba(7,12,21,.92))!important;
+  border-color:rgba(148,166,195,.18)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.055),0 26px 60px rgba(0,0,0,.22)!important;
+}
+.activityPanel:before{display:none!important}
+.activityPanel .panelTitle{padding:0!important;min-height:32px!important}
+.activityPanel .panelTitle h3{font-size:22px!important;letter-spacing:-.02em!important}
+.activityPanel .panelTitle span{
+  height:28px!important;
+  padding:0 12px!important;
+  border-radius:999px!important;
+  background:rgba(98,168,255,.12)!important;
+  border:1px solid rgba(98,168,255,.22)!important;
+  color:#c7dcff!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06)!important;
+}
+.activityPanel .focusBox{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:9px!important;
+}
+.activityPanel .focusLine{
+  --metric-accent:#62a8ff;
+  position:relative!important;
+  min-height:62px!important;
+  padding:12px 13px!important;
+  border-radius:14px!important;
+  background:
+    radial-gradient(circle at 100% 0%,color-mix(in srgb,var(--metric-accent) 13%, transparent),transparent 58%),
+    linear-gradient(145deg,rgba(13,22,36,.80),rgba(7,13,23,.84))!important;
+  border:1px solid rgba(148,166,195,.14)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.045)!important;
+  overflow:hidden!important;
+  isolation:isolate;
+  transition:background .18s var(--sbn-ease,cubic-bezier(.22,1,.36,1)),border-color .18s var(--sbn-ease,cubic-bezier(.22,1,.36,1)),transform .18s var(--sbn-ease,cubic-bezier(.22,1,.36,1))!important;
+}
+.activityPanel .focusLine:hover{
+  transform:translateY(-1px)!important;
+  border-color:color-mix(in srgb,var(--metric-accent) 38%, rgba(148,166,195,.18))!important;
+  background:
+    radial-gradient(circle at 100% 0%,color-mix(in srgb,var(--metric-accent) 18%, transparent),transparent 58%),
+    linear-gradient(145deg,rgba(16,27,44,.86),rgba(8,15,26,.88))!important;
+}
+.activityPanel .focusLine:before{
+  content:""!important;
+  position:absolute!important;
+  left:13px!important;
+  top:14px!important;
+  width:6px!important;
+  height:6px!important;
+  border-radius:999px!important;
+  background:var(--metric-accent)!important;
+  box-shadow:0 0 14px color-mix(in srgb,var(--metric-accent) 44%, transparent)!important;
+}
+.activityPanel .focusLine:after{
+  content:""!important;
+  position:absolute!important;
+  inset:auto -34px -48px auto!important;
+  width:106px!important;
+  height:106px!important;
+  border-radius:999px!important;
+  background:radial-gradient(circle,color-mix(in srgb,var(--metric-accent) 12%, transparent),transparent 70%)!important;
+  pointer-events:none!important;
+  z-index:-1!important;
+}
+.activityPanel .focusLine small{
+  display:block!important;
+  padding-left:13px!important;
+  color:#8fa0b8!important;
+  font-size:10px!important;
+  line-height:1.15!important;
+  font-weight:900!important;
+  letter-spacing:.01em!important;
+}
+.activityPanel .focusLine small:before{display:none!important}
+.activityPanel .focusLine b{
+  display:block!important;
+  margin-top:8px!important;
+  color:#f7fbff!important;
+  font-size:15.5px!important;
+  line-height:1.18!important;
+  letter-spacing:-.01em!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  overflow-wrap:anywhere!important;
+  -webkit-line-clamp:unset!important;
+}
+.activityPanel .metric-top{grid-column:1/-1!important;min-height:72px!important;--metric-accent:#ffad2f}
+.activityPanel .metric-top b{font-size:20px!important}
+.activityPanel .metric-memory,.activityPanel .metric-learning{--metric-accent:#35e89a}
+.activityPanel .metric-profiles,.activityPanel .metric-pressure{--metric-accent:#a78bfa}
+.activityPanel .metric-intent,.activityPanel .metric-radar{grid-column:1/-1!important;--metric-accent:#62a8ff}
+.activityPanel .metric-zero{grid-column:1/-1!important;min-height:76px!important;--metric-accent:#35e89a}
+.activityPanel .metric-gpu{grid-column:1/-1!important;min-height:70px!important;--metric-accent:#8b5cf6}
+.activityPanel .metric-cpu{grid-column:1/-1!important;min-height:70px!important;--metric-accent:#ffad2f}
+.activityPanel .metric-live{grid-column:1/-1!important;min-height:66px!important;--metric-accent:#22d3ee}
+
+.activityPanel .timeline{
+  border-radius:16px!important;
+  background:linear-gradient(180deg,rgba(7,12,21,.86),rgba(5,10,18,.88))!important;
+  border-color:rgba(148,166,195,.13)!important;
+}
+@media(max-width:1320px){.activityPanel .focusBox{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:760px){.activityPanel .focusBox{grid-template-columns:1fr!important}.activityPanel .focusLine{grid-column:1/-1!important}}
+/* sbn-windowed-hotfix: responsive window and multi-monitor usability */
+.dashboard,.command,.leftCol,.rightCol,.manager,.table,.engineCard,.controlDeck,.cards,.modeRow,.featureGrid,.systemGrid{min-width:0!important}
+.command{align-items:start!important}
+.engineCard{align-self:start!important;height:auto!important;min-height:0!important}
+.engineCard .actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.engineCard .btn.primary{grid-column:1/-1!important}
+.modeRow{grid-template-columns:repeat(auto-fit,minmax(172px,1fr))!important}
+.modeBtn{min-height:116px!important;padding:14px 14px 34px!important;overflow:hidden!important}
+.modeBtn b,.modeBtn span{white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
+.modeBtn strong{max-width:calc(100% - 22px)!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.manager{width:100%!important;max-width:100%!important}
+.manager .table{width:100%!important;max-width:100%!important;overflow:auto!important;contain:layout paint!important}
+.manager .thead,.manager .row{width:max(100%,940px)!important;min-width:940px!important}
+@media(max-width:1560px){.dashboard{grid-template-columns:1fr!important}.rightCol{grid-template-rows:auto!important}.sidePanel{max-height:none!important}.timeline{max-height:360px!important}.manager .table{max-height:62vh!important}}
+@media(max-width:1360px){.command{grid-template-columns:1fr!important}.engineCard{max-width:none!important}.cards,.systemGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.modeInsight{grid-template-columns:1fr!important}}
+@media(max-width:980px){.modeRow{grid-template-columns:repeat(2,minmax(0,1fr))!important}.manager .thead,.manager .row{width:max(100%,860px)!important;min-width:860px!important}.statusBar{padding-right:112px!important}}
+@media(max-width:760px){.modeRow,.cards,.systemGrid{grid-template-columns:1fr!important}.modeBtn{min-height:104px!important}.manager .table{max-width:calc(100vw - 96px)!important}.manager .thead,.manager .row{width:max(100%,820px)!important;min-width:820px!important}}
+
+/* v0.5.45 command hero spacing pass */
+.command{align-items:stretch!important}
+.commandHero{min-height:100%!important;justify-content:flex-start!important}
+.commandHero .chipRow{
+  margin-top:auto!important;
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:10px!important;
+  padding:12px!important;
+  border:1px solid rgba(148,166,195,.13)!important;
+  border-radius:16px!important;
+  background:linear-gradient(145deg,rgba(12,21,35,.78),rgba(7,13,23,.86))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035)!important;
+}
+.commandHero .chipRow .chip{
+  width:100%!important;
+  min-width:0!important;
+  height:36px!important;
+  justify-content:center!important;
+  padding:0 12px!important;
+  font-size:11px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  background:rgba(8,15,26,.72)!important;
+}
+.engineCard{align-self:start!important;gap:10px!important}
+.engineCard .detail{min-height:22px!important}
+.engineCard .engineSummary span,.engineCard .engineLiveStrip span,.engineCard .mini{min-height:50px!important;padding:10px!important}
+.engineCard .meter{grid-template-columns:84px minmax(0,1fr)!important;gap:10px!important}
+.engineCard .ring{width:84px!important;height:84px!important}
+.engineCard .ring b{font-size:22px!important}
+.engineCard .metricGrid{gap:8px!important}
+.engineCard .actions{gap:8px!important}
+.engineCard .btn{height:40px!important}
+.enginePulse{min-height:0!important;padding:12px!important;gap:8px!important}
+.enginePulseTop b{font-size:12.5px!important}
+.pulseTrack{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:7px!important}
+.pulseStep{min-height:46px!important;padding:8px!important}
+.pulseStep b{font-size:10.5px!important;line-height:1.1!important}
+.pulseStep em{font-size:9.5px!important;line-height:1.15!important}
+@media(max-width:1360px){.commandHero .chipRow{margin-top:0!important}.engineCard .meter{grid-template-columns:94px minmax(0,1fr)!important}.engineCard .ring{width:94px!important;height:94px!important}}
+@media(max-width:760px){.commandHero .chipRow{grid-template-columns:repeat(2,minmax(0,1fr))!important}.pulseTrack{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+/* v0.5.41 game discovery feedback */
+.gameCard.pending{pointer-events:auto!important;filter:saturate(.92)!important}.gameCard.pending:after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(110deg,transparent 0 42%,rgba(255,255,255,.055) 50%,transparent 60%);transform:translateX(-120%);animation:sweepLight 1.35s ease-in-out infinite;pointer-events:none}.gameMeta .missing{border-color:rgba(255,173,47,.28)!important;color:#ffd18a!important;background:rgba(255,173,47,.08)!important}.gameCardActions{display:grid!important;grid-template-columns:1.15fr .95fr .95fr!important;gap:9px!important;margin-top:10px!important}.gameMiniBtn{height:34px!important;border-radius:12px!important;border:1px solid rgba(148,166,195,.18)!important;background:linear-gradient(145deg,rgba(14,25,42,.92),rgba(7,13,23,.94))!important;color:#dce8f7!important;font:900 11px/1 Inter,'Segoe UI',system-ui,sans-serif!important;cursor:pointer!important;transition:transform .16s cubic-bezier(.22,1,.36,1),border-color .16s ease,background .16s ease,box-shadow .16s ease!important}.gameMiniBtn:hover{transform:translateY(-1px)!important;border-color:color-mix(in srgb,var(--game-accent,#ff9f1c) 48%,rgba(148,166,195,.18))!important;box-shadow:0 12px 30px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.06)!important}.gameMiniBtn.primary{color:#06111f!important;border-color:color-mix(in srgb,var(--game-accent,#ff9f1c) 76%,transparent)!important;background:linear-gradient(135deg,color-mix(in srgb,var(--game-accent,#ff9f1c) 92%,#fff 8%),#ff9f1c)!important}.gameMiniBtn.needsPath{color:#ffd18a!important;border-color:rgba(255,159,28,.42)!important;background:linear-gradient(135deg,rgba(255,159,28,.18),rgba(7,13,23,.94))!important}.gameMiniBtn.folder{border-color:rgba(98,168,255,.26)!important}.gameMiniBtn.scan{border-color:rgba(148,166,195,.20)!important}.gameMiniBtn:disabled{cursor:wait!important;opacity:.78!important;transform:none!important}.gamePresetMeta span b,.gamePresetTop h3,.gamesHero p,.gameBetaInline span{overflow-wrap:anywhere!important}@media(max-width:620px){.gameCardActions{grid-template-columns:1fr!important}.gameMiniBtn{height:36px!important}}
 </style>
 </head>
 <body>
-<div class="app">
+<div class="app"><div class="betaCorner">BETA</div>
   <div class="windowControls">
-    <button class="chromeBtn" title="Minimize" onclick="send('minimize')">-</button>
-    <button class="chromeBtn" title="Maximize" onclick="send('maximize')">&#9633;</button>
-    <button class="chromeBtn close" title="Close" onclick="send('close')">x</button>
+    <button class="chromeBtn" title="Minimizar" onclick="send('minimize')">&#8211;</button>
+    <button class="chromeBtn" title="Maximizar" onclick="send('maximize')">&#9633;</button>
+    <button class="chromeBtn close" title="Fechar" onclick="send('close')">&#10005;</button>
   </div>
   <aside class="rail">
     <nav class="navStack">
-      <button class="nav active" title="Painel" data-title-key="navDashboard"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 11.5 12 4l9 7.5v8.5h-6v-5H9v5H3z"/></svg></button>
+      <button class="nav active" title="Painel" data-title-key="navDashboard" data-view="dashboard" onclick="showView('dashboard')"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 11.5 12 4l9 7.5v8.5h-6v-5H9v5H3z"/></svg></button>
+      <button class="nav" title="Jogos beta" data-title-key="navGames" data-view="games" onclick="showView('games')"><span class="navBeta"></span><svg viewBox="0 0 24 24"><path fill="currentColor" d="M7 8h10a4 4 0 0 1 3.9 3.2l.8 4a3 3 0 0 1-5.2 2.5L14.8 16H9.2l-1.7 1.7a3 3 0 0 1-5.2-2.5l.8-4A4 4 0 0 1 7 8zm2 3v2H7v2h2v2h2v-2h2v-2h-2v-2zm7.8.4a1.1 1.1 0 1 0 0 2.2 1.1 1.1 0 0 0 0-2.2zm2.1 3a1.1 1.1 0 1 0 0 2.2 1.1 1.1 0 0 0 0-2.2z"/></svg></button>
       <button class="nav" title="Log de atividade" data-title-key="navLog" onclick="send('log')"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M5 4h14v16H5zm3 4v2h8V8zm0 4v2h8v-2zm0 4v2h5v-2z"/></svg></button>
       <button class="nav" title="Arquivos locais" data-title-key="navFiles" onclick="send('folder')"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 6h7l2 2h9v10H3z"/></svg></button>
       <button class="nav" title="GitHub" data-title-key="navGithub" onclick="send('github')"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 0 0-3 19c.5.1.7-.2.7-.5v-2c-3 .6-3.6-1.2-3.6-1.2-.5-1.1-1.1-1.4-1.1-1.4-.9-.6.1-.6.1-.6 1 .1 1.6 1.1 1.6 1.1.9 1.5 2.4 1.1 3 .8.1-.7.4-1.1.7-1.3-2.4-.3-4.9-1.2-4.9-5A3.9 3.9 0 0 1 6.5 7c-.1-.3-.5-1.4.1-2.8 0 0 .9-.3 3 1.1a10.3 10.3 0 0 1 5.4 0c2.1-1.4 3-1.1 3-1.1.6 1.4.2 2.5.1 2.8a3.9 3.9 0 0 1 1 2.7c0 3.9-2.5 4.8-4.9 5.1.4.3.8 1 .8 2v3c0 .3.2.6.8.5A10 10 0 0 0 12 2z"/></svg></button>
@@ -363,7 +1268,7 @@ html,body{background:#09090b!important;font-family:Inter,"SF Pro Display","Segoe
           <span class="pill" id="motor">Motor</span>
         </div>
       </section>
-      <section class="dashboard">
+      <section class="dashboard" id="dashboardView">
         <div class="leftCol">
           <section class="panel command">
             <div class="commandHero">
@@ -496,7 +1401,7 @@ html,body{background:#09090b!important;font-family:Inter,"SF Pro Display","Segoe
             </div>
           </section>
           <section class="panel manager">
-            <div class="panelTitle"><h3 data-i18n="liveManager">Gerenciador ao vivo</h3><span id="managerStatus">Aguardando dados do motor.</span></div>
+            <div class="panelTitle managerTitle"><div class="managerHeading"><h3 data-i18n="liveManager">Gerenciador ao vivo</h3><p data-i18n="liveManagerSubtitle">Apps agrupados por impacto e decisão do motor.</p></div><span id="managerStatus">Aguardando dados do motor.</span></div>
             <div class="table">
               <div class="thead"><span data-i18n="colApp">App</span><span data-i18n="colScore">Impacto</span><span data-i18n="colDelta">RAM</span><span data-i18n="colCpu">CPU</span><span data-i18n="colBursts">Picos</span><span data-i18n="colAction">Decisão</span></div>
               <div id="rows"></div>
@@ -504,21 +1409,20 @@ html,body{background:#09090b!important;font-family:Inter,"SF Pro Display","Segoe
           </section>
         </div>
         <aside class="rightCol">
-          <section class="panel sidePanel">
+          <section class="panel sidePanel activityPanel">
             <div class="panelTitle"><h3 data-i18n="engineTelemetry">Engine Telemetry</h3><span id="enginePass">0 apps</span></div>
             <div class="focusBox">
-              <div class="focusLine"><small data-i18n="topManaged">Top managed app</small><b id="engineTop">-</b></div>
-              <div class="focusLine"><small data-i18n="reclaimedMemory">Reclaimed memory</small><b id="reclaimedValue">0 MB</b></div>
-              <div class="focusLine"><small data-i18n="learnedProfiles">Learned profiles</small><b id="learnedProfiles">0</b></div>
-              <div class="focusLine"><small data-i18n="behaviorEngine">Behavior engine</small><b id="behaviorState">-</b></div>
-              <div class="focusLine"><small data-i18n="memoryPressure">Memory pressure</small><b id="memoryPressure">-</b></div>
-              <div class="focusLine"><small data-i18n="intentState">Intent engine</small><b id="intentState">-</b></div>
-              <div class="focusLine"><small data-i18n="contentionRadar">Contention radar</small><b id="radarState">-</b></div>
-              <div class="focusLine"><small data-i18n="udpTelemetryK">Zero Ping</small><b id="udpTelemetry">-</b></div>
-              <div class="focusLine"><small data-i18n="gpuPressureK">GPU/VRAM</small><b id="gpuPressureState">-</b></div>
-              <div class="focusLine"><small data-i18n="cpuBoundK">CPU-Bound Assist</small><b id="cpuBoundState">-</b></div>
-              <div class="focusLine"><small data-i18n="engineHealthK">Saúde do motor</small><b id="engineHealthState">-</b></div>
-              <div class="focusLine"><small data-i18n="streamTelemetryK">Live Guard</small><b id="streamTelemetry">-</b></div>
+              <div class="focusLine metric-top"><small data-i18n="topManaged">Top managed app</small><b id="engineTop">-</b></div>
+              <div class="focusLine metric-memory"><small data-i18n="reclaimedMemory">Reclaimed memory</small><b id="reclaimedValue">0 MB</b></div>
+              <div class="focusLine metric-profiles"><small data-i18n="learnedProfiles">Learned profiles</small><b id="learnedProfiles">0</b></div>
+              <div class="focusLine metric-learning"><small data-i18n="behaviorEngine">Behavior engine</small><b id="behaviorState">-</b></div>
+              <div class="focusLine metric-pressure"><small data-i18n="memoryPressure">Memory pressure</small><b id="memoryPressure">-</b></div>
+              <div class="focusLine metric-intent"><small data-i18n="intentState">Intent engine</small><b id="intentState">-</b></div>
+              <div class="focusLine metric-radar"><small data-i18n="contentionRadar">Contention radar</small><b id="radarState">-</b></div>
+              <div class="focusLine metric-zero"><small data-i18n="udpTelemetryK">Zero Ping</small><b id="udpTelemetry">-</b></div>
+              <div class="focusLine metric-gpu"><small data-i18n="gpuPressureK">GPU/VRAM</small><b id="gpuPressureState">-</b></div>
+              <div class="focusLine metric-cpu"><small data-i18n="cpuBoundK">CPU-Bound Assist</small><b id="cpuBoundState">-</b></div>
+              <div class="focusLine metric-live"><small data-i18n="streamTelemetryK">Live Guard</small><b id="streamTelemetry">-</b></div>
             </div>
             <div class="permissionBox" id="permissionBox">
               <div><small data-i18n="permissionK">Permission guard</small><b data-i18n="permissionT">Some apps refused changes</b></div>
@@ -528,6 +1432,63 @@ html,body{background:#09090b!important;font-family:Inter,"SF Pro Display","Segoe
             <div class="timeline" id="events"></div>
           </section>
         </aside>
+      </section>
+      <section class="gamesView" id="gamesView" hidden>
+        <div class="gamesHero">
+          <h2>Biblioteca de jogos</h2>
+          <p>Presets por jogo com ajustes seguros, opções experimentais e confirmação antes de aplicar. A ideia é adaptar o Windows ao jogo real, ao launcher usado e ao hardware da pessoa.</p>
+        </div>
+        <div class="gamesGrid" id="gamesGrid"></div>
+        <div class="gameBetaInline"><div><b>Beta tester ativo</b><span>Presets por jogo com revisão antes de aplicar. Ajustes experimentais ficam sempre destacados.</span></div><button class="btn gameRestoreBtn" onclick="send('restoreGamePreset')">Restaurar alterações</button></div>
+        <div class="infoOverlay gameScopedOverlay" id="gameBetaOverlay" role="dialog" aria-modal="true">
+          <div class="infoPanel">
+            <div class="gameBetaHero"><img id="gameBetaLogo" alt=""><div><small class="modalEyebrow">BETA TESTER</small><b>Bem-vindo ao Smart Snap Beta</b></div></div>
+            <p>Você está testando primeiro a área de jogos. Em breve ela pode virar um recurso premium, mas beta testers recebem acesso antecipado para validar presets, opções experimentais e melhorias por jogo.</p>
+            <ul class="infoList">
+              <li>Presets seguros aparecem separados de ajustes experimentais.</li>
+              <li>Nada é aplicado sem confirmação.</li>
+              <li>O app tenta detectar diretórios por launchers e processos reais.</li>
+            </ul>
+            <div class="infoActions single"><button class="btn primary" onclick="ackGameBetaWelcome()">Entrar no beta</button></div>
+          </div>
+        </div>
+        <div class="infoOverlay gameScopedOverlay" id="gamePresetOverlay" role="dialog" aria-modal="true">
+          <div class="infoPanel gamePresetPanel">
+            <div class="gamePresetShell">
+              <aside class="gamePresetLead">
+                <div class="gamePresetBadge"><i>&#9889;</i><span id="gamePresetKind">Best performance</span></div>
+                <div><h2 id="gamePresetTitle">Preset de jogo</h2><p id="gamePresetSummary">Confirme os ajustes antes de aplicar.</p></div>
+                <div class="gamePresetChip" id="gamePresetChip">Game: -</div>
+                <div class="gamePresetMeta">
+                  <span>Seguro <b id="gameSafeCount">0 ativos</b></span>
+                  <span>Experimental <b id="gameExperimentalCount">0 ativos</b></span>
+                  <span>Status <b id="gamePresetStatus">Beta</b></span>
+                </div>
+              </aside>
+              <section class="gamePresetMain">
+                <div class="gamePresetTop"><div><h3>Otimizações selecionadas</h3><p>Revise o que será aplicado. Experimentos ficam separados para você decidir com clareza.</p></div><button class="gamePresetClose" onclick="closeGamePreset()">&times;</button></div>
+                <div class="gameOptions"><div><h4>Seguro</h4><ul id="gameSafeList"></ul></div><div class="experimental"><h4>Experimental</h4><ul id="gameExperimentalList"></ul></div></div>
+                <div class="gameActions"><button class="btn danger" onclick="restoreSelectedGamePreset()">Restaurar para padrão</button><button class="btn" onclick="closeGamePreset()">Cancelar</button><button class="btn primary" onclick="confirmGamePreset()">Ativar preset</button></div>
+              </section>
+            </div>
+          </div>
+        </div>
+        <div class="infoOverlay gameScopedOverlay" id="gameModeOverlay" role="dialog" aria-modal="true">
+          <div class="infoPanel gameModePanel">
+            <div class="gameModeTop"><div><small>Motor do jogo</small><h3 id="gameModeTitle">Preparar o motor?</h3><p id="gameModeBody">Escolha se quer ativar um modo global junto do preset.</p></div><button class="gamePresetClose" onclick="closeGameModePrompt()">&times;</button></div>
+            <div class="gameModeCurrent" id="gameModeCurrent">Modo atual: Auto</div>
+            <div class="gameModeChoices" id="gameModeChoices">
+              <button class="gameModeChoice keep" onclick="applyGamePresetModeChoice('keep',false)"><b>Manter modo atual</b><span>Aplica só o preset do jogo, sem mexer no modo global.</span></button>
+              <button class="gameModeChoice gaming" onclick="applyGamePresetModeChoice('Gaming',false)"><b>Modo Jogos</b><span>Prioriza o jogo e oferece o plano Smart Nap MODO JOGO.</span></button>
+              <button class="gameModeChoice competitive" onclick="applyGamePresetModeChoice('Competitive',false)"><b>Modo Competitivo</b><span>Mais direto para partidas online. Usa o mesmo plano do Modo Jogos.</span></button>
+              <button class="gameModeChoice streamer" onclick="applyGamePresetModeChoice('Streamer',false)"><b>Modo Live</b><span>Protege jogo, encoder, áudio e voz durante transmissão.</span></button>
+            </div>
+            <div class="gameModeActiveActions" id="gameModeActiveActions" hidden>
+              <button class="btn" onclick="applyGamePresetModeChoice('keep',false)">Aplicar preset</button>
+              <button class="btn primary" onclick="applyGamePresetModeChoice('keep',true)">Aplicar e revisar energia</button>
+            </div>
+          </div>
+        </div>
       </section>
       <div class="feedbox"></div><div class="status"></div><footer class="footer" id="creator"></footer>
     </div>
@@ -820,6 +1781,7 @@ Object.keys(LANGS).forEach(k=>{
   LANGS[k].cooldownLabel = LANGS[k].cooldownLabel || "cooldown";
   LANGS[k].panelLabel = LANGS[k].panelLabel || "Panel";
   LANGS[k].browserRole = LANGS[k].browserRole || "Browser";
+  LANGS[k].liveManagerSubtitle = LANGS[k].liveManagerSubtitle || "Apps grouped by impact and engine decision.";
   LANGS[k].mediaCallRole = LANGS[k].mediaCallRole || "Media";
   LANGS[k].streamingRole = LANGS[k].streamingRole || "Streaming";
   LANGS[k].streamHelperRole = LANGS[k].streamHelperRole || "Stream helper";
@@ -892,12 +1854,21 @@ Object.keys(LANGS).forEach(k=>{
   LANGS[k].updateDownload = LANGS[k].updateDownload || "Update";
   LANGS[k].updateDismiss = LANGS[k].updateDismiss || "Do not remind this version";
   LANGS[k].updateCheck = LANGS[k].updateCheck || "Check";
+  LANGS[k].updateInstallNow = LANGS[k].updateInstallNow || "Download and install";
+  LANGS[k].updateInstalling = LANGS[k].updateInstalling || "Installing";
+  LANGS[k].updateStatusInstalling = LANGS[k].updateStatusInstalling || "Downloading and installing inside Smart Nap...";
+  LANGS[k].updateStatusInstallHint = LANGS[k].updateStatusInstallHint || "Click Download and install to update without opening a browser.";
+  LANGS[k].updateStatusCheckingShort = LANGS[k].updateStatusCheckingShort || "Checking...";
+  LANGS[k].updateInternalHint = LANGS[k].updateInternalHint || "Downloads, verifies, replaces and restarts directly inside Smart Nap.";
+  LANGS[k].liveReady = LANGS[k].liveReady || "Panel synced";
+  LANGS[k].lastRefresh = LANGS[k].lastRefresh || "Last refresh";
   LANGS[k].sessionK = LANGS[k].sessionK || "Session"; LANGS[k].sessionT = LANGS[k].sessionT || "Engine mode";
   LANGS[k].modeAuto = LANGS[k].modeAuto || "Auto"; LANGS[k].modeGaming = LANGS[k].modeGaming || "Gaming"; LANGS[k].modeCompetitive = LANGS[k].modeCompetitive || "Competitive"; LANGS[k].modeStreamer = LANGS[k].modeStreamer || "Streamer"; LANGS[k].modeWork = LANGS[k].modeWork || "Work"; LANGS[k].modeFocus = LANGS[k].modeFocus || "Focus"; LANGS[k].modeAutoD = LANGS[k].modeAutoD || "Balanced daily behavior."; LANGS[k].modeGamingD = LANGS[k].modeGamingD || "Fast foreground recovery."; LANGS[k].modeCompetitiveD = LANGS[k].modeCompetitiveD || "Online game, voice, and input priority."; LANGS[k].modeStreamerD = LANGS[k].modeStreamerD || "Protect stream and game."; LANGS[k].modeWorkD = LANGS[k].modeWorkD || "Keeps tools responsive."; LANGS[k].modeFocusD = LANGS[k].modeFocusD || "Stronger idle cleanup.";
   LANGS[k].managedAppsK = LANGS[k].managedAppsK || "Managed apps"; LANGS[k].treatmentK = LANGS[k].treatmentK || "Treatment"; LANGS[k].policyK = LANGS[k].policyK || "Policies"; LANGS[k].clearPolicies = LANGS[k].clearPolicies || "Clear policies"; LANGS[k].selectedModeK = LANGS[k].selectedModeK || "Selected behavior"; LANGS[k].autoPolicyK = LANGS[k].autoPolicyK || "App decisions"; LANGS[k].autoPolicyV = LANGS[k].autoPolicyV || "Automatic"; LANGS[k].manualPoliciesK = LANGS[k].manualPoliciesK || "Manual policies"; LANGS[k].learningShortK = LANGS[k].learningShortK || "Learning"; LANGS[k].energyPlanK = LANGS[k].energyPlanK || "Energy plan"; LANGS[k].modeAutoPill = LANGS[k].modeAutoPill || "Daily"; LANGS[k].modeGamingPill = LANGS[k].modeGamingPill || "Power"; LANGS[k].modeCompetitivePill = LANGS[k].modeCompetitivePill || "Netcode"; LANGS[k].modeStreamerPill = LANGS[k].modeStreamerPill || "Stream guard"; LANGS[k].modeWorkPill = LANGS[k].modeWorkPill || "Stable"; LANGS[k].modeFocusPill = LANGS[k].modeFocusPill || "Deep";
 });
-Object.assign(LANGS["pt-BR"],{engineVitalsK:"Leitura atual",engineFocusK:"Foco atual",engineLearningK:"Aprendizado",enginePermissionK:"Permissões",engineStreamK:"Live Guard",foregroundProtected:"Retorno protegido",learningProfilesValue:"{count} perfis",learningActiveHint:"Ajustando por histórico local",learningOffHint:"Opcional desligado",permissionOk:"Tudo OK",permissionOkHint:"Sem bloqueios no último passe",permissionDenialsShort:"{count} apps",permissionAdminHint:"Admin pode liberar mais controle",permissionElevatedHint:"Rodando com permissão alta",streamWaiting:"Aguardando live",streamWaitingHint:"OBS/Streamlabs/TikTok não detectado",streamActiveHint:"Protegendo encoder e helpers",ramFreeNowK:"RAM livre agora",ramFreeValue:"{free} livres",ramInstalledK:"RAM instalada",pagefileFreeK:"Paginação livre",controlTitle:"Controle em tempo real",systemProfile:"Perfil do PC",ramLabel:"Memória RAM livre",systemLabel:"Sistema",gpuHint:"GPU",localSnapshot:"",freeNow:"{free} livre agora",ramShort:"RAM",freeSuffix:"livre",pagefileShort:"Paginação",loadShort:"carga",behaviorEngine:"Aprendizado",behaviorK:"Aprendizado",behaviorT:"Motor comportamental",behaviorProfilesLabel:"Perfis locais",behaviorD:"Cria perfis locais por CPU, memória recuperada, picos de uso e retorno de janela.",behaviorMode:"modo",behaviorAdaptive:"adaptativo",behaviorOn:"ligado",behaviorOff:"desligado",profilesShort:"perfis",pressureNormal:"Normal",pressureModerate:"Moderada",pressureElevated:"Elevada",pressureCritical:"Crítica",pressureUnknown:"Desconhecida",pressureBusy:"Ocupada",intentDesktop:"Uso comum",intentMemoryPressure:"Memória pressionada",intentMediaCall:"Mídia ou chamada",intentGaming:"Jogo em foco",intentDownloadInstall:"Download ou instalação",intentStreaming:"Live/stream",browserRole:"Navegador",streamingRole:"Streaming",streamHelperRole:"Helper da live",mediaCallRole:"Mídia",behaviorGuardLabel:"Protegido",cpuBadge:"CPU",memoryBadge:"RAM",ioBadge:"I/O",trimBadge:"RAM",ecoBadge:"Eco",cooldownBadge:"Pausa",trimSkipBadge:"RAM ignorada",adminNeededBadge:"Admin",startupHintOn:"Desativar iniciar com Windows",startupHintOff:"Ativar iniciar com Windows",updateK:"Atualização oficial",updateTitle:"Nova versão disponível",updateBody:"A versão {version} saiu no GitHub oficial. Baixe o EXE mais novo quando quiser atualizar.",updateDownload:"Atualizar",updateDismiss:"Não lembrar esta versão",updateCheck:"Checar",updateAction:"Procurar atualizações",updateModalTitle:"Atualizações",updateModalBody:"Verifique o canal oficial do GitHub e escolha se o Smart Nap pode procurar novas versões automaticamente.",updateAuto:"Atualização automática",updateAutoHint:"Quando ligado, o Smart Nap consulta o GitHub Releases de tempos em tempos e só mostra um lembrete.",updateAutoOn:"Auto ligado",updateAutoOff:"Auto desligado",updateStatusReady:"Pronto para consultar o canal oficial.",updateStatusChecking:"Consultando GitHub Releases agora.",updateStatusAvailable:"A versão {version} está disponível.",updateStatusCurrent:"Você já está na versão atual.",updateStatusIgnored:"Esta versão está oculta até sair uma release mais nova.",sessionK:"Sessão",sessionT:"Modo do motor",modeAuto:"Auto",modeGaming:"Jogos",modeStreamer:"Live",modeWork:"Trabalho",modeFocus:"Foco",modeAutoD:"Equilíbrio automático para uso diário.",modeGamingD:"Prioriza o jogo ativo sem fechar o resto.",modeCompetitive:"Competitivo",modeCompetitiveD:"Prioriza partidas online, voz e entrada.",modeCompetitivePill:"Netcode",modeStreamerD:"Protege live, encoder e jogo.",modeWorkD:"Mantém apps responsivos.",modeFocusD:"Alivia apps parados com mais firmeza.",selectedModeK:"Modo selecionado",autoPolicyK:"Decisão automática",autoPolicyV:"Automática",manualPoliciesK:"Políticas manuais",treatmentK:"Tratamento",learningShortK:"Aprendizado",energyPlanK:"Energia",modeAutoPill:"Uso diário",modeGamingPill:"Desempenho",modeStreamerPill:"Live segura",modeWorkPill:"Estável",modeFocusPill:"Fundo leve",policyK:"Políticas",clearPolicies:"Limpar políticas"});
-Object.assign(LANGS["en-US"],{engineVitalsK:"Current read",engineFocusK:"Current focus",engineLearningK:"Learning",enginePermissionK:"Permissions",engineStreamK:"Live Guard",foregroundProtected:"Fast wake protected",learningProfilesValue:"{count} profiles",learningActiveHint:"Tuned by local history",learningOffHint:"Optional feature off",permissionOk:"All OK",permissionOkHint:"No blocked changes in last pass",permissionDenialsShort:"{count} apps",permissionAdminHint:"Admin can unlock more control",permissionElevatedHint:"Running with high permission",streamWaiting:"Waiting for live",streamWaitingHint:"OBS/Streamlabs/TikTok not detected",streamActiveHint:"Protecting encoder and helpers",ramFreeNowK:"Free RAM now",ramFreeValue:"{free} free",ramInstalledK:"Installed RAM",pagefileFreeK:"Free pagefile",systemProfile:"PC Profile",ramLabel:"Free RAM",systemLabel:"System",gpuHint:"Graphics adapter",localSnapshot:"",freeNow:"{free} free now",ramShort:"RAM",freeSuffix:"free",pagefileShort:"Pagefile",loadShort:"load",behaviorEngine:"Behavior Engine",behaviorK:"Core intelligence",behaviorT:"Behavior Engine",behaviorD:"Profiles apps locally by CPU, memory return, bursts and wake events.",behaviorMode:"mode",behaviorAdaptive:"adaptive",behaviorOn:"on",behaviorOff:"off",profilesShort:"profiles"});
+Object.assign(LANGS["pt-BR"],{engineVitalsK:"Leitura atual",engineFocusK:"Foco atual",engineLearningK:"Aprendizado",enginePermissionK:"Permissões",engineStreamK:"Live Guard",foregroundProtected:"Retorno protegido",learningProfilesValue:"{count} perfis",learningActiveHint:"Ajustando por histórico local",learningOffHint:"Opcional desligado",permissionOk:"Tudo OK",permissionOkHint:"Sem bloqueios no último passe",permissionDenialsShort:"{count} apps",permissionAdminHint:"Admin pode liberar mais controle",permissionElevatedHint:"Rodando com permissão alta",streamWaiting:"Aguardando live",streamWaitingHint:"OBS/Streamlabs/TikTok não detectado",streamActiveHint:"Protegendo encoder e helpers",ramFreeNowK:"RAM livre agora",ramFreeValue:"{free} livres",ramInstalledK:"RAM instalada",pagefileFreeK:"Paginação livre",controlTitle:"Controle em tempo real",systemProfile:"Perfil do PC",ramLabel:"Memória RAM livre",systemLabel:"Sistema",gpuHint:"GPU",localSnapshot:"",freeNow:"{free} livre agora",ramShort:"RAM",freeSuffix:"livre",pagefileShort:"Paginação",loadShort:"carga",behaviorEngine:"Aprendizado",behaviorK:"Aprendizado",behaviorT:"Motor comportamental",behaviorProfilesLabel:"Perfis locais",behaviorD:"Cria perfis locais por CPU, memória recuperada, picos de uso e retorno de janela.",behaviorMode:"modo",behaviorAdaptive:"adaptativo",behaviorOn:"ligado",behaviorOff:"desligado",profilesShort:"perfis",pressureNormal:"Normal",pressureModerate:"Moderada",pressureElevated:"Elevada",pressureCritical:"Crítica",pressureUnknown:"Desconhecida",pressureBusy:"Ocupada",intentDesktop:"Uso comum",intentMemoryPressure:"Memória pressionada",intentMediaCall:"Mídia ou chamada",intentGaming:"Jogo em foco",intentDownloadInstall:"Download ou instalação",intentStreaming:"Live/stream",browserRole:"Navegador",streamingRole:"Streaming",streamHelperRole:"Helper da live",mediaCallRole:"Mídia",behaviorGuardLabel:"Protegido",cpuBadge:"CPU",memoryBadge:"RAM",ioBadge:"I/O",trimBadge:"RAM",ecoBadge:"Eco",cooldownBadge:"Pausa",trimSkipBadge:"RAM ignorada",adminNeededBadge:"Admin",startupHintOn:"Desativar iniciar com Windows",startupHintOff:"Ativar iniciar com Windows",updateK:"Atualização oficial",updateTitle:"Nova versão disponível",updateBody:"A versão {version} saiu no GitHub oficial. Baixe o EXE mais novo quando quiser atualizar.",updateDownload:"Atualizar",updateDismiss:"Não lembrar esta versão",updateCheck:"Checar",updateAction:"Procurar atualizações",updateModalTitle:"Atualizações",updateModalBody:"Verifique o canal oficial do GitHub e escolha se o Smart Nap pode procurar novas versões automaticamente.",updateAuto:"Atualização automática",updateAutoHint:"Quando ligado, o Smart Nap consulta o GitHub Releases de tempos em tempos e só mostra um lembrete.",updateAutoOn:"Auto ligado",updateAutoOff:"Auto desligado",updateStatusReady:"Pronto para consultar o canal oficial.",updateStatusChecking:"Consultando GitHub Releases agora.",updateStatusAvailable:"A versão {version} está disponível.",updateStatusInstalling:"Baixando e instalando direto pelo Smart Nap...",updateStatusInstallHint:"Clique em Baixar e instalar para atualizar sem abrir navegador.",updateStatusCheckingShort:"Consultando...",updateInstallNow:"Baixar e instalar",updateInstalling:"Instalando",updateInternalHint:"Baixa, valida, substitui e reinicia direto pelo Smart Nap.",liveReady:"Painel sincronizado",lastRefresh:"Última atualização",updateStatusCurrent:"Você já está na versão atual.",updateStatusIgnored:"Esta versão está oculta até sair uma release mais nova.",sessionK:"Sessão",sessionT:"Modo do motor",modeAuto:"Auto",modeGaming:"Jogos",modeStreamer:"Live",modeWork:"Trabalho",modeFocus:"Foco",modeAutoD:"Equilíbrio automático para uso diário.",modeGamingD:"Prioriza o jogo ativo sem fechar o resto.",modeCompetitive:"Competitivo",modeCompetitiveD:"Prioriza partidas online, voz e entrada.",modeCompetitivePill:"Netcode",modeStreamerD:"Protege live, encoder e jogo.",modeWorkD:"Mantém apps responsivos.",modeFocusD:"Alivia apps parados com mais firmeza.",selectedModeK:"Modo selecionado",autoPolicyK:"Decisão automática",autoPolicyV:"Automática",manualPoliciesK:"Políticas manuais",treatmentK:"Tratamento",learningShortK:"Aprendizado",energyPlanK:"Energia",modeAutoPill:"Uso diário",modeGamingPill:"Desempenho",modeStreamerPill:"Live segura",modeWorkPill:"Estável",modeFocusPill:"Fundo leve",policyK:"Políticas",clearPolicies:"Limpar políticas"});
+LANGS["pt-BR"].liveManagerSubtitle="Apps agrupados por impacto e decisão do motor.";
+Object.assign(LANGS["en-US"],{updateInstallNow:"Download and install",updateInstalling:"Installing",updateStatusInstalling:"Downloading and installing inside Smart Nap...",updateStatusInstallHint:"Click Download and install to update without opening a browser.",updateStatusCheckingShort:"Checking...",updateInternalHint:"Downloads, verifies, replaces and restarts directly inside Smart Nap.",liveReady:"Panel synced",lastRefresh:"Last refresh",engineVitalsK:"Current read",engineFocusK:"Current focus",engineLearningK:"Learning",enginePermissionK:"Permissions",engineStreamK:"Live Guard",foregroundProtected:"Fast wake protected",learningProfilesValue:"{count} profiles",learningActiveHint:"Tuned by local history",learningOffHint:"Optional feature off",permissionOk:"All OK",permissionOkHint:"No blocked changes in last pass",permissionDenialsShort:"{count} apps",permissionAdminHint:"Admin can unlock more control",permissionElevatedHint:"Running with high permission",streamWaiting:"Waiting for live",streamWaitingHint:"OBS/Streamlabs/TikTok not detected",streamActiveHint:"Protecting encoder and helpers",ramFreeNowK:"Free RAM now",ramFreeValue:"{free} free",ramInstalledK:"Installed RAM",pagefileFreeK:"Free pagefile",systemProfile:"PC Profile",ramLabel:"Free RAM",systemLabel:"System",gpuHint:"Graphics adapter",localSnapshot:"",freeNow:"{free} free now",ramShort:"RAM",freeSuffix:"free",pagefileShort:"Pagefile",loadShort:"load",behaviorEngine:"Behavior Engine",behaviorK:"Core intelligence",behaviorT:"Behavior Engine",behaviorD:"Profiles apps locally by CPU, memory return, bursts and wake events.",behaviorMode:"mode",behaviorAdaptive:"adaptive",behaviorOn:"on",behaviorOff:"off",profilesShort:"profiles"});
 Object.assign(LANGS["es-ES"],{ramFreeNowK:"RAM libre ahora",ramFreeValue:"{free} libres",ramInstalledK:"RAM instalada",pagefileFreeK:"Paginación libre",systemProfile:"Perfil del PC",ramLabel:"RAM libre",systemLabel:"Sistema",gpuHint:"GPU",localSnapshot:"",freeNow:"{free} libre ahora",ramShort:"RAM",freeSuffix:"libre",pagefileShort:"Paginación",loadShort:"carga",behaviorEngine:"Behavior Engine",behaviorK:"Inteligencia central",behaviorT:"Behavior Engine",behaviorD:"Crea perfiles locales por CPU, retorno de memória, rafagas y eventos wake.",behaviorMode:"modo",behaviorAdaptive:"adaptativo",behaviorOn:"activo",behaviorOff:"apagado",profilesShort:"perfiles",pressureNormal:"Normal",pressureModerate:"Moderada",pressureElevated:"Elevada",pressureCritical:"Crítica",pressureUnknown:"Desconocida"});
 Object.assign(LANGS["fr-FR"],{ramFreeNowK:"RAM libre maintenant",ramFreeValue:"{free} libres",ramInstalledK:"RAM installee",pagefileFreeK:"Pagination libre",systemProfile:"Profil PC",ramLabel:"RAM libre",systemLabel:"Systeme",gpuHint:"Adaptateur graphique",localSnapshot:"",freeNow:"{free} libre maintenant",ramShort:"RAM",freeSuffix:"libre",pagefileShort:"Pagination",loadShort:"charge",behaviorEngine:"Behavior Engine",behaviorK:"Intelligence centrale",behaviorT:"Behavior Engine",behaviorD:"Profile localement les apps par CPU, retour memoire, rafales et evenements wake.",behaviorMode:"mode",behaviorAdaptive:"adaptatif",behaviorOn:"actif",behaviorOff:"inactif",profilesShort:"profils",pressureNormal:"Normale",pressureModerate:"Moderee",pressureElevated:"Elevee",pressureCritical:"Critique",pressureUnknown:"Inconnue"});
 Object.assign(LANGS["de-DE"],{ramFreeNowK:"RAM jetzt frei",ramFreeValue:"{free} frei",ramInstalledK:"Installierter RAM",pagefileFreeK:"Freie Auslagerung",systemProfile:"PC Profil",ramLabel:"Freier RAM",systemLabel:"System",gpuHint:"Grafikadapter",localSnapshot:"",freeNow:"{free} frei",ramShort:"RAM",freeSuffix:"frei",pagefileShort:"Auslagerung",loadShort:"Last",behaviorEngine:"Behavior Engine",behaviorK:"Kernintelligenz",behaviorT:"Behavior Engine",behaviorD:"Profile Apps lokal nach CPU, Speicher-Rueckkehr, Bursts und Wake-Ereignissen.",behaviorMode:"Modus",behaviorAdaptive:"adaptiv",behaviorOn:"an",behaviorOff:"aus",profilesShort:"Profile",pressureNormal:"Normal",pressureModerate:"Moderat",pressureElevated:"Erhoeht",pressureCritical:"Kritisch",pressureUnknown:"Unbekannt"});
@@ -917,12 +1888,18 @@ Object.assign(LANGS["en-US"],{cardPassActionsK:"Pass actions",cardBurstsK:"Recen
 Object.assign(LANGS["es-ES"],{cardPassActionsK:"Acciones del pase",cardBurstsK:"Picos recientes",cardUdpK:"Zero Ping",cardPowerK:"Plan activo",accessNeedsAdmin:"{count} bloqueos",noBursts:"Sin picos",burstSummary:"{bursts} picos / {apps} apps",actionSummaryShort:"CPU {cpu} / RAM {ram} / I/O {io} / Eco {eco}"});
 Object.assign(LANGS["fr-FR"],{cardPassActionsK:"Actions du passage",cardBurstsK:"Pics recents",cardUdpK:"Zero Ping",cardPowerK:"Mode actif",accessNeedsAdmin:"{count} blocages",noBursts:"Aucun pic",burstSummary:"{bursts} pics / {apps} apps",actionSummaryShort:"CPU {cpu} / RAM {ram} / I/O {io} / Eco {eco}"});
 Object.assign(LANGS["de-DE"],{cardPassActionsK:"Durchlaufaktionen",cardBurstsK:"Letzte Peaks",cardUdpK:"Zero Ping",cardPowerK:"Aktiver Energieplan",accessNeedsAdmin:"{count} Blockaden",noBursts:"Keine Peaks",burstSummary:"{bursts} Peaks / {apps} Apps",actionSummaryShort:"CPU {cpu} / RAM {ram} / I/O {io} / Eco {eco}"});
-Object.assign(LANGS["pt-BR"],{udpConfidenceHigh:"Confiança alta",udpConfidenceMedium:"Confiança média",udpConfidenceLow:"Confiança baixa",qosActive:"ativo",qosNeedsAdmin:"precisa admin",qosNoPath:"sem caminho",qosUnavailable:"indisponível",qosTip:"QoS/DSCP por aplicativo para priorizar pacotes UDP quando o Windows e a rede respeitam a marcação.",udpConfidenceTip:"Confiança da sessão Zero Ping baseada em jogo ativo, UDP, helper, tela cheia e histórico.",gpuPressureK:"GPU/VRAM",gpuPressureUnavailable:"Sem leitura",gpuHelperBadge:"GPU helper",gpuHelperTip:"App em segundo plano com uso de GPU; o motor reduz contenção sem mexer no driver.",vramPressureTip:"Pressão de VRAM detectada; o motor reduz disputa local em volta do jogo.",cpuBoundK:"CPU-Bound Assist",cpuBoundTip:"Jogo preso em CPU; o motor reduz disputa de fundo para liberar mais tempo ao jogo.",engineHealthK:"Saúde do motor",ready:"Pronto"});
-Object.assign(LANGS["en-US"],{udpConfidenceHigh:"High confidence",udpConfidenceMedium:"Medium confidence",udpConfidenceLow:"Low confidence",qosActive:"active",qosNeedsAdmin:"needs admin",qosNoPath:"no path",qosUnavailable:"unavailable",qosTip:"Per-app QoS/DSCP for UDP packets when Windows and the network honor the mark.",udpConfidenceTip:"Zero Ping session confidence based on active game, UDP, helper, fullscreen and history.",gpuPressureK:"GPU/VRAM",gpuPressureUnavailable:"No read",gpuHelperBadge:"GPU helper",gpuHelperTip:"Background GPU app; the engine reduces contention without touching the driver.",vramPressureTip:"VRAM pressure detected; the engine reduces local contention around the game.",cpuBoundK:"CPU-Bound Assist",cpuBoundTip:"CPU-bound game; the engine reduces background contention to free more time for the game.",engineHealthK:"Engine health",ready:"Ready"});
+Object.assign(LANGS["pt-BR"],{udpConfidenceHigh:"Confiança alta",udpConfidenceMedium:"Confiança média",udpConfidenceLow:"Confiança baixa",qosActive:"ativo",qosNeedsAdmin:"precisa admin",qosNoPath:"sem caminho",qosUnavailable:"indisponível",qosTip:"QoS/DSCP por aplicativo para priorizar pacotes UDP quando o Windows e a rede respeitam a marcação.",udpConfidenceTip:"Confiança da sessão Zero Ping baseada em jogo ativo, UDP, helper, tela cheia e histórico.",gpuPressureK:"GPU/VRAM",gpuPressureUnavailable:"Sem leitura",gpuHelperBadge:"GPU helper",gpuHelperTip:"App em segundo plano com uso de GPU; o motor reduz contenção sem mexer no driver.",vramPressureTip:"Pressão de VRAM detectada; o motor reduz disputa local em volta do jogo.",cpuBoundK:"CPU-Bound Assist",cpuBoundTip:"Jogo preso em CPU; o motor reduz disputa de fundo para liberar mais tempo ao jogo.",ready:"Pronto"});
+Object.assign(LANGS["en-US"],{udpConfidenceHigh:"High confidence",udpConfidenceMedium:"Medium confidence",udpConfidenceLow:"Low confidence",qosActive:"active",qosNeedsAdmin:"needs admin",qosNoPath:"no path",qosUnavailable:"unavailable",qosTip:"Per-app QoS/DSCP for UDP packets when Windows and the network honor the mark.",udpConfidenceTip:"Zero Ping session confidence based on active game, UDP, helper, fullscreen and history.",gpuPressureK:"GPU/VRAM",gpuPressureUnavailable:"No read",gpuHelperBadge:"GPU helper",gpuHelperTip:"Background GPU app; the engine reduces contention without touching the driver.",vramPressureTip:"VRAM pressure detected; the engine reduces local contention around the game.",cpuBoundK:"CPU-Bound Assist",cpuBoundTip:"CPU-bound game; the engine reduces background contention to free more time for the game.",ready:"Ready"});
 const LANGUAGE_ORDER = ["pt-BR","en-US","ru-RU","es-ES","fr-FR","de-DE"];
 let currentLanguage = "pt-BR";
 let lastState = null;
 let languagePromptClosed = false;
+let activeView = "dashboard";
+let selectedGamePreset = null;
+let selectedGameOptions = { safe: new Set(), experimental: new Set() };
+let gameActionPending = "";
+let gameActionGameId = "";
+let gameActionStartedAt = 0;
 let selectedInsightKey = "";
 function send(action,payload){ if(window.chrome&&chrome.webview){ chrome.webview.postMessage(Object.assign({action},payload||{})); } }
 let pendingEnergyMode = "";
@@ -939,7 +1916,7 @@ function statePick(s){ for(let i=1;i<arguments.length;i++){ const key=arguments[
 function planLabel(name,guid){ const raw=String(name||"").trim(); if(raw) return raw; const g=String(guid||"").trim(); if(g.toLowerCase()==="381b4222-f694-41f0-9685-ff5bb260df2e") return isPt()?"Equilibrado":"Balanced"; if(g) return g.slice(0,8)+"..."; return t("planUnknown"); }
 function setSessionMode(mode){
   const normalized=normalizedModeName(mode);
-  if(normalized==="Gaming" || normalized==="Streamer" || normalized==="Auto") { openEnergyPrompt(normalized); return; }
+  if(normalized==="Gaming" || normalized==="Competitive" || normalized==="Streamer" || normalized==="Auto") { openEnergyPrompt(normalized); return; }
   send("setSessionMode",{mode:normalized,energy:"keep"});
 }
 function energyIdleMinutesValue(){ const raw=Number(($("energyIdleMinutes")&&$("energyIdleMinutes").value)||20); const n=Number.isFinite(raw)?Math.round(raw):20; return Math.max(5,Math.min(240,n)); }
@@ -970,19 +1947,20 @@ function openEnergyPrompt(mode){
   if(keep){ keep.disabled=false; keep.style.opacity="1"; keep.textContent=pt?"Manter plano atual":"Keep current plan"; keep.title=pt?"Mantém exatamente o plano de energia que está ativo agora.":"Keeps exactly the power plan currently active."; }
   if(restoreBtn){ restoreBtn.style.display="none"; restoreBtn.disabled=true; restoreBtn.style.opacity="1"; restoreBtn.title=""; }
   if(balancedBtn){ balancedBtn.style.display = (pendingEnergyMode==="Auto" && previous) ? "block" : "none"; }
-  if(pendingEnergyMode==="Gaming"){
-    txt("energyKind",pt?"Modo Jogos":"Gaming mode");
-    txt("energyTitle",pt?"Mais desempenho para jogar":"More performance for games");
-    txt("energyBody",pt?"O plano Smart Nap MODO JOGO mantém o PC em alto desempenho enquanto estiver ativo. Ele pode usar mais energia mesmo parado; ative a proteção abaixo para voltar ao Equilibrado após um tempo sem uso.":"Smart Nap MODO JOGO keeps the PC in a high performance profile while active. It can use more power even when idle; enable the guard below to return to Balanced after no use.");
-    txt("energyPlainTitle",pt?"Desempenho contínuo":"Continuous performance");
-    txt("energyPlainBody",pt?"Bom para jogo pesado, foreground rápido e menos queda por economia do Windows.":"Good for heavy games, fast foreground recovery, and fewer Windows power-saving dips.");
+  if(pendingEnergyMode==="Gaming" || pendingEnergyMode==="Competitive"){
+    const competitive=pendingEnergyMode==="Competitive";
+    txt("energyKind", competitive ? (pt?"Modo Competitivo":"Competitive mode") : (pt?"Modo Jogos":"Gaming mode"));
+    txt("energyTitle", competitive ? (pt?"Plano forte para competitivo":"Stronger plan for competitive play") : (pt?"Mais desempenho para jogar":"More performance for games"));
+    txt("energyBody", competitive ? (pt?"O Modo Competitivo usa o mesmo plano Smart Nap MODO JOGO: alto desempenho, resposta rápida e menos economia agressiva durante partidas online. Você pode manter o plano atual se preferir." : "Competitive mode uses the same Smart Nap gaming power plan: high performance, fast response, and fewer power-saving dips during online matches. You can keep the current plan if you prefer.") : (pt?"O plano Smart Nap MODO JOGO mantém o PC em alto desempenho enquanto estiver ativo. Ele pode usar mais energia mesmo parado; ative a proteção abaixo para voltar ao Equilibrado após um tempo sem uso.":"Smart Nap MODO JOGO keeps the PC in a high performance profile while active. It can use more power even when idle; enable the guard below to return to Balanced after no use."));
+    txt("energyPlainTitle", competitive ? (pt?"Competitivo sem queda":"Competitive stability") : (pt?"Desempenho contínuo":"Continuous performance"));
+    txt("energyPlainBody", competitive ? (pt?"Bom para FPS, MOBA, Battle Royale e partidas onde resposta e estabilidade importam." : "Good for FPS, MOBA, Battle Royale, and matches where response and stability matter.") : (pt?"Bom para jogo pesado, foreground rápido e menos queda por economia do Windows.":"Good for heavy games, fast foreground recovery, and fewer Windows power-saving dips."));
     txt("energySafetyTitle",pt?"Economia quando parado":"Idle fallback");
     txt("energySafetyBody",pt?"Se o PC ficar parado, o Smart Nap pode voltar sozinho ao Equilibrado.":"If the PC is unused, Smart Nap can switch back to Balanced automatically.");
     txt("energyIdleTitle",pt?"Voltar ao Equilibrado quando ficar parado":"Return to Balanced when idle");
     txt("energyIdleBody",pt?"Recomendado: evita deixar alto desempenho ligado em idle.":"Recommended: avoids leaving high performance on while idle.");
     txt("energyIdleMinutesLabel",pt?"Minutos parado":"Idle minutes");
     if(idleBox) idleBox.style.display="grid";
-    if(primary) primary.textContent=pt?"Usar Smart Nap MODO JOGO":"Use Smart Nap gaming plan";
+    if(primary) primary.textContent=competitive ? (pt?"Usar plano do Modo Jogos":"Use gaming power plan") : (pt?"Usar Smart Nap MODO JOGO":"Use Smart Nap gaming plan");
   } else if(pendingEnergyMode==="Streamer"){
     txt("energyKind",pt?"Modo Live":"Live mode");
     txt("energyTitle",pt?"Estabilidade para live":"Live stability profile");
@@ -1019,7 +1997,7 @@ function closeEnergyPrompt(){ pendingEnergyMode=""; $("energyOverlay")?.classLis
 function commitEnergyChoice(choice){
   const mode=pendingEnergyMode||"Auto";
   const payload={mode:mode,energy:choice||"keep"};
-  if(mode==="Gaming"){
+  if(mode==="Gaming" || mode==="Competitive"){
     payload.idleEnabled=!!($("energyIdleEnabled")&&$("energyIdleEnabled").checked);
     payload.idleMinutes=energyIdleMinutesValue();
   } else if(mode==="Streamer"){
@@ -1073,14 +2051,196 @@ function bestLanguage(code){
   return "pt-BR";
 }
 function applyI18n(){
-  document.documentElement.lang=currentLanguage;
-  document.querySelectorAll("[data-i18n]").forEach(el=>{ el.textContent=t(el.dataset.i18n); });
-  document.querySelectorAll("[data-title-key]").forEach(el=>{ el.title=t(el.dataset.titleKey); });
-  txt("languageButton", t("languageName"));
-  txt("ringLabel", t("apps"));
-  document.querySelectorAll(".locale").forEach(btn=>btn.classList.toggle("active",btn.dataset.lang===currentLanguage));
-  if(lastState) paintState(lastState);
+  try{
+    document.documentElement.lang=currentLanguage;
+    document.querySelectorAll("[data-i18n]").forEach(el=>{ el.textContent=t(el.dataset.i18n); });
+    document.querySelectorAll("[data-title-key]").forEach(el=>{ el.title=t(el.dataset.titleKey); });
+    txt("languageButton", t("languageName"));
+    txt("ringLabel", t("apps"));
+    document.querySelectorAll(".locale").forEach(btn=>btn.classList.toggle("active",btn.dataset.lang===currentLanguage));
+  }catch(e){ console.error("Smart Nap i18n failed", e); }
+  if(lastState){ try{ paintState(lastState); }catch(e){ console.error("Smart Nap paint failed", e); } }
 }
+
+function showView(view){
+  activeView = view === "games" ? "games" : "dashboard";
+  const dash=$("dashboardView"), games=$("gamesView");
+  if(dash) dash.hidden = activeView !== "dashboard";
+  if(games) games.hidden = activeView !== "games";
+  document.querySelectorAll(".nav[data-view]").forEach(btn=>btn.classList.toggle("active",btn.dataset.view===activeView));
+  if(activeView==="games") renderGamePresets(lastState||{});
+}
+function gameInitials(name){ return String(name||"SN").split(/\s+/).map(x=>x[0]||"").join("").slice(0,3).toUpperCase(); }
+function gameCoverFor(g){
+  const id=String(g&&g.Id||"").toLowerCase();
+  const name=String(g&&g.Name||"").toLowerCase();
+  const covers={
+    bf6:"https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2807960/library_600x900_2x.jpg",
+    battlefield6:"https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2807960/library_600x900_2x.jpg",
+    eafc26:"https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3405690/b1345663febf4f26fe4744115e8e459da3e9ee2c/capsule_231x87.jpg?t=1783095306",
+    fc26:"https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3405690/b1345663febf4f26fe4744115e8e459da3e9ee2c/capsule_231x87.jpg?t=1783095306",
+    cs2:"https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/730/library_600x900_2x.jpg",
+    valorant:"https://cmsassets.rgpub.io/sanity/images/dsfx7636/news/6628e175321b3fb53c863e58d1c033f7bfe5390e-854x484.png?accountingTag=VAL"
+  };
+  if(g&&g.CoverDataUrl) return String(g.CoverDataUrl);
+  if(g&&g.CoverUrl) return String(g.CoverUrl);
+  if(covers[id]) return covers[id];
+  if(name.includes("battlefield")) return covers.bf6;
+  if(name.includes("fc 26")||name.includes("fifa")) return covers.eafc26;
+  if(name.includes("counter-strike")||name.includes("cs2")) return covers.cs2;
+  if(name.includes("valorant")) return covers.valorant;
+  return "";
+}
+function gameFallbackFor(g){
+  const id=String(g&&g.Id||"").toLowerCase();
+  if(id.includes("bf")) return "radial-gradient(circle at 22% 18%,rgba(255,159,28,.44),transparent 34%),linear-gradient(145deg,#24170c,#07111f 62%,#030712)";
+  if(id.includes("eafc")||id.includes("fc")) return "radial-gradient(circle at 22% 18%,rgba(0,229,255,.38),transparent 34%),linear-gradient(145deg,#06242a,#07111f 64%,#030712)";
+  if(id.includes("cs")) return "radial-gradient(circle at 22% 18%,rgba(75,140,255,.38),transparent 34%),linear-gradient(145deg,#0d1260,#07111f 64%,#030712)";
+  if(id.includes("valorant")) return "radial-gradient(circle at 22% 18%,rgba(255,93,207,.38),transparent 34%),linear-gradient(145deg,#351a36,#07111f 64%,#030712)";
+  return "radial-gradient(circle at 22% 18%,rgba(167,139,250,.34),transparent 34%),linear-gradient(145deg,#141d31,#07111f 64%,#030712)";
+}
+function gameOptionText(list,index){ return String((Array.isArray(list)?list:[])[index]||""); }
+function toggleGameOption(kind,index){
+  const bucket = kind === "experimental" ? selectedGameOptions.experimental : selectedGameOptions.safe;
+  if(bucket.has(index)) bucket.delete(index); else bucket.add(index);
+  refreshGamePresetCounts();
+}
+function refreshGamePresetCounts(){
+  if(!selectedGamePreset) return;
+  txt("gameSafeCount", selectedGameOptions.safe.size + " ativos");
+  txt("gameExperimentalCount", selectedGameOptions.experimental.size + " ativos");
+}
+function renderPresetOptionList(targetId, items, kind){
+  const target=$(targetId); if(!target) return;
+  const bucket = kind === "experimental" ? selectedGameOptions.experimental : selectedGameOptions.safe;
+  target.innerHTML=(Array.isArray(items)?items:[]).map((item,index)=>{
+    const checked=bucket.has(index)?" checked":"";
+    return '<li><label class="gameOptionItem"><input type="checkbox"'+checked+' onchange="toggleGameOption(\''+kind+'\','+index+')"><span>'+esc(item)+'</span></label></li>';
+  }).join('') || '<li><label class="gameOptionItem"><input type="checkbox" checked disabled><span>Nenhuma opção adicional para este preset.</span></label></li>';
+}
+function setGamePending(kind,id){ gameActionPending=kind||""; gameActionGameId=id||""; gameActionStartedAt=Date.now(); renderGamePresets(lastState||{}); }
+function clearGamePending(){ gameActionPending=""; gameActionGameId=""; gameActionStartedAt=0; }
+function refreshGameDiscovery(id){ setGamePending("scan",id||""); send("refreshGames",{gameId:id||""}); }
+function selectGameFolder(id){ setGamePending("folder",id||""); send("selectGameFolder",{gameId:id||""}); }
+function gamePendingLabel(kind){
+  if(kind==="scan") return isPt()?"Procurando...":"Scanning...";
+  if(kind==="apply") return isPt()?"Aplicando...":"Applying...";
+  if(kind==="restore") return isPt()?"Restaurando...":"Restoring...";
+  if(kind==="folder") return isPt()?"Abrindo pasta...":"Opening...";
+  return "";
+}
+function renderGamePresets(s){
+  const grid=$("gamesGrid"); if(!grid) return;
+  if(gameActionPending && gameActionStartedAt && Date.now()-gameActionStartedAt>9000) clearGamePending();
+  const items=Array.isArray(s.GamePresets)?s.GamePresets:[];
+  if(!items.length){ grid.innerHTML='<div class="gamesNote">Nenhum preset carregado ainda.</div>'; return; }
+  grid.innerHTML=items.map(g=>{
+    const id=String(g.Id||'');
+    const pending=!!(gameActionPending && (!gameActionGameId || gameActionGameId===id));
+    const ready=!!(g.Running||g.Installed||g.DetectedPath||g.Path);
+    const accent=esc(g.Accent||"#ff9f1c");
+    const meta=[];
+    const source=String(g.DetectionSource||"");
+    meta.push(g.Running?'<span class="running">Rodando</span>':(ready?'<span class="on">'+esc(source||'Detectado')+'</span>':'<span class="missing">Precisa da pasta</span>'));
+    meta.push('<span>'+esc(g.Tier||g.Genre||'Preset')+'</span>');
+    if(g.DetectedPath||g.Path) meta.push('<span title="'+esc(g.DetectedPath||g.Path)+'">Caminho OK</span>');
+    const cover=gameCoverFor(g);
+    const poster=cover?'<img alt="" src="'+esc(cover)+'">':'';
+    const style='--game-accent:'+accent+';--game-fallback:'+esc(gameFallbackFor(g));
+    const primary=pending?gamePendingLabel(gameActionPending):(ready?(isPt()?"Configurar preset":"Configure preset"):(isPt()?"Precisa da pasta":"Needs folder"));
+    const scan=pending&&gameActionPending==="scan"?gamePendingLabel("scan"):(isPt()?"Buscar automático":"Auto scan");
+    const folder=pending&&gameActionPending==="folder"?gamePendingLabel("folder"):(ready?(isPt()?"Alterar pasta":"Change folder"):(isPt()?"Escolher pasta":"Choose folder"));
+    const primaryAction=ready?'openGamePreset':'selectGameFolder';
+    return '<article class="gameCard'+(pending?' pending':'')+'" tabindex="0" role="button" data-game-id="'+esc(id)+'" style="'+style+'"><div class="gamePoster">'+poster+'<span class="posterMark">'+(!cover?esc(gameInitials(g.Name)):'')+'</span></div><div class="gameBody"><small>'+esc(g.ExpectedGain||g.Tier||'Preset beta')+'</small><h3>'+esc(g.Name)+'</h3><p>'+esc(g.Summary||g.Description||'Ajustes por jogo com confirmação antes de aplicar.')+'</p><div class="gameMeta">'+meta.join('')+'</div><div class="gameCardActions"><button type="button" class="gameMiniBtn primary '+(!ready?'needsPath':'')+'" '+(pending?'disabled':'')+' onclick="event.stopPropagation();'+primaryAction+'(\''+esc(id)+'\')">'+esc(primary)+'</button><button type="button" class="gameMiniBtn scan" '+(pending?'disabled':'')+' onclick="event.stopPropagation();refreshGameDiscovery(\''+esc(id)+'\')">'+esc(scan)+'</button><button type="button" class="gameMiniBtn folder" '+(pending?'disabled':'')+' onclick="event.stopPropagation();selectGameFolder(\''+esc(id)+'\')">'+esc(folder)+'</button></div></div></article>';
+  }).join('');
+  grid.querySelectorAll(".gameCard[data-game-id]").forEach(card=>{
+    const open=()=>{ const g=findGamePreset(card.dataset.gameId||""); if(g&&(g.Running||g.Installed||g.DetectedPath||g.Path)) openGamePreset(card.dataset.gameId||""); else selectGameFolder(card.dataset.gameId||""); };
+    card.addEventListener("click",open);
+    card.addEventListener("keydown",ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); open(); } });
+  });
+  grid.querySelectorAll(".gamePoster img").forEach(img=>img.addEventListener("error",()=>img.remove(),{once:true}));
+}
+function findGamePreset(id){
+  const items=Array.isArray(lastState&&lastState.GamePresets)?lastState.GamePresets:[];
+  return items.find(x=>String(x.Id||"")===String(id||""));
+}
+function openGamePreset(id){
+  const g=findGamePreset(id); if(!g) return;
+  if(!(g.Running||g.Installed||g.DetectedPath||g.Path)){ selectGameFolder(id); return; }
+  selectedGamePreset=g;
+  const safe=Array.isArray(g.SafeOptimizations)?g.SafeOptimizations:(Array.isArray(g.SafeOptions)?g.SafeOptions:[]);
+  const exp=Array.isArray(g.ExperimentalOptimizations)?g.ExperimentalOptimizations:(Array.isArray(g.ExperimentalOptions)?g.ExperimentalOptions:[]);
+  selectedGameOptions={ safe:new Set(safe.map((_,i)=>i)), experimental:new Set() };
+  txt("gamePresetKind", g.Running ? "Jogo em execução" : (g.Installed ? "Jogo detectado" : "Beta preset"));
+  txt("gamePresetTitle",g.Name||"Preset de jogo");
+  txt("gamePresetSummary",(g.Summary||g.Description||"")+" "+(g.ExpectedGain||g.Tier||""));
+  txt("gamePresetChip","Game: "+(g.ShortName||g.Name||"-"));
+  txt("gamePresetStatus",g.Running?"Rodando":(g.Installed?"Instalado":"Não encontrado"));
+  renderPresetOptionList("gameSafeList",safe,"safe");
+  renderPresetOptionList("gameExperimentalList",exp,"experimental");
+  refreshGamePresetCounts();
+  $("gamePresetOverlay")?.classList.add("open");
+}
+function closeGamePreset(){ closeGameModePrompt(); selectedGamePreset=null; selectedGameOptions={ safe:new Set(), experimental:new Set() }; $("gamePresetOverlay")?.classList.remove("open"); }
+function restoreSelectedGamePreset(){ const id=selectedGamePreset&&selectedGamePreset.Id?selectedGamePreset.Id:""; setGamePending("restore",id); send("restoreGamePreset",{gameId:id}); closeGamePreset(); }
+function selectedGamePresetPayload(){
+  if(!selectedGamePreset) return null;
+  const safe=Array.isArray(selectedGamePreset.SafeOptimizations)?selectedGamePreset.SafeOptimizations:(selectedGamePreset.SafeOptions||[]);
+  const exp=Array.isArray(selectedGamePreset.ExperimentalOptimizations)?selectedGamePreset.ExperimentalOptimizations:(selectedGamePreset.ExperimentalOptions||[]);
+  const safeOptions=Array.from(selectedGameOptions.safe).map(i=>gameOptionText(safe,i)).filter(Boolean);
+  const experimentalOptions=Array.from(selectedGameOptions.experimental).map(i=>gameOptionText(exp,i)).filter(Boolean);
+  return {gameId:selectedGamePreset.Id,experimental:experimentalOptions.length>0,safeOptions,experimentalOptions};
+}
+function isPowerSessionMode(mode){ const n=normalizedModeName(mode); return n==="Gaming" || n==="Competitive" || n==="Streamer"; }
+function displaySessionModeName(mode){
+  const n=normalizedModeName(mode);
+  if(n==="Gaming") return isPt()?"Jogos":"Gaming";
+  if(n==="Competitive") return isPt()?"Competitivo":"Competitive";
+  if(n==="Streamer") return isPt()?"Live":"Live";
+  if(n==="Work") return isPt()?"Trabalho":"Work";
+  if(n==="Focus") return isPt()?"Foco":"Focus";
+  return "Auto";
+}
+function recommendedGameModeForPreset(g){
+  const id=String(g&&g.Id||"").toLowerCase();
+  const text=(id+" "+String(g&&g.Name||"")+" "+String(g&&g.Tier||"")).toLowerCase();
+  if(text.includes("valorant")||text.includes("counter")||text.includes("cs2")||text.includes("competitive")||text.includes("fps")) return "Competitive";
+  if(text.includes("live")||text.includes("stream")) return "Streamer";
+  return "Gaming";
+}
+function openGameModePrompt(){
+  if(!selectedGamePreset) return;
+  const current=normalizedModeName(statePick(lastState,"SessionMode","sessionMode")||"Auto");
+  const active=isPowerSessionMode(current);
+  const recommended=recommendedGameModeForPreset(selectedGamePreset);
+  const gameName=selectedGamePreset.Name||"este jogo";
+  txt("gameModeTitle", active ? (isPt()?"Modo já preparado":"Mode already ready") : (isPt()?"Preparar o motor para o preset?":"Prepare the engine for this preset?"));
+  txt("gameModeBody", active ? (isPt()?"Você já está em "+displaySessionModeName(current)+". O Smart Nap mantém esse modo e só pergunta se você quer revisar o plano de energia antes de aplicar o preset.":"You are already in "+displaySessionModeName(current)+". Smart Nap keeps that mode and only asks whether you want to review the power plan before applying the preset.") : (isPt()?"O preset de "+gameName+" pode ser aplicado sozinho ou junto de um modo global. O plano de energia só muda se você confirmar no próximo passo.":"The "+gameName+" preset can be applied alone or with a global mode. The power plan only changes if you confirm it in the next step."));
+  txt("gameModeCurrent", active ? (isPt()?"Modo atual: "+displaySessionModeName(current)+". Plano atual: "+planLabel(statePick(lastState,"PowerPlanName","powerPlanName"),statePick(lastState,"PowerPlanGuid","powerPlanGuid")):"Current mode: "+displaySessionModeName(current)+". Current plan: "+planLabel(statePick(lastState,"PowerPlanName","powerPlanName"),statePick(lastState,"PowerPlanGuid","powerPlanGuid"))) : (isPt()?"Modo atual: "+displaySessionModeName(current)+" · recomendado para este preset: "+displaySessionModeName(recommended):"Current mode: "+displaySessionModeName(current)+" · recommended for this preset: "+displaySessionModeName(recommended)));
+  const choices=$("gameModeChoices"), activeActions=$("gameModeActiveActions");
+  if(choices) choices.hidden=active;
+  if(activeActions) activeActions.hidden=!active;
+  $("gameModeOverlay")?.classList.add("open");
+}
+function closeGameModePrompt(){ $("gameModeOverlay")?.classList.remove("open"); }
+function confirmGamePreset(){ if(!selectedGamePreset) return; if(!(selectedGamePreset.Running||selectedGamePreset.Installed||selectedGamePreset.DetectedPath||selectedGamePreset.Path)){ selectGameFolder(selectedGamePreset.Id||""); return; } openGameModePrompt(); }
+function applyGamePresetModeChoice(choice,reviewEnergy){
+  if(!selectedGamePreset) return;
+  const payload=selectedGamePresetPayload();
+  const current=normalizedModeName(statePick(lastState,"SessionMode","sessionMode")||"Auto");
+  const target=choice && choice!=="keep" ? normalizedModeName(choice) : "";
+  if(payload){ setGamePending("apply",selectedGamePreset.Id||""); send("applyGamePreset",payload); }
+  closeGamePreset();
+  if(target){ setSessionMode(target); return; }
+  if(reviewEnergy && isPowerSessionMode(current)) openEnergyPrompt(current);
+}
+function maybeShowGameBetaWelcome(s){
+  if(!s || !s.GameBetaWelcome || window.__gameBetaWelcomeShown) return;
+  window.__gameBetaWelcomeShown=true;
+  if(s.Logo && $("gameBetaLogo")) $("gameBetaLogo").src=s.Logo;
+  $("gameBetaOverlay")?.classList.add("open");
+}
+function ackGameBetaWelcome(){ $("gameBetaOverlay")?.classList.remove("open"); send("ackGameBetaWelcome"); }
 function openLanguagePicker(firstRun){
   languagePromptClosed=!firstRun;
   $("languageOverlay")?.classList.add("open");
@@ -1110,7 +2270,15 @@ function closeUpdateInfo(){
 }
 function manualUpdateCheck(){
   const status=$("updateModalStatus");
+  const btn=$("updateModalCheck");
+  if(lastState && lastState.UpdateAvailable){
+    if(status) status.textContent=t("updateStatusInstalling");
+    if(btn){ btn.disabled=true; btn.classList.add("working"); btn.textContent=t("updateInstalling"); }
+    send("openUpdate");
+    return;
+  }
   if(status) status.textContent=t("updateStatusChecking");
+  if(btn){ btn.disabled=true; btn.classList.add("working"); btn.textContent=t("updateStatusCheckingShort"); }
   send("checkUpdate");
 }
 function toggleUpdateAuto(){
@@ -1130,16 +2298,19 @@ function updateUpdateControls(s){
 }
 function updateUpdatePopup(s){
   const status=$("updateModalStatus");
+  const btn=$("updateModalCheck");
   if(!status) return;
   const version=s.UpdateLatestTag || s.UpdateLatestVersion || "latest";
   let text=t("updateStatusReady");
-  if(s.UpdateChecking) text=t("updateStatusChecking");
-  else if(s.UpdateAvailable) text=t("updateStatusAvailable").replace("{version}",version);
+  let label=t("updateCheck");
+  let busy=false;
+  if(s.UpdateChecking){ text=t("updateStatusChecking"); label=t("updateStatusCheckingShort"); busy=true; }
+  else if(s.UpdateAvailable){ text=t("updateStatusAvailable").replace("{version}",version)+" "+t("updateStatusInstallHint"); label=t("updateInstallNow"); }
   else if(s.UpdateIgnored) text=t("updateStatusIgnored");
   else if(s.UpdateError) text=String(s.UpdateError);
   else if(s.UpdateLatestTag || s.UpdateLatestVersion) text=t("updateStatusCurrent");
   status.textContent=text;
-  txt("updateModalCheck",t("updateCheck"));
+  if(btn){ btn.textContent=label; btn.disabled=busy; btn.classList.toggle("working",busy); btn.title=t("updateInternalHint"); }
 }
 function openLearningInfo(){
   $("learningOverlay")?.classList.add("open");
@@ -1213,12 +2384,51 @@ function translateResult(value){
   if(raw==="No run yet") return t("noRun");
   return raw.replace(/(\d+)\s+apps/g,"$1 "+t("apps"));
 }
-function smartNapUpdate(state){
-  if(state && state.Language){ currentLanguage = LANGS[state.Language] ? state.Language : bestLanguage(state.Language); }
-  else if(!lastState){ currentLanguage = bestLanguage(navigator.language); }
+function normalizeIncomingState(input){
+  let state=input;
+  if(typeof state==="string"){
+    try{ state=JSON.parse(state); }catch(e){ state={}; }
+  }
+  if(state && state.type==="state" && state.payload){ state=state.payload; }
+  if(state && state.Payload){ state=state.Payload; }
+  return state && typeof state==="object" ? state : {};
+}
+function smartNapUpdate(input){
+  const state=normalizeIncomingState(input);
+  try{
+    if(state && state.Language){ currentLanguage = LANGS[state.Language] ? state.Language : bestLanguage(state.Language); }
+    else if(!lastState){ currentLanguage = bestLanguage(navigator.language); }
+  }catch(e){ currentLanguage="pt-BR"; }
   lastState = state || {};
-  applyI18n();
-  if(state && state.FirstRun && !languagePromptClosed){ openLanguagePicker(true); }
+  try{ updateVisualState(lastState); }catch(e){ console.error("Smart Nap visual state failed", e); }
+  try{ applyI18n(); }catch(e){ console.error("Smart Nap update failed", e); try{ paintState(lastState); }catch(_){} }
+  try{ if(state && state.FirstRun && !languagePromptClosed){ openLanguagePicker(true); } }catch(e){}
+  try{ renderGamePresets(state || {}); }catch(e){ console.error("Smart Nap games render failed", e); }
+  try{ maybeShowGameBetaWelcome(state || {}); }catch(e){}
+}
+
+function updateVisualState(s){
+  const body=document.body;
+  const mode=String((s&&s.SessionMode)||"Auto").toLowerCase();
+  ["mode-auto","mode-gaming","mode-competitive","mode-streamer","mode-work","mode-focus"].forEach(c=>body.classList.remove(c));
+  body.classList.add("mode-"+mode);
+  body.dataset.mode=mode;
+  body.classList.toggle("state-processing",!!(s&&(s.Busy||s.CanStop)));
+  body.classList.toggle("state-active",!!(s&&s.AutoMode&&!s.Busy&&!s.CanStop));
+  body.classList.toggle("state-paused",!!(s&&!s.AutoMode));
+  body.classList.toggle("zero-ping-on",!!(s&&s.NetworkUdpGuard));
+  body.classList.toggle("zero-ping-lock",!!(s&&s.NetworkUdpGuardActive));
+  body.classList.toggle("learning-on",!!(s&&s.Learning));
+  const control=$("control");
+  if(control){
+    control.classList.toggle("is-active",!!(s&&s.AutoMode));
+    control.classList.toggle("is-paused",!!(s&&!s.AutoMode));
+    control.classList.toggle("is-working",!!(s&&(s.Busy||s.CanStop)));
+  }
+  const udp=$("udpGuardToggle");
+  if(udp){ udp.setAttribute("aria-pressed",s&&s.NetworkUdpGuard?"true":"false"); }
+  const learning=$("learningToggle");
+  if(learning){ learning.setAttribute("aria-pressed",s&&s.Learning?"true":"false"); }
 }
 function paintState(state){
   const s = state || {};
@@ -1288,7 +2498,6 @@ function paintState(state){
   txt("udpTelemetry",safeFormat(()=>formatUdpTelemetry(s),"-"));
   txt("gpuPressureState",safeFormat(()=>formatGpuPressure(s),"-"));
   txt("cpuBoundState",safeFormat(()=>formatCpuBoundAssist(s),"-"));
-  txt("engineHealthState",safeFormat(()=>formatEngineHealth(s),"-"));
   txt("streamTelemetry",safeFormat(()=>formatStreamTelemetry(s),"-"));
   updateEnginePulse(s);
   updatePermissionGuard(s);
@@ -1301,8 +2510,8 @@ function paintState(state){
   const startupHint=s.Startup?t("startupHintOn"):t("startupHintOff");
   const startupEl=$("startup");
   if(startupEl){ startupEl.title=startupHint; startupEl.setAttribute("aria-pressed",s.Startup?"true":"false"); }
-  cls("live","pill good");
-  $("live").innerHTML='<i class="pulseDot"></i>'+esc(t("live"))+' '+esc(s.Heartbeat || "");
+  const liveEl=$("live");
+  if(liveEl){ liveEl.className="pill sync"; liveEl.title=(s.Heartbeat?t("lastRefresh")+": "+s.Heartbeat:t("liveReady")); liveEl.innerHTML='<i class="pulseDot"></i>'+esc(t("liveReady")); }
   renderRows(s.Rows || []);
   renderEvents(s.Events || []);
 }
@@ -1591,7 +2800,6 @@ function updateEnginePulse(s){
   setMetricLineVisible("udpTelemetry",!!(s&&s.NetworkUdpGuard));
   setMetricLineVisible("gpuPressureState",!!(s&&s.GpuPressureAvailable));
   setMetricLineVisible("cpuBoundState",!!(s&&s.CpuBoundAssistActive));
-  setMetricLineVisible("engineHealthState",!!(s&&s.EngineHealthStatus));
 }
 function sessionHint(mode){
   const m=String(mode||"Auto").toLowerCase();
@@ -1705,7 +2913,7 @@ function splitAppName(name){
 function makeBadgeGroup(label,html,klass){
   const group=document.createElement("span");
   group.className="badgeGroup "+(klass||"");
-  group.innerHTML='<em>'+esc(label)+'</em>'+(html||"");
+  group.innerHTML='<em>'+esc(label)+'</em><span class="badgeWrap">'+(html||"")+'</span>';
   return group;
 }
 function rowDomBase(row){
@@ -1718,10 +2926,10 @@ function setNodeText(el,value){
   if(el.textContent!==next) el.textContent=next;
 }
 function ensureLiveRowShape(div){
-  if(div.dataset.shape==="live-v2") return;
-  div.className="row";
-  div.dataset.shape="live-v2";
-  div.innerHTML='<span class="appCell"><b></b><em></em></span><span class="goodtxt"></span><span class="amber"></span><span></span><span></span><span class="actionsCell"></span>';
+  if(div.dataset.shape==="live-v3") return;
+  div.className="row liveRow";
+  div.dataset.shape="live-v3";
+  div.innerHTML='<span class="appCell liveApp"><b></b><em></em></span><span class="liveValue liveScore goodtxt"></span><span class="liveValue liveRam amber"></span><span class="liveValue liveCpu"></span><span class="liveValue liveBurst"></span><span class="actionsCell"></span>';
 }
 function rowActionsSignature(row){
   return [
@@ -1736,15 +2944,21 @@ function renderRowActions(cell,row){
   if(cell.dataset.sig===sig) return;
   cell.dataset.sig=sig;
   cell.textContent="";
+  const top=document.createElement("div");
+  top.className="actionTop";
   const decision=makeDecisionSummary(row);
-  if(decision) cell.appendChild(decision);
-  cell.appendChild(makePolicyButtons(row));
+  if(decision) top.appendChild(decision);
+  top.appendChild(makePolicyButtons(row));
+  cell.appendChild(top);
+  const details=document.createElement("div");
+  details.className="actionDetails";
   const context=metaBadges(row);
-  if(context) cell.appendChild(makeBadgeGroup(t("groupContext"),context,"context"));
+  if(context) details.appendChild(makeBadgeGroup(t("groupContext"),context,"context"));
   const profile=profileBadges(row);
-  if(profile) cell.appendChild(makeBadgeGroup(t("groupProfile"),profile,"profile"));
+  if(profile) details.appendChild(makeBadgeGroup(t("groupProfile"),profile,"profile"));
   const actions=actionBadges(row.Action);
-  if(actions) cell.appendChild(makeBadgeGroup(t("groupActions"),actions,"actionsGroup"));
+  if(actions) details.appendChild(makeBadgeGroup(t("groupActions"),actions,"actionsGroup"));
+  if(details.children.length) cell.appendChild(details);
 }
 function renderRows(rowsData){
   const rows=$("rows");
@@ -1781,6 +2995,15 @@ function renderRows(rowsData){
       div.dataset.key=key;
     }
     ensureLiveRowShape(div);
+    const intentText=String(row.Intent||row.IntentKind||"").toLowerCase();
+    const roleText=String(row.Role||"").toLowerCase();
+    const scoreNumber=Number((String(row.Score||"0").replace(",",".").match(/-?\d+(?:\.\d+)?/)||["0"])[0])||0;
+    const burstNumber=Number.parseInt(row.Bursts||"0",10)||0;
+    div.className="row liveRow";
+    div.classList.toggle("isGame",!!row.UdpGameProtected || intentText.indexOf("gaming")>=0 || intentText.indexOf("jogo")>=0);
+    div.classList.toggle("isProtected",!!row.ProtectedGuard || String(row.Policy||"").toLowerCase()==="protect");
+    div.classList.toggle("isHot",scoreNumber>=120 || burstNumber>=60);
+    div.classList.toggle("isLauncher",!!row.LauncherGuard || roleText.indexOf("launcher")>=0);
     const app=splitAppName(row.Name);
     const instanceText=app.instances>1 ? app.instances+" "+t("instancesLabel") : (row.ProcessName||"");
     const appCell=div.children[0];
@@ -1806,17 +3029,148 @@ function renderRows(rowsData){
 }function renderEvents(events){
   const feed=$("events");
   if(!feed) return;
-  feed.innerHTML="";
-  events.slice(0,18).forEach(item=>{
-    const line=String(item || "");
-    const isLive=line.startsWith("LIVE");
-    const time=/^\d\d:\d\d:\d\d/.test(line) ? line.slice(0,8) : (isLive ? t("nowShort") : "--:--");
-    const body=translateEventBody(isLive ? line.replace(/^LIVE\s*/,"") : line.slice(/^\d\d:\d\d:\d\d/.test(line) ? 8 : 0).trim());
-    const div=document.createElement("div");
-    div.className="eventLine";
-    div.innerHTML="<time>"+esc(time)+"</time><span>"+esc(body)+"</span>";
-    feed.appendChild(div);
+  let normalized=(Array.isArray(events)?events:[]).slice(0,18).map(describeEvent).filter(Boolean);
+  if(!normalized.length){
+    normalized=[{time:"--:--",kind:"empty",badge:eventCopy("Status","Status"),title:eventCopy("Aguardando atividade","Waiting for activity"),detail:eventCopy("O motor mostra aqui apenas ações importantes.","The engine shows only important actions here."),raw:"empty"}];
+  }
+  const keep=new Set();
+  normalized.forEach((evt,index)=>{
+    const key=eventDomKey(evt,index);
+    keep.add(key);
+    let div=Array.from(feed.children).find(x=>x.dataset && x.dataset.key===key);
+    const className="eventLine eventCard evt-"+evt.kind+(index===0?" latest":"");
+    const html='<time>'+esc(evt.time)+'</time><span><i>'+esc(evt.badge)+'</i><b>'+esc(evt.title)+'</b><em>'+esc(evt.detail)+'</em></span>';
+    if(!div){
+      div=document.createElement("div");
+      div.dataset.key=key;
+      div.dataset.html="";
+      div.className=className+" new";
+      window.setTimeout(()=>div.classList.remove("new"),320);
+    }else{
+      div.className=className;
+    }
+    if(div.dataset.html!==html){
+      div.innerHTML=html;
+      div.dataset.html=html;
+    }
+    const rawTitle=evt.raw || "";
+    if(div.title!==rawTitle) div.title=rawTitle;
+    const ref=feed.children[index];
+    if(ref!==div) feed.insertBefore(div,ref||null);
   });
+  Array.from(feed.children).forEach(child=>{
+    if(!keep.has(child.dataset.key)) child.remove();
+  });
+}
+function eventDomKey(evt,index){
+  if(!evt) return "empty";
+  if(evt.kind==="live") return "live-status";
+  const raw=String(evt.raw||"").trim();
+  if(raw) return raw;
+  return [evt.kind,evt.time,evt.title,evt.detail,index].join("|");
+}
+function eventCopy(pt,en){ return currentLanguage==="pt-BR"?pt:en; }
+function describeEvent(item){
+  const raw=String(item||"").trim();
+  if(!raw) return null;
+  const live=raw.indexOf("LIVE")===0;
+  const iso=raw.match(/\d{4}-\d{2}-\d{2}T(\d{2}:\d{2}:\d{2})/);
+  const clock=raw.match(/^(?:LIVE\s+)?(\d{2}:\d{2}:\d{2})\b/);
+  const time=clock?clock[1]:(iso?iso[1]:(live?t("nowShort"):"--:--"));
+  let body=raw.replace(/^LIVE\s*/,"").replace(/^\d{2}:\d{2}:\d{2}\s*/,"").trim();
+  body=body.replace(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\s*/,"").trim();
+  const kv=parseEventPairs(body);
+  const action=(kv.action||"").toLowerCase();
+  if(live) return liveEvent(time,body,raw);
+  if(/^OK\s+Zero Ping\s+is\s+off/i.test(body)) return {time,kind:"zero",badge:"Zero Ping",title:eventCopy("Zero Ping desligado","Zero Ping disabled"),detail:eventCopy("Proteção UDP opcional ficou inativa.","Optional UDP protection is now inactive."),raw};
+  if(/^OK\s+Zero Ping\s+is\s+on/i.test(body)) return {time,kind:"zero",badge:"Zero Ping",title:eventCopy("Zero Ping pronto","Zero Ping ready"),detail:eventCopy("Radar UDP armado para jogos online reais.","UDP radar armed for real online games."),raw};
+  if(/^OK\s+Session mode updated/i.test(body) || action==="session-mode"){
+    const mode=friendlyMode(kv.mode||"");
+    const energy=friendlyEnergy(kv.energy||kv.energyResult||"");
+    return {time,kind:"mode",badge:eventCopy("Sessão","Session"),title:mode?eventCopy("Modo "+mode+" aplicado",mode+" mode applied"):eventCopy("Modo atualizado","Mode updated"),detail:energy?eventCopy("Energia: "+energy+".","Power: "+energy+"."):eventCopy("Preferências da sessão foram salvas.","Session preferences were saved."),raw};
+  }
+  if(action==="reactive-boost"){
+    const process=cleanProcessName(kv.process||"");
+    const phase=kv.phase?eventCopy("Fase "+kv.phase,"Phase "+kv.phase):eventCopy("Reação","Reaction");
+    const trigger=friendlyTrigger(kv.trigger||"");
+    const ok=(kv.status||"").toUpperCase()==="OK" || (kv.exitCode||"")==="0";
+    return {time,kind:ok?"radar":"warn",badge:eventCopy("Radar","Radar"),title:ok?eventCopy("Reação rápida aplicada","Fast reaction applied"):eventCopy("Reação rápida falhou","Fast reaction failed"),detail:[phase,process,trigger].filter(Boolean).join(" · ") || eventCopy("Jogo/app detectado e motor reagiu.","Game/app detected and engine reacted."),raw};
+  }
+  if(action==="admin-setup"){
+    const ok=(kv.status||"").toLowerCase().indexOf("complete")>=0;
+    return {time,kind:ok?"ok":"warn",badge:eventCopy("Permissão","Permission"),title:ok?eventCopy("Instalação reparada","Setup repaired"):eventCopy("Ajuste de permissão","Permission check"),detail:eventCopy("Tasks e inicialização verificadas de forma segura.","Tasks and startup were safely checked."),raw};
+  }
+  if(/^Passe\s+/i.test(body) || /^APPLY\s+/i.test(body)) return passEvent(time,body,raw);
+  if(/^Retorno\s+/i.test(body) || /^WAKE\s+/i.test(body)) return wakeEvent(time,body,raw);
+  if(/^---/.test(body) || /Retorno rápido armado/i.test(body) || /motor\s+automatico ativo/i.test(body) || /motor\s+automático ativo/i.test(body)){
+    return {time,kind:"status",badge:eventCopy("Motor","Engine"),title:eventCopy("Motor em guarda","Engine standing by"),detail:eventCopy("Retorno rápido armado; apps em segundo plano são ajustados por nível.","Fast wake armed; background apps are tuned by level."),raw};
+  }
+  return {time,kind:"note",badge:eventCopy("Evento","Event"),title:eventCopy("Atividade registrada","Activity recorded"),detail:humanEventText(body),raw};
+}
+function parseEventPairs(body){
+  const out={};
+  String(body||"").replace(/([A-Za-z][A-Za-z0-9_-]*)=([^\s]+)/g,(_,key,value)=>{ out[key]=value; return _; });
+  return out;
+}
+function liveEvent(time,body,raw){
+  const eventAge=(body.match(/\bevento\s+([^\s]+(?:\s+atras)?)/i)||body.match(/\bevent\s+([^\s]+(?:\s+ago)?)/i)||[])[1]||"";
+  const next=(body.match(/\bprox\.\s*([^\s]+)/i)||body.match(/\bnext\s*([^\s]+)/i)||[])[1]||"";
+  const detail=[eventAge?eventCopy("último evento "+eventAge,"last event "+eventAge):"",next?eventCopy("próximo passe "+next,"next pass "+next):""].filter(Boolean).join(" · ");
+  return {time,kind:"live",badge:eventCopy("Agora","Now"),title:eventCopy("Motor acompanhando a sessão","Engine tracking session"),detail:detail||eventCopy("Ciclos e foco protegidos.","Cycles and focus protected."),raw};
+}
+function passEvent(time,body,raw){
+  const app=(body.match(/(?:Passe|APPLY)\s+(\d+)\s+apps?/i)||[])[1]||"";
+  const mem=(body.match(/apps?\s+([\d,.]+\s*MB)/i)||[])[1]||"";
+  const levels=(body.match(/n[ií]veis\s+([\d\/]+)/i)||body.match(/L\/B\/D\s+([\d\/]+)/i)||[])[1]||"";
+  const intent=(body.match(/INTENT\s+([^\s]+(?:\s+\d+)?)/i)||[])[1]||"";
+  const top=(body.match(/principal\s+([^\s]+)/i)||body.match(/top\s+([^\s]+)/i)||[])[1]||"";
+  const bits=[];
+  if(app) bits.push(app+" "+t("apps"));
+  if(mem) bits.push(eventCopy(mem+" aliviados",mem+" relieved"));
+  if(levels) bits.push(eventCopy("níveis "+levels,"levels "+levels));
+  if(top) bits.push(eventCopy("principal "+cleanProcessName(top),"top "+cleanProcessName(top)));
+  if(intent) bits.push(cleanIntentText(intent));
+  return {time,kind:"pass",badge:eventCopy("Passe","Pass"),title:eventCopy("Passe do motor aplicado","Engine pass applied"),detail:bits.join(" · ") || humanEventText(body),raw};
+}
+function wakeEvent(time,body,raw){
+  const name=(body.match(/(?:Retorno|WAKE)\s+([^\s#]+)/i)||[])[1]||"";
+  return {time,kind:"wake",badge:eventCopy("Retorno","Wake"),title:eventCopy("Retorno protegido","Foreground restored"),detail:name?eventCopy(cleanProcessName(name)+" recuperou resposta rápida.",cleanProcessName(name)+" recovered fast response."):eventCopy("A janela ativa recebeu prioridade de volta.","The active window got priority back."),raw};
+}
+function friendlyMode(mode){
+  const m=String(mode||"").toLowerCase();
+  if(m==="gaming") return t("modeGaming");
+  if(m==="competitive") return t("modeCompetitive");
+  if(m==="streamer"||m==="live") return t("modeStreamer");
+  if(m==="work") return t("modeWork");
+  if(m==="focus") return t("modeFocus");
+  if(m==="auto") return t("modeAuto");
+  return mode||"";
+}
+function friendlyEnergy(value){
+  const v=String(value||"").toLowerCase();
+  if(v==="keep") return eventCopy("manter plano atual","keep current plan");
+  if(v==="ok") return "OK";
+  if(v==="balanced") return eventCopy("Equilibrado","Balanced");
+  return value||"";
+}
+function friendlyTrigger(value){
+  const v=String(value||"").toLowerCase();
+  if(v.indexOf("udp")>=0) return eventCopy("gatilho UDP","UDP trigger");
+  if(v.indexOf("process")>=0) return eventCopy("processo novo","new process");
+  if(v.indexOf("foreground")>=0) return eventCopy("troca de janela","foreground switch");
+  return value?value.replace(/-/g," "):"";
+}
+function cleanProcessName(value){
+  return String(value||"").replace(/\.exe$/i,"").replace(/[_-]+/g," ").trim();
+}
+function cleanIntentText(value){
+  return String(value||"").replace(/MediaCall/i,t("intentMediaCall")).replace(/DownloadInstall/i,t("intentDownloadInstall")).replace(/Desktop/i,t("intentDesktop")).replace(/Gaming/i,t("intentGaming")).replace(/Streaming/i,t("intentStreaming"));
+}
+function humanEventText(body){
+  let text=translateEventBody(body);
+  text=text.replace(/\baction=[^\s]+/g,"").replace(/\b(pid|exitCode|phase|status|trigger|process|energyResult|energy|mode)=[^\s]+/g,"");
+  text=text.replace(/\s{2,}/g," ").trim();
+  return text || eventCopy("Evento registrado pelo motor.","Event recorded by the engine.");
 }
 function translateEventBody(body){
   let text=String(body||"");
@@ -1998,5 +3352,7 @@ window.addEventListener("DOMContentLoaded",()=>{ currentLanguage=bestLanguage(na
 </script>
 </body>
 </html>
+
+
 
 

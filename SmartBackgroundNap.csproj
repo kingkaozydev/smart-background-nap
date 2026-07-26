@@ -59,6 +59,10 @@
     <EmbeddedResource Include="assets\smart-nap-logo.ico" LogicalName="SmartBackgroundNap.Resources.icon_ico" />
     <EmbeddedResource Include="assets\smart-nap-logo-v2.png" LogicalName="SmartBackgroundNap.Resources.logo_png" />
     <EmbeddedResource Include="assets\smart-nap-hero-bg.png" LogicalName="SmartBackgroundNap.Resources.hero_png" />
+    <EmbeddedResource Include="assets\games\bf6-cover-600x900.jpg" LogicalName="SmartBackgroundNap.Resources.game_bf6_cover_jpg" />
+    <EmbeddedResource Include="assets\games\eafc26-cover-600x900.jpg" LogicalName="SmartBackgroundNap.Resources.game_eafc26_cover_jpg" />
+    <EmbeddedResource Include="assets\games\cs2-cover-600x900.jpg" LogicalName="SmartBackgroundNap.Resources.game_cs2_cover_jpg" />
+    <EmbeddedResource Include="assets\games\valorant-cover-600x900.jpg" LogicalName="SmartBackgroundNap.Resources.game_valorant_cover_jpg" />
     <EmbeddedResource Include="assets\power\smart-nap-hone-base.pow" LogicalName="SmartBackgroundNap.Resources.power_hone_base_pow" />
   </ItemGroup>
 </Project>

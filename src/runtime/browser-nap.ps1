@@ -490,7 +490,10 @@ switch ($Action) {
         Invoke-ApplyOnce -SaveState $true
     }
     "Restore" {
-        Invoke-Restore
+        $results = @(Invoke-Restore)
+        if (-not $Quiet) {
+            $results
+        }
     }
     "Watch" {
         if ($WatchMinutes -lt 1) { $WatchMinutes = 1 }

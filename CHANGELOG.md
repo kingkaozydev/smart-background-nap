@@ -1,3 +1,10 @@
+## 0.5.45 - Dashboard spacing and stability polish
+
+- Refined the main dashboard hero so the Zero Ping and engine control area use space cleanly instead of leaving a large empty block.
+- Kept the recent 0.5.x engine upgrades: stronger Zero Ping lock-on, better game/process classification, CPU-bound assist, GPU/VRAM pressure awareness, streamer-safe containment, and rollback/audit feedback.
+- Kept the beta Games library work: per-game presets, restore-to-default flow for file-based tweaks, better local game discovery, and clearer preset confirmation.
+- Kept the premium WebView launcher refresh, new logo/tray identity, improved layout behavior, and safer update/install flow.
+- Preserved user settings during updates and avoided resetting optional features such as Zero Ping and Smart Learning.
 # Changelog
 ## 0.4.13 - 2026-07-15
 

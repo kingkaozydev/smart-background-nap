@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -29,7 +30,7 @@ using Microsoft.Web.WebView2.Wpf;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.5.24";
+    private const string AppVersion = "0.5.45";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
@@ -229,7 +230,9 @@ internal static class SmartBackgroundNap
 
     private static Mutex singleInstanceMutex;
     private static EventWaitHandle showDashboardEvent;
+    #if !NET9_0_OR_GREATER
     private static ScoreWindow scoreWindow;
+    #endif
     private static readonly object firstRunDefaultsLock = new object();
     private static bool firstRunDefaultsChecked;
 
@@ -1299,13 +1302,125 @@ internal static class SmartBackgroundNap
         return "";
     }
 
+    private static bool TryReadJsonMapStrict(string path, out IDictionary<string, object> map)
+    {
+        map = null;
+        try
+        {
+            if (String.IsNullOrWhiteSpace(path) || !File.Exists(path)) { return false; }
+            string json = File.ReadAllText(path, Encoding.UTF8);
+            if (String.IsNullOrWhiteSpace(json)) { return false; }
+            map = JsonCompat.DeserializeObject(json);
+            return map != null;
+        }
+        catch
+        {
+            map = null;
+            return false;
+        }
+    }
+
+    private static IDictionary<string, object> LoadJsonMapWithRecovery(string path)
+    {
+        IDictionary<string, object> map;
+        if (TryReadJsonMapStrict(path, out map)) { return map; }
+
+        string lastGood = String.IsNullOrWhiteSpace(path) ? "" : path + ".lastgood";
+        if (TryReadJsonMapStrict(lastGood, out map))
+        {
+            try { AtomicWriteAllText(path, JsonCompat.SerializeObject(map), Encoding.UTF8); } catch { }
+            return map;
+        }
+
+        return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static void AtomicWriteAllText(string path, string content, Encoding encoding)
+    {
+        if (String.IsNullOrWhiteSpace(path)) { return; }
+        string dir = Path.GetDirectoryName(path);
+        if (!String.IsNullOrWhiteSpace(dir)) { Directory.CreateDirectory(dir); }
+
+        string tempPath = path + ".tmp-" + Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture);
+        string replaceBackup = path + ".replace-" + Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture);
+        string lastGood = path + ".lastgood";
+        bool moved = false;
+
+        try
+        {
+            DurableWriteAllText(tempPath, content ?? String.Empty, encoding ?? Encoding.UTF8);
+            if (File.Exists(path))
+            {
+                try
+                {
+                    File.Replace(tempPath, path, replaceBackup, true);
+                    moved = true;
+                }
+                catch
+                {
+                    File.Copy(tempPath, path, true);
+                    moved = true;
+                }
+            }
+            else
+            {
+                File.Move(tempPath, path);
+                moved = true;
+            }
+
+            if (moved && File.Exists(path))
+            {
+                try { DurableCopyFile(path, lastGood); } catch { }
+            }
+        }
+        finally
+        {
+            try { if (!moved && File.Exists(tempPath)) { File.Delete(tempPath); } } catch { }
+            try { if (File.Exists(replaceBackup)) { File.Delete(replaceBackup); } } catch { }
+        }
+    }
+
+    private static void DurableWriteAllText(string path, string content, Encoding encoding)
+    {
+        Encoding writerEncoding = encoding ?? Encoding.UTF8;
+        byte[] preamble = writerEncoding.GetPreamble();
+        byte[] payload = writerEncoding.GetBytes(content ?? String.Empty);
+        using (FileStream stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Read, 65536, FileOptions.WriteThrough))
+        {
+            if (preamble != null && preamble.Length > 0)
+            {
+                stream.Write(preamble, 0, preamble.Length);
+            }
+            if (payload.Length > 0)
+            {
+                stream.Write(payload, 0, payload.Length);
+            }
+            stream.Flush(true);
+        }
+    }
+
+    private static void DurableCopyFile(string sourcePath, string targetPath)
+    {
+        string dir = Path.GetDirectoryName(targetPath);
+        if (!String.IsNullOrWhiteSpace(dir)) { Directory.CreateDirectory(dir); }
+        using (FileStream source = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+        using (FileStream target = new FileStream(targetPath, FileMode.Create, FileAccess.Write, FileShare.Read, 65536, FileOptions.WriteThrough))
+        {
+            source.CopyTo(target);
+            target.Flush(true);
+        }
+    }
+
+    private static void AtomicWriteJsonMap(string path, IDictionary<string, object> map)
+    {
+        AtomicWriteAllText(path, JsonCompat.SerializeObject(map ?? new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)), Encoding.UTF8);
+    }
+
     private static IDictionary<string, object> LoadUiSettings()
     {
         try
         {
-            if (String.IsNullOrWhiteSpace(uiSettingsPath) || !File.Exists(uiSettingsPath)) { return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase); }
-            IDictionary<string, object> settings = JsonCompat.DeserializeObject(File.ReadAllText(uiSettingsPath, Encoding.UTF8));
-            return settings ?? new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            return LoadJsonMapWithRecovery(uiSettingsPath);
         }
         catch
         {
@@ -1317,8 +1432,7 @@ internal static class SmartBackgroundNap
     {
         try
         {
-            Directory.CreateDirectory(appRoot);
-            File.WriteAllText(uiSettingsPath, JsonCompat.SerializeObject(settings ?? new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)), Encoding.UTF8);
+            AtomicWriteJsonMap(uiSettingsPath, settings ?? new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase));
         }
         catch (Exception ex)
         {
@@ -1733,7 +1847,7 @@ internal static class SmartBackgroundNap
         Directory.CreateDirectory(Path.GetDirectoryName(targetPath));
         if (!File.Exists(targetPath))
         {
-            File.WriteAllText(targetPath, defaultJson, Encoding.UTF8);
+            AtomicWriteAllText(targetPath, defaultJson, Encoding.UTF8);
             return;
         }
 
@@ -1747,7 +1861,7 @@ internal static class SmartBackgroundNap
             }
             if (MergeMissingConfigValues(current, defaults))
             {
-                File.WriteAllText(targetPath, JsonCompat.SerializeObject(current), Encoding.UTF8);
+                AtomicWriteJsonMap(targetPath, current);
             }
         }
         catch
@@ -1789,7 +1903,7 @@ internal static class SmartBackgroundNap
             {
                 string dir = Path.GetDirectoryName(userConfigPath);
                 if (!String.IsNullOrWhiteSpace(dir)) { Directory.CreateDirectory(dir); }
-                File.WriteAllText(userConfigPath, JsonCompat.SerializeObject(user), Encoding.UTF8);
+                AtomicWriteJsonMap(userConfigPath, user);
             }
         }
         catch (Exception ex)
@@ -1833,8 +1947,8 @@ internal static class SmartBackgroundNap
         try
         {
             if (String.IsNullOrWhiteSpace(path) || !File.Exists(path)) { return false; }
-            config = JsonCompat.DeserializeObject(File.ReadAllText(path, Encoding.UTF8));
-            return config != null;
+            config = LoadJsonMapWithRecovery(path);
+            return config != null && config.Count > 0;
         }
         catch
         {
@@ -2118,6 +2232,7 @@ internal static class SmartBackgroundNap
         psi.RedirectStandardError = true;
 
         StringBuilder output = new StringBuilder();
+        object outputLock = new object();
         try
         {
             using (Process process = Process.Start(psi))
@@ -2136,6 +2251,19 @@ internal static class SmartBackgroundNap
                     }
                 }
 
+                DataReceivedEventHandler capture = delegate(object sender, DataReceivedEventArgs e)
+                {
+                    if (e.Data == null) { return; }
+                    lock (outputLock)
+                    {
+                        output.AppendLine(e.Data);
+                    }
+                };
+                process.OutputDataReceived += capture;
+                process.ErrorDataReceived += capture;
+                try { process.BeginOutputReadLine(); } catch { }
+                try { process.BeginErrorReadLine(); } catch { }
+
                 DateTime deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
                 bool timedOut = false;
                 while (!process.WaitForExit(150))
@@ -2143,13 +2271,13 @@ internal static class SmartBackgroundNap
                     if (control != null && control.CancelRequested)
                     {
                         try { process.Kill(); } catch { }
-                        output.AppendLine("Stopped by user.");
+                        lock (outputLock) { output.AppendLine("Stopped by user."); }
                         break;
                     }
                     if (DateTime.UtcNow > deadline)
                     {
                         try { process.Kill(); } catch { }
-                        output.AppendLine("Timed out.");
+                        lock (outputLock) { output.AppendLine("Timed out."); }
                         timedOut = true;
                         break;
                     }
@@ -2168,22 +2296,24 @@ internal static class SmartBackgroundNap
 
                 if (!process.HasExited)
                 {
-                    return new RunResult(1, (output.ToString() + Environment.NewLine + "Process did not exit after stop request.").Trim());
+                    lock (outputLock)
+                    {
+                        return new RunResult(1, (output.ToString() + Environment.NewLine + "Process did not exit after stop request.").Trim());
+                    }
                 }
 
-                output.Append(process.StandardOutput.ReadToEnd());
-                output.Append(process.StandardError.ReadToEnd());
+                try { process.WaitForExit(); } catch { }
 
                 if (control != null && control.CancelRequested)
                 {
-                    return new RunResult(130, output.ToString().Trim());
+                    lock (outputLock) { return new RunResult(130, output.ToString().Trim()); }
                 }
                 if (timedOut)
                 {
-                    return new RunResult(124, output.ToString().Trim());
+                    lock (outputLock) { return new RunResult(124, output.ToString().Trim()); }
                 }
 
-                return new RunResult(process.ExitCode, output.ToString().Trim());
+                lock (outputLock) { return new RunResult(process.ExitCode, output.ToString().Trim()); }
             }
         }
         catch (Exception ex)
@@ -2457,12 +2587,12 @@ internal static class SmartBackgroundNap
     private static RunResult ApplyEnergyChoiceForMode(string normalizedMode, string energyChoice)
     {
         string choice = NormalizeEnergyChoice(energyChoice);
-        if (String.Equals(normalizedMode, "Gaming", StringComparison.OrdinalIgnoreCase))
+        if (String.Equals(normalizedMode, "Gaming", StringComparison.OrdinalIgnoreCase) || String.Equals(normalizedMode, "Competitive", StringComparison.OrdinalIgnoreCase))
         {
             RunResult ensure = EnsureSmartNapPowerPlans();
             if (ensure.ExitCode != 0) { return ensure; }
             if (choice == "activate") { return ActivatePowerPlan(SmartNapGamePowerPlanGuid, SmartNapGamePowerPlanName, true); }
-            return new RunResult(0, "Game power plan is installed. Current Windows plan kept.");
+            return new RunResult(0, "Game/competitive power plan is installed. Current Windows plan kept.");
         }
         if (String.Equals(normalizedMode, "Streamer", StringComparison.OrdinalIgnoreCase))
         {
@@ -2533,7 +2663,7 @@ internal static class SmartBackgroundNap
     {
         SyncSmartLearningSettingToConfig();
         Directory.CreateDirectory(outputsPath);
-        return RunPowerShellScript(backgroundScriptPath, "-ConfigPath " + Quote(GetEffectiveConfigPath()) + " -Action Apply -StateMode Latest -Quiet -LogPath " + Quote(logPath), 120000, control);
+        return RunPowerShellScript(backgroundScriptPath, "-ConfigPath " + Quote(GetEffectiveConfigPath()) + " -Action Apply -StateMode Latest -Quiet -LogPath " + Quote(logPath), 180000, control);
     }
 
 
@@ -2723,7 +2853,7 @@ internal static class SmartBackgroundNap
     }
     private static RunResult RunRestore()
     {
-        return RunPowerShellScript(backgroundScriptPath, "-ConfigPath " + Quote(GetEffectiveConfigPath()) + " -Action Restore -LogPath " + Quote(logPath), 120000);
+        return RunPowerShellScript(backgroundScriptPath, "-ConfigPath " + Quote(GetEffectiveConfigPath()) + " -Action Restore -Quiet -LogPath " + Quote(logPath), 180000);
     }
 
     private static RunResult RunForegroundRestore(int pid)
@@ -3118,23 +3248,75 @@ internal static class SmartBackgroundNap
     private static string FriendlyUiError(string output)
     {
         if (String.IsNullOrWhiteSpace(output)) { return "Nenhum detalhe foi retornado."; }
-        string compact = Regex.Replace(output, @"\s+", " ").Trim();
-        if (compact.IndexOf("Register-ScheduledTask", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            compact.IndexOf("0x80070005", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            compact.IndexOf("Acesso negado", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            compact.IndexOf("Access is denied", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            compact.IndexOf("CategoryInfo", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            compact.IndexOf("FullyQualifiedErrorId", StringComparison.OrdinalIgnoreCase) >= 0)
+
+        if (LooksLikeTaskSetupWarning(output))
         {
-            return "O Windows bloqueou o registro da tarefa elevada. O Smart Nap continua tentando manter o controle local; aceite a permissao de administrador para concluir a instalacao com inicializacao automatica completa.";
+            return "O Windows bloqueou o registro da tarefa elevada. Abra o Smart Nap como administrador uma vez para concluir a instalacao completa; o motor local continua ativo.";
         }
+
+        if (LooksLikeRecoverableRunTimeout(output))
+        {
+            return "A acao demorou mais que o esperado, mas o Smart Nap evitou travar o painel e continua pronto para o proximo ciclo.";
+        }
+
+        string compact = Regex.Replace(output, @"\s+", " ").Trim();
         if (compact.IndexOf("Permissao de administrador cancelada", StringComparison.OrdinalIgnoreCase) >= 0 ||
             compact.IndexOf("Administrator permission was cancelled", StringComparison.OrdinalIgnoreCase) >= 0)
         {
             return "Permissao de administrador cancelada. O Smart Nap continua aberto, mas a instalacao completa sera concluida quando a permissao for aceita.";
         }
+
+        if (LooksLikeAccessDenied(output))
+        {
+            return "O Windows negou permissao para uma etapa avancada. O Smart Nap manteve o controle local e pulou apenas o ajuste bloqueado.";
+        }
+
         if (compact.Length > 320) { compact = compact.Substring(0, 320).TrimEnd() + "..."; }
         return compact;
+    }
+    private static bool LooksLikeTaskSetupWarning(string output)
+    {
+        if (String.IsNullOrWhiteSpace(output)) { return false; }
+        string compact = Regex.Replace(output, @"\s+", " ").Trim();
+        bool taskRelated = compact.IndexOf("Register-ScheduledTask", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            compact.IndexOf("ScheduledTask", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            compact.IndexOf("Task Scheduler", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            compact.IndexOf("SmartBackgroundNapTray", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            compact.IndexOf("SmartBackgroundNapDashboard", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            compact.IndexOf("schtasks", StringComparison.OrdinalIgnoreCase) >= 0;
+        bool denied = compact.IndexOf("0x80070005", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            compact.IndexOf("Acesso negado", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            compact.IndexOf("Access is denied", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            compact.IndexOf("PermissionDenied", StringComparison.OrdinalIgnoreCase) >= 0;
+        return taskRelated && denied;
+    }
+    private static bool LooksLikeRecoverableRunTimeout(string output)
+    {
+        if (String.IsNullOrWhiteSpace(output)) { return false; }
+        string compact = Regex.Replace(output, @"\s+", " ").Trim();
+        bool timedOut = compact.StartsWith("Timed out.", StringComparison.OrdinalIgnoreCase) ||
+            compact.IndexOf("timed out", StringComparison.OrdinalIgnoreCase) >= 0;
+        if (!timedOut) { return false; }
+        return compact.IndexOf("PriorityRestore", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            compact.IndexOf("MemoryPriority", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            compact.IndexOf("IoPriority", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            compact.IndexOf("PowerThrottling", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            compact.IndexOf("CpuAffinity", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            compact.IndexOf("background-nap-state-latest.json", StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static bool ShouldSuppressRunModal(string output)
+    {
+        return LooksLikeTaskSetupWarning(output) || LooksLikeRecoverableRunTimeout(output);
+    }
+
+    private static string BuildDeferredRunDetail(string output)
+    {
+        if (LooksLikeRecoverableRunTimeout(output))
+        {
+            return "Passe pesado finalizado sem travar o launcher. O motor continua ajustando no proximo ciclo.";
+        }
+        return "Passe manual finalizado. A inicializacao automatica elevada ficou pendente de permissao.";
     }
     private static bool IsCurrentProcessElevated()
     {
@@ -3156,8 +3338,7 @@ internal static class SmartBackgroundNap
     {
         string sourcePath = GetEffectiveConfigPath();
         if (!File.Exists(sourcePath)) { return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase); }
-        IDictionary<string, object> root = JsonCompat.DeserializeObject(File.ReadAllText(sourcePath, Encoding.UTF8));
-        return root ?? new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        return LoadJsonMapWithRecovery(sourcePath);
     }
 
     private static string GetEffectiveConfigPath()
@@ -3265,7 +3446,7 @@ internal static class SmartBackgroundNap
         try
         {
             if (string.IsNullOrEmpty(learningSettingsPath) || !File.Exists(learningSettingsPath)) { return false; }
-            IDictionary<string, object> root = JsonCompat.DeserializeObject(File.ReadAllText(learningSettingsPath, Encoding.UTF8));
+            IDictionary<string, object> root = LoadJsonMapWithRecovery(learningSettingsPath);
             if (root == null || !root.ContainsKey("LearningEnabled")) { return false; }
             enabled = GetMapBool(root, "LearningEnabled", false);
             return true;
@@ -3337,7 +3518,7 @@ internal static class SmartBackgroundNap
         IDictionary<string, object> root = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
         root["LearningEnabled"] = enabled;
         root["UpdatedAt"] = DateTime.Now.ToString("s", CultureInfo.InvariantCulture);
-        File.WriteAllText(learningSettingsPath, JsonCompat.SerializeObject(root), Encoding.UTF8);
+        AtomicWriteJsonMap(learningSettingsPath, root);
     }
 
     private static void EnsureSmartLearningConfigValue(bool enabled)
@@ -3355,7 +3536,7 @@ internal static class SmartBackgroundNap
         IDictionary<string, object> smart = GetOrCreateMap(root, "SmartMode");
         smart["LearningEnabled"] = enabled;
         Directory.CreateDirectory(appRoot);
-        File.WriteAllText(userConfigPath, JsonCompat.SerializeObject(root), Encoding.UTF8);
+        AtomicWriteJsonMap(userConfigPath, root);
     }
 
 
@@ -3364,6 +3545,29 @@ internal static class SmartBackgroundNap
         object value;
         if (map == null || !map.TryGetValue(key, out value) || value == null) { return String.Empty; }
         return Convert.ToString(value, CultureInfo.InvariantCulture);
+    }
+
+    private static List<string> GetMapStringList(IDictionary<string, object> map, string key)
+    {
+        List<string> output = new List<string>();
+        object value;
+        if (map == null || !map.TryGetValue(key, out value) || value == null) { return output; }
+
+        string textValue = value as string;
+        if (!String.IsNullOrWhiteSpace(textValue))
+        {
+            output.Add(textValue.Trim());
+            return output;
+        }
+
+        System.Collections.IEnumerable enumerable = value as System.Collections.IEnumerable;
+        if (enumerable == null) { return output; }
+        foreach (object item in enumerable)
+        {
+            string itemText = Convert.ToString(item, CultureInfo.InvariantCulture);
+            if (!String.IsNullOrWhiteSpace(itemText)) { output.Add(itemText.Trim()); }
+        }
+        return output;
     }
 
     private static bool GetMapBool(IDictionary<string, object> map, string key, bool fallback)
@@ -3448,7 +3652,7 @@ internal static class SmartBackgroundNap
             IDictionary<string, object> smart = GetOrCreateMap(root, "SmartMode");
             smart[key] = value;
             Directory.CreateDirectory(appRoot);
-            File.WriteAllText(userConfigPath, JsonCompat.SerializeObject(root), Encoding.UTF8);
+            AtomicWriteJsonMap(userConfigPath, root);
             return new RunResult(0, "Saved.");
         }
         catch (Exception ex)
@@ -3488,19 +3692,35 @@ internal static class SmartBackgroundNap
         try
         {
             IDictionary<string, object> smart = LoadSmartModeMap();
-            return GetMapBool(smart, "NetworkUdpGuardEnabled", false);
+            object value;
+            if (smart != null && smart.TryGetValue("NetworkUdpGuardEnabled", out value))
+            {
+                return GetMapBool(smart, "NetworkUdpGuardEnabled", false);
+            }
+            return ReadUiFlag("NetworkUdpGuardEnabledMirror");
         }
         catch
         {
-            return false;
+            return ReadUiFlag("NetworkUdpGuardEnabledMirror");
         }
     }
 
     private static RunResult SetNetworkUdpGuardEnabled(bool enabled)
     {
         RunResult result = WriteSmartModeValue("NetworkUdpGuardEnabled", enabled);
-        if (result.ExitCode == 0) { AppendOperationalLog("action=udp-guard enabled=" + enabled.ToString().ToLowerInvariant()); }
-        return result.ExitCode == 0 ? new RunResult(0, enabled ? "Zero Ping enabled." : "Zero Ping disabled.") : result;
+        if (result.ExitCode != 0) { return result; }
+        SaveUiFlag("NetworkUdpGuardEnabledMirror", enabled);
+
+        AppendOperationalLog("action=udp-guard enabled=" + enabled.ToString().ToLowerInvariant() + " apply=queued");
+        RunResult apply = RunApplyNow();
+        if (apply.ExitCode != 0)
+        {
+            AppendOperationalLog("action=udp-guard enabled=" + enabled.ToString().ToLowerInvariant() + " apply=failed exitCode=" + apply.ExitCode.ToString(CultureInfo.InvariantCulture));
+            return apply;
+        }
+
+        AppendOperationalLog("action=udp-guard enabled=" + enabled.ToString().ToLowerInvariant() + " apply=OK");
+        return new RunResult(0, enabled ? "Zero Ping enabled and applied." : "Zero Ping disabled and cleaned.");
     }
 
     private static int CountManualPolicies()
@@ -3508,7 +3728,7 @@ internal static class SmartBackgroundNap
         try
         {
             if (String.IsNullOrWhiteSpace(appPolicyPath) || !File.Exists(appPolicyPath)) { return 0; }
-            IDictionary<string, object> root = JsonCompat.DeserializeObject(File.ReadAllText(appPolicyPath, Encoding.UTF8));
+            IDictionary<string, object> root = LoadJsonMapWithRecovery(appPolicyPath);
             object existingItems = null;
             System.Collections.IEnumerable enumerable = root != null && root.TryGetValue("Items", out existingItems) ? existingItems as System.Collections.IEnumerable : null;
             if (enumerable == null || existingItems is string) { return 0; }
@@ -3540,7 +3760,7 @@ internal static class SmartBackgroundNap
             Dictionary<string, object> output = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             output["Timestamp"] = DateTime.Now.ToString("o", CultureInfo.InvariantCulture);
             output["Items"] = new List<Dictionary<string, object>>();
-            File.WriteAllText(appPolicyPath, JsonCompat.SerializeObject(output), Encoding.UTF8);
+            AtomicWriteJsonMap(appPolicyPath, output);
             AppendOperationalLog("action=policy-clear status=done");
             return new RunResult(0, "Policies cleared.");
         }
@@ -4001,30 +4221,7 @@ internal static class SmartBackgroundNap
             {
                 File.WriteAllText(scorePath, "{ \"Items\": [] }", Encoding.UTF8);
             }
-
-            if (scoreWindow == null || scoreWindow.IsDisposed)
-            {
-                scoreWindow = new ScoreWindow(scorePath);
-            }
-
-            scoreWindow.RefreshScore();
-            if (!scoreWindow.Visible)
-            {
-                Form owner = Form.ActiveForm;
-                if (owner != null && !Object.ReferenceEquals(owner, scoreWindow))
-                {
-                    scoreWindow.Show(owner);
-                }
-                else
-                {
-                    scoreWindow.Show();
-                }
-            }
-            if (scoreWindow.WindowState == FormWindowState.Minimized)
-            {
-                scoreWindow.WindowState = FormWindowState.Normal;
-            }
-            scoreWindow.Activate();
+            OpenExternal(scorePath);
         }
         catch (Exception ex)
         {
@@ -4061,7 +4258,11 @@ internal static class SmartBackgroundNap
 
     private static void OpenLatestDownload()
     {
-        OpenExternal(GitHubLatestDownloadUrl);
+        RunResult result = StartSelfUpdate(GitHubLatestDownloadUrl, "", "");
+        if (result.ExitCode != 0)
+        {
+            MessageBox.Show(result.Output, AppName, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
     }
 
     private static RunResult StartSelfUpdate(string downloadUrl, string latestTag, string releaseBody)
@@ -4480,10 +4681,13 @@ internal static class SmartBackgroundNap
 #endif
         private readonly Form dispatchForm;
         private readonly SynchronizationContext uiContext;
+        #if !NET9_0_OR_GREATER
         private bool allowExit;
+        #endif
         private bool listenerStopping;
         private Thread showThread;
         private System.Windows.Forms.Timer foregroundWakeTimer;
+        private System.Windows.Forms.Timer processStartRadarTimer;
         private System.Windows.Forms.Timer trayTelemetryTimer;
         private System.Windows.Forms.Timer energyIdleGuardTimer;
         private System.Windows.Forms.Timer localAutoEngineTimer;
@@ -4493,7 +4697,14 @@ internal static class SmartBackgroundNap
         private string lastTrayTelemetryText = "";
         private int lastForegroundPid;
         private bool foregroundRestoreBusy;
+        private bool processStartRadarBusy;
+        private readonly HashSet<int> processStartRadarSeenPids = new HashSet<int>();
         private DateTime lastForegroundRestoreAt = DateTime.MinValue;
+        private bool reactiveApplyBusy;
+        private DateTime lastReactiveApplyAt = DateTime.MinValue;
+        private DateTime lastGameRadarSweepAt = DateTime.MinValue;
+        private int lastReactiveApplyPid;
+        private string lastReactiveApplyReason = "";
 
         public SmartNapContext(bool trayOnly)
         {
@@ -4537,12 +4748,15 @@ internal static class SmartBackgroundNap
             }
 
             StartShowListener();
+            PrimeProcessStartRadar();
             StartForegroundWakeTimer();
+            StartProcessStartRadarTimer();
             StartTrayTelemetryTimer();
             StartEnergyIdleGuardTimer();
             StartLocalAutoEngineTimer();
         }
 
+        #if !NET9_0_OR_GREATER
         private ModernMainWindow CreateMainWindow()
         {
             ModernMainWindow window = new ModernMainWindow();
@@ -4556,14 +4770,38 @@ internal static class SmartBackgroundNap
             };
             return window;
         }
+        #endif
+
+        private const int TrayMenuWidth = 386;
+        private const int TrayItemWidth = 370;
+        private const string TrayActiveTag = "smartnap-tray-active";
+
+        private static Color TrayBg { get { return Color.FromArgb(9, 9, 11); } }
+        private static Color TrayPanel { get { return Color.FromArgb(12, 20, 33); } }
+        private static Color TrayPanelAlt { get { return Color.FromArgb(15, 27, 45); } }
+        private static Color TrayText { get { return Color.FromArgb(238, 244, 252); } }
+        private static Color TrayMuted { get { return Color.FromArgb(148, 164, 188); } }
+        private static Color AccentOrange { get { return Color.FromArgb(255, 173, 47); } }
+        private static Color AccentGreen { get { return Color.FromArgb(53, 232, 154); } }
+        private static Color AccentBlue { get { return Color.FromArgb(84, 162, 255); } }
+        private static Color AccentCyan { get { return Color.FromArgb(61, 220, 255); } }
+        private static Color AccentViolet { get { return Color.FromArgb(167, 139, 250); } }
+        private static Color AccentRose { get { return Color.FromArgb(255, 93, 120); } }
+        private static Color AccentNeutral { get { return Color.FromArgb(137, 156, 184); } }
 
         private ContextMenuStrip BuildMenu()
         {
             ContextMenuStrip menu = new ContextMenuStrip();
-            menu.ShowImageMargin = false;
-            menu.BackColor = Color.FromArgb(7, 15, 26);
-            menu.ForeColor = Color.FromArgb(236, 245, 255);
-            menu.Renderer = new ToolStripProfessionalRenderer(new SmartNapTrayColors());
+            menu.ShowImageMargin = true;
+            menu.ShowCheckMargin = false;
+            menu.ImageScalingSize = new Size(28, 28);
+            menu.AutoClose = true;
+            menu.AutoSize = true;
+            menu.Padding = new Padding(8, 8, 8, 8);
+            menu.Margin = Padding.Empty;
+            menu.BackColor = TrayBg;
+            menu.ForeColor = TrayText;
+            menu.Renderer = new SmartNapTrayRenderer();
             PopulateTrayMenu(menu);
             menu.Opening += delegate
             {
@@ -4575,112 +4813,330 @@ internal static class SmartBackgroundNap
 
         private void PopulateTrayMenu(ContextMenuStrip menu)
         {
+            menu.SuspendLayout();
             menu.Items.Clear();
             string mode = GetSessionMode();
             bool motorOn = IsAutomaticEngineEnabled();
             bool startupOn = IsStartupInstalled();
+            bool learningOn = IsSmartLearningEnabled();
+            bool zeroPingOn = IsNetworkUdpGuardEnabled();
+            bool updateAutoOn = LoadAutoUpdateChecks();
             PowerPlanSnapshot plan = GetActivePowerPlan();
-            string planName = plan == null || String.IsNullOrWhiteSpace(plan.Name) ? "plano nao identificado" : plan.Name;
+            string planName = plan == null || String.IsNullOrWhiteSpace(plan.Name) ? "Plano nao identificado" : plan.Name;
 
-            AddTrayHeader(menu, "Smart Nap", "Modo " + DisplaySessionMode(mode));
-            AddTrayStatus(menu, motorOn ? "Motor ativo" : "Motor pausado");
-            AddTrayStatus(menu, "Energia: " + TrimTrayText(planName, 42));
-            AddTrayStatus(menu, BuildCompactTrayTelemetryText());
-            menu.Items.Add(new ToolStripSeparator());
+            AddTrayHeader(menu, "Smart Nap", (motorOn ? "Motor ativo" : "Motor pausado") + " • " + DisplaySessionMode(mode), notifyIcon.Icon);
+            AddTrayInfo(menu, "Estado da sessão", BuildCompactTrayTelemetryText(), motorOn ? AccentGreen : AccentOrange);
+            AddTrayInfo(menu, "Plano de energia", TrimTrayText(planName, 48), AccentBlue);
+            AddTraySeparator(menu);
 
-            AddTrayItem(menu, "Abrir painel", delegate { ShowMainWindow(); }, true, false);
-            AddTrayItem(menu, "Otimizar agora", delegate { RunFromTray("Otimizar agora", RunApplyNow); }, true, false);
-            AddTrayItem(menu, motorOn ? "Pausar motor" : "Retomar motor", delegate { RunFromTray(motorOn ? "Motor pausado" : "Motor iniciado", motorOn ? (Func<RunResult>)UninstallAutomatic : InstallAutomatic); }, true, false);
-            AddTrayItem(menu, startupOn ? "Iniciar com Windows: ligado" : "Iniciar com Windows: desligado", delegate { RunFromTray(startupOn ? "Inicializacao desligada" : "Inicializacao ligada", startupOn ? (Func<RunResult>)UninstallStartup : InstallStartup); }, true, startupOn);
-            menu.Items.Add(new ToolStripSeparator());
+            AddTrayItem(menu, "Abrir painel", "Dashboard completo do Smart Nap.", delegate { ShowMainWindow(); }, true, false, AccentBlue, "P");
+            AddTrayItem(menu, "Otimizar agora", "Executa um passe manual sem fechar seus apps.", delegate { RunFromTray("Otimizar agora", RunApplyNow); }, true, false, AccentOrange, "GO");
+            AddTrayItem(menu, motorOn ? "Pausar motor" : "Retomar motor", motorOn ? "Suspende os passes automáticos." : "Reativa o motor em segundo plano.", delegate { RunFromTray(motorOn ? "Motor pausado" : "Motor iniciado", motorOn ? (Func<RunResult>)UninstallAutomatic : InstallAutomatic); }, true, motorOn, motorOn ? AccentGreen : AccentOrange, motorOn ? "ON" : "UP");
+            AddTraySeparator(menu);
 
-            ToolStripMenuItem modes = AddTraySubmenu(menu, "Modo do motor");
-            AddModeTrayItem(modes, "Auto", "Auto", mode, "Mantem decisao automatica por app.", "keep");
-            AddModeTrayItem(modes, "Jogos", "Gaming", mode, "Prioriza o jogo ativo e contem o fundo.", "keep");
-            AddModeTrayItem(modes, "Competitivo", "Competitive", mode, "Prioriza jogo online, voz e entrada com contencao mais direta.", "keep");
-            AddModeTrayItem(modes, "Live / Streamer", "Streamer", mode, "Protege encoder, jogo e apps de live.", "keep");
-            AddModeTrayItem(modes, "Trabalho", "Work", mode, "Mantem multitarefa responsiva.", "keep");
-            AddModeTrayItem(modes, "Foco", "Focus", mode, "Aperta apps parados com mais firmeza.", "keep");
+            ToolStripMenuItem modes = AddTraySubmenu(menu, "Trocar modo", "Auto, jogos, competitivo, live e trabalho.", AccentViolet, "MD");
+            AddModeTrayItem(modes, "Auto", "Auto", mode, "Equilíbrio diário com decisão automática por app.", "keep", AccentBlue, "A");
+            AddModeTrayItem(modes, "Jogos", "Gaming", mode, "Prioriza o jogo ativo e segura launchers/browsers de fundo.", "keep", AccentOrange, "J");
+            AddModeTrayItem(modes, "Competitivo", "Competitive", mode, "Partidas online, voz e entrada com contenção mais direta.", "keep", AccentCyan, "C");
+            AddModeTrayItem(modes, "Live / Streamer", "Streamer", mode, "Protege encoder, captura, áudio e jogo.", "keep", AccentGreen, "L");
+            AddModeTrayItem(modes, "Trabalho", "Work", mode, "Mantém apps profissionais e multitarefa responsivos.", "keep", AccentViolet, "T");
+            AddModeTrayItem(modes, "Foco", "Focus", mode, "Alivia apps parados com mais firmeza.", "keep", AccentRose, "F");
 
-            ToolStripMenuItem energy = AddTraySubmenu(menu, "Modo + energia");
-            AddTrayItem(energy, "Jogos + plano Smart Nap", delegate { ConfirmPowerModeFromTray("Gaming", "activate", "Smart Nap MODO JOGO"); }, false, String.Equals(mode, "Gaming", StringComparison.OrdinalIgnoreCase) && plan != null && String.Equals(plan.Guid, SmartNapGamePowerPlanGuid, StringComparison.OrdinalIgnoreCase));
-            AddTrayItem(energy, "Live + plano Smart Nap", delegate { ConfirmPowerModeFromTray("Streamer", "activate", "Smart Nap MODO LIVE"); }, false, String.Equals(mode, "Streamer", StringComparison.OrdinalIgnoreCase) && plan != null && String.Equals(plan.Guid, SmartNapLivePowerPlanGuid, StringComparison.OrdinalIgnoreCase));
-            AddTrayItem(energy, "Restaurar plano anterior", delegate { RunFromTray("Plano anterior", delegate { return SetSessionMode("Auto", "restore"); }); }, false, false);
-            AddTrayItem(energy, "Usar Equilibrado", delegate { RunFromTray("Equilibrado", delegate { return SetSessionMode("Auto", "balanced"); }); }, false, plan != null && String.Equals(plan.Guid, BalancedPowerPlanGuid, StringComparison.OrdinalIgnoreCase));
+            ToolStripMenuItem resources = AddTraySubmenu(menu, "Recursos rápidos", "Ative os diferenciais sem abrir o painel.", AccentCyan, "FX");
+            AddTrayItem(resources, zeroPingOn ? "Zero Ping ligado" : "Zero Ping desligado", "Proteção opcional para netcode UDP, QoS e shield local por sessão.", delegate { RunFromTray(zeroPingOn ? "Zero Ping desligado" : "Zero Ping ligado", delegate { return SetNetworkUdpGuardEnabled(!zeroPingOn); }); }, false, zeroPingOn, AccentCyan, "ZP");
+            AddTrayItem(resources, learningOn ? "Smart Learning ligado" : "Smart Learning desligado", "Perfis locais por comportamento, sem telemetria.", delegate { RunFromTray(learningOn ? "Smart Learning desligado" : "Smart Learning ligado", delegate { return SetSmartLearningEnabled(!learningOn); }); }, false, learningOn, AccentViolet, "AI");
+            AddTrayItem(resources, startupOn ? "Inicia com Windows" : "Nao inicia com Windows", "Controla a inicialização automática do tray.", delegate { RunFromTray(startupOn ? "Inicializacao desligada" : "Inicializacao ligada", startupOn ? (Func<RunResult>)UninstallStartup : InstallStartup); }, false, startupOn, AccentGreen, "ST");
+            AddTrayItem(resources, updateAutoOn ? "Updates automáticos ligados" : "Updates automáticos desligados", "Permite lembretes de novas versões oficiais.", delegate { SaveAutoUpdateChecks(!updateAutoOn); UpdateTrayTelemetryText(true); }, false, updateAutoOn, AccentBlue, "UP");
+            AddTrayItem(resources, "Baixar atualização oficial", "Baixa e instala direto pelo Smart Nap, sem abrir navegador.", delegate { OpenLatestDownload(); }, false, false, AccentOrange, "DL");
 
-            ToolStripMenuItem tools = AddTraySubmenu(menu, "Ferramentas");
-            AddTrayItem(tools, "Nap Score", delegate { OpenScore(); }, false, false);
-            AddTrayItem(tools, "Log de eventos", delegate { OpenLog(); }, false, false);
-            AddTrayItem(tools, "Pasta do app", delegate { OpenFolder(); }, false, false);
-            AddTrayItem(tools, "Relatorio de seguranca", delegate { OpenSafetyReport(); }, false, false);
-            AddTrayItem(tools, "GitHub", delegate { OpenGitHub(); }, false, false);
+            ToolStripMenuItem energy = AddTraySubmenu(menu, "Energia", "Planos Smart Nap e restauração segura.", AccentOrange, "PW");
+            AddTrayItem(energy, "Jogos + plano Smart Nap", "Alto desempenho para jogo. Reversível.", delegate { ConfirmPowerModeFromTray("Gaming", "activate", "Smart Nap MODO JOGO"); }, false, String.Equals(mode, "Gaming", StringComparison.OrdinalIgnoreCase) && plan != null && String.Equals(plan.Guid, SmartNapGamePowerPlanGuid, StringComparison.OrdinalIgnoreCase), AccentOrange, "JG");
+            AddTrayItem(energy, "Competitivo + plano Smart Nap", "Mesmo alto desempenho do Modo Jogos, voltado a partidas online.", delegate { ConfirmPowerModeFromTray("Competitive", "activate", "Smart Nap MODO JOGO"); }, false, String.Equals(mode, "Competitive", StringComparison.OrdinalIgnoreCase) && plan != null && String.Equals(plan.Guid, SmartNapGamePowerPlanGuid, StringComparison.OrdinalIgnoreCase), AccentCyan, "CP");
+            AddTrayItem(energy, "Live + plano Smart Nap", "Alto desempenho para live e jogo. Reversível.", delegate { ConfirmPowerModeFromTray("Streamer", "activate", "Smart Nap MODO LIVE"); }, false, String.Equals(mode, "Streamer", StringComparison.OrdinalIgnoreCase) && plan != null && String.Equals(plan.Guid, SmartNapLivePowerPlanGuid, StringComparison.OrdinalIgnoreCase), AccentGreen, "LV");
+            AddTrayItem(energy, "Restaurar plano anterior", "Volta ao plano salvo antes do modo forte.", delegate { RunFromTray("Plano anterior", delegate { return SetSessionMode("Auto", "restore"); }); }, false, false, AccentBlue, "RS");
+            AddTrayItem(energy, "Usar Equilibrado", "Plano seguro para idle e uso comum.", delegate { RunFromTray("Equilibrado", delegate { return SetSessionMode("Auto", "balanced"); }); }, false, plan != null && String.Equals(plan.Guid, BalancedPowerPlanGuid, StringComparison.OrdinalIgnoreCase), AccentNeutral, "EQ");
 
-            menu.Items.Add(new ToolStripSeparator());
-            AddTrayItem(menu, "Sair do Smart Nap", delegate { ExitFromTray(); }, true, false);
+            ToolStripMenuItem tools = AddTraySubmenu(menu, "Ferramentas", "Logs, score, segurança e repositório.", AccentNeutral, "TL");
+            AddTrayItem(tools, "Nap Score", "Abre o relatório de impacto.", delegate { OpenScore(); }, false, false, AccentBlue, "SC");
+            AddTrayItem(tools, "Log de eventos", "Mostra o histórico do motor.", delegate { OpenLog(); }, false, false, AccentOrange, "LG");
+            AddTrayItem(tools, "Pasta do app", "Abre arquivos locais do Smart Nap.", delegate { OpenFolder(); }, false, false, AccentCyan, "FD");
+            AddTrayItem(tools, "Relatório de segurança", "Mostra o que o app pode alterar e restaurar.", delegate { OpenSafetyReport(); }, false, false, AccentGreen, "OK");
+            AddTrayItem(tools, "GitHub", "Abre o repositório oficial.", delegate { OpenGitHub(); }, false, false, AccentViolet, "GH");
+
+            AddTraySeparator(menu);
+            AddTrayItem(menu, "Sair do Smart Nap", "Fecha o painel e remove o ícone do tray.", delegate { ExitFromTray(); }, true, false, AccentRose, "X");
+            menu.ResumeLayout();
         }
 
-        private void AddTrayHeader(ContextMenuStrip menu, string title, string subtitle)
+        private void AddTrayHeader(ContextMenuStrip menu, string title, string subtitle, Icon icon)
         {
-            ToolStripMenuItem item = new ToolStripMenuItem(title + " - " + subtitle);
-            item.Enabled = false;
-            item.Font = new Font("Segoe UI Variable Display", 10.0f, FontStyle.Bold);
-            item.ForeColor = Color.FromArgb(255, 173, 47);
-            item.BackColor = Color.FromArgb(9, 9, 11);
-            menu.Items.Add(item);
+            TrayHeaderControl control = new TrayHeaderControl(title, subtitle, icon);
+            ToolStripControlHost host = new ToolStripControlHost(control);
+            host.Margin = new Padding(5, 2, 5, 8);
+            host.Padding = Padding.Empty;
+            host.AutoSize = false;
+            host.Size = control.Size;
+            menu.Items.Add(host);
         }
 
-        private void AddTrayStatus(ContextMenuStrip menu, string text)
+        private void AddTrayInfo(ContextMenuStrip menu, string label, string value, Color accent)
+        {
+            TrayInfoControl control = new TrayInfoControl(label, value, accent);
+            ToolStripControlHost host = new ToolStripControlHost(control);
+            host.Margin = new Padding(5, 2, 5, 5);
+            host.Padding = Padding.Empty;
+            host.AutoSize = false;
+            host.Size = control.Size;
+            menu.Items.Add(host);
+        }
+
+        private void AddTraySeparator(ContextMenuStrip menu)
+        {
+            ToolStripSeparator separator = new ToolStripSeparator();
+            separator.Margin = new Padding(6, 6, 6, 6);
+            menu.Items.Add(separator);
+        }
+
+        private ToolStripMenuItem AddTraySubmenu(ContextMenuStrip menu, string text, string description, Color accent, string glyph)
+        {
+            return AddTraySubmenu(menu.Items, text, description, accent, glyph);
+        }
+
+        private ToolStripMenuItem AddTraySubmenu(ToolStripItemCollection items, string text, string description, Color accent, string glyph)
         {
             ToolStripMenuItem item = new ToolStripMenuItem(text);
-            item.Enabled = false;
-            item.Font = new Font("Segoe UI Variable Text", 8.8f, FontStyle.Regular);
-            item.ForeColor = Color.FromArgb(176, 190, 210);
-            item.BackColor = Color.FromArgb(9, 9, 11);
-            menu.Items.Add(item);
-        }
-
-        private ToolStripMenuItem AddTraySubmenu(ContextMenuStrip menu, string text)
-        {
-            ToolStripMenuItem item = new ToolStripMenuItem(text);
-            StyleTrayItem(item, false);
-            menu.Items.Add(item);
+            item.ToolTipText = description;
+            item.Image = CreateTrayGlyph(accent, glyph);
+            item.ImageScaling = ToolStripItemImageScaling.None;
+            StyleTrayItem(item, false, false, accent);
+            item.DropDown.BackColor = TrayBg;
+            item.DropDown.AutoClose = true;
+            item.DropDown.Padding = new Padding(8, 8, 8, 8);
+            item.DropDown.Renderer = new SmartNapTrayRenderer();
+            item.DropDownOpening += delegate
+            {
+                item.DropDown.BackColor = TrayBg;
+                item.DropDown.AutoClose = true;
+                item.DropDown.Padding = new Padding(8, 8, 8, 8);
+                item.DropDown.Renderer = new SmartNapTrayRenderer();
+            };
+            items.Add(item);
             return item;
         }
 
-        private ToolStripMenuItem AddTrayItem(ContextMenuStrip menu, string text, Action action, bool bold, bool isChecked)
+        private ToolStripMenuItem AddTrayItem(ContextMenuStrip menu, string text, string description, Action action, bool bold, bool isChecked, Color accent, string glyph)
         {
-            return AddTrayItem(menu.Items, text, action, bold, isChecked);
+            return AddTrayItem(menu.Items, text, description, action, bold, isChecked, accent, glyph);
         }
 
-        private ToolStripMenuItem AddTrayItem(ToolStripMenuItem parent, string text, Action action, bool bold, bool isChecked)
+        private ToolStripMenuItem AddTrayItem(ToolStripMenuItem parent, string text, string description, Action action, bool bold, bool isChecked, Color accent, string glyph)
         {
-            return AddTrayItem(parent.DropDownItems, text, action, bold, isChecked);
+            return AddTrayItem(parent.DropDownItems, text, description, action, bold, isChecked, accent, glyph);
         }
 
-        private ToolStripMenuItem AddTrayItem(ToolStripItemCollection items, string text, Action action, bool bold, bool isChecked)
+        private ToolStripMenuItem AddTrayItem(ToolStripItemCollection items, string text, string description, Action action, bool bold, bool isChecked, Color accent, string glyph)
         {
             ToolStripMenuItem item = new ToolStripMenuItem(text);
-            item.Checked = isChecked;
-            item.Font = new Font("Segoe UI Variable Text", 9.2f, bold ? FontStyle.Bold : FontStyle.Regular);
-            StyleTrayItem(item, bold);
+            item.Checked = false;
+            item.Tag = isChecked ? TrayActiveTag : null;
+            item.ToolTipText = description;
+            item.Image = CreateTrayGlyph(accent, glyph);
+            item.ImageScaling = ToolStripItemImageScaling.None;
+            item.Font = new Font("Segoe UI Variable Text", 9.4f, bold ? FontStyle.Bold : FontStyle.Regular);
+            StyleTrayItem(item, bold, isChecked, accent);
             item.Click += delegate { action(); };
             items.Add(item);
             return item;
         }
 
-        private void AddModeTrayItem(ToolStripMenuItem parent, string label, string mode, string currentMode, string tooltip, string energyChoice)
+        private void AddModeTrayItem(ToolStripMenuItem parent, string label, string mode, string currentMode, string tooltip, string energyChoice, Color accent, string glyph)
         {
-            ToolStripMenuItem item = AddTrayItem(parent.DropDownItems, label, delegate
+            ToolStripMenuItem item = AddTrayItem(parent.DropDownItems, label, tooltip, delegate
             {
                 RunFromTray("Modo " + label, delegate { return SetSessionMode(mode, energyChoice); });
-            }, false, String.Equals(NormalizeSessionMode(currentMode), NormalizeSessionMode(mode), StringComparison.OrdinalIgnoreCase));
+            }, false, String.Equals(NormalizeSessionMode(currentMode), NormalizeSessionMode(mode), StringComparison.OrdinalIgnoreCase), accent, glyph);
             item.ToolTipText = tooltip;
         }
 
-        private void StyleTrayItem(ToolStripMenuItem item, bool accent)
+        private static bool IsTrayItemActive(ToolStripItem item)
         {
-            item.BackColor = Color.FromArgb(9, 9, 11);
-            item.ForeColor = accent ? Color.FromArgb(255, 173, 47) : Color.FromArgb(238, 244, 252);
+            return item != null && Object.Equals(item.Tag as string, TrayActiveTag);
+        }
+
+        private void StyleTrayItem(ToolStripMenuItem item, bool accentText, bool active, Color accent)
+        {
+            item.AutoSize = false;
+            item.Size = new Size(TrayItemWidth, 42);
+            item.Margin = new Padding(5, 2, 5, 2);
+            item.Padding = new Padding(8, 0, 14, 0);
+            item.BackColor = TrayBg;
+            item.ForeColor = active ? Color.FromArgb(255, 255, 255) : (accentText ? AccentOrange : TrayText);
+            item.DisplayStyle = ToolStripItemDisplayStyle.ImageAndText;
+            item.TextImageRelation = TextImageRelation.ImageBeforeText;
+            item.ImageAlign = ContentAlignment.MiddleLeft;
+            item.TextAlign = ContentAlignment.MiddleLeft;
+        }
+
+        private static Bitmap CreateTrayGlyph(Color accent, string label)
+        {
+            int size = 28;
+            Bitmap bitmap = new Bitmap(size, size);
+            using (Graphics g = Graphics.FromImage(bitmap))
+            {
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                RectangleF rect = new RectangleF(2, 2, size - 4, size - 4);
+                using (GraphicsPath path = RoundedRect(rect, 9f))
+                using (LinearGradientBrush brush = new LinearGradientBrush(new Rectangle(0, 0, size, size), Color.FromArgb(42, accent), Color.FromArgb(16, 24, 38), 135f))
+                using (Pen border = new Pen(Color.FromArgb(150, accent), 1.15f))
+                {
+                    g.FillPath(brush, path);
+                    g.DrawPath(border, path);
+                }
+
+                string key = String.IsNullOrWhiteSpace(label) ? "" : label.Trim().ToUpperInvariant();
+                using (Pen line = new Pen(Color.FromArgb(238, 246, 255), 1.9f))
+                using (Pen soft = new Pen(Color.FromArgb(220, accent), 2.0f))
+                using (Pen thin = new Pen(Color.FromArgb(178, 200, 226), 1.35f))
+                using (SolidBrush mark = new SolidBrush(Color.FromArgb(242, 248, 255)))
+                using (SolidBrush glow = new SolidBrush(Color.FromArgb(238, accent)))
+                {
+                    line.StartCap = LineCap.Round;
+                    line.EndCap = LineCap.Round;
+                    soft.StartCap = LineCap.Round;
+                    soft.EndCap = LineCap.Round;
+                    thin.StartCap = LineCap.Round;
+                    thin.EndCap = LineCap.Round;
+
+                    if (key == "P")
+                    {
+                        using (GraphicsPath card = RoundedRect(new RectangleF(8, 8, 13, 12), 3f)) { g.DrawPath(line, card); }
+                        g.DrawLine(soft, 10, 17, 19, 17);
+                    }
+                    else if (key == "GO" || key == "J")
+                    {
+                        PointF[] bolt = new PointF[] { new PointF(15, 5), new PointF(8, 16), new PointF(14, 16), new PointF(11, 23), new PointF(21, 11), new PointF(15, 12) };
+                        g.FillPolygon(glow, bolt);
+                    }
+                    else if (key == "ON")
+                    {
+                        g.DrawLine(line, 10, 8, 10, 20);
+                        g.DrawLine(line, 18, 8, 18, 20);
+                    }
+                    else if (key == "UP")
+                    {
+                        g.FillPolygon(mark, new PointF[] { new PointF(11, 8), new PointF(21, 14), new PointF(11, 20) });
+                    }
+                    else if (key == "MD" || key == "A")
+                    {
+                        g.DrawArc(soft, 8, 8, 12, 12, 35, 285);
+                        g.FillEllipse(glow, 17, 7, 4, 4);
+                        g.DrawLine(thin, 9, 14, 14, 14);
+                    }
+                    else if (key == "FX" || key == "AI")
+                    {
+                        g.DrawLine(line, 14, 6, 14, 22);
+                        g.DrawLine(line, 6, 14, 22, 14);
+                        g.DrawLine(soft, 9, 9, 19, 19);
+                        g.DrawLine(soft, 19, 9, 9, 19);
+                    }
+                    else if (key == "PW" || key == "ST")
+                    {
+                        g.DrawArc(line, 8, 9, 12, 12, 35, 290);
+                        g.DrawLine(soft, 14, 6, 14, 14);
+                    }
+                    else if (key == "TL")
+                    {
+                        g.DrawLine(line, 8, 10, 20, 10);
+                        g.DrawLine(line, 8, 15, 20, 15);
+                        g.DrawLine(line, 8, 20, 20, 20);
+                        g.FillEllipse(glow, 11, 8, 4, 4);
+                        g.FillEllipse(glow, 16, 13, 4, 4);
+                    }
+                    else if (key == "X")
+                    {
+                        g.DrawLine(line, 10, 10, 18, 18);
+                        g.DrawLine(line, 18, 10, 10, 18);
+                    }
+                    else if (key == "ZP" || key == "C")
+                    {
+                        g.DrawEllipse(line, 8, 8, 12, 12);
+                        g.DrawLine(soft, 14, 5, 14, 10);
+                        g.DrawLine(soft, 14, 18, 14, 23);
+                        g.DrawLine(soft, 5, 14, 10, 14);
+                        g.DrawLine(soft, 18, 14, 23, 14);
+                    }
+                    else if (key == "DL")
+                    {
+                        g.DrawLine(line, 14, 7, 14, 17);
+                        g.DrawLine(line, 10, 13, 14, 17);
+                        g.DrawLine(line, 18, 13, 14, 17);
+                        g.DrawLine(soft, 9, 21, 19, 21);
+                    }
+                    else if (key == "SC")
+                    {
+                        g.DrawLine(thin, 9, 20, 9, 15);
+                        g.DrawLine(soft, 14, 20, 14, 10);
+                        g.DrawLine(line, 19, 20, 19, 13);
+                    }
+                    else if (key == "LG")
+                    {
+                        g.DrawLine(line, 9, 9, 19, 9);
+                        g.DrawLine(thin, 9, 14, 19, 14);
+                        g.DrawLine(thin, 9, 19, 16, 19);
+                    }
+                    else if (key == "FD")
+                    {
+                        using (GraphicsPath folder = RoundedRect(new RectangleF(7, 10, 15, 10), 3f)) { g.DrawPath(line, folder); }
+                        g.DrawLine(soft, 8, 10, 12, 7);
+                        g.DrawLine(soft, 12, 7, 16, 10);
+                    }
+                    else if (key == "OK")
+                    {
+                        g.DrawLine(line, 9, 14, 13, 18);
+                        g.DrawLine(line, 13, 18, 20, 9);
+                    }
+                    else if (key == "GH")
+                    {
+                        g.DrawEllipse(line, 8, 8, 12, 12);
+                        g.DrawLine(thin, 12, 18, 12, 22);
+                        g.DrawLine(thin, 16, 18, 16, 22);
+                    }
+                    else if (key == "L")
+                    {
+                        g.DrawEllipse(soft, 9, 9, 10, 10);
+                        g.DrawLine(line, 7, 14, 4, 11);
+                        g.DrawLine(line, 21, 14, 24, 11);
+                    }
+                    else if (key == "T")
+                    {
+                        using (GraphicsPath bag = RoundedRect(new RectangleF(8, 10, 12, 10), 3f)) { g.DrawPath(line, bag); }
+                        g.DrawLine(soft, 11, 10, 11, 8);
+                        g.DrawLine(soft, 17, 10, 17, 8);
+                    }
+                    else if (key == "F")
+                    {
+                        g.DrawEllipse(line, 8, 8, 12, 12);
+                        g.DrawEllipse(soft, 12, 12, 4, 4);
+                    }
+                    else
+                    {
+                        g.FillEllipse(glow, 11, 11, 6, 6);
+                    }
+                }
+            }
+            return bitmap;
+        }
+
+        private static GraphicsPath RoundedRect(RectangleF bounds, float radius)
+        {
+            float d = radius * 2f;
+            GraphicsPath path = new GraphicsPath();
+            path.AddArc(bounds.X, bounds.Y, d, d, 180, 90);
+            path.AddArc(bounds.Right - d, bounds.Y, d, d, 270, 90);
+            path.AddArc(bounds.Right - d, bounds.Bottom - d, d, d, 0, 90);
+            path.AddArc(bounds.X, bounds.Bottom - d, d, d, 90, 90);
+            path.CloseFigure();
+            return path;
         }
 
         private void ConfirmPowerModeFromTray(string mode, string energyChoice, string planName)
@@ -4696,13 +5152,21 @@ internal static class SmartBackgroundNap
 
         private void ExitFromTray()
         {
+#if !NET9_0_OR_GREATER
             allowExit = true;
+#endif
             listenerStopping = true;
             if (foregroundWakeTimer != null)
             {
                 foregroundWakeTimer.Stop();
                 foregroundWakeTimer.Dispose();
                 foregroundWakeTimer = null;
+            }
+            if (processStartRadarTimer != null)
+            {
+                processStartRadarTimer.Stop();
+                processStartRadarTimer.Dispose();
+                processStartRadarTimer = null;
             }
             if (trayTelemetryTimer != null)
             {
@@ -4755,7 +5219,7 @@ internal static class SmartBackgroundNap
             if (String.IsNullOrWhiteSpace(targets)) { targets = "0"; }
             if (String.IsNullOrWhiteSpace(delta)) { delta = "0"; }
             string free = hardware != null && hardware.AvailableMemoryMB > 0 ? FormatMemoryBytes((ulong)(hardware.AvailableMemoryMB * 1024.0 * 1024.0)) : "-";
-            return "RAM livre " + free + " | " + targets + " apps / " + delta + " MB";
+            return "RAM livre " + free + " • " + targets + " apps • " + delta + " MB aliviados";
         }
 
         private static string TrimTrayText(string text, int maxLength)
@@ -4765,19 +5229,178 @@ internal static class SmartBackgroundNap
             return value.Length <= maxLength ? value : value.Substring(0, Math.Max(1, maxLength - 1)) + "...";
         }
 
+        private sealed class TrayHeaderControl : Control
+        {
+            private readonly string title;
+            private readonly string subtitle;
+            private readonly Icon icon;
+
+            public TrayHeaderControl(string title, string subtitle, Icon icon)
+            {
+                this.title = title;
+                this.subtitle = subtitle;
+                this.icon = icon;
+                Size = new Size(TrayItemWidth, 70);
+                SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
+            }
+
+            protected override void OnPaint(PaintEventArgs e)
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                RectangleF rect = new RectangleF(1, 1, Width - 2, Height - 2);
+                using (GraphicsPath path = RoundedRect(rect, 15f))
+                using (LinearGradientBrush fill = new LinearGradientBrush(ClientRectangle, Color.FromArgb(28, 38, 58), Color.FromArgb(8, 14, 24), 135f))
+                using (Pen border = new Pen(Color.FromArgb(70, 91, 130), 1f))
+                {
+                    e.Graphics.FillPath(fill, path);
+                    e.Graphics.DrawPath(border, path);
+                }
+                using (GraphicsPath glow = RoundedRect(new RectangleF(Width - 118, -50, 142, 142), 71f))
+                using (SolidBrush glowBrush = new SolidBrush(Color.FromArgb(18, 167, 139, 250)))
+                {
+                    e.Graphics.FillPath(glowBrush, glow);
+                }
+                if (icon != null)
+                {
+                    e.Graphics.DrawIcon(icon, new Rectangle(14, 13, 42, 42));
+                }
+                using (Font titleFont = new Font("Segoe UI Variable Display", 12.4f, FontStyle.Bold))
+                using (Font subFont = new Font("Segoe UI Variable Text", 8.3f, FontStyle.Bold))
+                {
+                    TextRenderer.DrawText(e.Graphics, title, titleFont, new Rectangle(66, 13, Width - 86, 25), TrayText, TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
+                    TextRenderer.DrawText(e.Graphics, subtitle, subFont, new Rectangle(66, 39, Width - 86, 18), AccentGreen, TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
+                }
+            }
+        }
+
+        private sealed class TrayInfoControl : Control
+        {
+            private readonly string label;
+            private readonly string value;
+            private readonly Color accent;
+
+            public TrayInfoControl(string label, string value, Color accent)
+            {
+                this.label = label;
+                this.value = value;
+                this.accent = accent;
+                Size = new Size(TrayItemWidth, 50);
+                SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
+            }
+
+            protected override void OnPaint(PaintEventArgs e)
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                RectangleF rect = new RectangleF(1, 1, Width - 2, Height - 2);
+                using (GraphicsPath path = RoundedRect(rect, 12f))
+                using (LinearGradientBrush fill = new LinearGradientBrush(ClientRectangle, Color.FromArgb(19, 31, 50), Color.FromArgb(8, 14, 24), 135f))
+                using (Pen border = new Pen(Color.FromArgb(56, 75, 108), 1f))
+                {
+                    e.Graphics.FillPath(fill, path);
+                    e.Graphics.DrawPath(border, path);
+                }
+                using (GraphicsPath rail = RoundedRect(new RectangleF(8, 11, 4, Height - 22), 2f))
+                using (SolidBrush railBrush = new SolidBrush(accent))
+                {
+                    e.Graphics.FillPath(railBrush, rail);
+                }
+                using (Font labelFont = new Font("Segoe UI Variable Text", 7.5f, FontStyle.Bold))
+                using (Font valueFont = new Font("Segoe UI Variable Text", 9.2f, FontStyle.Bold))
+                {
+                    TextRenderer.DrawText(e.Graphics, label.ToUpperInvariant(), labelFont, new Rectangle(22, 9, Width - 34, 15), TrayMuted, TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
+                    TextRenderer.DrawText(e.Graphics, value, valueFont, new Rectangle(22, 27, Width - 34, 18), TrayText, TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
+                }
+            }
+        }
+
+        private sealed class SmartNapTrayRenderer : ToolStripProfessionalRenderer
+        {
+            public SmartNapTrayRenderer() : base(new SmartNapTrayColors()) { }
+
+            protected override void OnRenderToolStripBackground(ToolStripRenderEventArgs e)
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                Rectangle rect = new Rectangle(Point.Empty, e.ToolStrip.Size);
+                using (LinearGradientBrush fill = new LinearGradientBrush(rect, TrayBg, Color.FromArgb(5, 11, 20), 90f))
+                {
+                    e.Graphics.FillRectangle(fill, rect);
+                }
+                using (Pen border = new Pen(Color.FromArgb(54, 75, 112), 1f))
+                {
+                    Rectangle borderRect = rect;
+                    borderRect.Width -= 1;
+                    borderRect.Height -= 1;
+                    e.Graphics.DrawRectangle(border, borderRect);
+                }
+            }
+
+            protected override void OnRenderMenuItemBackground(ToolStripItemRenderEventArgs e)
+            {
+                ToolStripMenuItem item = e.Item as ToolStripMenuItem;
+                if (item == null) { base.OnRenderMenuItemBackground(e); return; }
+                Rectangle rect = new Rectangle(5, 3, e.Item.Width - 10, e.Item.Height - 6);
+                bool hot = item.Selected || item.Pressed;
+                bool active = IsTrayItemActive(item);
+                if (!hot && !active) { return; }
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                Color accent = active ? AccentGreen : AccentBlue;
+                using (GraphicsPath path = RoundedRect(rect, 12f))
+                using (LinearGradientBrush fill = new LinearGradientBrush(rect, active ? Color.FromArgb(42, 53, 232, 154) : Color.FromArgb(30, 84, 162, 255), Color.FromArgb(13, 24, 40), 0f))
+                using (Pen border = new Pen(Color.FromArgb(hot ? 160 : 100, accent), 1f))
+                {
+                    e.Graphics.FillPath(fill, path);
+                    e.Graphics.DrawPath(border, path);
+                }
+            }
+
+            protected override void OnRenderItemCheck(ToolStripItemImageRenderEventArgs e)
+            {
+                Rectangle rect = new Rectangle(e.ImageRectangle.X + 2, e.ImageRectangle.Y + 3, 18, 18);
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                using (GraphicsPath path = RoundedRect(rect, 7f))
+                using (SolidBrush fill = new SolidBrush(Color.FromArgb(45, 53, 232, 154)))
+                using (Pen border = new Pen(AccentGreen, 1.2f))
+                {
+                    e.Graphics.FillPath(fill, path);
+                    e.Graphics.DrawPath(border, path);
+                }
+                using (Pen check = new Pen(Color.White, 1.8f))
+                {
+                    check.StartCap = LineCap.Round;
+                    check.EndCap = LineCap.Round;
+                    e.Graphics.DrawLines(check, new Point[] { new Point(rect.X + 5, rect.Y + 10), new Point(rect.X + 8, rect.Y + 13), new Point(rect.X + 14, rect.Y + 6) });
+                }
+            }
+
+            protected override void OnRenderSeparator(ToolStripSeparatorRenderEventArgs e)
+            {
+                Rectangle rect = new Rectangle(12, e.Item.Height / 2, Math.Max(12, e.Item.Width - 24), 1);
+                using (LinearGradientBrush line = new LinearGradientBrush(rect, Color.FromArgb(0, 84, 162, 255), Color.FromArgb(88, 84, 162, 255), 0f))
+                {
+                    e.Graphics.FillRectangle(line, rect);
+                }
+            }
+
+            protected override void OnRenderArrow(ToolStripArrowRenderEventArgs e)
+            {
+                e.ArrowColor = Color.FromArgb(198, 213, 235);
+                base.OnRenderArrow(e);
+            }
+        }
+
         private sealed class SmartNapTrayColors : ProfessionalColorTable
         {
-            public override Color ToolStripDropDownBackground { get { return Color.FromArgb(9, 9, 11); } }
-            public override Color ImageMarginGradientBegin { get { return Color.FromArgb(9, 9, 11); } }
-            public override Color ImageMarginGradientMiddle { get { return Color.FromArgb(9, 9, 11); } }
-            public override Color ImageMarginGradientEnd { get { return Color.FromArgb(9, 9, 11); } }
-            public override Color MenuBorder { get { return Color.FromArgb(70, 86, 118); } }
-            public override Color MenuItemBorder { get { return Color.FromArgb(255, 173, 47); } }
-            public override Color MenuItemSelected { get { return Color.FromArgb(24, 32, 49); } }
-            public override Color MenuItemSelectedGradientBegin { get { return Color.FromArgb(28, 38, 58); } }
-            public override Color MenuItemSelectedGradientEnd { get { return Color.FromArgb(16, 24, 39); } }
-            public override Color MenuItemPressedGradientBegin { get { return Color.FromArgb(30, 38, 58); } }
-            public override Color MenuItemPressedGradientEnd { get { return Color.FromArgb(9, 9, 11); } }
+            public override Color ToolStripDropDownBackground { get { return TrayBg; } }
+            public override Color ImageMarginGradientBegin { get { return TrayBg; } }
+            public override Color ImageMarginGradientMiddle { get { return TrayBg; } }
+            public override Color ImageMarginGradientEnd { get { return TrayBg; } }
+            public override Color MenuBorder { get { return Color.FromArgb(54, 75, 112); } }
+            public override Color MenuItemBorder { get { return AccentOrange; } }
+            public override Color MenuItemSelected { get { return Color.FromArgb(24, 36, 58); } }
+            public override Color MenuItemSelectedGradientBegin { get { return Color.FromArgb(28, 44, 70); } }
+            public override Color MenuItemSelectedGradientEnd { get { return Color.FromArgb(12, 22, 36); } }
+            public override Color MenuItemPressedGradientBegin { get { return Color.FromArgb(28, 44, 70); } }
+            public override Color MenuItemPressedGradientEnd { get { return TrayBg; } }
             public override Color SeparatorDark { get { return Color.FromArgb(48, 62, 86); } }
             public override Color SeparatorLight { get { return Color.FromArgb(14, 18, 28); } }
         }
@@ -4827,6 +5450,162 @@ internal static class SmartBackgroundNap
             foregroundWakeTimer.Start();
         }
 
+        private void PrimeProcessStartRadar()
+        {
+            try
+            {
+                processStartRadarSeenPids.Clear();
+                foreach (Process process in Process.GetProcesses())
+                {
+                    try { processStartRadarSeenPids.Add(process.Id); }
+                    catch { }
+                    finally { process.Dispose(); }
+                }
+            }
+            catch { }
+        }
+
+        private void StartProcessStartRadarTimer()
+        {
+            processStartRadarTimer = new System.Windows.Forms.Timer();
+            processStartRadarTimer.Interval = 900;
+            processStartRadarTimer.Tick += delegate { CheckProcessStartRadar(); };
+            processStartRadarTimer.Start();
+        }
+
+        private void CheckProcessStartRadar()
+        {
+            if (processStartRadarBusy || (!IsLocalAutoEngineEnabled() && !IsNetworkUdpGuardEnabled())) { return; }
+
+            processStartRadarBusy = true;
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                List<Process> candidates = new List<Process>();
+                try
+                {
+                    HashSet<int> alive = new HashSet<int>();
+                    foreach (Process process in Process.GetProcesses())
+                    {
+                        bool keepForCandidate = false;
+                        try
+                        {
+                            alive.Add(process.Id);
+                            if (!processStartRadarSeenPids.Contains(process.Id))
+                            {
+                                processStartRadarSeenPids.Add(process.Id);
+                                candidates.Add(process);
+                                keepForCandidate = true;
+                            }
+                        }
+                        catch { }
+                        finally
+                        {
+                            if (!keepForCandidate) { process.Dispose(); }
+                        }
+                    }
+
+                    if (processStartRadarSeenPids.Count > alive.Count + 512)
+                    {
+                        processStartRadarSeenPids.Clear();
+                        foreach (int id in alive) { processStartRadarSeenPids.Add(id); }
+                    }
+
+                    foreach (Process candidate in candidates)
+                    {
+                        try
+                        {
+                            RequestReactiveApplyIfNeeded(candidate.Id);
+                            if (reactiveApplyBusy) { break; }
+                        }
+                        catch { }
+                    }
+
+                    if (IsNetworkUdpGuardEnabled() && !reactiveApplyBusy)
+                    {
+                        TryRequestRunningGameReactiveApply();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    WriteCrash(ex);
+                }
+                finally
+                {
+                    foreach (Process candidate in candidates)
+                    {
+                        try { candidate.Dispose(); } catch { }
+                    }
+                    processStartRadarBusy = false;
+                }
+            });
+        }
+        private void TryRequestRunningGameReactiveApply()
+        {
+            try
+            {
+                DateTime now = DateTime.UtcNow;
+                if ((now - lastGameRadarSweepAt).TotalMilliseconds < 2500.0) { return; }
+                if ((now - lastReactiveApplyAt).TotalSeconds < 2.0) { return; }
+                lastGameRadarSweepAt = now;
+
+                int currentPid = Process.GetCurrentProcess().Id;
+                int bestPid = 0;
+                double bestScore = -1.0;
+                foreach (Process process in Process.GetProcesses())
+                {
+                    try
+                    {
+                        if (process.Id <= 0 || process.Id == currentPid) { continue; }
+                        string reason;
+                        if (!ShouldTriggerReactiveApply(process, out reason)) { continue; }
+                        if (!String.Equals(reason, "game", StringComparison.OrdinalIgnoreCase)) { continue; }
+
+                        string name = process.ProcessName ?? "";
+                        string path = TryGetProcessPath(process);
+                        double score = ScoreGameCandidateForReactive(name, path, process);
+                        if (score > bestScore)
+                        {
+                            bestScore = score;
+                            bestPid = process.Id;
+                        }
+                    }
+                    catch
+                    {
+                    }
+                    finally
+                    {
+                        try { process.Dispose(); } catch { }
+                    }
+                }
+
+                if (bestPid > 0)
+                {
+                    RequestReactiveApplyIfNeeded(bestPid);
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        private static bool IsSmartNapProcessOrPath(string processName, string path)
+        {
+            string name = processName == null ? "" : processName.Trim();
+            if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) { name = name.Substring(0, name.Length - 4); }
+            if (NameInList(name, new string[] { "SmartBackgroundNap", "SmartBackgroundNapTray", "SmartBackgroundNapDashboard", "Smart Nap", "smartnap" })) { return true; }
+            if (String.IsNullOrWhiteSpace(path)) { return false; }
+            return path.IndexOf("SmartBackgroundNap", StringComparison.OrdinalIgnoreCase) >= 0 || path.IndexOf("Smart Background Nap", StringComparison.OrdinalIgnoreCase) >= 0 || path.IndexOf("\\SmartNap\\", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+        private static double ScoreGameCandidateForReactive(string processName, string path, Process process)
+        {
+            if (IsSmartNapProcessOrPath(processName, path)) { return -10000.0; }
+            double score = 0.0;
+            if (IsLikelyGameProcessNameForReactive(processName)) { score += 1000.0; }
+            if (PathContainsAny(path, new string[] { "\\steamapps\\common\\", "\\XboxGames\\", "\\Epic Games\\", "\\Riot Games\\", "\\Battle.net\\", "\\GOG Galaxy\\Games\\", "\\EA Games\\", "\\Electronic Arts\\Games\\", "\\Electronic Arts\\Battlefield", "\\Electronic Arts\\FC", "\\Electronic Arts\\EA SPORTS FC", "\\Battlefield 6\\", "\\EA SPORTS FC 26\\" })) { score += 500.0; }
+            try { if (process != null && process.MainWindowHandle != IntPtr.Zero) { score += 100.0; } } catch { }
+            try { score += Math.Min(100.0, Math.Max(0.0, process == null ? 0.0 : process.WorkingSet64 / 1048576.0 / 64.0)); } catch { }
+            return score;
+        }
         private void StartEnergyIdleGuardTimer()
         {
             energyIdleGuardTimer = new System.Windows.Forms.Timer();
@@ -4968,6 +5747,7 @@ internal static class SmartBackgroundNap
                 try
                 {
                     RunFastForegroundRestore(pid);
+                    RequestReactiveApplyIfNeeded(pid);
                 }
                 finally
                 {
@@ -4976,6 +5756,225 @@ internal static class SmartBackgroundNap
             });
         }
 
+        private void RequestReactiveApplyIfNeeded(int pid)
+        {
+            try
+            {
+                if (pid <= 0 || pid == Process.GetCurrentProcess().Id || reactiveApplyBusy || localAutoEngineBusy) { return; }
+                if (!IsLocalAutoEngineEnabled() && !IsNetworkUdpGuardEnabled()) { return; }
+
+                string reason;
+                string processName;
+                using (Process process = Process.GetProcessById(pid))
+                {
+                    if (!ShouldTriggerReactiveApply(process, out reason)) { return; }
+                    processName = process.ProcessName ?? "unknown";
+                }
+
+                DateTime now = DateTime.UtcNow;
+                double cooldownSeconds = reason == "game" || reason == "streaming" ? 3.0 : 5.0;
+                if (pid == lastReactiveApplyPid && (now - lastReactiveApplyAt).TotalSeconds < 8.0) { return; }
+                if ((now - lastReactiveApplyAt).TotalSeconds < cooldownSeconds) { return; }
+
+                reactiveApplyBusy = true;
+                lastReactiveApplyAt = now;
+                lastReactiveApplyPid = pid;
+                lastReactiveApplyReason = reason;
+                AppendOperationalLog("action=reactive-boost phase=0 status=queued trigger=" + reason + " pid=" + pid + " process=" + processName);
+                RefreshDashboardFromContext();
+
+                ThreadPool.QueueUserWorkItem(delegate
+                {
+                    try
+                    {
+                        RunReactiveApplyPhase(reason, pid, processName, 1);
+                        bool shockwave = reason == "game" || reason == "streaming" || reason == "workload";
+                        if (shockwave)
+                        {
+                            Thread.Sleep(2200);
+                            RunReactiveApplyPhase(reason, pid, processName, 2);
+                        }
+                        if (reason == "game" || reason == "streaming")
+                        {
+                            Thread.Sleep(11000);
+                            RunReactiveApplyPhase(reason, pid, processName, 3);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        AppendOperationalLog("action=reactive-boost status=FAIL trigger=" + reason + " pid=" + pid + " process=" + processName + " error=" + ShortTaskError(ex.Message));
+                        WriteCrash(ex);
+                    }
+                    finally
+                    {
+                        reactiveApplyBusy = false;
+                        RefreshDashboardFromContext();
+                    }
+                });
+            }
+            catch
+            {
+                reactiveApplyBusy = false;
+            }
+        }
+
+        private void RunReactiveApplyPhase(string reason, int pid, string processName, int phase)
+        {
+            try
+            {
+                RunResult result = RunApplyNow();
+                string status = result.ExitCode == 0 ? "OK" : "FAIL";
+                AppendOperationalLog("action=reactive-boost phase=" + phase + " status=" + status + " trigger=" + reason + " pid=" + pid + " process=" + processName + " exitCode=" + result.ExitCode);
+                RefreshDashboardFromContext();
+            }
+            catch (Exception ex)
+            {
+                AppendOperationalLog("action=reactive-boost phase=" + phase + " status=FAIL trigger=" + reason + " pid=" + pid + " process=" + processName + " error=" + ShortTaskError(ex.Message));
+                WriteCrash(ex);
+            }
+        }
+        private void RefreshDashboardFromContext()
+        {
+            try
+            {
+                if (dispatchForm != null && !dispatchForm.IsDisposed)
+                {
+                    dispatchForm.BeginInvoke(new System.Windows.Forms.MethodInvoker(delegate
+                    {
+                        UpdateTrayTelemetryText(true);
+#if NET9_0_OR_GREATER
+                        dashboardHost.RefreshStatus();
+#else
+                        if (mainWindow != null) { mainWindow.RefreshStatus(); }
+#endif
+                    }));
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        private bool ShouldTriggerReactiveApply(Process process, out string reason)
+        {
+            reason = "";
+            if (process == null) { return false; }
+            string name = process.ProcessName ?? "";
+            if (String.IsNullOrWhiteSpace(name)) { return false; }
+            if (IsSmartNapProcessOrPath(name, "")) { return false; }
+            if (IsProtectedForegroundProcess(name) || IsSystemForegroundProcess(name) || IsKnownLauncherProcessForReactive(name) || IsBrowserProcessForReactive(name)) { return false; }
+
+            string path = TryGetProcessPath(process);
+            if (IsSmartNapProcessOrPath(name, path)) { return false; }
+            if (PathContainsAny(path, new string[] { "\\Windows\\", "\\Program Files\\WindowsApps\\" })) { return false; }
+            if (IsKnownLauncherPathForReactive(path)) { return false; }
+
+            if (IsStreamingProcessForReactive(name))
+            {
+                reason = "streaming";
+                return true;
+            }
+
+            if (IsLikelyGameProcessNameForReactive(name))
+            {
+                reason = "game";
+                return true;
+            }
+
+            if (PathContainsAny(path, new string[] { "\\steamapps\\common\\", "\\XboxGames\\", "\\Epic Games\\", "\\Riot Games\\", "\\Battle.net\\", "\\GOG Galaxy\\Games\\", "\\EA Games\\", "\\Electronic Arts\\Games\\", "\\Electronic Arts\\Battlefield", "\\Electronic Arts\\Apex", "\\Electronic Arts\\The Sims", "\\Electronic Arts\\FC", "\\Electronic Arts\\EA SPORTS FC", "\\Battlefield 6\\", "\\EA SPORTS FC 26\\" }))
+            {
+                reason = "game";
+                return true;
+            }
+
+            if (IsProfessionalOrDeveloperProcessForReactive(name))
+            {
+                reason = "workload";
+                return true;
+            }
+
+            if (IsNetworkUdpGuardEnabled())
+            {
+                bool hasWindow = false;
+                try { hasWindow = process.MainWindowHandle != IntPtr.Zero; } catch { }
+                if (hasWindow)
+                {
+                    reason = "udp-watch";
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static bool IsSystemForegroundProcess(string processName)
+        {
+            return NameInList(processName, new string[] { "explorer", "ApplicationFrameHost", "ShellExperienceHost", "StartMenuExperienceHost", "SearchHost", "SearchApp", "RuntimeBroker", "TextInputHost", "ctfmon", "sihost", "taskhostw", "dwm", "SystemSettings", "SecurityHealthSystray" });
+        }
+
+        private static bool IsKnownLauncherProcessForReactive(string processName)
+        {
+            return NameInList(processName, new string[] { "steam", "steamwebhelper", "EpicGamesLauncher", "EpicWebHelper", "Battle.net", "EADesktop", "EABackgroundService", "EACefSubProcess", "EALauncher", "EASteamLauncher", "EAConnect", "RiotClientServices", "RiotClientUx", "UbisoftConnect", "upc", "GalaxyClient", "GOG Galaxy", "XboxPcApp" });
+        }
+
+        private static bool IsBrowserProcessForReactive(string processName)
+        {
+            return NameInList(processName, new string[] { "chrome", "msedge", "firefox", "zen", "brave", "opera", "vivaldi", "msedgewebview2" });
+        }
+
+        private static bool IsKnownLauncherPathForReactive(string path)
+        {
+            return PathContainsAny(path, new string[] { "\\Steam\\", "\\Epic Games\\Launcher\\", "\\Electronic Arts\\EA Desktop\\", "\\Electronic Arts\\EA app\\", "\\EA Desktop\\", "\\EA Games\\Launcher\\", "\\Riot Client\\", "\\Ubisoft\\", "\\Battle.net\\", "\\GOG Galaxy\\", "\\Microsoft\\Xbox\\" });
+        }
+        private static bool IsLikelyGameProcessNameForReactive(string processName)
+        {
+            if (String.IsNullOrWhiteSpace(processName)) { return false; }
+            string name = processName.Trim();
+            if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) { name = name.Substring(0, name.Length - 4); }
+            if (NameInList(name, new string[] { "bf6", "bf2042", "bfv", "bf1", "bf4", "bf3", "fc26", "fc25", "fc24", "fifa23", "fifa22", "cs2", "valorant", "valorant-win64-shipping", "r5apex", "apex", "fortniteclient-win64-shipping", "rocketleague", "rainbowsix", "rainbowsix_be", "cod", "cod22", "cod23", "cod24", "modernwarfare", "warzone", "league of legends", "dota2", "overwatch", "destiny2", "thefinals", "pubg", "tslgame", "escape from tarkov", "eldenring", "helldivers2", "gta5", "rdr2" })) { return true; }
+            string lower = name.ToLowerInvariant();
+            if ((lower.StartsWith("bf", StringComparison.Ordinal) && lower.Length <= 7 && ContainsDigit(lower)) || lower.EndsWith("-win64-shipping", StringComparison.Ordinal)) { return true; }
+            return false;
+        }
+
+        private static bool ContainsDigit(string value)
+        {
+            if (String.IsNullOrEmpty(value)) { return false; }
+            for (int i = 0; i < value.Length; i++)
+            {
+                if (Char.IsDigit(value[i])) { return true; }
+            }
+            return false;
+        }
+        private static bool IsStreamingProcessForReactive(string processName)
+        {
+            return NameInList(processName, new string[] { "obs64", "obs32", "Streamlabs Desktop", "Streamlabs", "TikTok LIVE Studio", "TikTokLiveStudio", "TikTokStudio", "PRISMLiveStudio", "XSplit.Core", "XSplitBroadcaster", "vMix64", "vMix", "TwitchStudio", "NVIDIA Broadcast", "ElgatoCameraHub" });
+        }
+
+        private static bool IsProfessionalOrDeveloperProcessForReactive(string processName)
+        {
+            return NameInList(processName, new string[] { "Photoshop", "Illustrator", "AfterFX", "Adobe Premiere Pro", "Adobe Media Encoder", "Lightroom", "Resolve", "Fusion", "vegas170", "vegas180", "vegas190", "vegas200", "vegas210", "vegas220", "blender", "UnrealEditor", "Unity", "acad", "Revit", "SketchUp", "Rhino", "3dsmax", "Maya", "Cinema 4D", "D5Render", "Twinmotion", "devenv", "Code", "Code - Insiders", "cursor", "windsurf", "rider64", "idea64", "pycharm64", "webstorm64", "clion64", "datagrip64", "goland64", "phpstorm64", "rustrover64", "sublime_text", "notepad++", "zed", "codex" });
+        }
+
+        private static bool NameInList(string processName, string[] names)
+        {
+            if (String.IsNullOrWhiteSpace(processName) || names == null) { return false; }
+            for (int i = 0; i < names.Length; i++)
+            {
+                if (String.Equals(processName, names[i], StringComparison.OrdinalIgnoreCase)) { return true; }
+            }
+            return false;
+        }
+
+        private static bool PathContainsAny(string path, string[] fragments)
+        {
+            if (String.IsNullOrWhiteSpace(path) || fragments == null) { return false; }
+            for (int i = 0; i < fragments.Length; i++)
+            {
+                string fragment = fragments[i];
+                if (!String.IsNullOrWhiteSpace(fragment) && path.IndexOf(fragment, StringComparison.OrdinalIgnoreCase) >= 0) { return true; }
+            }
+            return false;
+        }
         private void ShowMainWindow()
         {
 #if NET9_0_OR_GREATER
@@ -5248,6 +6247,92 @@ internal static class SmartBackgroundNap
 
 
 #if NET9_0_OR_GREATER
+    private sealed class GamePresetDefinition
+    {
+        public string Id { get; set; }
+        public string Name { get; set; }
+        public string ShortName { get; set; }
+        public string Tier { get; set; }
+        public string Genre { get; set; }
+        public string Accent { get; set; }
+        public string Summary { get; set; }
+        public string Description { get; set; }
+        public string ExpectedGain { get; set; }
+        public string[] SafeOptions { get; set; }
+        public string[] ExperimentalOptions { get; set; }
+        public string[] ProcessNames { get; set; }
+        public string[] InstallKeywords { get; set; }
+        public string[] SafeOptimizations { get; set; }
+        public string[] ExperimentalOptimizations { get; set; }
+        public string[] DetectProcessNames { get; set; }
+        public string[] DetectRoots { get; set; }
+    }
+
+    private sealed class WebGamePreset
+    {
+        public string Id { get; set; }
+        public string Name { get; set; }
+        public string ShortName { get; set; }
+        public string Tier { get; set; }
+        public string Genre { get; set; }
+        public string Accent { get; set; }
+        public string Summary { get; set; }
+        public string Description { get; set; }
+        public string ExpectedGain { get; set; }
+        public bool Installed { get; set; }
+        public bool Running { get; set; }
+        public string ProcessName { get; set; }
+        public int ProcessId { get; set; }
+        public string Path { get; set; }
+        public string Status { get; set; }
+        public string DetectedPath { get; set; }
+        public string DetectionSource { get; set; }
+        public List<string> SafeOptions { get; set; }
+        public List<string> ExperimentalOptions { get; set; }
+        public List<string> SafeOptimizations { get; set; }
+        public List<string> ExperimentalOptimizations { get; set; }
+        public string CoverDataUrl { get; set; }
+    }
+
+    private static readonly Dictionary<string, string> GameCoverDataUrlCache = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    private static readonly object GameCoverDataUrlLock = new object();
+
+    private static string GetGameCoverDataUrl(string gameId)
+    {
+        string id = (gameId ?? "").Trim().ToLowerInvariant();
+        string resourceName = "";
+        switch (id)
+        {
+            case "bf6": resourceName = "game_bf6_cover_jpg"; break;
+            case "eafc26": resourceName = "game_eafc26_cover_jpg"; break;
+            case "cs2": resourceName = "game_cs2_cover_jpg"; break;
+            case "valorant": resourceName = "game_valorant_cover_jpg"; break;
+        }
+        if (String.IsNullOrWhiteSpace(resourceName)) { return ""; }
+
+        lock (GameCoverDataUrlLock)
+        {
+            string cached;
+            if (GameCoverDataUrlCache.TryGetValue(id, out cached)) { return cached; }
+        }
+
+        try
+        {
+            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(ResourcePrefix + resourceName))
+            {
+                if (stream == null) { return ""; }
+                using (MemoryStream memory = new MemoryStream())
+                {
+                    stream.CopyTo(memory);
+                    string dataUrl = "data:image/jpeg;base64," + Convert.ToBase64String(memory.ToArray());
+                    lock (GameCoverDataUrlLock) { GameCoverDataUrlCache[id] = dataUrl; }
+                    return dataUrl;
+                }
+            }
+        }
+        catch { return ""; }
+    }
+
     private interface IDashboardWindow
     {
         void RefreshStatus();
@@ -5392,15 +6477,13 @@ internal static class SmartBackgroundNap
                 dashboardWindow = new WebViewDashboardWindow(delegate(Exception ex)
                 {
                     WriteCrash(ex);
-                    dispatcher.BeginInvoke(new Action(delegate { ReplaceWithNativeDashboard(); }));
                 });
                 window = (System.Windows.Window)dashboardWindow;
             }
             catch (Exception ex)
             {
                 WriteCrash(ex);
-                dashboardWindow = new ModernMainWindow();
-                window = (System.Windows.Window)dashboardWindow;
+                throw new InvalidOperationException("WebView2 dashboard could not start in this WebView-only build.", ex);
             }
             AttachHideInsteadOfClose(window);
         }
@@ -5452,29 +6535,7 @@ internal static class SmartBackgroundNap
 
         private void ReplaceWithNativeDashboard()
         {
-            try
-            {
-                bool shouldShow = window != null && window.IsVisible;
-                allowClose = true;
-                if (window != null)
-                {
-                    window.Close();
-                }
-                allowClose = false;
-
-                dashboardWindow = new ModernMainWindow();
-                window = (System.Windows.Window)dashboardWindow;
-                AttachHideInsteadOfClose(window);
-                if (shouldShow)
-                {
-                    window.Show();
-                    window.Activate();
-                }
-            }
-            catch (Exception ex)
-            {
-                WriteCrash(ex);
-            }
+            WriteCrash(new InvalidOperationException("Native launcher fallback is disabled in the WebView-only build."));
         }
 
         private void NotifyHidden()
@@ -5532,10 +6593,10 @@ internal static class SmartBackgroundNap
         private const double ResizeBorderSize = 18.0;
         private const double DragBandHeight = 54.0;
         private const double WindowButtonReserveWidth = 128.0;
-        [DllImport("user32.dll")]
+        [DllImport("user32.dll", EntryPoint = "ReleaseCapture")]
         private static extern bool ReleaseCaptureForDrag();
 
-        [DllImport("user32.dll")]
+        [DllImport("user32.dll", EntryPoint = "SendMessageW")]
         private static extern IntPtr SendMessageForDrag(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
 
         public WebViewDashboardWindow(Action<Exception> fallbackRequested)
@@ -5707,11 +6768,40 @@ internal static class SmartBackgroundNap
             return (short)(((long)value >> 16) & 0xffff);
         }
 
+        private static System.Windows.Rect GetVirtualDragBounds()
+        {
+            try
+            {
+                return new System.Windows.Rect(
+                    System.Windows.SystemParameters.VirtualScreenLeft,
+                    System.Windows.SystemParameters.VirtualScreenTop,
+                    System.Windows.SystemParameters.VirtualScreenWidth,
+                    System.Windows.SystemParameters.VirtualScreenHeight);
+            }
+            catch
+            {
+                return System.Windows.SystemParameters.WorkArea;
+            }
+        }
+
+        private System.Windows.Rect GetCurrentWindowWorkArea()
+        {
+            try
+            {
+                System.Windows.Interop.WindowInteropHelper helper = new System.Windows.Interop.WindowInteropHelper(this);
+                Rectangle area = Screen.FromHandle(helper.Handle).WorkingArea;
+                return new System.Windows.Rect(area.Left, area.Top, area.Width, area.Height);
+            }
+            catch
+            {
+                return System.Windows.SystemParameters.WorkArea;
+            }
+        }
         private void ClampWindowToWorkArea()
         {
             try
             {
-                System.Windows.Rect workArea = System.Windows.SystemParameters.WorkArea;
+                System.Windows.Rect workArea = GetCurrentWindowWorkArea();
                 if (Width > workArea.Width) { Width = Math.Max(MinWidth, workArea.Width - 20.0); }
                 if (Height > workArea.Height) { Height = Math.Max(MinHeight, workArea.Height - 20.0); }
                 if (Left < workArea.Left + 8.0) { Left = workArea.Left + 8.0; }
@@ -5779,7 +6869,7 @@ internal static class SmartBackgroundNap
                 double y = GetDouble(message, "y");
                 double nextLeft = webDragStartLeft + (x - webDragStartX);
                 double nextTop = webDragStartTop + (y - webDragStartY);
-                System.Windows.Rect workArea = System.Windows.SystemParameters.WorkArea;
+                System.Windows.Rect workArea = GetVirtualDragBounds();
                 double minLeft = workArea.Left - Math.Max(0.0, Width - 96.0);
                 double maxLeft = workArea.Right - 96.0;
                 double minTop = workArea.Top;
@@ -5829,7 +6919,7 @@ internal static class SmartBackgroundNap
                     return;
                 }
 
-                System.Windows.Rect workArea = System.Windows.SystemParameters.WorkArea;
+                System.Windows.Rect workArea = GetCurrentWindowWorkArea();
                 double currentWidth = ActualWidth > 0.0 ? ActualWidth : Width;
                 double currentHeight = ActualHeight > 0.0 ? ActualHeight : Height;
                 double currentLeft = Double.IsNaN(Left) ? workArea.Left + Math.Max(0.0, (workArea.Width - currentWidth) / 2.0) : Left;
@@ -6009,6 +7099,32 @@ internal static class SmartBackgroundNap
                     SendState();
                     return;
                 }
+                if (String.Equals(action, "refreshGames", StringComparison.OrdinalIgnoreCase))
+                {
+                    RunUserAction("Procurando jogos instalados...", "Busca de jogos concluída.", delegate { int found = RefreshGameDiscoveryCache(); return new RunResult(0, "Busca concluída: " + found.ToString(CultureInfo.InvariantCulture) + " jogo(s) com caminho salvo. Se um jogo não aparecer, use Escolher pasta no card dele."); });
+                    return;
+                }
+                if (String.Equals(action, "selectGameFolder", StringComparison.OrdinalIgnoreCase))
+                {
+                    SelectGameFolderFromMessage(message);
+                    return;
+                }
+                if (String.Equals(action, "applyGamePreset", StringComparison.OrdinalIgnoreCase))
+                {
+                    RunUserAction("Aplicando preset de jogo...", "Preset de jogo aplicado.", delegate { return ApplyGamePresetFromMessage(message); });
+                    return;
+                }
+                if (String.Equals(action, "restoreGamePreset", StringComparison.OrdinalIgnoreCase))
+                {
+                    RunUserAction("Restaurando preset de jogo...", "Preset de jogo restaurado.", delegate { return RestoreGamePresetFromMessage(message); });
+                    return;
+                }
+                if (String.Equals(action, "ackGameBetaWelcome", StringComparison.OrdinalIgnoreCase))
+                {
+                    MarkGameBetaWelcomeSeen();
+                    SendState();
+                    return;
+                }
                 if (String.Equals(action, "setSessionMode", StringComparison.OrdinalIgnoreCase))
                 {
                     string mode = GetMapString(message, "mode");
@@ -6065,7 +7181,7 @@ internal static class SmartBackgroundNap
                 {
                     string downloadUrl = updateInfo == null || String.IsNullOrWhiteSpace(updateInfo.DownloadUrl) ? GitHubLatestDownloadUrl : updateInfo.DownloadUrl;
                     string latestTag = updateInfo == null ? "" : updateInfo.LatestTag;
-                    RunUserAction("Baixando atualizacao...", "Atualizador iniciado.", delegate { return StartSelfUpdate(downloadUrl, latestTag, updateInfo == null ? "" : updateInfo.ReleaseBody); });
+                    RunUserAction("Baixando e instalando pelo Smart Nap...", "Atualizacao interna iniciada.", delegate { return StartSelfUpdate(downloadUrl, latestTag, updateInfo == null ? "" : updateInfo.ReleaseBody); });
                     return;
                 }
                 if (String.Equals(action, "dismissUpdate", StringComparison.OrdinalIgnoreCase))
@@ -6167,7 +7283,7 @@ internal static class SmartBackgroundNap
             try
             {
                 if (String.IsNullOrWhiteSpace(appPolicyPath) || !File.Exists(appPolicyPath)) { return policies; }
-                IDictionary<string, object> root = JsonCompat.DeserializeObject(File.ReadAllText(appPolicyPath, Encoding.UTF8));
+                IDictionary<string, object> root = LoadJsonMapWithRecovery(appPolicyPath);
                 object existingItems = null;
                 System.Collections.IEnumerable enumerable = root != null && root.TryGetValue("Items", out existingItems) ? existingItems as System.Collections.IEnumerable : null;
                 if (enumerable == null || existingItems is string) { return policies; }
@@ -6221,7 +7337,7 @@ internal static class SmartBackgroundNap
             {
                 if (File.Exists(appPolicyPath))
                 {
-                    IDictionary<string, object> root = JsonCompat.DeserializeObject(File.ReadAllText(appPolicyPath, Encoding.UTF8));
+                    IDictionary<string, object> root = LoadJsonMapWithRecovery(appPolicyPath);
                     object existingItems = null;
                     System.Collections.IEnumerable enumerable = root != null && root.TryGetValue("Items", out existingItems) ? existingItems as System.Collections.IEnumerable : null;
                     if (enumerable != null && !(existingItems is string))
@@ -6268,7 +7384,7 @@ internal static class SmartBackgroundNap
             Dictionary<string, object> output = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             output["Timestamp"] = DateTime.Now.ToString("o", CultureInfo.InvariantCulture);
             output["Items"] = items;
-            File.WriteAllText(appPolicyPath, JsonCompat.SerializeObject(output), Encoding.UTF8);
+            AtomicWriteJsonMap(appPolicyPath, output);
 
             string label = String.IsNullOrWhiteSpace(processName) ? targetKeys[0] : processName;
             activeUiEventLine = DateTime.Now.ToString("HH:mm:ss", CultureInfo.CurrentCulture) + "  POLICY  " + label + " -> " + policy;
@@ -6280,6 +7396,841 @@ internal static class SmartBackgroundNap
             catch
             {
             }
+        }
+        private static bool NameInList(string processName, string[] names)
+        {
+            if (String.IsNullOrWhiteSpace(processName) || names == null) { return false; }
+            foreach (string name in names)
+            {
+                if (String.IsNullOrWhiteSpace(name)) { continue; }
+                if (String.Equals(processName, name, StringComparison.OrdinalIgnoreCase)) { return true; }
+            }
+            return false;
+        }
+
+        private static bool IsKnownLauncherProcessForReactive(string processName)
+        {
+            return NameInList(processName, new string[] { "steam", "steamwebhelper", "EpicGamesLauncher", "EpicWebHelper", "Battle.net", "EADesktop", "EABackgroundService", "EACefSubProcess", "EALauncher", "EASteamLauncher", "EAConnect", "RiotClientServices", "RiotClientUx", "UbisoftConnect", "upc", "GalaxyClient", "GOG Galaxy", "XboxPcApp" });
+        }
+
+        private static List<GamePresetDefinition> GetGamePresetDefinitions()
+        {
+            return new List<GamePresetDefinition>
+            {
+                new GamePresetDefinition
+                {
+                    Id = "bf6",
+                    Name = "Battlefield 6",
+                    ShortName = "BF6",
+                    Tier = "Competitive FPS",
+                    Accent = "orange",
+                    Description = "Biblioteca beta com ajustes de comunidade para cache/shader, frame pacing, CPU-bound e stutter em partidas grandes.",
+                    ProcessNames = new[] { "bf6", "Battlefield6", "Battlefield" },
+                    InstallKeywords = new[] { "Battlefield 6", "Battlefield6", "Battlefield" },
+                    SafeOptions = new[] { "Pipeline de shader/cache: backup e reconstrução guiada após update", "Frame pacing competitivo: cap estável por Hz e anti-stutter", "Config de engine segura: streaming e orçamento de CPU mais leve", "DX12/driver cache hygiene: remover cache antigo sem apagar saves", "Overlay/download guard: EA, Steam, Discord e capturas em modo leve", "Preset CPU-bound: reduzir pós-processamento pesado sem mudar controles" },
+                    ExperimentalOptions = new[] { "user.cfg avançado: thread budget e render queue em teste A/B", "Cache rebuild agressivo: DX/NVIDIA/AMD shader cache com aviso de stutter inicial", "Ultra low CPU fallback: streaming, efeitos e partículas em orçamento mínimo", "Overlay hard-off test: EA/Steam por config reversível com backup", "Frame cap lab: 90/120/144/165 com medição de pacing" }
+                },
+                new GamePresetDefinition
+                {
+                    Id = "eafc26",
+                    Name = "EA SPORTS FC 26",
+                    ShortName = "FC26",
+                    Tier = "Sports online",
+                    Accent = "cyan",
+                    Description = "Receitas de comunidade para reduzir stutter, estabilizar frame pacing e controlar EA/Steam sem alterar gameplay.",
+                    ProcessNames = new[] { "FC26", "FC25", "FC24" },
+                    InstallKeywords = new[] { "EA SPORTS FC 26", "EA Sports FC 26", "FC26", "EA SPORTS FC" },
+                    SafeOptions = new[] { "FC setup sanity: detectar arquivo de settings e fazer backup", "Stutter guard: cap de FPS por Hz e estabilidade de cutscenes", "EA/Steam overlay guard: reduzir overlays e downloads durante partida", "Shader/cache refresh guiado após update de driver ou patch", "CPU/GPU balance: crowd, hair e cloth em perfil de desempenho", "Fullscreen e Hz corretos sem mexer em câmera, controle ou gameplay" },
+                    ExperimentalOptions = new[] { "FC microstutter lab: caps 60/90/120/144 com rollback", "Stadium heavy preset: reduzir crowd, cloth e hair para PC fraco", "EA overlay hard-off via user_*.ini com backup", "Cache rebuild agressivo em Documents/AppData quando há travadas", "Steam input/overlay isolation quando FC abre via Steam" }
+                },
+                new GamePresetDefinition
+                {
+                    Id = "cs2",
+                    Name = "Counter-Strike 2",
+                    ShortName = "CS2",
+                    Tier = "Competitive shooter",
+                    Accent = "blue",
+                    Description = "Receitas competitivas de comunidade para launch options limpas, autoexec, shader cache, Reflex e frame pacing.",
+                    ProcessNames = new[] { "cs2" },
+                    InstallKeywords = new[] { "Counter-Strike Global Offensive", "Counter-Strike 2", "csgo", "cs2" },
+                    SafeOptions = new[] { "Launch options auditor: remover comandos antigos ou prejudiciais", "Autoexec performance pack: telemetria, pacing e cvars seguras", "NVIDIA Reflex check: orientar ON quando suportado", "Shader prewarm/cache hygiene após update do jogo ou driver", "Frame cap estável por Hz para reduzir variação de frametime", "Steam overlay/download guard durante partida competitiva" },
+                    ExperimentalOptions = new[] { "-vulkan A/B test com reversão automática", "fps_max lab: 0, refresh+buffer ou cap competitivo", "DX shader cache rebuild agressivo", "Low-end cfg: partículas, decals e streaming budget reduzidos", "Workshop/custom cfg quarantine para caçar stutter" }
+                },
+                new GamePresetDefinition
+                {
+                    Id = "valorant",
+                    Name = "VALORANT",
+                    ShortName = "VALORANT",
+                    Tier = "Tactical FPS",
+                    Accent = "violet",
+                    Description = "Receitas seguras de comunidade para FPS alto, baixa latência, cache limpo e estabilidade sem tocar no Vanguard.",
+                    ProcessNames = new[] { "VALORANT-Win64-Shipping", "VALORANT" },
+                    InstallKeywords = new[] { "VALORANT", "Riot Games" },
+                    SafeOptions = new[] { "Config backup Riot e validação de GameUserSettings", "Multithreaded Rendering check quando a CPU suporta", "NVIDIA Reflex/low latency check quando suportado", "FPS cap por menu/background para aliviar stutter térmico", "Fullscreen e Hz sanity sem tocar em sensibilidade ou mira", "Overlay/download guard sem tocar no Vanguard" },
+                    ExperimentalOptions = new[] { "FPS cap lab por cenário: menu, background e in-game", "Low-end GPU profile: material, detail e UI em modo performance", "Cache/config reset guiado com backup", "Overlay hard isolation sem mexer no Vanguard", "Frame pacing stress test por monitor" }
+                }
+            };
+        }
+
+        private static List<WebGamePreset> BuildGamePresetsForUi()
+        {
+            List<WebGamePreset> output = new List<WebGamePreset>();
+            List<Process> processes = new List<Process>();
+            try { processes.AddRange(Process.GetProcesses()); } catch { }
+            try
+            {
+                foreach (GamePresetDefinition definition in GetGamePresetDefinitions())
+                {
+                    Process running = null;
+                    string runningPath = "";
+                    foreach (Process process in processes)
+                    {
+                        string processName = "";
+                        try { processName = process.ProcessName ?? ""; } catch { }
+                        if (!NameInList(processName, definition.ProcessNames)) { continue; }
+                        if (IsKnownLauncherProcessForReactive(processName)) { continue; }
+                        running = process;
+                        runningPath = TryGetProcessPath(process);
+                        break;
+                    }
+
+                    string manualPath = FindManualGameInstallPath(definition);
+                    string installedPath = !String.IsNullOrWhiteSpace(runningPath) ? runningPath : manualPath;
+                    string detectionSource = running != null ? "Rodando" : (!String.IsNullOrWhiteSpace(manualPath) ? "Pasta salva" : (!String.IsNullOrWhiteSpace(installedPath) ? "Biblioteca detectada" : "Não encontrado"));
+                    output.Add(new WebGamePreset
+                    {
+                        Id = definition.Id,
+                        Name = definition.Name,
+                        ShortName = definition.ShortName,
+                        Tier = definition.Tier,
+                        Genre = definition.Tier,
+                        Accent = definition.Accent,
+                        Summary = definition.Description,
+                        Description = definition.Description,
+                        ExpectedGain = definition.Tier,
+                        CoverDataUrl = GetGameCoverDataUrl(definition.Id),
+                        Installed = !String.IsNullOrWhiteSpace(installedPath),
+                        Running = running != null,
+                        ProcessName = running == null ? "" : running.ProcessName,
+                        ProcessId = running == null ? 0 : running.Id,
+                        Path = installedPath,
+                        DetectedPath = installedPath,
+                        Status = running != null ? "Running" : (!String.IsNullOrWhiteSpace(installedPath) ? "Installed" : "Not found"),
+                        DetectionSource = detectionSource,
+                        SafeOptions = new List<string>(definition.SafeOptions ?? new string[0]),
+                        ExperimentalOptions = new List<string>(definition.ExperimentalOptions ?? new string[0]),
+                        SafeOptimizations = new List<string>(definition.SafeOptions ?? new string[0]),
+                        ExperimentalOptimizations = new List<string>(definition.ExperimentalOptions ?? new string[0])
+                    });
+                }
+            }
+            finally
+            {
+                foreach (Process process in processes) { try { process.Dispose(); } catch { } }
+            }
+            return output;
+        }
+
+        private static int RefreshGameDiscoveryCache()
+        {
+            int found = 0;
+            foreach (GamePresetDefinition definition in GetGamePresetDefinitions())
+            {
+                try
+                {
+                    string path = FindGameInstallPath(definition);
+                    if (String.IsNullOrWhiteSpace(path)) { continue; }
+                    SaveManualGameInstallPath(definition, path);
+                    found++;
+                }
+                catch { }
+            }
+            return found;
+        }
+        private static string FindGameInstallPath(GamePresetDefinition definition)
+        {
+            if (definition == null) { return ""; }
+            string running = FindGameInstallPathFromRunningProcess(definition);
+            if (!String.IsNullOrWhiteSpace(running)) { return running; }
+            string manual = FindManualGameInstallPath(definition);
+            if (!String.IsNullOrWhiteSpace(manual)) { return manual; }
+
+            foreach (string candidate in BuildGameInstallCandidates(definition))
+            {
+                try
+                {
+                    if (String.IsNullOrWhiteSpace(candidate)) { continue; }
+                    string normalized = candidate.Trim().Trim('"');
+                    if (File.Exists(normalized)) { return normalized; }
+                    if (Directory.Exists(normalized)) { return normalized; }
+                }
+                catch { }
+            }
+            return "";
+        }
+
+        private static string FindGameInstallPathFromRunningProcess(GamePresetDefinition definition)
+        {
+            try
+            {
+                foreach (Process process in Process.GetProcesses())
+                {
+                    using (process)
+                    {
+                        string name = "";
+                        try { name = process.ProcessName ?? ""; } catch { }
+                        if (!NameInList(name, definition.ProcessNames)) { continue; }
+                        if (IsKnownLauncherProcessForReactive(name)) { continue; }
+                        string path = TryGetProcessPath(process);
+                        if (!String.IsNullOrWhiteSpace(path)) { return path; }
+                    }
+                }
+            }
+            catch { }
+            return "";
+        }
+
+        private static List<string> BuildGameInstallCandidates(GamePresetDefinition definition)
+        {
+            List<string> candidates = new List<string>();
+            Action<string> add = delegate(string value)
+            {
+                if (!String.IsNullOrWhiteSpace(value) && !candidates.Contains(value, StringComparer.OrdinalIgnoreCase)) { candidates.Add(value); }
+            };
+
+            foreach (string root in BuildGameInstallRoots())
+            {
+                try
+                {
+                    if (String.IsNullOrWhiteSpace(root) || !Directory.Exists(root)) { continue; }
+                    if (MatchesGamePath(root, definition)) { add(root); }
+                    foreach (string dir in Directory.EnumerateDirectories(root, "*", SearchOption.TopDirectoryOnly))
+                    {
+                        if (MatchesGamePath(dir, definition) || ContainsGameExecutable(dir, definition)) { add(dir); }
+                    }
+                }
+                catch { }
+            }
+
+            AddShortcutGameCandidates(definition, add);
+            return candidates;
+        }
+
+        private static bool MatchesGamePath(string value, GamePresetDefinition definition)
+        {
+            string text = value ?? "";
+            foreach (string keyword in definition.InstallKeywords ?? new string[0])
+            {
+                if (!String.IsNullOrWhiteSpace(keyword) && text.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0) { return true; }
+            }
+            foreach (string process in definition.ProcessNames ?? new string[0])
+            {
+                if (!String.IsNullOrWhiteSpace(process) && text.IndexOf(process, StringComparison.OrdinalIgnoreCase) >= 0) { return true; }
+            }
+            return false;
+        }
+
+        private static IEnumerable<string> EnumerateFilesLimited(string root, string pattern, int maxDepth, int maxFiles)
+        {
+            if (String.IsNullOrWhiteSpace(root)) { yield break; }
+            try { if (!Directory.Exists(root)) { yield break; } } catch { yield break; }
+            Queue<Tuple<string, int>> queue = new Queue<Tuple<string, int>>();
+            queue.Enqueue(Tuple.Create(root, 0));
+            int emitted = 0;
+            while (queue.Count > 0 && emitted < maxFiles)
+            {
+                Tuple<string, int> item = queue.Dequeue();
+                string dir = item.Item1;
+                int depth = item.Item2;
+                string[] files = new string[0];
+                try { files = Directory.GetFiles(dir, pattern, SearchOption.TopDirectoryOnly); } catch { }
+                foreach (string file in files)
+                {
+                    yield return file;
+                    emitted++;
+                    if (emitted >= maxFiles) { yield break; }
+                }
+                if (depth >= maxDepth) { continue; }
+                string[] dirs = new string[0];
+                try { dirs = Directory.GetDirectories(dir, "*", SearchOption.TopDirectoryOnly); } catch { }
+                foreach (string child in dirs) { queue.Enqueue(Tuple.Create(child, depth + 1)); }
+            }
+        }
+        private static bool ContainsGameExecutable(string directory, GamePresetDefinition definition)
+        {
+            try
+            {
+                foreach (string process in definition.ProcessNames ?? new string[0])
+                {
+                    if (String.IsNullOrWhiteSpace(process)) { continue; }
+                    string exe = process.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? process : process + ".exe";
+                    if (File.Exists(Path.Combine(directory, exe))) { return true; }
+                    foreach (string file in EnumerateFilesLimited(directory, exe, 4, 700))
+                    {
+                        if (file.IndexOf("launcher", StringComparison.OrdinalIgnoreCase) >= 0) { continue; }
+                        return true;
+                    }
+                }
+            }
+            catch { }
+            return false;
+        }
+
+        private static List<string> BuildGameInstallRoots()
+        {
+            List<string> roots = new List<string>();
+            Action<string> add = delegate(string value)
+            {
+                if (!String.IsNullOrWhiteSpace(value) && !roots.Contains(value, StringComparer.OrdinalIgnoreCase)) { roots.Add(value); }
+            };
+            string pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            string pfx86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+            string pd = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+            add(Path.Combine(pfx86, "Steam", "steamapps", "common"));
+            add(Path.Combine(pf, "Steam", "steamapps", "common"));
+            AddSteamLibraryRoots(add);
+            add(Path.Combine(pf, "EA Games"));
+            add(Path.Combine(pfx86, "EA Games"));
+            add(Path.Combine(pf, "Electronic Arts", "Games"));
+            add(Path.Combine(pfx86, "Origin Games"));
+            add(Path.Combine(pf, "Epic Games"));
+            AddEpicInstallRoots(add);
+            add(Path.Combine(pf, "Riot Games"));
+            add(Path.Combine(pfx86, "Riot Games"));
+            AddRiotInstallRoots(add);
+            AddEaInstallRoots(add);
+            AddDriveLibraryRoots(add);
+            add(Path.Combine(pd, "Battle.net"));
+            return roots;
+        }
+
+        private static void AddSteamLibraryRoots(Action<string> add)
+        {
+            foreach (string steamRoot in GetSteamRoots())
+            {
+                string vdf = Path.Combine(steamRoot, "steamapps", "libraryfolders.vdf");
+                try
+                {
+                    if (File.Exists(vdf))
+                    {
+                        string text = File.ReadAllText(vdf);
+                        foreach (Match match in Regex.Matches(text, "\\\"path\\\"\\s+\\\"([^\\\"]+)\\\""))
+                        {
+                            string path = Regex.Unescape(match.Groups[1].Value.Replace("\\\\", "\\"));
+                            add(Path.Combine(path, "steamapps", "common"));
+                        }
+                    }
+                }
+                catch { }
+                add(Path.Combine(steamRoot, "steamapps", "common"));
+            }
+        }
+
+        private static IEnumerable<string> GetSteamRoots()
+        {
+            List<string> roots = new List<string>();
+            Action<string> add = delegate(string value)
+            {
+                if (!String.IsNullOrWhiteSpace(value) && !roots.Contains(value, StringComparer.OrdinalIgnoreCase)) { roots.Add(value); }
+            };
+            try { using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\Valve\Steam")) { add(Convert.ToString(key == null ? null : key.GetValue("SteamPath"))); } } catch { }
+            try { using (RegistryKey key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\WOW6432Node\Valve\Steam")) { add(Convert.ToString(key == null ? null : key.GetValue("InstallPath"))); } } catch { }
+            add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Steam"));
+            add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Steam"));
+            return roots;
+        }
+        private static void AddEaInstallRoots(Action<string> add)
+        {
+            string pd = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+            string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            string[] roots = new string[]
+            {
+                Path.Combine(pd, "EA Desktop"),
+                Path.Combine(pd, "Electronic Arts"),
+                Path.Combine(local, "Electronic Arts"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "EA Games"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Origin Games")
+            };
+            foreach (string root in roots)
+            {
+                try
+                {
+                    if (!Directory.Exists(root)) { continue; }
+                    add(root);
+                    foreach (string file in EnumerateFilesLimited(root, "*.*", 4, 900))
+                    {
+                        string ext = Path.GetExtension(file);
+                        if (!String.Equals(ext, ".json", StringComparison.OrdinalIgnoreCase) && !String.Equals(ext, ".mfst", StringComparison.OrdinalIgnoreCase) && !String.Equals(ext, ".xml", StringComparison.OrdinalIgnoreCase)) { continue; }
+                        FileInfo info = new FileInfo(file);
+                        if (info.Length > 1024 * 1024 * 2) { continue; }
+                        string text = File.ReadAllText(file, Encoding.UTF8);
+                        foreach (Match match in Regex.Matches(text, "[A-Za-z]:\\\\(?:[^\\\"\\r\\n])+"))
+                        {
+                            string path = match.Value.Replace("\\\\", "\\").Trim();
+                            if (File.Exists(path)) { add(Path.GetDirectoryName(path)); }
+                            else if (Directory.Exists(path)) { add(path); }
+                        }
+                    }
+                }
+                catch { }
+            }
+        }
+
+        private static void AddDriveLibraryRoots(Action<string> add)
+        {
+            try
+            {
+                foreach (DriveInfo drive in DriveInfo.GetDrives())
+                {
+                    if (!drive.IsReady || drive.DriveType != DriveType.Fixed) { continue; }
+                    string root = drive.RootDirectory.FullName;
+                    add(Path.Combine(root, "SteamLibrary", "steamapps", "common"));
+                    add(Path.Combine(root, "Steam", "steamapps", "common"));
+                    add(Path.Combine(root, "EA Games"));
+                    add(Path.Combine(root, "Epic Games"));
+                    add(Path.Combine(root, "Riot Games"));
+                    add(Path.Combine(root, "XboxGames"));
+                    add(Path.Combine(root, "Games"));
+                }
+            }
+            catch { }
+        }
+
+        private static void AddEpicInstallRoots(Action<string> add)
+        {
+            string manifests = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Epic", "EpicGamesLauncher", "Data", "Manifests");
+            try
+            {
+                if (!Directory.Exists(manifests)) { return; }
+                foreach (string file in Directory.EnumerateFiles(manifests, "*.item", SearchOption.TopDirectoryOnly))
+                {
+                    string text = File.ReadAllText(file);
+                    Match m = Regex.Match(text, "\\\"InstallLocation\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"");
+                    if (m.Success) { add(Regex.Unescape(m.Groups[1].Value)); }
+                }
+            }
+            catch { }
+        }
+
+        private static void AddRiotInstallRoots(Action<string> add)
+        {
+            string json = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Riot Games", "RiotClientInstalls.json");
+            try
+            {
+                if (File.Exists(json))
+                {
+                    foreach (Match match in Regex.Matches(File.ReadAllText(json), "[A-Za-z]:\\\\(?:[^\\\"\\r\\n])+"))
+                    {
+                        string path = match.Value.Replace("\\\\", "\\");
+                        string dir = File.Exists(path) ? Path.GetDirectoryName(path) : path;
+                        if (!String.IsNullOrWhiteSpace(dir)) { add(dir); }
+                    }
+                }
+            }
+            catch { }
+        }
+
+        private static void AddShortcutGameCandidates(GamePresetDefinition definition, Action<string> add)
+        {
+            foreach (string root in GetShortcutSearchRoots())
+            {
+                try
+                {
+                    if (!Directory.Exists(root)) { continue; }
+                    foreach (string shortcut in EnumerateFilesLimited(root, "*.lnk", 3, 600))
+                    {
+                        if (!MatchesGamePath(shortcut, definition)) { continue; }
+                        string target = TryGetShortcutTarget(shortcut);
+                        if (String.IsNullOrWhiteSpace(target)) { continue; }
+                        if (File.Exists(target)) { add(target); add(Path.GetDirectoryName(target)); }
+                        else if (Directory.Exists(target)) { add(target); }
+                    }
+                }
+                catch { }
+            }
+        }
+
+        private static IEnumerable<string> GetShortcutSearchRoots()
+        {
+            yield return Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            yield return Environment.GetFolderPath(Environment.SpecialFolder.CommonDesktopDirectory);
+            yield return Environment.GetFolderPath(Environment.SpecialFolder.StartMenu);
+            yield return Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu);
+            yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Microsoft", "Windows", "Start Menu", "Programs");
+            yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Microsoft", "Windows", "Start Menu", "Programs");
+        }
+
+        private static string TryGetShortcutTarget(string shortcutPath)
+        {
+            try
+            {
+                Type shellType = Type.GetTypeFromProgID("WScript.Shell");
+                if (shellType == null) { return ""; }
+                object shell = Activator.CreateInstance(shellType);
+                object shortcut = shellType.InvokeMember("CreateShortcut", BindingFlags.InvokeMethod, null, shell, new object[] { shortcutPath });
+                string target = Convert.ToString(shortcut.GetType().InvokeMember("TargetPath", BindingFlags.GetProperty, null, shortcut, null));
+                try { Marshal.FinalReleaseComObject(shortcut); } catch { }
+                try { Marshal.FinalReleaseComObject(shell); } catch { }
+                return target ?? "";
+            }
+            catch { return ""; }
+        }
+
+        private void SelectGameFolderFromMessage(IDictionary<string, object> message)
+        {
+            string gameId = GetMapString(message, "gameId");
+            GamePresetDefinition definition = GetGamePresetDefinitions().Find(delegate(GamePresetDefinition item) { return String.Equals(item.Id, gameId, StringComparison.OrdinalIgnoreCase); });
+            if (definition == null) { AppendOperationalLog("action=game-folder status=unknown"); SendState(); return; }
+
+            string selectedPath = "";
+            Action choose = delegate
+            {
+                using (System.Windows.Forms.FolderBrowserDialog dialog = new System.Windows.Forms.FolderBrowserDialog())
+                {
+                    dialog.Description = "Escolha a pasta onde " + definition.Name + " está instalado";
+                    dialog.ShowNewFolderButton = false;
+                    string current = FindManualGameInstallPath(definition);
+                    if (String.IsNullOrWhiteSpace(current)) { current = FindManualGameInstallPath(definition); }
+                    if (!String.IsNullOrWhiteSpace(current))
+                    {
+                        string folder = File.Exists(current) ? Path.GetDirectoryName(current) : current;
+                        if (!String.IsNullOrWhiteSpace(folder) && Directory.Exists(folder)) { dialog.SelectedPath = folder; }
+                    }
+                    if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK) { selectedPath = dialog.SelectedPath; }
+                }
+            };
+            try
+            {
+                if (Dispatcher.CheckAccess()) { choose(); } else { Dispatcher.Invoke(choose); }
+            }
+            catch (Exception ex)
+            {
+                AppendOperationalLog("action=game-folder game=" + definition.ShortName.Replace(' ', '_') + " status=failed error=" + SanitizeLogToken(ex.Message));
+                SendState();
+                return;
+            }
+
+            if (!String.IsNullOrWhiteSpace(selectedPath) && !IsValidGameInstallSelection(selectedPath, definition))
+            {
+                AppendOperationalLog("action=game-folder game=" + definition.ShortName.Replace(' ', '_') + " status=invalid path=" + SanitizeLogToken(selectedPath));
+                selectedPath = "";
+            }
+
+            if (!String.IsNullOrWhiteSpace(selectedPath))
+            {
+                SaveManualGameInstallPath(definition, selectedPath);
+                AppendOperationalLog("action=game-folder game=" + definition.ShortName.Replace(' ', '_') + " status=saved path=" + SanitizeLogToken(selectedPath));
+            }
+            else
+            {
+                AppendOperationalLog("action=game-folder game=" + definition.ShortName.Replace(' ', '_') + " status=cancelled");
+            }
+            SendState();
+        }
+
+        private static bool IsValidGameInstallSelection(string selectedPath, GamePresetDefinition definition)
+        {
+            if (definition == null || String.IsNullOrWhiteSpace(selectedPath)) { return false; }
+            string path = selectedPath.Trim().Trim('"');
+            try
+            {
+                if (File.Exists(path))
+                {
+                    string name = Path.GetFileNameWithoutExtension(path);
+                    return NameInList(name, definition.ProcessNames) || MatchesGamePath(path, definition);
+                }
+                if (!Directory.Exists(path)) { return false; }
+                return MatchesGamePath(path, definition) || ContainsGameExecutable(path, definition);
+            }
+            catch { return false; }
+        }
+
+        private static string GetManualGameInstallPathFile()
+        {
+            return Path.Combine(outputsPath, "game-paths.user.json");
+        }
+
+        private static Dictionary<string, string> LoadManualGameInstallPaths()
+        {
+            Dictionary<string, string> output = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string path in new[] { GetManualGameInstallPathFile(), GetManualGameInstallPathFile() + ".lastgood" })
+            {
+                try
+                {
+                    if (!File.Exists(path)) { continue; }
+                    IDictionary<string, object> root = JsonCompat.DeserializeObject(File.ReadAllText(path, Encoding.UTF8));
+                    if (root == null) { continue; }
+                    foreach (KeyValuePair<string, object> pair in root)
+                    {
+                        string value = Convert.ToString(pair.Value, CultureInfo.InvariantCulture);
+                        if (!String.IsNullOrWhiteSpace(pair.Key) && !String.IsNullOrWhiteSpace(value)) { output[pair.Key] = value; }
+                    }
+                    if (output.Count > 0) { break; }
+                }
+                catch { }
+            }
+            return output;
+        }
+
+        private static string FindManualGameInstallPath(GamePresetDefinition definition)
+        {
+            if (definition == null || String.IsNullOrWhiteSpace(definition.Id)) { return ""; }
+            Dictionary<string, string> paths = LoadManualGameInstallPaths();
+            string value = "";
+            if (!paths.TryGetValue(definition.Id, out value) || String.IsNullOrWhiteSpace(value)) { return ""; }
+            value = value.Trim().Trim('"');
+            try { return Directory.Exists(value) || File.Exists(value) ? value : ""; } catch { return ""; }
+        }
+
+        private static void SaveManualGameInstallPath(GamePresetDefinition definition, string selectedPath)
+        {
+            if (definition == null || String.IsNullOrWhiteSpace(definition.Id) || String.IsNullOrWhiteSpace(selectedPath)) { return; }
+            Dictionary<string, string> paths = LoadManualGameInstallPaths();
+            paths[definition.Id] = selectedPath.Trim();
+            Dictionary<string, object> root = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            foreach (KeyValuePair<string, string> pair in paths) { root[pair.Key] = pair.Value; }
+            string path = GetManualGameInstallPathFile();
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            AtomicWriteJsonMap(path, root);
+            try { File.Copy(path, path + ".lastgood", true); } catch { }
+        }
+
+        private RunResult ApplyGamePresetFromMessage(IDictionary<string, object> message)
+        {
+            string gameId = GetMapString(message, "gameId");
+            GamePresetDefinition definition = GetGamePresetDefinitions().Find(delegate(GamePresetDefinition item) { return String.Equals(item.Id, gameId, StringComparison.OrdinalIgnoreCase); });
+            if (definition == null) { return new RunResult(1, "Preset de jogo desconhecido."); }
+            string installPath = FindGameInstallPath(definition);
+            if (String.IsNullOrWhiteSpace(installPath))
+            {
+                return new RunResult(2, "Localize a pasta de " + definition.Name + " antes de aplicar o preset. Assim o Smart Nap só altera arquivos do jogo correto.");
+            }
+
+            List<string> selectedSafeOptions = GetMapStringList(message, "safeOptions");
+            List<string> selectedExperimentalOptions = GetMapStringList(message, "experimentalOptions");
+            if (selectedSafeOptions.Count == 0) { selectedSafeOptions = new List<string>(definition.SafeOptions ?? new string[0]); }
+            bool experimental = selectedExperimentalOptions.Count > 0 || GetBool(message, "experimental");
+            int backupFiles = EnsureGamePresetFileBackups(definition);
+
+            SaveGamePresetState(definition, experimental, selectedSafeOptions, selectedExperimentalOptions, backupFiles);
+            AppendOperationalLog("action=game-preset game=" + definition.ShortName.Replace(' ', '_') + " safe=" + selectedSafeOptions.Count.ToString(CultureInfo.InvariantCulture) + " experimental=" + selectedExperimentalOptions.Count.ToString(CultureInfo.InvariantCulture) + " backups=" + backupFiles.ToString(CultureInfo.InvariantCulture) + " session=unchanged");
+            return new RunResult(0, "Preset de jogo salvo: " + definition.Name + ". O modo atual do motor foi mantido.");
+        }
+
+        private void SaveGamePolicy(string processName, string policy)
+        {
+            Dictionary<string, object> message = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            message["policy"] = policy;
+            message["processName"] = processName;
+            message["key"] = "name:" + (processName ?? "").Trim().ToLowerInvariant();
+            message["path"] = "";
+            SetAppPolicyFromMessage(message);
+        }
+
+        private static void SaveGamePresetState(GamePresetDefinition definition, bool experimental, List<string> safeOptions, List<string> experimentalOptions, int backupFiles)
+        {
+            Dictionary<string, object> root = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            root["Timestamp"] = DateTime.Now.ToString("o", CultureInfo.InvariantCulture);
+            root["LastGameId"] = definition.Id;
+            root["LastGameName"] = definition.Name;
+            root["Experimental"] = experimental;
+            root["SafeOptions"] = safeOptions == null || safeOptions.Count == 0 ? new List<string>(definition.SafeOptions ?? new string[0]) : new List<string>(safeOptions);
+            root["ExperimentalOptions"] = experimentalOptions == null ? new List<string>() : new List<string>(experimentalOptions);
+            root["BackupFiles"] = backupFiles;
+            root["Restored"] = false;
+            AtomicWriteJsonMap(Path.Combine(outputsPath, "game-presets.state.json"), root);
+        }
+
+        private static string GetGamePresetBackupRoot()
+        {
+            return Path.Combine(outputsPath, "game-preset-backups");
+        }
+
+        private static string HashGamePresetTarget(string value)
+        {
+            using (SHA256 sha = SHA256.Create())
+            {
+                byte[] bytes = sha.ComputeHash(Encoding.UTF8.GetBytes((value ?? "").Trim().ToLowerInvariant()));
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < bytes.Length && i < 16; i++) { sb.Append(bytes[i].ToString("x2", CultureInfo.InvariantCulture)); }
+                return sb.ToString();
+            }
+        }
+
+        private static void AddExistingFile(List<string> files, string path)
+        {
+            try
+            {
+                if (!String.IsNullOrWhiteSpace(path) && File.Exists(path) && !files.Contains(path, StringComparer.OrdinalIgnoreCase)) { files.Add(path); }
+            }
+            catch { }
+        }
+
+        private static List<string> BuildGamePresetBackupCandidates(GamePresetDefinition definition)
+        {
+            List<string> files = new List<string>();
+            string id = (definition == null ? "" : definition.Id ?? "").Trim().ToLowerInvariant();
+            string docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            string install = definition == null ? "" : FindGameInstallPath(definition);
+
+            if (id == "bf6")
+            {
+                foreach (string folder in new[] { "Battlefield 6", "Battlefield6", "Battlefield 2042" })
+                {
+                    string settings = Path.Combine(docs, folder, "settings");
+                    AddExistingFile(files, Path.Combine(settings, "PROFSAVE_profile"));
+                    AddExistingFile(files, Path.Combine(settings, "PROFSAVE"));
+                    AddExistingFile(files, Path.Combine(settings, "PROFSAVE_tmp"));
+                }
+                AddExistingFile(files, Path.Combine(install, "user.cfg"));
+            }
+            else if (id == "eafc26")
+            {
+                foreach (string folder in new[] { "FC 26", "EA SPORTS FC 26", "FC 25", "EA SPORTS FC 25", "FC 24", "EA SPORTS FC 24" })
+                {
+                    string root = Path.Combine(docs, folder);
+                    AddExistingFile(files, Path.Combine(root, "fcsetup.ini"));
+                    AddExistingFile(files, Path.Combine(root, "fifasetup.ini"));
+                    AddExistingFile(files, Path.Combine(root, "settings.ini"));
+                    AddExistingFile(files, Path.Combine(root, "buttonDataSetup.ini"));
+                }
+            }
+            else if (id == "cs2")
+            {
+                foreach (string root in BuildGameInstallRoots())
+                {
+                    string steam = root;
+                    if (steam.EndsWith(Path.Combine("steamapps", "common"), StringComparison.OrdinalIgnoreCase))
+                    {
+                        DirectoryInfo steamApps = Directory.GetParent(steam);
+                        DirectoryInfo steamRoot = steamApps == null ? null : steamApps.Parent;
+                        string userData = steamRoot == null ? "" : Path.Combine(steamRoot.FullName, "userdata");
+                        try
+                        {
+                            if (Directory.Exists(userData))
+                            {
+                                foreach (string cfg in Directory.EnumerateFiles(userData, "*.cfg", SearchOption.AllDirectories))
+                                {
+                                    if (cfg.IndexOf(Path.Combine("730", "local", "cfg"), StringComparison.OrdinalIgnoreCase) >= 0) { AddExistingFile(files, cfg); }
+                                }
+                                foreach (string txt in Directory.EnumerateFiles(userData, "*.txt", SearchOption.AllDirectories))
+                                {
+                                    if (txt.IndexOf(Path.Combine("730", "local", "cfg"), StringComparison.OrdinalIgnoreCase) >= 0) { AddExistingFile(files, txt); }
+                                }
+                            }
+                        }
+                        catch { }
+                    }
+                }
+                AddExistingFile(files, Path.Combine(install, "game", "csgo", "cfg", "autoexec.cfg"));
+            }
+            else if (id == "valorant")
+            {
+                string configRoot = Path.Combine(local, "VALORANT", "Saved", "Config");
+                try
+                {
+                    if (Directory.Exists(configRoot))
+                    {
+                        foreach (string file in Directory.EnumerateFiles(configRoot, "GameUserSettings.ini", SearchOption.AllDirectories)) { AddExistingFile(files, file); }
+                    }
+                }
+                catch { }
+            }
+
+            return files;
+        }
+
+        private static int EnsureGamePresetFileBackups(GamePresetDefinition definition)
+        {
+            List<string> files = BuildGamePresetBackupCandidates(definition);
+            int ready = 0;
+            foreach (string target in files)
+            {
+                try
+                {
+                    string id = (definition == null ? "unknown" : definition.Id ?? "unknown").Trim().ToLowerInvariant();
+                    string itemDir = Path.Combine(GetGamePresetBackupRoot(), id, HashGamePresetTarget(target));
+                    string backupPath = Path.Combine(itemDir, "original.bin");
+                    string targetPath = Path.Combine(itemDir, "target.txt");
+                    Directory.CreateDirectory(itemDir);
+                    if (!File.Exists(backupPath)) { File.Copy(target, backupPath, false); }
+                    if (!File.Exists(targetPath)) { AtomicWriteAllText(targetPath, target, Encoding.UTF8); }
+                    ready++;
+                }
+                catch { }
+            }
+            return ready;
+        }
+
+        private static int RestoreGamePresetFileBackups(string gameId)
+        {
+            string root = GetGamePresetBackupRoot();
+            if (!Directory.Exists(root)) { return 0; }
+            int restored = 0;
+            string normalized = (gameId ?? "").Trim().ToLowerInvariant();
+            try
+            {
+                foreach (string gameDir in Directory.EnumerateDirectories(root, "*", SearchOption.TopDirectoryOnly))
+                {
+                    string currentId = Path.GetFileName(gameDir) ?? "";
+                    if (!String.IsNullOrWhiteSpace(normalized) && !String.Equals(currentId, normalized, StringComparison.OrdinalIgnoreCase)) { continue; }
+                    foreach (string itemDir in Directory.EnumerateDirectories(gameDir, "*", SearchOption.TopDirectoryOnly))
+                    {
+                        string backupPath = Path.Combine(itemDir, "original.bin");
+                        string targetPathFile = Path.Combine(itemDir, "target.txt");
+                        if (!File.Exists(backupPath) || !File.Exists(targetPathFile)) { continue; }
+                        string target = File.ReadAllText(targetPathFile, Encoding.UTF8).Trim();
+                        if (String.IsNullOrWhiteSpace(target)) { continue; }
+                        string dir = Path.GetDirectoryName(target);
+                        if (!String.IsNullOrWhiteSpace(dir)) { Directory.CreateDirectory(dir); }
+                        File.Copy(backupPath, target, true);
+                        restored++;
+                    }
+                }
+            }
+            catch { }
+            return restored;
+        }
+
+        private RunResult RestoreGamePresetFromMessage(IDictionary<string, object> message)
+        {
+            string gameId = GetMapString(message, "gameId");
+            if (!String.IsNullOrWhiteSpace(gameId))
+            {
+                GamePresetDefinition selected = GetGamePresetDefinitions().Find(delegate(GamePresetDefinition item) { return String.Equals(item.Id, gameId, StringComparison.OrdinalIgnoreCase); });
+                if (selected == null) { return new RunResult(1, "Preset de jogo desconhecido."); }
+            }
+
+            int restored = RestoreGamePresetFileBackups(gameId);
+            SaveGamePresetRestoreState(String.IsNullOrWhiteSpace(gameId) ? "all" : gameId, restored);
+            AppendOperationalLog("action=game-preset-restore target=" + (String.IsNullOrWhiteSpace(gameId) ? "all" : gameId) + " files=" + restored.ToString(CultureInfo.InvariantCulture) + " session=unchanged");
+            if (restored <= 0) { return new RunResult(0, "Nenhum arquivo alterado pela aba Jogos para restaurar."); }
+            return new RunResult(0, "Arquivos do preset restaurados: " + restored.ToString(CultureInfo.InvariantCulture) + ".");
+        }
+
+        private static void SaveGamePresetRestoreState(string target, int files)
+        {
+            Dictionary<string, object> root = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            root["Timestamp"] = DateTime.Now.ToString("o", CultureInfo.InvariantCulture);
+            root["LastGameId"] = target;
+            root["LastGameName"] = target;
+            root["Experimental"] = false;
+            root["SafeOptions"] = new List<string>();
+            root["ExperimentalOptions"] = new List<string>();
+            root["Restored"] = true;
+            root["RestoredFiles"] = files;
+            AtomicWriteJsonMap(Path.Combine(outputsPath, "game-presets.state.json"), root);
+        }
+
+        private static bool ShouldShowGameBetaWelcome()
+        {
+            return !ReadUiFlag("GameBetaWelcomeSeen");
+        }
+
+        private static void MarkGameBetaWelcomeSeen()
+        {
+            SaveUiFlag("GameBetaWelcomeSeen", true);
         }
         private void RunUserAction(string activeMessage, string successMessage, Func<RunResult> action)
         {
@@ -6303,7 +8254,7 @@ internal static class SmartBackgroundNap
                     runState = result.ExitCode == 0 ? "DONE" : "ERROR";
                     activeUiEventLine = DateTime.Now.ToString("HH:mm:ss", CultureInfo.CurrentCulture) + (result.ExitCode == 0 ? "  OK   " + CleanEventText(successMessage) : "  FAIL " + CleanEventText(ShortError(result.Output)));
                     SendState();
-                    if (result.ExitCode != 0)
+                    if (result.ExitCode != 0 && !ShouldSuppressRunModal(result.Output))
                     {
                         System.Windows.MessageBox.Show(ShortError(result.Output), AppName, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
                     }
@@ -6344,16 +8295,17 @@ internal static class SmartBackgroundNap
                 Dispatcher.BeginInvoke(new Action(delegate
                 {
                     bool stopped = result.ExitCode == 130;
+                    bool setupDeferred = result.ExitCode != 0 && !stopped && ShouldSuppressRunModal(result.Output);
                     if (actionTimer != null) { actionTimer.Stop(); }
                     activeRunControl = null;
                     busy = false;
                     activeRunCanStop = false;
-                    activeTitle = stopped ? "Otimizacao parada" : (result.ExitCode == 0 ? "Otimizacao concluida" : "Action failed");
-                    activeDetail = stopped ? "O passe manual foi interrompido." : (result.ExitCode == 0 ? BuildResultText() : ShortError(result.Output));
-                    runState = stopped ? "STOPPED" : (result.ExitCode == 0 ? "DONE" : "ERROR");
-                    activeUiEventLine = DateTime.Now.ToString("HH:mm:ss", CultureInfo.CurrentCulture) + (stopped ? "  STOP passe manual interrompido" : (result.ExitCode == 0 ? "  OK   passe manual aplicado: " + BuildResultText() : "  FAIL passe manual falhou"));
+                    activeTitle = stopped ? "Otimizacao parada" : ((result.ExitCode == 0 || setupDeferred) ? "Otimizacao concluida" : "Action failed");
+                    activeDetail = stopped ? "O passe manual foi interrompido." : (result.ExitCode == 0 ? BuildResultText() : (setupDeferred ? BuildDeferredRunDetail(result.Output) : ShortError(result.Output)));
+                    runState = stopped ? "STOPPED" : ((result.ExitCode == 0 || setupDeferred) ? "DONE" : "ERROR");
+                    activeUiEventLine = DateTime.Now.ToString("HH:mm:ss", CultureInfo.CurrentCulture) + (stopped ? "  STOP passe manual interrompido" : ((result.ExitCode == 0 || setupDeferred) ? "  OK   passe manual aplicado: " + BuildResultText() : "  FAIL passe manual falhou"));
                     SendState();
-                    if (result.ExitCode != 0 && !stopped)
+                    if (result.ExitCode != 0 && !stopped && !ShouldSuppressRunModal(result.Output))
                     {
                         System.Windows.MessageBox.Show(ShortError(result.Output), AppName, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
                     }
@@ -6384,7 +8336,7 @@ internal static class SmartBackgroundNap
                     runState = result.ExitCode == 0 ? "DONE" : "ERROR";
                     activeUiEventLine = DateTime.Now.ToString("HH:mm:ss", CultureInfo.CurrentCulture) + (result.ExitCode == 0 ? "  OK   preview: " + preview.ShortText : "  FAIL preview falhou");
                     SendState();
-                    if (result.ExitCode != 0)
+                    if (result.ExitCode != 0 && !ShouldSuppressRunModal(result.Output))
                     {
                         System.Windows.MessageBox.Show(ShortError(result.Output), AppName, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
                     }
@@ -6450,8 +8402,11 @@ internal static class SmartBackgroundNap
 
             try
             {
-                string json = JsonSerializer.Serialize(BuildState());
+                WebDashboardState state = BuildState();
+                string json = JsonSerializer.Serialize(state);
                 webView.CoreWebView2.PostWebMessageAsJson(json);
+                string script = "try{ if(window.smartNapUpdate){ window.smartNapUpdate(" + json + "); } }catch(e){ console.error('Smart Nap direct state failed', e); }";
+                _ = webView.CoreWebView2.ExecuteScriptAsync(script);
             }
             catch (Exception ex)
             {
@@ -6468,6 +8423,7 @@ internal static class SmartBackgroundNap
             bool networkUdpGuardEnabled = IsNetworkUdpGuardEnabled();
             List<WebManagerRow> rows = LoadManagerRows();
             ScoreMeta scoreMeta = LoadScoreMeta();
+            ReconcileNetworkUdpGuardMeta(scoreMeta, rows, networkUdpGuardEnabled);
             string line = ReadLastApplyLogLine();
             string targets = line == "No log yet." ? "" : ExtractLogValue(line, "targets");
             string delta = line == "No log yet." ? "" : ExtractLogValue(line, "deltaMB");
@@ -6564,11 +8520,14 @@ internal static class SmartBackgroundNap
             state.MemoryPressure = !String.IsNullOrWhiteSpace(scoreMeta.MemoryPressure) ? scoreMeta.MemoryPressure : (!String.IsNullOrWhiteSpace(logPressure) ? logPressure : ClassifyMemoryPressure(freeMemoryFallback));
             state.FreeMemoryMB = freeMemoryFallback;
             string logIntent = ExtractLogValue(line, "intent");
-            state.IntentKind = !String.IsNullOrWhiteSpace(scoreMeta.IntentKind) ? scoreMeta.IntentKind : (!String.IsNullOrWhiteSpace(logIntent) ? logIntent : "Desktop");
-            state.IntentName = !String.IsNullOrWhiteSpace(scoreMeta.IntentName) ? scoreMeta.IntentName : (!String.IsNullOrWhiteSpace(top) ? top : String.Empty);
-            state.IntentConfidence = scoreMeta.IntentConfidence > 0 ? scoreMeta.IntentConfidence : (!String.IsNullOrWhiteSpace(state.IntentName) ? 50 : 0);
+            string intentCandidate = !String.IsNullOrWhiteSpace(scoreMeta.IntentName) ? scoreMeta.IntentName : (!String.IsNullOrWhiteSpace(top) ? top : String.Empty);
+            if (IsBlockedNetworkUdpGameName(intentCandidate)) { intentCandidate = String.Empty; }
+            state.IntentKind = !String.IsNullOrWhiteSpace(intentCandidate) && IsDashboardGameProcessName(intentCandidate) ? "Game" : (!String.IsNullOrWhiteSpace(logIntent) ? logIntent : "Desktop");
+            state.IntentName = intentCandidate;
+            state.IntentConfidence = scoreMeta.IntentConfidence > 0 && !String.IsNullOrWhiteSpace(state.IntentName) ? scoreMeta.IntentConfidence : (!String.IsNullOrWhiteSpace(state.IntentName) ? 50 : 0);
             state.IntentSignals = scoreMeta.IntentSignals;
-            state.RadarTop = !String.IsNullOrWhiteSpace(scoreMeta.RadarTop) ? scoreMeta.RadarTop : (rows.Count > 0 ? rows[0].Name : String.Empty);
+            string radarTopCandidate = !String.IsNullOrWhiteSpace(scoreMeta.RadarTop) ? scoreMeta.RadarTop : (rows.Count > 0 ? rows[0].Name : String.Empty);
+            state.RadarTop = IsBlockedNetworkUdpGameName(radarTopCandidate) ? String.Empty : radarTopCandidate;
             state.RadarCount = scoreMeta.RadarCount > 0 ? scoreMeta.RadarCount : rows.Count;
             state.IsElevated = IsCurrentProcessElevated();
             state.PermissionDeniedCount = scoreMeta.PermissionDeniedCount;
@@ -6582,7 +8541,8 @@ internal static class SmartBackgroundNap
             state.Result = BuildResultText();
             state.Managed = String.IsNullOrWhiteSpace(targets) ? rows.Count.ToString(CultureInfo.CurrentCulture) : targets;
             state.Reclaimed = String.IsNullOrWhiteSpace(delta) ? "0" : delta;
-            state.TopApp = String.IsNullOrWhiteSpace(top) ? (rows.Count > 0 ? rows[0].Name : "-") : top;
+            string topAppCandidate = String.IsNullOrWhiteSpace(top) ? (rows.Count > 0 ? rows[0].Name : "-") : top;
+            state.TopApp = IsBlockedNetworkUdpGameName(topAppCandidate) ? "-" : topAppCandidate;
             state.Wake = autoInstalled ? "Fast wake" : "Manual";
             state.Heartbeat = heartbeat;
             state.LastEventAge = lastEventAge;
@@ -6608,6 +8568,16 @@ internal static class SmartBackgroundNap
             state.AppTimelines = BuildAppTimelines(rows);
             state.Rows = rows;
             state.Events = BuildEvents(autoInstalled, heartbeat, lastEventAge, nextPass);
+            try
+            {
+                state.GamePresets = BuildGamePresetsForUi();
+            }
+            catch (Exception ex)
+            {
+                WriteCrash(ex);
+                state.GamePresets = new List<WebGamePreset>();
+            }
+            state.GameBetaWelcome = ShouldShowGameBetaWelcome();
             ReleaseUpdateInfo currentUpdate = updateInfo ?? ReleaseUpdateInfo.Idle();
             state.UpdateAutoChecks = LoadAutoUpdateChecks();
             state.UpdateChecking = updateCheckRunning || currentUpdate.Checking;
@@ -6625,6 +8595,138 @@ internal static class SmartBackgroundNap
             state.PostUpdateItems = GetPostUpdateNoticeItems();
             state.Logo = GetLogoDataUri();
             return state;
+        }
+
+        private void ReconcileNetworkUdpGuardMeta(ScoreMeta meta, List<WebManagerRow> rows, bool enabled)
+        {
+            if (!enabled || meta == null) { return; }
+
+            WebManagerRow gameRow = FindNetworkUdpGuardGameRow(rows);
+            string gameName = gameRow == null ? "" : CleanGameDisplayName(String.IsNullOrWhiteSpace(gameRow.ProcessName) ? gameRow.Name : gameRow.ProcessName);
+            if (String.IsNullOrWhiteSpace(gameName) && IsDashboardGameProcessName(meta.CpuBoundAssistGame)) { gameName = CleanGameDisplayName(meta.CpuBoundAssistGame); }
+            if (String.IsNullOrWhiteSpace(gameName) && IsDashboardGameProcessName(meta.RadarTop)) { gameName = CleanGameDisplayName(meta.RadarTop); }
+            if (String.IsNullOrWhiteSpace(gameName)) { return; }
+
+            string currentGame = CleanGameDisplayName(meta.NetworkUdpGuardGame);
+            bool currentLooksWrong = String.IsNullOrWhiteSpace(currentGame) || IsBlockedNetworkUdpGameName(currentGame) || !IsDashboardGameProcessName(currentGame);
+            if (meta.NetworkUdpGuardActive && !currentLooksWrong) { return; }
+
+            int endpoints = Math.Max(meta.NetworkUdpGuardEndpoints, gameRow == null ? 0 : gameRow.UdpEndpoints);
+            int processCount = Math.Max(meta.NetworkUdpGuardProcessCount, endpoints > 0 ? 1 : 0);
+            int confidence = Math.Max(meta.NetworkUdpGuardConfidence, endpoints > 0 ? 74 : 58);
+            string confidenceLabel = endpoints > 0 ? "Medium" : "Low";
+            if (gameRow != null && (gameRow.UdpGameProtected || gameRow.UdpGuardActive || gameRow.UdpConfidence >= 85))
+            {
+                confidence = Math.Max(confidence, Math.Max(86, gameRow.UdpConfidence));
+                confidenceLabel = "High";
+            }
+            else if (gameRow != null && gameRow.UdpConfidence > confidence)
+            {
+                confidence = gameRow.UdpConfidence;
+                confidenceLabel = String.IsNullOrWhiteSpace(gameRow.UdpConfidenceLabel) ? confidenceLabel : gameRow.UdpConfidenceLabel;
+            }
+
+            meta.NetworkUdpGuardActive = true;
+            meta.NetworkUdpGuardMode = "Protecting";
+            meta.NetworkUdpGuardGame = gameName;
+            meta.NetworkUdpGuardEndpoints = endpoints;
+            meta.NetworkUdpGuardProcessCount = processCount;
+            meta.NetworkUdpGuardProtectedCount = Math.Max(1, meta.NetworkUdpGuardProtectedCount);
+            meta.NetworkUdpGuardConfidence = confidence;
+            meta.NetworkUdpGuardConfidenceLabel = confidenceLabel;
+            meta.NetworkUdpGuardReason = endpoints > 0 ? "Game process is open; UDP signals are tied to the game session or helper tree." : "Game process is open; Zero Ping locked before UDP confirmation.";
+            if (String.IsNullOrWhiteSpace(meta.NetworkUdpGuardShieldMode) || String.Equals(meta.NetworkUdpGuardShieldMode, "Off", StringComparison.OrdinalIgnoreCase)) { meta.NetworkUdpGuardShieldMode = "Netcode Shield"; }
+            if (String.IsNullOrWhiteSpace(meta.NetworkUdpGuardQosStatus) || String.Equals(meta.NetworkUdpGuardQosStatus, "Off", StringComparison.OrdinalIgnoreCase)) { meta.NetworkUdpGuardQosStatus = "Ready"; }
+            if (meta.NetworkUdpGuardSignals == null) { meta.NetworkUdpGuardSignals = new List<string>(); }
+            meta.NetworkUdpGuardSignals.Add("Game lock: " + gameName);
+        }
+
+        private static WebManagerRow FindNetworkUdpGuardGameRow(List<WebManagerRow> rows)
+        {
+            if (rows == null || rows.Count == 0) { return null; }
+            WebManagerRow best = null;
+            double bestScore = -1.0;
+            foreach (WebManagerRow row in rows)
+            {
+                if (row == null || !IsDashboardGameRow(row)) { continue; }
+                double score = row.RawScore + (row.UdpEndpoints * 100.0) + (row.UdpGameProtected ? 500.0 : 0.0) + (row.UdpGuardActive ? 250.0 : 0.0) + row.UdpConfidence;
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    best = row;
+                }
+            }
+            return best;
+        }
+
+        private static bool IsDashboardGameRow(WebManagerRow row)
+        {
+            string name = CleanGameDisplayName(row == null ? "" : (String.IsNullOrWhiteSpace(row.ProcessName) ? row.Name : row.ProcessName));
+            string role = row == null ? "" : row.Role;
+            if (IsSmartNapProcessOrPath(name, row == null ? "" : row.Path)) { return false; }
+            if (IsBlockedNetworkUdpGameName(name)) { return false; }
+            if (NameInList(role, new string[] { "Browser", "Communication", "Media", "Streaming", "StreamHelper", "Launcher", "LauncherHelper", "Professional", "Development" })) { return false; }
+            if (IsDashboardGameProcessName(name)) { return true; }
+            string path = row == null ? "" : row.Path;
+            return PathHasDashboardGameFragment(path);
+        }
+
+        private static bool IsDashboardGameProcessName(string processName)
+        {
+            string name = CleanGameDisplayName(processName);
+            if (String.IsNullOrWhiteSpace(name) || IsBlockedNetworkUdpGameName(name)) { return false; }
+            if (NameInList(name, new string[] { "bf6", "bf2042", "bfv", "bf1", "bf4", "bf3", "fc26", "fc25", "fc24", "fifa23", "fifa22", "cs2", "valorant", "valorant-win64-shipping", "r5apex", "apex", "fortniteclient-win64-shipping", "rocketleague", "rainbowsix", "rainbowsix_be", "cod", "cod22", "cod23", "cod24", "modernwarfare", "warzone", "league of legends", "dota2", "overwatch", "destiny2", "thefinals", "pubg", "tslgame", "escape from tarkov", "eldenring", "helldivers2", "gta5", "rdr2" })) { return true; }
+            string lower = name.ToLowerInvariant();
+            return (lower.StartsWith("bf", StringComparison.Ordinal) && lower.Length <= 7 && ContainsDashboardDigit(lower)) || lower.EndsWith("-win64-shipping", StringComparison.Ordinal);
+        }
+
+        private static bool IsBlockedNetworkUdpGameName(string processName)
+        {
+            string name = CleanGameDisplayName(processName);
+            if (String.IsNullOrWhiteSpace(name)) { return true; }
+            if (IsSmartNapProcessOrPath(name, "")) { return true; }
+            if (NameInList(name, new string[] { "chrome", "msedge", "firefox", "zen", "brave", "opera", "vivaldi", "librewolf", "waterfox", "floorp", "arc", "tor", "msedgewebview2", "Lightshot", "ShareX", "Greenshot", "SnippingTool", "ScreenClippingHost", "GameBar", "GameBarFTServer", "XboxGameBar", "NVIDIA Share" })) { return true; }
+            return IsKnownLauncherProcessForReactive(name) || NameInList(name, new string[] { "explorer", "smartbackgroundnap", "smartbackgroundnaptray", "smartbackgroundnapdashboard", "smart nap", "smartnap", "codex", "powershell", "pwsh", "cmd", "conhost", "notepad", "taskmgr" });
+        }
+
+        private static bool IsSmartNapProcessOrPath(string processName, string path)
+        {
+            string name = CleanGameDisplayName(processName);
+            if (NameInList(name, new string[] { "SmartBackgroundNap", "SmartBackgroundNapTray", "SmartBackgroundNapDashboard", "Smart Nap", "smartnap" })) { return true; }
+            if (String.IsNullOrWhiteSpace(path)) { return false; }
+            return path.IndexOf("SmartBackgroundNap", StringComparison.OrdinalIgnoreCase) >= 0 || path.IndexOf("Smart Background Nap", StringComparison.OrdinalIgnoreCase) >= 0 || path.IndexOf("\\SmartNap\\", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static string CleanGameDisplayName(string value)
+        {
+            if (String.IsNullOrWhiteSpace(value)) { return ""; }
+            string text = value.Trim();
+            int paren = text.IndexOf(" (", StringComparison.Ordinal);
+            if (paren > 0) { text = text.Substring(0, paren).Trim(); }
+            int xIndex = text.LastIndexOf(" x", StringComparison.OrdinalIgnoreCase);
+            if (xIndex > 0 && xIndex + 2 < text.Length && Char.IsDigit(text[xIndex + 2])) { text = text.Substring(0, xIndex).Trim(); }
+            if (text.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) { text = text.Substring(0, text.Length - 4); }
+            return text.Trim();
+        }
+
+        private static bool PathHasDashboardGameFragment(string path)
+        {
+            if (String.IsNullOrWhiteSpace(path) || IsSmartNapProcessOrPath("", path)) { return false; }
+            string[] fragments = new string[] { "\\steamapps\\common\\", "\\XboxGames\\", "\\Epic Games\\", "\\Riot Games\\", "\\Battle.net\\", "\\GOG Galaxy\\Games\\", "\\EA Games\\", "\\Electronic Arts\\Games\\", "\\Electronic Arts\\Battlefield", "\\Electronic Arts\\FC", "\\Electronic Arts\\EA SPORTS FC", "\\Battlefield 6\\", "\\EA SPORTS FC 26\\" };
+            for (int i = 0; i < fragments.Length; i++)
+            {
+                if (path.IndexOf(fragments[i], StringComparison.OrdinalIgnoreCase) >= 0) { return true; }
+            }
+            return false;
+        }
+        private static bool ContainsDashboardDigit(string value)
+        {
+            if (String.IsNullOrEmpty(value)) { return false; }
+            for (int i = 0; i < value.Length; i++)
+            {
+                if (Char.IsDigit(value[i])) { return true; }
+            }
+            return false;
         }
 
         private static string ClassifyMemoryPressure(double freeMemoryMB)
@@ -6748,12 +8850,14 @@ internal static class SmartBackgroundNap
                 {
                     IDictionary<string, object> map = item as IDictionary<string, object>;
                     if (map == null) { continue; }
+                    string itemName = BuildProcessLabel(map);
+                    if (IsBlockedNetworkUdpGameName(itemName)) { continue; }
                     count++;
                     double severity = GetDouble(map, "Severity");
                     if (severity > topSeverity)
                     {
                         topSeverity = severity;
-                        top = BuildProcessLabel(map);
+                        top = itemName;
                     }
                 }
                 meta.RadarCount = count;
@@ -7746,6 +9850,8 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public List<WebManagerRow> Rows { get; set; }
             public Dictionary<string, List<string>> AppTimelines { get; set; }
             public List<string> Events { get; set; }
+            public List<WebGamePreset> GamePresets { get; set; }
+            public bool GameBetaWelcome { get; set; }
             public bool UpdateAutoChecks { get; set; }
             public bool UpdateChecking { get; set; }
             public bool UpdateAvailable { get; set; }
@@ -7885,6 +9991,7 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
     }
 #endif
 
+    #if !NET9_0_OR_GREATER
     private sealed class ModernMainWindow : System.Windows.Window
 #if NET9_0_OR_GREATER
         , IDashboardWindow
@@ -8775,6 +10882,638 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             }
         }
 
+        private static List<GamePresetDefinition> GetGamePresetDefinitions()
+        {
+            return new List<GamePresetDefinition>
+            {
+                new GamePresetDefinition
+                {
+                    Id = "bf6",
+                    Name = "Battlefield 6",
+                    ShortName = "BF6",
+                    Tier = "Competitive FPS",
+                    Accent = "orange",
+                    Description = "Biblioteca beta com ajustes de comunidade para cache/shader, frame pacing, CPU-bound e stutter em partidas grandes.",
+                    ProcessNames = new[] { "bf6", "Battlefield6", "Battlefield" },
+                    InstallKeywords = new[] { "Battlefield 6", "Battlefield6", "Battlefield" },
+                    SafeOptions = new[] { "Pipeline de shader/cache: backup e reconstrução guiada após update", "Frame pacing competitivo: cap estável por Hz e anti-stutter", "Config de engine segura: streaming e orçamento de CPU mais leve", "DX12/driver cache hygiene: remover cache antigo sem apagar saves", "Overlay/download guard: EA, Steam, Discord e capturas em modo leve", "Preset CPU-bound: reduzir pós-processamento pesado sem mudar controles" },
+                    ExperimentalOptions = new[] { "user.cfg avançado: thread budget e render queue em teste A/B", "Cache rebuild agressivo: DX/NVIDIA/AMD shader cache com aviso de stutter inicial", "Ultra low CPU fallback: streaming, efeitos e partículas em orçamento mínimo", "Overlay hard-off test: EA/Steam por config reversível com backup", "Frame cap lab: 90/120/144/165 com medição de pacing" }
+                },
+                new GamePresetDefinition
+                {
+                    Id = "eafc26",
+                    Name = "EA SPORTS FC 26",
+                    ShortName = "FC26",
+                    Tier = "Sports online",
+                    Accent = "cyan",
+                    Description = "Receitas de comunidade para reduzir stutter, estabilizar frame pacing e controlar EA/Steam sem alterar gameplay.",
+                    ProcessNames = new[] { "FC26", "FC25", "FC24" },
+                    InstallKeywords = new[] { "EA SPORTS FC 26", "EA Sports FC 26", "FC26", "EA SPORTS FC" },
+                    SafeOptions = new[] { "FC setup sanity: detectar arquivo de settings e fazer backup", "Stutter guard: cap de FPS por Hz e estabilidade de cutscenes", "EA/Steam overlay guard: reduzir overlays e downloads durante partida", "Shader/cache refresh guiado após update de driver ou patch", "CPU/GPU balance: crowd, hair e cloth em perfil de desempenho", "Fullscreen e Hz corretos sem mexer em câmera, controle ou gameplay" },
+                    ExperimentalOptions = new[] { "FC microstutter lab: caps 60/90/120/144 com rollback", "Stadium heavy preset: reduzir crowd, cloth e hair para PC fraco", "EA overlay hard-off via user_*.ini com backup", "Cache rebuild agressivo em Documents/AppData quando há travadas", "Steam input/overlay isolation quando FC abre via Steam" }
+                },
+                new GamePresetDefinition
+                {
+                    Id = "cs2",
+                    Name = "Counter-Strike 2",
+                    ShortName = "CS2",
+                    Tier = "Competitive shooter",
+                    Accent = "blue",
+                    Description = "Receitas competitivas de comunidade para launch options limpas, autoexec, shader cache, Reflex e frame pacing.",
+                    ProcessNames = new[] { "cs2" },
+                    InstallKeywords = new[] { "Counter-Strike Global Offensive", "Counter-Strike 2", "csgo", "cs2" },
+                    SafeOptions = new[] { "Launch options auditor: remover comandos antigos ou prejudiciais", "Autoexec performance pack: telemetria, pacing e cvars seguras", "NVIDIA Reflex check: orientar ON quando suportado", "Shader prewarm/cache hygiene após update do jogo ou driver", "Frame cap estável por Hz para reduzir variação de frametime", "Steam overlay/download guard durante partida competitiva" },
+                    ExperimentalOptions = new[] { "-vulkan A/B test com reversão automática", "fps_max lab: 0, refresh+buffer ou cap competitivo", "DX shader cache rebuild agressivo", "Low-end cfg: partículas, decals e streaming budget reduzidos", "Workshop/custom cfg quarantine para caçar stutter" }
+                },
+                new GamePresetDefinition
+                {
+                    Id = "valorant",
+                    Name = "VALORANT",
+                    ShortName = "VALORANT",
+                    Tier = "Tactical FPS",
+                    Accent = "violet",
+                    Description = "Receitas seguras de comunidade para FPS alto, baixa latência, cache limpo e estabilidade sem tocar no Vanguard.",
+                    ProcessNames = new[] { "VALORANT-Win64-Shipping", "VALORANT" },
+                    InstallKeywords = new[] { "VALORANT", "Riot Games" },
+                    SafeOptions = new[] { "Config backup Riot e validação de GameUserSettings", "Multithreaded Rendering check quando a CPU suporta", "NVIDIA Reflex/low latency check quando suportado", "FPS cap por menu/background para aliviar stutter térmico", "Fullscreen e Hz sanity sem tocar em sensibilidade ou mira", "Overlay/download guard sem tocar no Vanguard" },
+                    ExperimentalOptions = new[] { "FPS cap lab por cenário: menu, background e in-game", "Low-end GPU profile: material, detail e UI em modo performance", "Cache/config reset guiado com backup", "Overlay hard isolation sem mexer no Vanguard", "Frame pacing stress test por monitor" }
+                }
+            };
+        }
+
+        private static List<WebGamePreset> BuildGamePresetsForUi()
+        {
+            List<WebGamePreset> output = new List<WebGamePreset>();
+            List<Process> processes = new List<Process>();
+            try { processes.AddRange(Process.GetProcesses()); } catch { }
+            try
+            {
+                foreach (GamePresetDefinition definition in GetGamePresetDefinitions())
+                {
+                    Process running = null;
+                    string runningPath = "";
+                    foreach (Process process in processes)
+                    {
+                        string processName = "";
+                        try { processName = process.ProcessName ?? ""; } catch { }
+                        if (!NameInList(processName, definition.ProcessNames)) { continue; }
+                        if (IsKnownLauncherProcessForReactive(processName)) { continue; }
+                        running = process;
+                        runningPath = TryGetProcessPath(process);
+                        break;
+                    }
+
+                    string installedPath = !String.IsNullOrWhiteSpace(runningPath) ? runningPath : FindGameInstallPath(definition);
+                    output.Add(new WebGamePreset
+                    {
+                        Id = definition.Id,
+                        Name = definition.Name,
+                        ShortName = definition.ShortName,
+                        Tier = definition.Tier,
+                        Genre = definition.Tier,
+                        Accent = definition.Accent,
+                        Summary = definition.Description,
+                        Description = definition.Description,
+                        ExpectedGain = definition.Tier,
+                        CoverDataUrl = GetGameCoverDataUrl(definition.Id),
+                        Installed = !String.IsNullOrWhiteSpace(installedPath),
+                        Running = running != null,
+                        ProcessName = running == null ? "" : running.ProcessName,
+                        ProcessId = running == null ? 0 : running.Id,
+                        Path = installedPath,
+                        DetectedPath = installedPath,
+                        Status = running != null ? "Running" : (!String.IsNullOrWhiteSpace(installedPath) ? "Installed" : "Not found"),
+                        SafeOptions = new List<string>(definition.SafeOptions ?? new string[0]),
+                        ExperimentalOptions = new List<string>(definition.ExperimentalOptions ?? new string[0]),
+                        SafeOptimizations = new List<string>(definition.SafeOptions ?? new string[0]),
+                        ExperimentalOptimizations = new List<string>(definition.ExperimentalOptions ?? new string[0])
+                    });
+                }
+            }
+            finally
+            {
+                foreach (Process process in processes) { try { process.Dispose(); } catch { } }
+            }
+            return output;
+        }
+
+        private static int RefreshGameDiscoveryCache()
+        {
+            int found = 0;
+            foreach (GamePresetDefinition definition in GetGamePresetDefinitions())
+            {
+                try
+                {
+                    string path = FindGameInstallPath(definition);
+                    if (String.IsNullOrWhiteSpace(path)) { continue; }
+                    SaveManualGameInstallPath(definition, path);
+                    found++;
+                }
+                catch { }
+            }
+            return found;
+        }
+        private static string FindGameInstallPath(GamePresetDefinition definition)
+        {
+            if (definition == null) { return ""; }
+            string running = FindGameInstallPathFromRunningProcess(definition);
+            if (!String.IsNullOrWhiteSpace(running)) { return running; }
+
+            foreach (string candidate in BuildGameInstallCandidates(definition))
+            {
+                try
+                {
+                    if (String.IsNullOrWhiteSpace(candidate)) { continue; }
+                    string normalized = candidate.Trim().Trim('"');
+                    if (File.Exists(normalized)) { return normalized; }
+                    if (Directory.Exists(normalized)) { return normalized; }
+                }
+                catch { }
+            }
+            return "";
+        }
+
+        private static string FindGameInstallPathFromRunningProcess(GamePresetDefinition definition)
+        {
+            try
+            {
+                foreach (Process process in Process.GetProcesses())
+                {
+                    using (process)
+                    {
+                        string name = "";
+                        try { name = process.ProcessName ?? ""; } catch { }
+                        if (!NameInList(name, definition.ProcessNames)) { continue; }
+                        if (IsKnownLauncherProcessForReactive(name)) { continue; }
+                        string path = TryGetProcessPath(process);
+                        if (!String.IsNullOrWhiteSpace(path)) { return path; }
+                    }
+                }
+            }
+            catch { }
+            return "";
+        }
+
+        private static List<string> BuildGameInstallCandidates(GamePresetDefinition definition)
+        {
+            List<string> candidates = new List<string>();
+            Action<string> add = delegate(string value)
+            {
+                if (!String.IsNullOrWhiteSpace(value) && !candidates.Contains(value, StringComparer.OrdinalIgnoreCase)) { candidates.Add(value); }
+            };
+
+            foreach (string root in BuildGameInstallRoots())
+            {
+                try
+                {
+                    if (String.IsNullOrWhiteSpace(root) || !Directory.Exists(root)) { continue; }
+                    if (MatchesGamePath(root, definition)) { add(root); }
+                    foreach (string dir in Directory.EnumerateDirectories(root, "*", SearchOption.TopDirectoryOnly))
+                    {
+                        if (MatchesGamePath(dir, definition) || ContainsGameExecutable(dir, definition)) { add(dir); }
+                    }
+                }
+                catch { }
+            }
+
+            AddShortcutGameCandidates(definition, add);
+            return candidates;
+        }
+
+        private static bool MatchesGamePath(string value, GamePresetDefinition definition)
+        {
+            string text = value ?? "";
+            foreach (string keyword in definition.InstallKeywords ?? new string[0])
+            {
+                if (!String.IsNullOrWhiteSpace(keyword) && text.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0) { return true; }
+            }
+            foreach (string process in definition.ProcessNames ?? new string[0])
+            {
+                if (!String.IsNullOrWhiteSpace(process) && text.IndexOf(process, StringComparison.OrdinalIgnoreCase) >= 0) { return true; }
+            }
+            return false;
+        }
+
+        private static IEnumerable<string> EnumerateFilesLimited(string root, string pattern, int maxDepth, int maxFiles)
+        {
+            if (String.IsNullOrWhiteSpace(root)) { yield break; }
+            try { if (!Directory.Exists(root)) { yield break; } } catch { yield break; }
+            Queue<Tuple<string, int>> queue = new Queue<Tuple<string, int>>();
+            queue.Enqueue(Tuple.Create(root, 0));
+            int emitted = 0;
+            while (queue.Count > 0 && emitted < maxFiles)
+            {
+                Tuple<string, int> item = queue.Dequeue();
+                string dir = item.Item1;
+                int depth = item.Item2;
+                string[] files = new string[0];
+                try { files = Directory.GetFiles(dir, pattern, SearchOption.TopDirectoryOnly); } catch { }
+                foreach (string file in files)
+                {
+                    yield return file;
+                    emitted++;
+                    if (emitted >= maxFiles) { yield break; }
+                }
+                if (depth >= maxDepth) { continue; }
+                string[] dirs = new string[0];
+                try { dirs = Directory.GetDirectories(dir, "*", SearchOption.TopDirectoryOnly); } catch { }
+                foreach (string child in dirs) { queue.Enqueue(Tuple.Create(child, depth + 1)); }
+            }
+        }
+        private static bool ContainsGameExecutable(string directory, GamePresetDefinition definition)
+        {
+            try
+            {
+                foreach (string process in definition.ProcessNames ?? new string[0])
+                {
+                    if (String.IsNullOrWhiteSpace(process)) { continue; }
+                    string exe = process.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? process : process + ".exe";
+                    if (File.Exists(Path.Combine(directory, exe))) { return true; }
+                    foreach (string file in EnumerateFilesLimited(directory, exe, 4, 700))
+                    {
+                        if (file.IndexOf("launcher", StringComparison.OrdinalIgnoreCase) >= 0) { continue; }
+                        return true;
+                    }
+                }
+            }
+            catch { }
+            return false;
+        }
+
+        private static List<string> BuildGameInstallRoots()
+        {
+            List<string> roots = new List<string>();
+            Action<string> add = delegate(string value)
+            {
+                if (!String.IsNullOrWhiteSpace(value) && !roots.Contains(value, StringComparer.OrdinalIgnoreCase)) { roots.Add(value); }
+            };
+            string pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            string pfx86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+            string pd = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+            add(Path.Combine(pfx86, "Steam", "steamapps", "common"));
+            add(Path.Combine(pf, "Steam", "steamapps", "common"));
+            AddSteamLibraryRoots(add);
+            add(Path.Combine(pf, "EA Games"));
+            add(Path.Combine(pfx86, "EA Games"));
+            add(Path.Combine(pf, "Electronic Arts", "Games"));
+            add(Path.Combine(pfx86, "Origin Games"));
+            add(Path.Combine(pf, "Epic Games"));
+            AddEpicInstallRoots(add);
+            add(Path.Combine(pf, "Riot Games"));
+            add(Path.Combine(pfx86, "Riot Games"));
+            AddRiotInstallRoots(add);
+            add(Path.Combine(pd, "Battle.net"));
+            return roots;
+        }
+
+        private static void AddSteamLibraryRoots(Action<string> add)
+        {
+            foreach (string steamRoot in GetSteamRoots())
+            {
+                string vdf = Path.Combine(steamRoot, "steamapps", "libraryfolders.vdf");
+                try
+                {
+                    if (File.Exists(vdf))
+                    {
+                        string text = File.ReadAllText(vdf);
+                        foreach (Match match in Regex.Matches(text, "\\\"path\\\"\\s+\\\"([^\\\"]+)\\\""))
+                        {
+                            string path = Regex.Unescape(match.Groups[1].Value.Replace("\\\\", "\\"));
+                            add(Path.Combine(path, "steamapps", "common"));
+                        }
+                    }
+                }
+                catch { }
+                add(Path.Combine(steamRoot, "steamapps", "common"));
+            }
+        }
+
+        private static IEnumerable<string> GetSteamRoots()
+        {
+            List<string> roots = new List<string>();
+            Action<string> add = delegate(string value)
+            {
+                if (!String.IsNullOrWhiteSpace(value) && !roots.Contains(value, StringComparer.OrdinalIgnoreCase)) { roots.Add(value); }
+            };
+            try { using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\Valve\Steam")) { add(Convert.ToString(key == null ? null : key.GetValue("SteamPath"))); } } catch { }
+            try { using (RegistryKey key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\WOW6432Node\Valve\Steam")) { add(Convert.ToString(key == null ? null : key.GetValue("InstallPath"))); } } catch { }
+            add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Steam"));
+            add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Steam"));
+            return roots;
+        }
+
+        private static void AddEpicInstallRoots(Action<string> add)
+        {
+            string manifests = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Epic", "EpicGamesLauncher", "Data", "Manifests");
+            try
+            {
+                if (!Directory.Exists(manifests)) { return; }
+                foreach (string file in Directory.EnumerateFiles(manifests, "*.item", SearchOption.TopDirectoryOnly))
+                {
+                    string text = File.ReadAllText(file);
+                    Match m = Regex.Match(text, "\\\"InstallLocation\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"");
+                    if (m.Success) { add(Regex.Unescape(m.Groups[1].Value)); }
+                }
+            }
+            catch { }
+        }
+
+        private static void AddRiotInstallRoots(Action<string> add)
+        {
+            string json = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Riot Games", "RiotClientInstalls.json");
+            try
+            {
+                if (File.Exists(json))
+                {
+                    foreach (Match match in Regex.Matches(File.ReadAllText(json), "[A-Za-z]:\\\\(?:[^\\\"\\r\\n])+"))
+                    {
+                        string path = match.Value.Replace("\\\\", "\\");
+                        string dir = File.Exists(path) ? Path.GetDirectoryName(path) : path;
+                        if (!String.IsNullOrWhiteSpace(dir)) { add(dir); }
+                    }
+                }
+            }
+            catch { }
+        }
+
+        private static void AddShortcutGameCandidates(GamePresetDefinition definition, Action<string> add)
+        {
+            foreach (string root in GetShortcutSearchRoots())
+            {
+                try
+                {
+                    if (!Directory.Exists(root)) { continue; }
+                    foreach (string shortcut in EnumerateFilesLimited(root, "*.lnk", 3, 600))
+                    {
+                        if (!MatchesGamePath(shortcut, definition)) { continue; }
+                        string target = TryGetShortcutTarget(shortcut);
+                        if (String.IsNullOrWhiteSpace(target)) { continue; }
+                        if (File.Exists(target)) { add(target); add(Path.GetDirectoryName(target)); }
+                        else if (Directory.Exists(target)) { add(target); }
+                    }
+                }
+                catch { }
+            }
+        }
+
+        private static IEnumerable<string> GetShortcutSearchRoots()
+        {
+            yield return Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            yield return Environment.GetFolderPath(Environment.SpecialFolder.CommonDesktopDirectory);
+            yield return Environment.GetFolderPath(Environment.SpecialFolder.StartMenu);
+            yield return Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu);
+            yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Microsoft", "Windows", "Start Menu", "Programs");
+            yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Microsoft", "Windows", "Start Menu", "Programs");
+        }
+
+        private static string TryGetShortcutTarget(string shortcutPath)
+        {
+            try
+            {
+                Type shellType = Type.GetTypeFromProgID("WScript.Shell");
+                if (shellType == null) { return ""; }
+                object shell = Activator.CreateInstance(shellType);
+                object shortcut = shellType.InvokeMember("CreateShortcut", BindingFlags.InvokeMethod, null, shell, new object[] { shortcutPath });
+                string target = Convert.ToString(shortcut.GetType().InvokeMember("TargetPath", BindingFlags.GetProperty, null, shortcut, null));
+                try { Marshal.FinalReleaseComObject(shortcut); } catch { }
+                try { Marshal.FinalReleaseComObject(shell); } catch { }
+                return target ?? "";
+            }
+            catch { return ""; }
+        }
+
+        private RunResult ApplyGamePresetFromMessage(IDictionary<string, object> message)
+        {
+            string gameId = GetMapString(message, "gameId");
+            GamePresetDefinition definition = GetGamePresetDefinitions().Find(delegate(GamePresetDefinition item) { return String.Equals(item.Id, gameId, StringComparison.OrdinalIgnoreCase); });
+            if (definition == null) { return new RunResult(1, "Preset de jogo desconhecido."); }
+
+            List<string> selectedSafeOptions = GetMapStringList(message, "safeOptions");
+            List<string> selectedExperimentalOptions = GetMapStringList(message, "experimentalOptions");
+            if (selectedSafeOptions.Count == 0) { selectedSafeOptions = new List<string>(definition.SafeOptions ?? new string[0]); }
+            bool experimental = selectedExperimentalOptions.Count > 0 || GetBool(message, "experimental");
+            int backupFiles = EnsureGamePresetFileBackups(definition);
+
+            SaveGamePresetState(definition, experimental, selectedSafeOptions, selectedExperimentalOptions, backupFiles);
+            AppendOperationalLog("action=game-preset game=" + definition.ShortName.Replace(' ', '_') + " safe=" + selectedSafeOptions.Count.ToString(CultureInfo.InvariantCulture) + " experimental=" + selectedExperimentalOptions.Count.ToString(CultureInfo.InvariantCulture) + " backups=" + backupFiles.ToString(CultureInfo.InvariantCulture) + " session=unchanged");
+            return new RunResult(0, "Preset de jogo salvo: " + definition.Name + ". O modo atual do motor foi mantido.");
+        }
+
+        private void SaveGamePolicy(string processName, string policy)
+        {
+            Dictionary<string, object> message = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            message["policy"] = policy;
+            message["processName"] = processName;
+            message["key"] = "name:" + (processName ?? "").Trim().ToLowerInvariant();
+            message["path"] = "";
+            SetAppPolicyFromMessage(message);
+        }
+
+        private static void SaveGamePresetState(GamePresetDefinition definition, bool experimental, List<string> safeOptions, List<string> experimentalOptions, int backupFiles)
+        {
+            Dictionary<string, object> root = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            root["Timestamp"] = DateTime.Now.ToString("o", CultureInfo.InvariantCulture);
+            root["LastGameId"] = definition.Id;
+            root["LastGameName"] = definition.Name;
+            root["Experimental"] = experimental;
+            root["SafeOptions"] = safeOptions == null || safeOptions.Count == 0 ? new List<string>(definition.SafeOptions ?? new string[0]) : new List<string>(safeOptions);
+            root["ExperimentalOptions"] = experimentalOptions == null ? new List<string>() : new List<string>(experimentalOptions);
+            root["BackupFiles"] = backupFiles;
+            root["Restored"] = false;
+            AtomicWriteJsonMap(Path.Combine(outputsPath, "game-presets.state.json"), root);
+        }
+
+        private static string GetGamePresetBackupRoot()
+        {
+            return Path.Combine(outputsPath, "game-preset-backups");
+        }
+
+        private static string HashGamePresetTarget(string value)
+        {
+            using (SHA256 sha = SHA256.Create())
+            {
+                byte[] bytes = sha.ComputeHash(Encoding.UTF8.GetBytes((value ?? "").Trim().ToLowerInvariant()));
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < bytes.Length && i < 16; i++) { sb.Append(bytes[i].ToString("x2", CultureInfo.InvariantCulture)); }
+                return sb.ToString();
+            }
+        }
+
+        private static void AddExistingFile(List<string> files, string path)
+        {
+            try
+            {
+                if (!String.IsNullOrWhiteSpace(path) && File.Exists(path) && !files.Contains(path, StringComparer.OrdinalIgnoreCase)) { files.Add(path); }
+            }
+            catch { }
+        }
+
+        private static List<string> BuildGamePresetBackupCandidates(GamePresetDefinition definition)
+        {
+            List<string> files = new List<string>();
+            string id = (definition == null ? "" : definition.Id ?? "").Trim().ToLowerInvariant();
+            string docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            string install = definition == null ? "" : FindGameInstallPath(definition);
+
+            if (id == "bf6")
+            {
+                foreach (string folder in new[] { "Battlefield 6", "Battlefield6", "Battlefield 2042" })
+                {
+                    string settings = Path.Combine(docs, folder, "settings");
+                    AddExistingFile(files, Path.Combine(settings, "PROFSAVE_profile"));
+                    AddExistingFile(files, Path.Combine(settings, "PROFSAVE"));
+                    AddExistingFile(files, Path.Combine(settings, "PROFSAVE_tmp"));
+                }
+                AddExistingFile(files, Path.Combine(install, "user.cfg"));
+            }
+            else if (id == "eafc26")
+            {
+                foreach (string folder in new[] { "FC 26", "EA SPORTS FC 26", "FC 25", "EA SPORTS FC 25", "FC 24", "EA SPORTS FC 24" })
+                {
+                    string root = Path.Combine(docs, folder);
+                    AddExistingFile(files, Path.Combine(root, "fcsetup.ini"));
+                    AddExistingFile(files, Path.Combine(root, "fifasetup.ini"));
+                    AddExistingFile(files, Path.Combine(root, "settings.ini"));
+                    AddExistingFile(files, Path.Combine(root, "buttonDataSetup.ini"));
+                }
+            }
+            else if (id == "cs2")
+            {
+                foreach (string root in BuildGameInstallRoots())
+                {
+                    string steam = root;
+                    if (steam.EndsWith(Path.Combine("steamapps", "common"), StringComparison.OrdinalIgnoreCase))
+                    {
+                        DirectoryInfo steamApps = Directory.GetParent(steam);
+                        DirectoryInfo steamRoot = steamApps == null ? null : steamApps.Parent;
+                        string userData = steamRoot == null ? "" : Path.Combine(steamRoot.FullName, "userdata");
+                        try
+                        {
+                            if (Directory.Exists(userData))
+                            {
+                                foreach (string cfg in Directory.EnumerateFiles(userData, "*.cfg", SearchOption.AllDirectories))
+                                {
+                                    if (cfg.IndexOf(Path.Combine("730", "local", "cfg"), StringComparison.OrdinalIgnoreCase) >= 0) { AddExistingFile(files, cfg); }
+                                }
+                                foreach (string txt in Directory.EnumerateFiles(userData, "*.txt", SearchOption.AllDirectories))
+                                {
+                                    if (txt.IndexOf(Path.Combine("730", "local", "cfg"), StringComparison.OrdinalIgnoreCase) >= 0) { AddExistingFile(files, txt); }
+                                }
+                            }
+                        }
+                        catch { }
+                    }
+                }
+                AddExistingFile(files, Path.Combine(install, "game", "csgo", "cfg", "autoexec.cfg"));
+            }
+            else if (id == "valorant")
+            {
+                string configRoot = Path.Combine(local, "VALORANT", "Saved", "Config");
+                try
+                {
+                    if (Directory.Exists(configRoot))
+                    {
+                        foreach (string file in Directory.EnumerateFiles(configRoot, "GameUserSettings.ini", SearchOption.AllDirectories)) { AddExistingFile(files, file); }
+                    }
+                }
+                catch { }
+            }
+
+            return files;
+        }
+
+        private static int EnsureGamePresetFileBackups(GamePresetDefinition definition)
+        {
+            List<string> files = BuildGamePresetBackupCandidates(definition);
+            int ready = 0;
+            foreach (string target in files)
+            {
+                try
+                {
+                    string id = (definition == null ? "unknown" : definition.Id ?? "unknown").Trim().ToLowerInvariant();
+                    string itemDir = Path.Combine(GetGamePresetBackupRoot(), id, HashGamePresetTarget(target));
+                    string backupPath = Path.Combine(itemDir, "original.bin");
+                    string targetPath = Path.Combine(itemDir, "target.txt");
+                    Directory.CreateDirectory(itemDir);
+                    if (!File.Exists(backupPath)) { File.Copy(target, backupPath, false); }
+                    if (!File.Exists(targetPath)) { AtomicWriteAllText(targetPath, target, Encoding.UTF8); }
+                    ready++;
+                }
+                catch { }
+            }
+            return ready;
+        }
+
+        private static int RestoreGamePresetFileBackups(string gameId)
+        {
+            string root = GetGamePresetBackupRoot();
+            if (!Directory.Exists(root)) { return 0; }
+            int restored = 0;
+            string normalized = (gameId ?? "").Trim().ToLowerInvariant();
+            try
+            {
+                foreach (string gameDir in Directory.EnumerateDirectories(root, "*", SearchOption.TopDirectoryOnly))
+                {
+                    string currentId = Path.GetFileName(gameDir) ?? "";
+                    if (!String.IsNullOrWhiteSpace(normalized) && !String.Equals(currentId, normalized, StringComparison.OrdinalIgnoreCase)) { continue; }
+                    foreach (string itemDir in Directory.EnumerateDirectories(gameDir, "*", SearchOption.TopDirectoryOnly))
+                    {
+                        string backupPath = Path.Combine(itemDir, "original.bin");
+                        string targetPathFile = Path.Combine(itemDir, "target.txt");
+                        if (!File.Exists(backupPath) || !File.Exists(targetPathFile)) { continue; }
+                        string target = File.ReadAllText(targetPathFile, Encoding.UTF8).Trim();
+                        if (String.IsNullOrWhiteSpace(target)) { continue; }
+                        string dir = Path.GetDirectoryName(target);
+                        if (!String.IsNullOrWhiteSpace(dir)) { Directory.CreateDirectory(dir); }
+                        File.Copy(backupPath, target, true);
+                        restored++;
+                    }
+                }
+            }
+            catch { }
+            return restored;
+        }
+
+        private RunResult RestoreGamePresetFromMessage(IDictionary<string, object> message)
+        {
+            string gameId = GetMapString(message, "gameId");
+            if (!String.IsNullOrWhiteSpace(gameId))
+            {
+                GamePresetDefinition selected = GetGamePresetDefinitions().Find(delegate(GamePresetDefinition item) { return String.Equals(item.Id, gameId, StringComparison.OrdinalIgnoreCase); });
+                if (selected == null) { return new RunResult(1, "Preset de jogo desconhecido."); }
+            }
+
+            int restored = RestoreGamePresetFileBackups(gameId);
+            SaveGamePresetRestoreState(String.IsNullOrWhiteSpace(gameId) ? "all" : gameId, restored);
+            AppendOperationalLog("action=game-preset-restore target=" + (String.IsNullOrWhiteSpace(gameId) ? "all" : gameId) + " files=" + restored.ToString(CultureInfo.InvariantCulture) + " session=unchanged");
+            if (restored <= 0) { return new RunResult(0, "Nenhum arquivo alterado pela aba Jogos para restaurar."); }
+            return new RunResult(0, "Arquivos do preset restaurados: " + restored.ToString(CultureInfo.InvariantCulture) + ".");
+        }
+
+        private static void SaveGamePresetRestoreState(string target, int files)
+        {
+            Dictionary<string, object> root = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            root["Timestamp"] = DateTime.Now.ToString("o", CultureInfo.InvariantCulture);
+            root["LastGameId"] = target;
+            root["LastGameName"] = target;
+            root["Experimental"] = false;
+            root["SafeOptions"] = new List<string>();
+            root["ExperimentalOptions"] = new List<string>();
+            root["Restored"] = true;
+            root["RestoredFiles"] = files;
+            AtomicWriteJsonMap(Path.Combine(outputsPath, "game-presets.state.json"), root);
+        }
+
+        private static bool ShouldShowGameBetaWelcome()
+        {
+            return !ReadUiFlag("GameBetaWelcomeSeen");
+        }
+
+        private static void MarkGameBetaWelcomeSeen()
+        {
+            SaveUiFlag("GameBetaWelcomeSeen", true);
+        }
         private void RunUserAction(string activeMessage, string successMessage, Func<RunResult> action)
         {
             if (busy) { return; }
@@ -8794,7 +11533,7 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                     RefreshStatus();
                     SetBusyState(false, title, detail);
                     RefreshLiveManager();
-                    if (result.ExitCode != 0)
+                    if (result.ExitCode != 0 && !ShouldSuppressRunModal(result.Output))
                     {
                         System.Windows.MessageBox.Show(ShortError(result.Output), AppName, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
                     }
@@ -8832,10 +11571,11 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                 Dispatcher.BeginInvoke(new Action(delegate
                 {
                     bool stopped = result.ExitCode == 130;
-                    string title = stopped ? "Otimizacao parada" : (result.ExitCode == 0 ? "Otimizacao concluida" : "Action failed");
-                    string detail = stopped ? "O passe manual foi interrompido." : (result.ExitCode == 0 ? BuildResultText() : ShortError(result.Output));
+                    bool setupDeferred = result.ExitCode != 0 && !stopped && ShouldSuppressRunModal(result.Output);
+                    string title = stopped ? "Otimizacao parada" : ((result.ExitCode == 0 || setupDeferred) ? "Otimizacao concluida" : "Action failed");
+                    string detail = stopped ? "O passe manual foi interrompido." : (result.ExitCode == 0 ? BuildResultText() : (setupDeferred ? BuildDeferredRunDetail(result.Output) : ShortError(result.Output)));
                     if (actionTimer != null) { actionTimer.Stop(); }
-                    activeUiEventLine = DateTime.Now.ToString("HH:mm:ss", CultureInfo.CurrentCulture) + (stopped ? "  STOP passe manual interrompido" : (result.ExitCode == 0 ? "  OK   passe manual aplicado: " + BuildResultText() : "  FAIL passe manual falhou"));
+                    activeUiEventLine = DateTime.Now.ToString("HH:mm:ss", CultureInfo.CurrentCulture) + (stopped ? "  STOP passe manual interrompido" : ((result.ExitCode == 0 || setupDeferred) ? "  OK   passe manual aplicado: " + BuildResultText() : "  FAIL passe manual falhou"));
                     activeRunControl = null;
                     busy = false;
                     RefreshStatus();
@@ -8856,7 +11596,7 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                     }
 
                     RefreshLiveManager();
-                    if (result.ExitCode != 0 && !stopped)
+                    if (result.ExitCode != 0 && !stopped && !ShouldSuppressRunModal(result.Output))
                     {
                         System.Windows.MessageBox.Show(ShortError(result.Output), AppName, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
                     }
@@ -10471,6 +13211,638 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             runStatePill.ForeColor = foreColor;
         }
 
+        private static List<GamePresetDefinition> GetGamePresetDefinitions()
+        {
+            return new List<GamePresetDefinition>
+            {
+                new GamePresetDefinition
+                {
+                    Id = "bf6",
+                    Name = "Battlefield 6",
+                    ShortName = "BF6",
+                    Tier = "Competitive FPS",
+                    Accent = "orange",
+                    Description = "Biblioteca beta com ajustes de comunidade para cache/shader, frame pacing, CPU-bound e stutter em partidas grandes.",
+                    ProcessNames = new[] { "bf6", "Battlefield6", "Battlefield" },
+                    InstallKeywords = new[] { "Battlefield 6", "Battlefield6", "Battlefield" },
+                    SafeOptions = new[] { "Pipeline de shader/cache: backup e reconstrução guiada após update", "Frame pacing competitivo: cap estável por Hz e anti-stutter", "Config de engine segura: streaming e orçamento de CPU mais leve", "DX12/driver cache hygiene: remover cache antigo sem apagar saves", "Overlay/download guard: EA, Steam, Discord e capturas em modo leve", "Preset CPU-bound: reduzir pós-processamento pesado sem mudar controles" },
+                    ExperimentalOptions = new[] { "user.cfg avançado: thread budget e render queue em teste A/B", "Cache rebuild agressivo: DX/NVIDIA/AMD shader cache com aviso de stutter inicial", "Ultra low CPU fallback: streaming, efeitos e partículas em orçamento mínimo", "Overlay hard-off test: EA/Steam por config reversível com backup", "Frame cap lab: 90/120/144/165 com medição de pacing" }
+                },
+                new GamePresetDefinition
+                {
+                    Id = "eafc26",
+                    Name = "EA SPORTS FC 26",
+                    ShortName = "FC26",
+                    Tier = "Sports online",
+                    Accent = "cyan",
+                    Description = "Receitas de comunidade para reduzir stutter, estabilizar frame pacing e controlar EA/Steam sem alterar gameplay.",
+                    ProcessNames = new[] { "FC26", "FC25", "FC24" },
+                    InstallKeywords = new[] { "EA SPORTS FC 26", "EA Sports FC 26", "FC26", "EA SPORTS FC" },
+                    SafeOptions = new[] { "FC setup sanity: detectar arquivo de settings e fazer backup", "Stutter guard: cap de FPS por Hz e estabilidade de cutscenes", "EA/Steam overlay guard: reduzir overlays e downloads durante partida", "Shader/cache refresh guiado após update de driver ou patch", "CPU/GPU balance: crowd, hair e cloth em perfil de desempenho", "Fullscreen e Hz corretos sem mexer em câmera, controle ou gameplay" },
+                    ExperimentalOptions = new[] { "FC microstutter lab: caps 60/90/120/144 com rollback", "Stadium heavy preset: reduzir crowd, cloth e hair para PC fraco", "EA overlay hard-off via user_*.ini com backup", "Cache rebuild agressivo em Documents/AppData quando há travadas", "Steam input/overlay isolation quando FC abre via Steam" }
+                },
+                new GamePresetDefinition
+                {
+                    Id = "cs2",
+                    Name = "Counter-Strike 2",
+                    ShortName = "CS2",
+                    Tier = "Competitive shooter",
+                    Accent = "blue",
+                    Description = "Receitas competitivas de comunidade para launch options limpas, autoexec, shader cache, Reflex e frame pacing.",
+                    ProcessNames = new[] { "cs2" },
+                    InstallKeywords = new[] { "Counter-Strike Global Offensive", "Counter-Strike 2", "csgo", "cs2" },
+                    SafeOptions = new[] { "Launch options auditor: remover comandos antigos ou prejudiciais", "Autoexec performance pack: telemetria, pacing e cvars seguras", "NVIDIA Reflex check: orientar ON quando suportado", "Shader prewarm/cache hygiene após update do jogo ou driver", "Frame cap estável por Hz para reduzir variação de frametime", "Steam overlay/download guard durante partida competitiva" },
+                    ExperimentalOptions = new[] { "-vulkan A/B test com reversão automática", "fps_max lab: 0, refresh+buffer ou cap competitivo", "DX shader cache rebuild agressivo", "Low-end cfg: partículas, decals e streaming budget reduzidos", "Workshop/custom cfg quarantine para caçar stutter" }
+                },
+                new GamePresetDefinition
+                {
+                    Id = "valorant",
+                    Name = "VALORANT",
+                    ShortName = "VALORANT",
+                    Tier = "Tactical FPS",
+                    Accent = "violet",
+                    Description = "Receitas seguras de comunidade para FPS alto, baixa latência, cache limpo e estabilidade sem tocar no Vanguard.",
+                    ProcessNames = new[] { "VALORANT-Win64-Shipping", "VALORANT" },
+                    InstallKeywords = new[] { "VALORANT", "Riot Games" },
+                    SafeOptions = new[] { "Config backup Riot e validação de GameUserSettings", "Multithreaded Rendering check quando a CPU suporta", "NVIDIA Reflex/low latency check quando suportado", "FPS cap por menu/background para aliviar stutter térmico", "Fullscreen e Hz sanity sem tocar em sensibilidade ou mira", "Overlay/download guard sem tocar no Vanguard" },
+                    ExperimentalOptions = new[] { "FPS cap lab por cenário: menu, background e in-game", "Low-end GPU profile: material, detail e UI em modo performance", "Cache/config reset guiado com backup", "Overlay hard isolation sem mexer no Vanguard", "Frame pacing stress test por monitor" }
+                }
+            };
+        }
+
+        private static List<WebGamePreset> BuildGamePresetsForUi()
+        {
+            List<WebGamePreset> output = new List<WebGamePreset>();
+            List<Process> processes = new List<Process>();
+            try { processes.AddRange(Process.GetProcesses()); } catch { }
+            try
+            {
+                foreach (GamePresetDefinition definition in GetGamePresetDefinitions())
+                {
+                    Process running = null;
+                    string runningPath = "";
+                    foreach (Process process in processes)
+                    {
+                        string processName = "";
+                        try { processName = process.ProcessName ?? ""; } catch { }
+                        if (!NameInList(processName, definition.ProcessNames)) { continue; }
+                        if (IsKnownLauncherProcessForReactive(processName)) { continue; }
+                        running = process;
+                        runningPath = TryGetProcessPath(process);
+                        break;
+                    }
+
+                    string installedPath = !String.IsNullOrWhiteSpace(runningPath) ? runningPath : FindGameInstallPath(definition);
+                    output.Add(new WebGamePreset
+                    {
+                        Id = definition.Id,
+                        Name = definition.Name,
+                        ShortName = definition.ShortName,
+                        Tier = definition.Tier,
+                        Genre = definition.Tier,
+                        Accent = definition.Accent,
+                        Summary = definition.Description,
+                        Description = definition.Description,
+                        ExpectedGain = definition.Tier,
+                        CoverDataUrl = GetGameCoverDataUrl(definition.Id),
+                        Installed = !String.IsNullOrWhiteSpace(installedPath),
+                        Running = running != null,
+                        ProcessName = running == null ? "" : running.ProcessName,
+                        ProcessId = running == null ? 0 : running.Id,
+                        Path = installedPath,
+                        DetectedPath = installedPath,
+                        Status = running != null ? "Running" : (!String.IsNullOrWhiteSpace(installedPath) ? "Installed" : "Not found"),
+                        SafeOptions = new List<string>(definition.SafeOptions ?? new string[0]),
+                        ExperimentalOptions = new List<string>(definition.ExperimentalOptions ?? new string[0]),
+                        SafeOptimizations = new List<string>(definition.SafeOptions ?? new string[0]),
+                        ExperimentalOptimizations = new List<string>(definition.ExperimentalOptions ?? new string[0])
+                    });
+                }
+            }
+            finally
+            {
+                foreach (Process process in processes) { try { process.Dispose(); } catch { } }
+            }
+            return output;
+        }
+
+        private static int RefreshGameDiscoveryCache()
+        {
+            int found = 0;
+            foreach (GamePresetDefinition definition in GetGamePresetDefinitions())
+            {
+                try
+                {
+                    string path = FindGameInstallPath(definition);
+                    if (String.IsNullOrWhiteSpace(path)) { continue; }
+                    SaveManualGameInstallPath(definition, path);
+                    found++;
+                }
+                catch { }
+            }
+            return found;
+        }
+        private static string FindGameInstallPath(GamePresetDefinition definition)
+        {
+            if (definition == null) { return ""; }
+            string running = FindGameInstallPathFromRunningProcess(definition);
+            if (!String.IsNullOrWhiteSpace(running)) { return running; }
+
+            foreach (string candidate in BuildGameInstallCandidates(definition))
+            {
+                try
+                {
+                    if (String.IsNullOrWhiteSpace(candidate)) { continue; }
+                    string normalized = candidate.Trim().Trim('"');
+                    if (File.Exists(normalized)) { return normalized; }
+                    if (Directory.Exists(normalized)) { return normalized; }
+                }
+                catch { }
+            }
+            return "";
+        }
+
+        private static string FindGameInstallPathFromRunningProcess(GamePresetDefinition definition)
+        {
+            try
+            {
+                foreach (Process process in Process.GetProcesses())
+                {
+                    using (process)
+                    {
+                        string name = "";
+                        try { name = process.ProcessName ?? ""; } catch { }
+                        if (!NameInList(name, definition.ProcessNames)) { continue; }
+                        if (IsKnownLauncherProcessForReactive(name)) { continue; }
+                        string path = TryGetProcessPath(process);
+                        if (!String.IsNullOrWhiteSpace(path)) { return path; }
+                    }
+                }
+            }
+            catch { }
+            return "";
+        }
+
+        private static List<string> BuildGameInstallCandidates(GamePresetDefinition definition)
+        {
+            List<string> candidates = new List<string>();
+            Action<string> add = delegate(string value)
+            {
+                if (!String.IsNullOrWhiteSpace(value) && !candidates.Contains(value, StringComparer.OrdinalIgnoreCase)) { candidates.Add(value); }
+            };
+
+            foreach (string root in BuildGameInstallRoots())
+            {
+                try
+                {
+                    if (String.IsNullOrWhiteSpace(root) || !Directory.Exists(root)) { continue; }
+                    if (MatchesGamePath(root, definition)) { add(root); }
+                    foreach (string dir in Directory.EnumerateDirectories(root, "*", SearchOption.TopDirectoryOnly))
+                    {
+                        if (MatchesGamePath(dir, definition) || ContainsGameExecutable(dir, definition)) { add(dir); }
+                    }
+                }
+                catch { }
+            }
+
+            AddShortcutGameCandidates(definition, add);
+            return candidates;
+        }
+
+        private static bool MatchesGamePath(string value, GamePresetDefinition definition)
+        {
+            string text = value ?? "";
+            foreach (string keyword in definition.InstallKeywords ?? new string[0])
+            {
+                if (!String.IsNullOrWhiteSpace(keyword) && text.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0) { return true; }
+            }
+            foreach (string process in definition.ProcessNames ?? new string[0])
+            {
+                if (!String.IsNullOrWhiteSpace(process) && text.IndexOf(process, StringComparison.OrdinalIgnoreCase) >= 0) { return true; }
+            }
+            return false;
+        }
+
+        private static IEnumerable<string> EnumerateFilesLimited(string root, string pattern, int maxDepth, int maxFiles)
+        {
+            if (String.IsNullOrWhiteSpace(root)) { yield break; }
+            try { if (!Directory.Exists(root)) { yield break; } } catch { yield break; }
+            Queue<Tuple<string, int>> queue = new Queue<Tuple<string, int>>();
+            queue.Enqueue(Tuple.Create(root, 0));
+            int emitted = 0;
+            while (queue.Count > 0 && emitted < maxFiles)
+            {
+                Tuple<string, int> item = queue.Dequeue();
+                string dir = item.Item1;
+                int depth = item.Item2;
+                string[] files = new string[0];
+                try { files = Directory.GetFiles(dir, pattern, SearchOption.TopDirectoryOnly); } catch { }
+                foreach (string file in files)
+                {
+                    yield return file;
+                    emitted++;
+                    if (emitted >= maxFiles) { yield break; }
+                }
+                if (depth >= maxDepth) { continue; }
+                string[] dirs = new string[0];
+                try { dirs = Directory.GetDirectories(dir, "*", SearchOption.TopDirectoryOnly); } catch { }
+                foreach (string child in dirs) { queue.Enqueue(Tuple.Create(child, depth + 1)); }
+            }
+        }
+        private static bool ContainsGameExecutable(string directory, GamePresetDefinition definition)
+        {
+            try
+            {
+                foreach (string process in definition.ProcessNames ?? new string[0])
+                {
+                    if (String.IsNullOrWhiteSpace(process)) { continue; }
+                    string exe = process.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? process : process + ".exe";
+                    if (File.Exists(Path.Combine(directory, exe))) { return true; }
+                    foreach (string file in EnumerateFilesLimited(directory, exe, 4, 700))
+                    {
+                        if (file.IndexOf("launcher", StringComparison.OrdinalIgnoreCase) >= 0) { continue; }
+                        return true;
+                    }
+                }
+            }
+            catch { }
+            return false;
+        }
+
+        private static List<string> BuildGameInstallRoots()
+        {
+            List<string> roots = new List<string>();
+            Action<string> add = delegate(string value)
+            {
+                if (!String.IsNullOrWhiteSpace(value) && !roots.Contains(value, StringComparer.OrdinalIgnoreCase)) { roots.Add(value); }
+            };
+            string pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            string pfx86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+            string pd = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+            add(Path.Combine(pfx86, "Steam", "steamapps", "common"));
+            add(Path.Combine(pf, "Steam", "steamapps", "common"));
+            AddSteamLibraryRoots(add);
+            add(Path.Combine(pf, "EA Games"));
+            add(Path.Combine(pfx86, "EA Games"));
+            add(Path.Combine(pf, "Electronic Arts", "Games"));
+            add(Path.Combine(pfx86, "Origin Games"));
+            add(Path.Combine(pf, "Epic Games"));
+            AddEpicInstallRoots(add);
+            add(Path.Combine(pf, "Riot Games"));
+            add(Path.Combine(pfx86, "Riot Games"));
+            AddRiotInstallRoots(add);
+            add(Path.Combine(pd, "Battle.net"));
+            return roots;
+        }
+
+        private static void AddSteamLibraryRoots(Action<string> add)
+        {
+            foreach (string steamRoot in GetSteamRoots())
+            {
+                string vdf = Path.Combine(steamRoot, "steamapps", "libraryfolders.vdf");
+                try
+                {
+                    if (File.Exists(vdf))
+                    {
+                        string text = File.ReadAllText(vdf);
+                        foreach (Match match in Regex.Matches(text, "\\\"path\\\"\\s+\\\"([^\\\"]+)\\\""))
+                        {
+                            string path = Regex.Unescape(match.Groups[1].Value.Replace("\\\\", "\\"));
+                            add(Path.Combine(path, "steamapps", "common"));
+                        }
+                    }
+                }
+                catch { }
+                add(Path.Combine(steamRoot, "steamapps", "common"));
+            }
+        }
+
+        private static IEnumerable<string> GetSteamRoots()
+        {
+            List<string> roots = new List<string>();
+            Action<string> add = delegate(string value)
+            {
+                if (!String.IsNullOrWhiteSpace(value) && !roots.Contains(value, StringComparer.OrdinalIgnoreCase)) { roots.Add(value); }
+            };
+            try { using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\Valve\Steam")) { add(Convert.ToString(key == null ? null : key.GetValue("SteamPath"))); } } catch { }
+            try { using (RegistryKey key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\WOW6432Node\Valve\Steam")) { add(Convert.ToString(key == null ? null : key.GetValue("InstallPath"))); } } catch { }
+            add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Steam"));
+            add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Steam"));
+            return roots;
+        }
+
+        private static void AddEpicInstallRoots(Action<string> add)
+        {
+            string manifests = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Epic", "EpicGamesLauncher", "Data", "Manifests");
+            try
+            {
+                if (!Directory.Exists(manifests)) { return; }
+                foreach (string file in Directory.EnumerateFiles(manifests, "*.item", SearchOption.TopDirectoryOnly))
+                {
+                    string text = File.ReadAllText(file);
+                    Match m = Regex.Match(text, "\\\"InstallLocation\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"");
+                    if (m.Success) { add(Regex.Unescape(m.Groups[1].Value)); }
+                }
+            }
+            catch { }
+        }
+
+        private static void AddRiotInstallRoots(Action<string> add)
+        {
+            string json = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Riot Games", "RiotClientInstalls.json");
+            try
+            {
+                if (File.Exists(json))
+                {
+                    foreach (Match match in Regex.Matches(File.ReadAllText(json), "[A-Za-z]:\\\\(?:[^\\\"\\r\\n])+"))
+                    {
+                        string path = match.Value.Replace("\\\\", "\\");
+                        string dir = File.Exists(path) ? Path.GetDirectoryName(path) : path;
+                        if (!String.IsNullOrWhiteSpace(dir)) { add(dir); }
+                    }
+                }
+            }
+            catch { }
+        }
+
+        private static void AddShortcutGameCandidates(GamePresetDefinition definition, Action<string> add)
+        {
+            foreach (string root in GetShortcutSearchRoots())
+            {
+                try
+                {
+                    if (!Directory.Exists(root)) { continue; }
+                    foreach (string shortcut in EnumerateFilesLimited(root, "*.lnk", 3, 600))
+                    {
+                        if (!MatchesGamePath(shortcut, definition)) { continue; }
+                        string target = TryGetShortcutTarget(shortcut);
+                        if (String.IsNullOrWhiteSpace(target)) { continue; }
+                        if (File.Exists(target)) { add(target); add(Path.GetDirectoryName(target)); }
+                        else if (Directory.Exists(target)) { add(target); }
+                    }
+                }
+                catch { }
+            }
+        }
+
+        private static IEnumerable<string> GetShortcutSearchRoots()
+        {
+            yield return Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            yield return Environment.GetFolderPath(Environment.SpecialFolder.CommonDesktopDirectory);
+            yield return Environment.GetFolderPath(Environment.SpecialFolder.StartMenu);
+            yield return Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu);
+            yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Microsoft", "Windows", "Start Menu", "Programs");
+            yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Microsoft", "Windows", "Start Menu", "Programs");
+        }
+
+        private static string TryGetShortcutTarget(string shortcutPath)
+        {
+            try
+            {
+                Type shellType = Type.GetTypeFromProgID("WScript.Shell");
+                if (shellType == null) { return ""; }
+                object shell = Activator.CreateInstance(shellType);
+                object shortcut = shellType.InvokeMember("CreateShortcut", BindingFlags.InvokeMethod, null, shell, new object[] { shortcutPath });
+                string target = Convert.ToString(shortcut.GetType().InvokeMember("TargetPath", BindingFlags.GetProperty, null, shortcut, null));
+                try { Marshal.FinalReleaseComObject(shortcut); } catch { }
+                try { Marshal.FinalReleaseComObject(shell); } catch { }
+                return target ?? "";
+            }
+            catch { return ""; }
+        }
+
+        private RunResult ApplyGamePresetFromMessage(IDictionary<string, object> message)
+        {
+            string gameId = GetMapString(message, "gameId");
+            GamePresetDefinition definition = GetGamePresetDefinitions().Find(delegate(GamePresetDefinition item) { return String.Equals(item.Id, gameId, StringComparison.OrdinalIgnoreCase); });
+            if (definition == null) { return new RunResult(1, "Preset de jogo desconhecido."); }
+
+            List<string> selectedSafeOptions = GetMapStringList(message, "safeOptions");
+            List<string> selectedExperimentalOptions = GetMapStringList(message, "experimentalOptions");
+            if (selectedSafeOptions.Count == 0) { selectedSafeOptions = new List<string>(definition.SafeOptions ?? new string[0]); }
+            bool experimental = selectedExperimentalOptions.Count > 0 || GetBool(message, "experimental");
+            int backupFiles = EnsureGamePresetFileBackups(definition);
+
+            SaveGamePresetState(definition, experimental, selectedSafeOptions, selectedExperimentalOptions, backupFiles);
+            AppendOperationalLog("action=game-preset game=" + definition.ShortName.Replace(' ', '_') + " safe=" + selectedSafeOptions.Count.ToString(CultureInfo.InvariantCulture) + " experimental=" + selectedExperimentalOptions.Count.ToString(CultureInfo.InvariantCulture) + " backups=" + backupFiles.ToString(CultureInfo.InvariantCulture) + " session=unchanged");
+            return new RunResult(0, "Preset de jogo salvo: " + definition.Name + ". O modo atual do motor foi mantido.");
+        }
+
+        private void SaveGamePolicy(string processName, string policy)
+        {
+            Dictionary<string, object> message = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            message["policy"] = policy;
+            message["processName"] = processName;
+            message["key"] = "name:" + (processName ?? "").Trim().ToLowerInvariant();
+            message["path"] = "";
+            SetAppPolicyFromMessage(message);
+        }
+
+        private static void SaveGamePresetState(GamePresetDefinition definition, bool experimental, List<string> safeOptions, List<string> experimentalOptions, int backupFiles)
+        {
+            Dictionary<string, object> root = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            root["Timestamp"] = DateTime.Now.ToString("o", CultureInfo.InvariantCulture);
+            root["LastGameId"] = definition.Id;
+            root["LastGameName"] = definition.Name;
+            root["Experimental"] = experimental;
+            root["SafeOptions"] = safeOptions == null || safeOptions.Count == 0 ? new List<string>(definition.SafeOptions ?? new string[0]) : new List<string>(safeOptions);
+            root["ExperimentalOptions"] = experimentalOptions == null ? new List<string>() : new List<string>(experimentalOptions);
+            root["BackupFiles"] = backupFiles;
+            root["Restored"] = false;
+            AtomicWriteJsonMap(Path.Combine(outputsPath, "game-presets.state.json"), root);
+        }
+
+        private static string GetGamePresetBackupRoot()
+        {
+            return Path.Combine(outputsPath, "game-preset-backups");
+        }
+
+        private static string HashGamePresetTarget(string value)
+        {
+            using (SHA256 sha = SHA256.Create())
+            {
+                byte[] bytes = sha.ComputeHash(Encoding.UTF8.GetBytes((value ?? "").Trim().ToLowerInvariant()));
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < bytes.Length && i < 16; i++) { sb.Append(bytes[i].ToString("x2", CultureInfo.InvariantCulture)); }
+                return sb.ToString();
+            }
+        }
+
+        private static void AddExistingFile(List<string> files, string path)
+        {
+            try
+            {
+                if (!String.IsNullOrWhiteSpace(path) && File.Exists(path) && !files.Contains(path, StringComparer.OrdinalIgnoreCase)) { files.Add(path); }
+            }
+            catch { }
+        }
+
+        private static List<string> BuildGamePresetBackupCandidates(GamePresetDefinition definition)
+        {
+            List<string> files = new List<string>();
+            string id = (definition == null ? "" : definition.Id ?? "").Trim().ToLowerInvariant();
+            string docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            string install = definition == null ? "" : FindGameInstallPath(definition);
+
+            if (id == "bf6")
+            {
+                foreach (string folder in new[] { "Battlefield 6", "Battlefield6", "Battlefield 2042" })
+                {
+                    string settings = Path.Combine(docs, folder, "settings");
+                    AddExistingFile(files, Path.Combine(settings, "PROFSAVE_profile"));
+                    AddExistingFile(files, Path.Combine(settings, "PROFSAVE"));
+                    AddExistingFile(files, Path.Combine(settings, "PROFSAVE_tmp"));
+                }
+                AddExistingFile(files, Path.Combine(install, "user.cfg"));
+            }
+            else if (id == "eafc26")
+            {
+                foreach (string folder in new[] { "FC 26", "EA SPORTS FC 26", "FC 25", "EA SPORTS FC 25", "FC 24", "EA SPORTS FC 24" })
+                {
+                    string root = Path.Combine(docs, folder);
+                    AddExistingFile(files, Path.Combine(root, "fcsetup.ini"));
+                    AddExistingFile(files, Path.Combine(root, "fifasetup.ini"));
+                    AddExistingFile(files, Path.Combine(root, "settings.ini"));
+                    AddExistingFile(files, Path.Combine(root, "buttonDataSetup.ini"));
+                }
+            }
+            else if (id == "cs2")
+            {
+                foreach (string root in BuildGameInstallRoots())
+                {
+                    string steam = root;
+                    if (steam.EndsWith(Path.Combine("steamapps", "common"), StringComparison.OrdinalIgnoreCase))
+                    {
+                        DirectoryInfo steamApps = Directory.GetParent(steam);
+                        DirectoryInfo steamRoot = steamApps == null ? null : steamApps.Parent;
+                        string userData = steamRoot == null ? "" : Path.Combine(steamRoot.FullName, "userdata");
+                        try
+                        {
+                            if (Directory.Exists(userData))
+                            {
+                                foreach (string cfg in Directory.EnumerateFiles(userData, "*.cfg", SearchOption.AllDirectories))
+                                {
+                                    if (cfg.IndexOf(Path.Combine("730", "local", "cfg"), StringComparison.OrdinalIgnoreCase) >= 0) { AddExistingFile(files, cfg); }
+                                }
+                                foreach (string txt in Directory.EnumerateFiles(userData, "*.txt", SearchOption.AllDirectories))
+                                {
+                                    if (txt.IndexOf(Path.Combine("730", "local", "cfg"), StringComparison.OrdinalIgnoreCase) >= 0) { AddExistingFile(files, txt); }
+                                }
+                            }
+                        }
+                        catch { }
+                    }
+                }
+                AddExistingFile(files, Path.Combine(install, "game", "csgo", "cfg", "autoexec.cfg"));
+            }
+            else if (id == "valorant")
+            {
+                string configRoot = Path.Combine(local, "VALORANT", "Saved", "Config");
+                try
+                {
+                    if (Directory.Exists(configRoot))
+                    {
+                        foreach (string file in Directory.EnumerateFiles(configRoot, "GameUserSettings.ini", SearchOption.AllDirectories)) { AddExistingFile(files, file); }
+                    }
+                }
+                catch { }
+            }
+
+            return files;
+        }
+
+        private static int EnsureGamePresetFileBackups(GamePresetDefinition definition)
+        {
+            List<string> files = BuildGamePresetBackupCandidates(definition);
+            int ready = 0;
+            foreach (string target in files)
+            {
+                try
+                {
+                    string id = (definition == null ? "unknown" : definition.Id ?? "unknown").Trim().ToLowerInvariant();
+                    string itemDir = Path.Combine(GetGamePresetBackupRoot(), id, HashGamePresetTarget(target));
+                    string backupPath = Path.Combine(itemDir, "original.bin");
+                    string targetPath = Path.Combine(itemDir, "target.txt");
+                    Directory.CreateDirectory(itemDir);
+                    if (!File.Exists(backupPath)) { File.Copy(target, backupPath, false); }
+                    if (!File.Exists(targetPath)) { AtomicWriteAllText(targetPath, target, Encoding.UTF8); }
+                    ready++;
+                }
+                catch { }
+            }
+            return ready;
+        }
+
+        private static int RestoreGamePresetFileBackups(string gameId)
+        {
+            string root = GetGamePresetBackupRoot();
+            if (!Directory.Exists(root)) { return 0; }
+            int restored = 0;
+            string normalized = (gameId ?? "").Trim().ToLowerInvariant();
+            try
+            {
+                foreach (string gameDir in Directory.EnumerateDirectories(root, "*", SearchOption.TopDirectoryOnly))
+                {
+                    string currentId = Path.GetFileName(gameDir) ?? "";
+                    if (!String.IsNullOrWhiteSpace(normalized) && !String.Equals(currentId, normalized, StringComparison.OrdinalIgnoreCase)) { continue; }
+                    foreach (string itemDir in Directory.EnumerateDirectories(gameDir, "*", SearchOption.TopDirectoryOnly))
+                    {
+                        string backupPath = Path.Combine(itemDir, "original.bin");
+                        string targetPathFile = Path.Combine(itemDir, "target.txt");
+                        if (!File.Exists(backupPath) || !File.Exists(targetPathFile)) { continue; }
+                        string target = File.ReadAllText(targetPathFile, Encoding.UTF8).Trim();
+                        if (String.IsNullOrWhiteSpace(target)) { continue; }
+                        string dir = Path.GetDirectoryName(target);
+                        if (!String.IsNullOrWhiteSpace(dir)) { Directory.CreateDirectory(dir); }
+                        File.Copy(backupPath, target, true);
+                        restored++;
+                    }
+                }
+            }
+            catch { }
+            return restored;
+        }
+
+        private RunResult RestoreGamePresetFromMessage(IDictionary<string, object> message)
+        {
+            string gameId = GetMapString(message, "gameId");
+            if (!String.IsNullOrWhiteSpace(gameId))
+            {
+                GamePresetDefinition selected = GetGamePresetDefinitions().Find(delegate(GamePresetDefinition item) { return String.Equals(item.Id, gameId, StringComparison.OrdinalIgnoreCase); });
+                if (selected == null) { return new RunResult(1, "Preset de jogo desconhecido."); }
+            }
+
+            int restored = RestoreGamePresetFileBackups(gameId);
+            SaveGamePresetRestoreState(String.IsNullOrWhiteSpace(gameId) ? "all" : gameId, restored);
+            AppendOperationalLog("action=game-preset-restore target=" + (String.IsNullOrWhiteSpace(gameId) ? "all" : gameId) + " files=" + restored.ToString(CultureInfo.InvariantCulture) + " session=unchanged");
+            if (restored <= 0) { return new RunResult(0, "Nenhum arquivo alterado pela aba Jogos para restaurar."); }
+            return new RunResult(0, "Arquivos do preset restaurados: " + restored.ToString(CultureInfo.InvariantCulture) + ".");
+        }
+
+        private static void SaveGamePresetRestoreState(string target, int files)
+        {
+            Dictionary<string, object> root = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            root["Timestamp"] = DateTime.Now.ToString("o", CultureInfo.InvariantCulture);
+            root["LastGameId"] = target;
+            root["LastGameName"] = target;
+            root["Experimental"] = false;
+            root["SafeOptions"] = new List<string>();
+            root["ExperimentalOptions"] = new List<string>();
+            root["Restored"] = true;
+            root["RestoredFiles"] = files;
+            AtomicWriteJsonMap(Path.Combine(outputsPath, "game-presets.state.json"), root);
+        }
+
+        private static bool ShouldShowGameBetaWelcome()
+        {
+            return !ReadUiFlag("GameBetaWelcomeSeen");
+        }
+
+        private static void MarkGameBetaWelcomeSeen()
+        {
+            SaveUiFlag("GameBetaWelcomeSeen", true);
+        }
         private void RunUserAction(string activeMessage, string successMessage, Func<RunResult> action)
         {
             if (busy) { return; }
@@ -10490,7 +13862,7 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                     RefreshStatus();
                     SetBusyState(false, title, detail);
                     RefreshLiveManager();
-                    if (result.ExitCode != 0)
+                    if (result.ExitCode != 0 && !ShouldSuppressRunModal(result.Output))
                     {
                         MessageBox.Show(ShortError(result.Output), AppName, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
@@ -10541,14 +13913,15 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                 BeginInvoke(new System.Windows.Forms.MethodInvoker(delegate
                 {
                     bool stopped = result.ExitCode == 130;
-                    string title = stopped ? "Otimizacao parada" : (result.ExitCode == 0 ? "Otimizacao concluida" : "Action failed");
-                    string detail = stopped ? "O passe manual foi interrompido." : (result.ExitCode == 0 ? BuildResultText() : ShortError(result.Output));
+                    bool setupDeferred = result.ExitCode != 0 && !stopped && ShouldSuppressRunModal(result.Output);
+                    string title = stopped ? "Otimizacao parada" : ((result.ExitCode == 0 || setupDeferred) ? "Otimizacao concluida" : "Action failed");
+                    string detail = stopped ? "O passe manual foi interrompido." : (result.ExitCode == 0 ? BuildResultText() : (setupDeferred ? BuildDeferredRunDetail(result.Output) : ShortError(result.Output)));
                     activeRunControl = null;
                     busy = false;
                     RefreshStatus();
                     SetBusyState(false, title, detail);
                     RefreshLiveManager();
-                    if (result.ExitCode != 0 && !stopped)
+                    if (result.ExitCode != 0 && !stopped && !ShouldSuppressRunModal(result.Output))
                     {
                         MessageBox.Show(ShortError(result.Output), AppName, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
@@ -10587,10 +13960,11 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                 BeginInvoke(new System.Windows.Forms.MethodInvoker(delegate
                 {
                     bool stopped = result.ExitCode == 130;
-                    string title = stopped ? "Otimizacao parada" : (result.ExitCode == 0 ? "Otimizacao concluida" : "Action failed");
-                    string detail = stopped ? "O passe manual foi interrompido." : (result.ExitCode == 0 ? BuildResultText() : ShortError(result.Output));
+                    bool setupDeferred = result.ExitCode != 0 && !stopped && ShouldSuppressRunModal(result.Output);
+                    string title = stopped ? "Otimizacao parada" : ((result.ExitCode == 0 || setupDeferred) ? "Otimizacao concluida" : "Action failed");
+                    string detail = stopped ? "O passe manual foi interrompido." : (result.ExitCode == 0 ? BuildResultText() : (setupDeferred ? BuildDeferredRunDetail(result.Output) : ShortError(result.Output)));
                     if (actionTimer != null) { actionTimer.Stop(); }
-                    activeUiEventLine = DateTime.Now.ToString("HH:mm:ss", CultureInfo.CurrentCulture) + (stopped ? "  STOP passe manual interrompido" : (result.ExitCode == 0 ? "  OK   passe manual aplicado: " + BuildResultText() : "  FAIL passe manual falhou"));
+                    activeUiEventLine = DateTime.Now.ToString("HH:mm:ss", CultureInfo.CurrentCulture) + (stopped ? "  STOP passe manual interrompido" : ((result.ExitCode == 0 || setupDeferred) ? "  OK   passe manual aplicado: " + BuildResultText() : "  FAIL passe manual falhou"));
                     activeRunControl = null;
                     busy = false;
                     RefreshStatus();
@@ -10611,7 +13985,7 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                     }
 
                     RefreshLiveManager();
-                    if (result.ExitCode != 0 && !stopped)
+                    if (result.ExitCode != 0 && !stopped && !ShouldSuppressRunModal(result.Output))
                     {
                         MessageBox.Show(ShortError(result.Output), AppName, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
@@ -11558,6 +14932,8 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
         }
     }
 
+    #endif
+
     private static class JsonCompat
     {
         public static IDictionary<string, object> DeserializeObject(string json)
@@ -11700,5 +15076,7 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
         }
     }
 }
+
+
 
 
