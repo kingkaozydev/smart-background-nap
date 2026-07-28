@@ -2644,13 +2644,17 @@ function formatUdpTelemetry(s){
   if(!s || !s.NetworkUdpGuard) return t("off");
   const endpoints=Number(s.NetworkUdpGuardEndpoints||0);
   const proc=Number(s.NetworkUdpGuardProcessCount||0);
+  const protectedCount=Number(s.NetworkUdpGuardProtectedCount||0);
   const confidence=formatUdpConfidenceLabel(s.NetworkUdpGuardConfidenceLabel);
   const qos=formatUdpQos(s.NetworkUdpGuardQosStatus);
   const reason=String(s.NetworkUdpGuardReason||"").trim();
+  const shield=String(s.NetworkUdpGuardShieldMode||"").trim();
   const parts=[];
   parts.push(s.NetworkUdpGuardActive ? (s.NetworkUdpGuardGame||t("gameDetected")) : t("armed"));
   if(confidence) parts.push(confidence);
+  if(protectedCount>0) parts.push(protectedCount+" "+t("protectedGames"));
   if(endpoints>0) parts.push(endpoints+" "+t("onlineSignalsShort")); else if(proc>0) parts.push(proc+" "+t("udpProcesses"));
+  if(shield && shield!=="Off") parts.push("Shield "+shield);
   if(qos) parts.push("QoS "+qos);
   if(reason) parts.push(reason);
   return parts.join(" / ");
@@ -2663,26 +2667,49 @@ function formatUdpDetail(s){
   const confidence=formatUdpConfidenceLabel(s.NetworkUdpGuardConfidenceLabel);
   const qos=formatUdpQos(s.NetworkUdpGuardQosStatus);
   const reason=String(s.NetworkUdpGuardReason||"").trim();
+  const shield=String(s.NetworkUdpGuardShieldMode||"").trim();
   const signals=Array.isArray(s.NetworkUdpGuardSignals)?s.NetworkUdpGuardSignals.filter(Boolean):[];
   lines.push(formatUdpTelemetry(s));
   if(game) lines.push((isPt()?"Jogo: ":"Game: ")+game);
+  if(Number(s.NetworkUdpGuardGamePid||0)>0) lines.push("PID: "+s.NetworkUdpGuardGamePid);
   if(mode) lines.push((isPt()?"Modo: ":"Mode: ")+mode);
+  if(shield && shield!=="Off") lines.push("Shield: "+shield+" / "+(Number(s.NetworkUdpGuardProtectedCount||0)||0)+" "+t("protectedGames"));
   if(confidence) lines.push((isPt()?"Confiança: ":"Confidence: ")+confidence+" ("+(Number(s.NetworkUdpGuardConfidence||0)||0)+"%)");
   lines.push("UDP: "+(Number(s.NetworkUdpGuardEndpoints||0)||0)+" / "+(Number(s.NetworkUdpGuardProcessCount||0)||0)+" "+t("udpProcesses"));
   if(qos) lines.push("QoS: "+qos);
+  if(s.NetworkUdpGuardNoStackTweaks) lines.push(isPt()?"Stack preservada: sem DNS/IP/Winsock/driver":"Stack preserved: no DNS/IP/Winsock/driver changes");
   if(reason) lines.push((isPt()?"Motivo: ":"Reason: ")+reason);
   if(signals.length) lines.push((isPt()?"Sinais: ":"Signals: ")+signals.slice(0,5).join(" · "));
   return lines.join("\n");
 }
 function formatStreamTelemetry(s){
-  if(!s || !s.StreamGuardActive) return t("off");
-  const helpers=Number(s.StreamHelperCount||0);
+  if(!s) return t("off");
+  const helpers=Number(s.StreamGuardHelperCount||0);
   const games=Number(s.StreamGameProtectedCount||0);
-  return helpers+" "+t("streamHelpers")+" / "+games+" "+t("protectedGames");
+  const apps=Number(s.StreamGuardAppCount||0);
+  const profile=String(s.StreamGuardProfile||"Off").trim();
+  if(!s.StreamGuardActive && helpers<=0 && apps<=0) return profile && profile!=="Off" ? profile : t("ready");
+  const parts=[s.StreamGuardActive?(isPt()?"Protegendo":"Protecting"):(profile||t("ready"))];
+  if(apps>0) parts.push(apps+" apps");
+  if(helpers>0) parts.push(helpers+" "+t("streamHelpers"));
+  if(games>0) parts.push(games+" "+t("protectedGames"));
+  return parts.join(" / ");
+}
+function round1(value){
+  const n=Number(value||0);
+  return Number.isFinite(n) ? n.toLocaleString(isPt()?"pt-BR":"en-US",{maximumFractionDigits:1}) : "0";
 }
 function formatStreamTelemetryDetail(s){
-  if(!s || !s.StreamGuardActive) return t("off");
-  return formatStreamTelemetry(s)+"\n"+(isPt()?"OBS/streaming protegidos quando detectados.":"OBS/streaming protected when detected.");
+  if(!s) return t("off");
+  const lines=[formatStreamTelemetry(s)];
+  const profile=String(s.StreamGuardProfile||"Off").trim();
+  const reason=String(s.StreamGuardReason||"").trim();
+  if(profile) lines.push((isPt()?"Perfil: ":"Profile: ")+profile);
+  if(Number(s.StreamGuardCpuPercent||0)>0) lines.push("CPU: "+round1(s.StreamGuardCpuPercent)+"%");
+  if(Number(s.StreamGuardHelperCpuPercent||0)>0) lines.push((isPt()?"Helpers: ":"Helpers: ")+round1(s.StreamGuardHelperCpuPercent)+"% CPU");
+  if(reason) lines.push((isPt()?"Motivo: ":"Reason: ")+reason);
+  lines.push(isPt()?"OBS/streaming protegidos quando detectados.":"OBS/streaming protected when detected.");
+  return lines.filter(Boolean).join("\n");
 }
 function scoreAppCount(s,managedFallback){
   const appCount=Number(s&&s.AppCount||0);
@@ -2744,18 +2771,21 @@ function formatUdpQuick(s){
   return endpoints>0 ? state+" / "+endpoints+" UDP" : state;
 }
 function formatGpuPressure(s){
-  if(!s || !s.GpuPressureAvailable) return t("gpuPressureUnavailable");
+  if(!s || !s.GpuPressureAvailable) return s&&s.GpuOptimizationActive ? formatGpuOptimization(s) : t("gpuPressureUnavailable");
   const level=translatePressure(String(s.GpuPressureLevel||"Unknown"));
   const util=Number(s.GpuTotalUtilPercent||0);
   const dedicated=formatMb(s.GpuAdapterDedicatedUsageMB||0);
   const bits=[level];
+  if(s.GpuOptimizationActive && s.GpuOptimizationGame) bits.push(s.GpuOptimizationGame);
   if(util>0) bits.push(Math.round(util)+"% GPU");
   if(dedicated) bits.push(dedicated+" VRAM");
   return bits.join(" / ");
 }
 function formatGpuPressureDetail(s){
-  if(!s || !s.GpuPressureAvailable) return t("gpuPressureUnavailable");
+  if(!s || !s.GpuPressureAvailable) return s&&s.GpuOptimizationActive ? formatGpuOptimizationDetail(s) : t("gpuPressureUnavailable");
   const lines=[formatGpuPressure(s)];
+  const gpuOpt=formatGpuOptimizationDetail(s);
+  if(gpuOpt) lines.push(gpuOpt);
   const provider=String(s.GpuPressureProvider||"").trim();
   const adapter=String(s.GpuPressureAdapterName||"").trim();
   const top=String(s.GpuTopProcess||"").trim();
@@ -2773,6 +2803,28 @@ function formatGpuPressureDetail(s){
     const mb=formatMb(s.GpuTopProcessDedicatedMB||0);
     lines.push((isPt()?"Maior uso: ":"Top process: ")+top+pid+pct+(mb?" · "+mb:""));
   }
+  return lines.filter(Boolean).join("\n");
+}
+function formatGpuOptimization(s){
+  if(!(s&&s.GpuOptimizationActive)) return "";
+  const status=String(s.GpuOptimizationStatus||"").trim() || (isPt()?"Proteção GPU":"GPU guard");
+  const game=String(s.GpuOptimizationGame||"").trim();
+  const gpu=Number(s.GpuOptimizationGpuPercent||0);
+  const vram=formatMb(s.GpuOptimizationDedicatedMB||0);
+  const bits=[status];
+  if(game) bits.push(game);
+  if(gpu>0) bits.push(Math.round(gpu)+"% GPU");
+  if(vram) bits.push(vram+" VRAM");
+  return bits.join(" / ");
+}
+function formatGpuOptimizationDetail(s){
+  if(!(s&&s.GpuOptimizationActive)) return "";
+  const lines=[formatGpuOptimization(s)];
+  const reason=String(s.GpuOptimizationReason||"").trim();
+  if(Number(s.GpuOptimizationGamePid||0)>0) lines.push("PID: "+s.GpuOptimizationGamePid);
+  if(Number(s.GpuOptimizationCpuPercent||0)>0) lines.push("CPU: "+round1(s.GpuOptimizationCpuPercent)+"%");
+  if(String(s.GpuOptimizationVramPressure||"").trim()) lines.push((isPt()?"Pressão VRAM: ":"VRAM pressure: ")+translatePressure(String(s.GpuOptimizationVramPressure||"Unknown")));
+  if(reason) lines.push((isPt()?"Motivo: ":"Reason: ")+reason);
   return lines.filter(Boolean).join("\n");
 }
 function formatCpuBoundAssist(s){
@@ -2864,10 +2916,10 @@ function updateEnginePulse(s){
   updatePulseStep("pulseRam",(stats.trim>0||stats.memory>0)?"warn":"",pulseRamText(stats));
   updatePulseStep("pulseIo",stats.io>0?"good":"",pulseActionText(stats.io));
   updatePulseStep("pulseEco",stats.eco>0?"net":"",pulseActionText(stats.eco));
-  setMetricLineVisible("streamTelemetry",!!(s&&s.StreamGuardActive));
+  setMetricLineVisible("streamTelemetry",!!(s&&(s.StreamGuardActive||Number(s.StreamGuardAppCount||0)>0||Number(s.StreamGuardHelperCount||0)>0||normalizedModeName(s.SessionMode)==="Streamer")));
   setMetricLineVisible("udpTelemetry",!!(s&&s.NetworkUdpGuard));
-  setMetricLineVisible("gpuPressureState",!!(s&&s.GpuPressureAvailable));
-  setMetricLineVisible("cpuBoundState",!!(s&&s.CpuBoundAssistActive));
+  setMetricLineVisible("gpuPressureState",!!(s&&(s.GpuPressureAvailable||s.GpuOptimizationActive)));
+  setMetricLineVisible("cpuBoundState",!!(s&&(s.CpuBoundAssistActive||s.CpuBoundAssistGame)));
 }
 function sessionHint(mode){
   const m=String(mode||"Auto").toLowerCase();

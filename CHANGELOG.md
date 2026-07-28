@@ -3,6 +3,8 @@
 ## 0.5.60 - 2026-07-28
 
 - Restored the launcher to the approved 0.5.45 dashboard visual while keeping the 0.5.60 backend, telemetry, and feature set.
+- Expanded the 0.5.45-style dashboard bindings for the 0.5.60 backend: Zero Ping confidence/shield/QoS detail, GPU/VRAM pressure, GPU optimization context, CPU-Bound Assist, Stream Guard, engine health, and rollback audit metadata.
+- Cleaned the in-app About copy so product history/version details stay in the changelog instead of the About summary.
 - Strengthened foreground restore so apps, games, development tools, media apps, and streaming tools recover priority, memory priority, I/O priority, EcoQoS state, and safe affinity state when they become important again.
 - Added stronger process-state safeguards, rollback tracking, cooldowns, protected-process filtering, and regression checks so background tweaks do not remain stuck on foreground apps.
 - Added CPU-Bound Assist for games and heavy workloads: the engine reduces safe background contention around the active workload instead of blindly boosting everything.

@@ -14,7 +14,7 @@
 
 **Smart Background Nap** is a local-first Windows performance companion for people who keep a lot of apps open while gaming, streaming, coding, editing, recording, or multitasking.
 
-The 0.5.60 engine combines the approved 0.5.45 dashboard experience with the newer backend: stronger foreground restore, Zero Ping for UDP game sessions, CPU-Bound Assist, GPU/VRAM pressure awareness, streamer-safe behavior, game-library presets, rollback tracking, and safer install/update handling.
+Smart Background Nap combines a clean real-time dashboard with a modern optimization engine: stronger foreground restore, Zero Ping for UDP game sessions, CPU-Bound Assist, GPU/VRAM pressure awareness, streamer-safe behavior, game-library presets, rollback tracking, and safer install/update handling.
 
 It does not close your apps or pretend to be a magic FPS button. It watches the current user session, identifies safe background pressure, gives background processes a quieter profile, and restores responsiveness when an app, game, stream, or professional workload becomes important again.
 
@@ -77,7 +77,7 @@ It avoids the things that should stay awake:
 ## Key Features
 
 - **Single EXE release**: download `SmartBackgroundNap.exe` and run it.
-- **Approved dashboard visual**: the 0.5.60 release keeps the cleaner 0.5.45 dashboard look while exposing the newer backend data.
+- **Clean dashboard visual**: the launcher keeps the interface focused, readable, and connected to the latest engine data.
 - **Modern WebView launcher**: .NET 9 / WebView2 dashboard with live telemetry, event stream, Live Manager, language selector, and real-time controls.
 - **Tray control**: quick access to dashboard, optimize now, pause/resume, mode switching, power actions, update actions, and exit.
 - **Automatic motor**: scheduled optimization passes after login and during the session, with manual Optimize Now when the user wants an immediate pass.
