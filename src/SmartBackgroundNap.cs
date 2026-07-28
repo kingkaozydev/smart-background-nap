@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -30,7 +30,7 @@ using Microsoft.Web.WebView2.Wpf;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.5.46";
+    private const string AppVersion = "0.5.60";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
@@ -2377,7 +2377,7 @@ internal static class SmartBackgroundNap
         {
             string tail = output.Substring(match.Index + match.Length).Trim();
             tail = tail.Replace("*", "").Trim();
-            tail = Regex.Replace(tail, @"^[\s:\-Ã¢â‚¬â€œÃ¢â‚¬â€]+", "").Trim();
+            tail = Regex.Replace(tail, @"^[\s:\-\u2013\u2014]+", "").Trim();
             name = tail.Trim('(', ')', '*', ' ');
         }
         return new PowerPlanSnapshot { Guid = match.Value, Name = FriendlyPowerPlanName(match.Value, name) };
@@ -4772,8 +4772,9 @@ internal static class SmartBackgroundNap
         }
         #endif
 
-        private const int TrayMenuWidth = 386;
-        private const int TrayItemWidth = 370;
+        private const int TrayMenuWidth = 430;
+        private const int TrayItemWidth = 392;
+        private const int TraySubItemWidth = 326;
         private const string TrayActiveTag = "smartnap-tray-active";
 
         private static Color TrayBg { get { return Color.FromArgb(9, 9, 11); } }
@@ -4792,16 +4793,15 @@ internal static class SmartBackgroundNap
         private ContextMenuStrip BuildMenu()
         {
             ContextMenuStrip menu = new ContextMenuStrip();
-            menu.ShowImageMargin = true;
-            menu.ShowCheckMargin = false;
-            menu.ImageScalingSize = new Size(28, 28);
+            menu.ShowImageMargin = false;
+            menu.ShowCheckMargin = true;
             menu.AutoClose = true;
             menu.AutoSize = true;
-            menu.Padding = new Padding(8, 8, 8, 8);
+            menu.Padding = new Padding(4, 5, 4, 5);
             menu.Margin = Padding.Empty;
             menu.BackColor = TrayBg;
             menu.ForeColor = TrayText;
-            menu.Renderer = new SmartNapTrayRenderer();
+            menu.Renderer = new SmartNapCompactTrayRenderer();
             PopulateTrayMenu(menu);
             menu.Opening += delegate
             {
@@ -4824,48 +4824,75 @@ internal static class SmartBackgroundNap
             PowerPlanSnapshot plan = GetActivePowerPlan();
             string planName = plan == null || String.IsNullOrWhiteSpace(plan.Name) ? "Plano nao identificado" : plan.Name;
 
-            AddTrayHeader(menu, "Smart Nap", (motorOn ? "Motor ativo" : "Motor pausado") + " â€¢ " + DisplaySessionMode(mode), notifyIcon.Icon);
-            AddTrayInfo(menu, "Estado da sessÃ£o", BuildCompactTrayTelemetryText(), motorOn ? AccentGreen : AccentOrange);
-            AddTrayInfo(menu, "Plano de energia", TrimTrayText(planName, 48), AccentBlue);
-            AddTraySeparator(menu);
+            AddPlainTrayLabel(menu, "Smart Nap", true);
+            AddPlainTrayLabel(menu, (motorOn ? "Motor ativo" : "Motor pausado") + " | " + DisplaySessionMode(mode), false);
+            AddPlainTrayLabel(menu, BuildCompactTrayTelemetryText(), false);
+            AddPlainTrayLabel(menu, "Energia: " + TrimTrayText(planName, 42), false);
+            menu.Items.Add(new ToolStripSeparator());
 
-            AddTrayItem(menu, "Abrir painel", "Dashboard completo do Smart Nap.", delegate { ShowMainWindow(); }, true, false, AccentBlue, "P");
-            AddTrayItem(menu, "Otimizar agora", "Executa um passe manual sem fechar seus apps.", delegate { RunFromTray("Otimizar agora", RunApplyNow); }, true, false, AccentOrange, "GO");
-            AddTrayItem(menu, motorOn ? "Pausar motor" : "Retomar motor", motorOn ? "Suspende os passes automÃ¡ticos." : "Reativa o motor em segundo plano.", delegate { RunFromTray(motorOn ? "Motor pausado" : "Motor iniciado", motorOn ? (Func<RunResult>)UninstallAutomatic : InstallAutomatic); }, true, motorOn, motorOn ? AccentGreen : AccentOrange, motorOn ? "ON" : "UP");
-            AddTraySeparator(menu);
+            AddPlainTrayItem(menu, "Abrir painel", false, delegate { ShowMainWindow(); });
+            AddPlainTrayItem(menu, "Otimizar agora", false, delegate { RunFromTray("Otimizar agora", RunApplyNow); });
+            AddPlainTrayItem(menu, motorOn ? "Pausar motor" : "Retomar motor", motorOn, delegate { RunFromTray(motorOn ? "Motor pausado" : "Motor iniciado", motorOn ? (Func<RunResult>)UninstallAutomatic : InstallAutomatic); });
+            menu.Items.Add(new ToolStripSeparator());
 
-            ToolStripMenuItem modes = AddTraySubmenu(menu, "Trocar modo", "Auto, jogos, competitivo, live e trabalho.", AccentViolet, "MD");
-            AddModeTrayItem(modes, "Auto", "Auto", mode, "EquilÃ­brio diÃ¡rio com decisÃ£o automÃ¡tica por app.", "keep", AccentBlue, "A");
-            AddModeTrayItem(modes, "Jogos", "Gaming", mode, "Prioriza o jogo ativo e segura launchers/browsers de fundo.", "keep", AccentOrange, "J");
-            AddModeTrayItem(modes, "Competitivo", "Competitive", mode, "Partidas online, voz e entrada com contenÃ§Ã£o mais direta.", "keep", AccentCyan, "C");
-            AddModeTrayItem(modes, "Live / Streamer", "Streamer", mode, "Protege encoder, captura, Ã¡udio e jogo.", "keep", AccentGreen, "L");
-            AddModeTrayItem(modes, "Trabalho", "Work", mode, "MantÃ©m apps profissionais e multitarefa responsivos.", "keep", AccentViolet, "T");
-            AddModeTrayItem(modes, "Foco", "Focus", mode, "Alivia apps parados com mais firmeza.", "keep", AccentRose, "F");
+            AddPlainTrayLabel(menu, "Modo do motor", false);
+            AddPlainModeTrayItem(menu, "Auto", "Auto", mode, "keep");
+            AddPlainModeTrayItem(menu, "Jogos", "Gaming", mode, "keep");
+            AddPlainModeTrayItem(menu, "Competitivo", "Competitive", mode, "keep");
+            AddPlainModeTrayItem(menu, "Live / Streamer", "Streamer", mode, "keep");
+            AddPlainModeTrayItem(menu, "Trabalho", "Work", mode, "keep");
+            AddPlainModeTrayItem(menu, "Foco", "Focus", mode, "keep");
+            menu.Items.Add(new ToolStripSeparator());
 
-            ToolStripMenuItem resources = AddTraySubmenu(menu, "Recursos rÃ¡pidos", "Ative os diferenciais sem abrir o painel.", AccentCyan, "FX");
-            AddTrayItem(resources, zeroPingOn ? "Zero Ping ligado" : "Zero Ping desligado", "ProteÃ§Ã£o opcional para netcode UDP, QoS e shield local por sessÃ£o.", delegate { RunFromTray(zeroPingOn ? "Zero Ping desligado" : "Zero Ping ligado", delegate { return SetNetworkUdpGuardEnabled(!zeroPingOn); }); }, false, zeroPingOn, AccentCyan, "ZP");
-            AddTrayItem(resources, learningOn ? "Smart Learning ligado" : "Smart Learning desligado", "Perfis locais por comportamento, sem telemetria.", delegate { RunFromTray(learningOn ? "Smart Learning desligado" : "Smart Learning ligado", delegate { return SetSmartLearningEnabled(!learningOn); }); }, false, learningOn, AccentViolet, "AI");
-            AddTrayItem(resources, startupOn ? "Inicia com Windows" : "Nao inicia com Windows", "Controla a inicializaÃ§Ã£o automÃ¡tica do tray.", delegate { RunFromTray(startupOn ? "Inicializacao desligada" : "Inicializacao ligada", startupOn ? (Func<RunResult>)UninstallStartup : InstallStartup); }, false, startupOn, AccentGreen, "ST");
-            AddTrayItem(resources, updateAutoOn ? "Updates automÃ¡ticos ligados" : "Updates automÃ¡ticos desligados", "Permite lembretes de novas versÃµes oficiais.", delegate { SaveAutoUpdateChecks(!updateAutoOn); UpdateTrayTelemetryText(true); }, false, updateAutoOn, AccentBlue, "UP");
-            AddTrayItem(resources, "Baixar atualizaÃ§Ã£o oficial", "Baixa e instala direto pelo Smart Nap, sem abrir navegador.", delegate { OpenLatestDownload(); }, false, false, AccentOrange, "DL");
+            AddPlainTrayLabel(menu, "Recursos", false);
+            AddPlainTrayItem(menu, zeroPingOn ? "Zero Ping ligado" : "Zero Ping desligado", zeroPingOn, delegate { RunFromTray(zeroPingOn ? "Zero Ping desligado" : "Zero Ping ligado", delegate { return SetNetworkUdpGuardEnabled(!zeroPingOn); }); });
+            AddPlainTrayItem(menu, learningOn ? "Smart Learning ligado" : "Smart Learning desligado", learningOn, delegate { RunFromTray(learningOn ? "Smart Learning desligado" : "Smart Learning ligado", delegate { return SetSmartLearningEnabled(!learningOn); }); });
+            AddPlainTrayItem(menu, startupOn ? "Inicia com Windows" : "Não inicia com Windows", startupOn, delegate { RunFromTray(startupOn ? "Inicialização desligada" : "Inicialização ligada", startupOn ? (Func<RunResult>)UninstallStartup : InstallStartup); });
+            AddPlainTrayItem(menu, updateAutoOn ? "Updates automáticos ligados" : "Updates automáticos desligados", updateAutoOn, delegate { SaveAutoUpdateChecks(!updateAutoOn); UpdateTrayTelemetryText(true); });
+            AddPlainTrayItem(menu, "Baixar atualização oficial", false, delegate { OpenLatestDownload(); });
+            menu.Items.Add(new ToolStripSeparator());
 
-            ToolStripMenuItem energy = AddTraySubmenu(menu, "Energia", "Planos Smart Nap e restauraÃ§Ã£o segura.", AccentOrange, "PW");
-            AddTrayItem(energy, "Jogos + plano Smart Nap", "Alto desempenho para jogo. ReversÃ­vel.", delegate { ConfirmPowerModeFromTray("Gaming", "activate", "Smart Nap MODO JOGO"); }, false, String.Equals(mode, "Gaming", StringComparison.OrdinalIgnoreCase) && plan != null && String.Equals(plan.Guid, SmartNapGamePowerPlanGuid, StringComparison.OrdinalIgnoreCase), AccentOrange, "JG");
-            AddTrayItem(energy, "Competitivo + plano Smart Nap", "Mesmo alto desempenho do Modo Jogos, voltado a partidas online.", delegate { ConfirmPowerModeFromTray("Competitive", "activate", "Smart Nap MODO JOGO"); }, false, String.Equals(mode, "Competitive", StringComparison.OrdinalIgnoreCase) && plan != null && String.Equals(plan.Guid, SmartNapGamePowerPlanGuid, StringComparison.OrdinalIgnoreCase), AccentCyan, "CP");
-            AddTrayItem(energy, "Live + plano Smart Nap", "Alto desempenho para live e jogo. ReversÃ­vel.", delegate { ConfirmPowerModeFromTray("Streamer", "activate", "Smart Nap MODO LIVE"); }, false, String.Equals(mode, "Streamer", StringComparison.OrdinalIgnoreCase) && plan != null && String.Equals(plan.Guid, SmartNapLivePowerPlanGuid, StringComparison.OrdinalIgnoreCase), AccentGreen, "LV");
-            AddTrayItem(energy, "Restaurar plano anterior", "Volta ao plano salvo antes do modo forte.", delegate { RunFromTray("Plano anterior", delegate { return SetSessionMode("Auto", "restore"); }); }, false, false, AccentBlue, "RS");
-            AddTrayItem(energy, "Usar Equilibrado", "Plano seguro para idle e uso comum.", delegate { RunFromTray("Equilibrado", delegate { return SetSessionMode("Auto", "balanced"); }); }, false, plan != null && String.Equals(plan.Guid, BalancedPowerPlanGuid, StringComparison.OrdinalIgnoreCase), AccentNeutral, "EQ");
-
-            ToolStripMenuItem tools = AddTraySubmenu(menu, "Ferramentas", "Logs, score, seguranÃ§a e repositÃ³rio.", AccentNeutral, "TL");
-            AddTrayItem(tools, "Nap Score", "Abre o relatÃ³rio de impacto.", delegate { OpenScore(); }, false, false, AccentBlue, "SC");
-            AddTrayItem(tools, "Log de eventos", "Mostra o histÃ³rico do motor.", delegate { OpenLog(); }, false, false, AccentOrange, "LG");
-            AddTrayItem(tools, "Pasta do app", "Abre arquivos locais do Smart Nap.", delegate { OpenFolder(); }, false, false, AccentCyan, "FD");
-            AddTrayItem(tools, "RelatÃ³rio de seguranÃ§a", "Mostra o que o app pode alterar e restaurar.", delegate { OpenSafetyReport(); }, false, false, AccentGreen, "OK");
-            AddTrayItem(tools, "GitHub", "Abre o repositÃ³rio oficial.", delegate { OpenGitHub(); }, false, false, AccentViolet, "GH");
-
-            AddTraySeparator(menu);
-            AddTrayItem(menu, "Sair do Smart Nap", "Fecha o painel e remove o Ã­cone do tray.", delegate { ExitFromTray(); }, true, false, AccentRose, "X");
+            AddPlainTrayItem(menu, "Sair do Smart Nap", false, delegate { ExitFromTray(); });
             menu.ResumeLayout();
+        }
+
+        private void AddPlainTrayLabel(ContextMenuStrip menu, string text, bool title)
+        {
+            ToolStripMenuItem item = new ToolStripMenuItem(text);
+            item.Enabled = false;
+            item.AutoSize = false;
+            item.Size = new Size(310, title ? 30 : 24);
+            item.Margin = Padding.Empty;
+            item.Padding = new Padding(8, 0, 8, 0);
+            item.BackColor = TrayBg;
+            item.ForeColor = title ? Color.White : TrayMuted;
+            item.Font = new Font("Segoe UI Variable Text", title ? 10.4f : 8.4f, title ? FontStyle.Bold : FontStyle.Regular);
+            menu.Items.Add(item);
+        }
+
+        private ToolStripMenuItem AddPlainTrayItem(ContextMenuStrip menu, string text, bool active, Action action)
+        {
+            ToolStripMenuItem item = new ToolStripMenuItem(text);
+            item.Checked = active;
+            item.AutoSize = false;
+            item.Size = new Size(310, 30);
+            item.Margin = Padding.Empty;
+            item.Padding = new Padding(8, 0, 8, 0);
+            item.BackColor = TrayBg;
+            item.ForeColor = active ? Color.White : TrayText;
+            item.Font = new Font("Segoe UI Variable Text", 9.1f, active ? FontStyle.Bold : FontStyle.Regular);
+            item.Click += delegate { action(); };
+            menu.Items.Add(item);
+            return item;
+        }
+
+        private void AddPlainModeTrayItem(ContextMenuStrip menu, string label, string mode, string currentMode, string energyChoice)
+        {
+            bool active = String.Equals(NormalizeSessionMode(currentMode), NormalizeSessionMode(mode), StringComparison.OrdinalIgnoreCase);
+            AddPlainTrayItem(menu, label, active, delegate
+            {
+                RunFromTray("Modo " + label, delegate { return SetSessionMode(mode, energyChoice); });
+            });
         }
 
         private void AddTrayHeader(ContextMenuStrip menu, string title, string subtitle, Icon icon)
@@ -4897,6 +4924,17 @@ internal static class SmartBackgroundNap
             menu.Items.Add(separator);
         }
 
+        private void AddTraySection(ContextMenuStrip menu, string text)
+        {
+            TraySectionControl control = new TraySectionControl(text);
+            ToolStripControlHost host = new ToolStripControlHost(control);
+            host.Margin = new Padding(5, 2, 5, 1);
+            host.Padding = Padding.Empty;
+            host.AutoSize = false;
+            host.Size = control.Size;
+            menu.Items.Add(host);
+        }
+
         private ToolStripMenuItem AddTraySubmenu(ContextMenuStrip menu, string text, string description, Color accent, string glyph)
         {
             return AddTraySubmenu(menu.Items, text, description, accent, glyph);
@@ -4908,33 +4946,56 @@ internal static class SmartBackgroundNap
             item.ToolTipText = description;
             item.Image = CreateTrayGlyph(accent, glyph);
             item.ImageScaling = ToolStripItemImageScaling.None;
-            StyleTrayItem(item, false, false, accent);
+            StyleTrayItem(item, false, false, accent, false);
             item.DropDown.BackColor = TrayBg;
             item.DropDown.AutoClose = true;
-            item.DropDown.Padding = new Padding(8, 8, 8, 8);
+            PrepareTrayDropDown(item.DropDown);
             item.DropDown.Renderer = new SmartNapTrayRenderer();
             item.DropDownOpening += delegate
             {
                 item.DropDown.BackColor = TrayBg;
                 item.DropDown.AutoClose = true;
-                item.DropDown.Padding = new Padding(8, 8, 8, 8);
+                PrepareTrayDropDown(item.DropDown);
                 item.DropDown.Renderer = new SmartNapTrayRenderer();
             };
             items.Add(item);
             return item;
         }
 
+        private static void PrepareTrayDropDown(ToolStripDropDown dropDown)
+        {
+            if (dropDown == null) { return; }
+            dropDown.Padding = new Padding(8, 8, 8, 8);
+            dropDown.AutoSize = true;
+            dropDown.MinimumSize = new Size(TraySubItemWidth + 56, 0);
+            dropDown.MaximumSize = new Size(TraySubItemWidth + 72, 0);
+            dropDown.BackColor = TrayBg;
+            dropDown.ForeColor = TrayText;
+            ToolStripDropDownMenu menu = dropDown as ToolStripDropDownMenu;
+            if (menu != null)
+            {
+                menu.ShowImageMargin = true;
+                menu.ShowCheckMargin = false;
+                menu.ImageScalingSize = new Size(22, 22);
+            }
+        }
+
         private ToolStripMenuItem AddTrayItem(ContextMenuStrip menu, string text, string description, Action action, bool bold, bool isChecked, Color accent, string glyph)
         {
-            return AddTrayItem(menu.Items, text, description, action, bold, isChecked, accent, glyph);
+            return AddTrayItem(menu.Items, text, description, action, bold, isChecked, accent, glyph, false);
         }
 
         private ToolStripMenuItem AddTrayItem(ToolStripMenuItem parent, string text, string description, Action action, bool bold, bool isChecked, Color accent, string glyph)
         {
-            return AddTrayItem(parent.DropDownItems, text, description, action, bold, isChecked, accent, glyph);
+            return AddTrayItem(parent.DropDownItems, text, description, action, bold, isChecked, accent, glyph, true);
         }
 
-        private ToolStripMenuItem AddTrayItem(ToolStripItemCollection items, string text, string description, Action action, bool bold, bool isChecked, Color accent, string glyph)
+        private ToolStripMenuItem AddTrayCompactItem(ContextMenuStrip menu, string text, string description, Action action, bool isChecked, Color accent, string glyph)
+        {
+            return AddTrayItem(menu.Items, text, description, action, false, isChecked, accent, glyph, true);
+        }
+
+        private ToolStripMenuItem AddTrayItem(ToolStripItemCollection items, string text, string description, Action action, bool bold, bool isChecked, Color accent, string glyph, bool compact)
         {
             ToolStripMenuItem item = new ToolStripMenuItem(text);
             item.Checked = false;
@@ -4942,8 +5003,10 @@ internal static class SmartBackgroundNap
             item.ToolTipText = description;
             item.Image = CreateTrayGlyph(accent, glyph);
             item.ImageScaling = ToolStripItemImageScaling.None;
-            item.Font = new Font("Segoe UI Variable Text", 9.4f, bold ? FontStyle.Bold : FontStyle.Regular);
-            StyleTrayItem(item, bold, isChecked, accent);
+            item.Font = new Font("Segoe UI Variable Text", compact ? 8.9f : 9.4f, bold ? FontStyle.Bold : FontStyle.Regular);
+            item.AutoToolTip = true;
+            item.RightToLeft = RightToLeft.No;
+            StyleTrayItem(item, bold, isChecked, accent, compact);
             item.Click += delegate { action(); };
             items.Add(item);
             return item;
@@ -4951,10 +5014,19 @@ internal static class SmartBackgroundNap
 
         private void AddModeTrayItem(ToolStripMenuItem parent, string label, string mode, string currentMode, string tooltip, string energyChoice, Color accent, string glyph)
         {
-            ToolStripMenuItem item = AddTrayItem(parent.DropDownItems, label, tooltip, delegate
+            ToolStripMenuItem item = AddTrayItem(parent, label, tooltip, delegate
             {
                 RunFromTray("Modo " + label, delegate { return SetSessionMode(mode, energyChoice); });
             }, false, String.Equals(NormalizeSessionMode(currentMode), NormalizeSessionMode(mode), StringComparison.OrdinalIgnoreCase), accent, glyph);
+            item.ToolTipText = tooltip;
+        }
+
+        private void AddModeTrayItem(ContextMenuStrip menu, string label, string mode, string currentMode, string tooltip, string energyChoice, Color accent, string glyph)
+        {
+            ToolStripMenuItem item = AddTrayCompactItem(menu, label, tooltip, delegate
+            {
+                RunFromTray("Modo " + label, delegate { return SetSessionMode(mode, energyChoice); });
+            }, String.Equals(NormalizeSessionMode(currentMode), NormalizeSessionMode(mode), StringComparison.OrdinalIgnoreCase), accent, glyph);
             item.ToolTipText = tooltip;
         }
 
@@ -4963,11 +5035,11 @@ internal static class SmartBackgroundNap
             return item != null && Object.Equals(item.Tag as string, TrayActiveTag);
         }
 
-        private void StyleTrayItem(ToolStripMenuItem item, bool accentText, bool active, Color accent)
+        private void StyleTrayItem(ToolStripMenuItem item, bool accentText, bool active, Color accent, bool compact)
         {
             item.AutoSize = false;
-            item.Size = new Size(TrayItemWidth, 42);
-            item.Margin = new Padding(5, 2, 5, 2);
+            item.Size = new Size(TrayItemWidth, compact ? 34 : 42);
+            item.Margin = new Padding(0, compact ? 2 : 3, 0, compact ? 2 : 3);
             item.Padding = new Padding(8, 0, 14, 0);
             item.BackColor = TrayBg;
             item.ForeColor = active ? Color.FromArgb(255, 255, 255) : (accentText ? AccentOrange : TrayText);
@@ -5219,7 +5291,7 @@ internal static class SmartBackgroundNap
             if (String.IsNullOrWhiteSpace(targets)) { targets = "0"; }
             if (String.IsNullOrWhiteSpace(delta)) { delta = "0"; }
             string free = hardware != null && hardware.AvailableMemoryMB > 0 ? FormatMemoryBytes((ulong)(hardware.AvailableMemoryMB * 1024.0 * 1024.0)) : "-";
-            return "RAM livre " + free + " â€¢ " + targets + " apps â€¢ " + delta + " MB aliviados";
+            return "RAM livre " + free + " | " + targets + " apps | " + delta + " MB aliviados";
         }
 
         private static string TrimTrayText(string text, int maxLength)
@@ -5313,6 +5385,86 @@ internal static class SmartBackgroundNap
             }
         }
 
+        private sealed class TraySectionControl : Control
+        {
+            private readonly string text;
+
+            public TraySectionControl(string text)
+            {
+                this.text = String.IsNullOrWhiteSpace(text) ? "" : text.Trim();
+                Size = new Size(TrayItemWidth, 24);
+                SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
+            }
+
+            protected override void OnPaint(PaintEventArgs e)
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                Rectangle lineRect = new Rectangle(104, Height / 2, Math.Max(24, Width - 118), 1);
+                using (LinearGradientBrush line = new LinearGradientBrush(lineRect, Color.FromArgb(0, 84, 162, 255), Color.FromArgb(74, 84, 162, 255), 0f))
+                using (Font font = new Font("Segoe UI Variable Text", 7.2f, FontStyle.Bold))
+                {
+                    TextRenderer.DrawText(e.Graphics, text.ToUpperInvariant(), font, new Rectangle(8, 4, 94, 16), TrayMuted, TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
+                    e.Graphics.FillRectangle(line, lineRect);
+                }
+            }
+        }
+
+        private sealed class SmartNapCompactTrayRenderer : ToolStripProfessionalRenderer
+        {
+            public SmartNapCompactTrayRenderer() : base(new SmartNapTrayColors()) { }
+
+            protected override void OnRenderToolStripBackground(ToolStripRenderEventArgs e)
+            {
+                using (SolidBrush fill = new SolidBrush(TrayBg))
+                {
+                    e.Graphics.FillRectangle(fill, new Rectangle(Point.Empty, e.ToolStrip.Size));
+                }
+                using (Pen border = new Pen(Color.FromArgb(58, 78, 112), 1f))
+                {
+                    Rectangle rect = new Rectangle(Point.Empty, e.ToolStrip.Size);
+                    rect.Width -= 1;
+                    rect.Height -= 1;
+                    e.Graphics.DrawRectangle(border, rect);
+                }
+            }
+
+            protected override void OnRenderMenuItemBackground(ToolStripItemRenderEventArgs e)
+            {
+                ToolStripMenuItem item = e.Item as ToolStripMenuItem;
+                if (item == null || !item.Enabled) { return; }
+                if (!item.Selected && !item.Pressed) { return; }
+                Rectangle rect = new Rectangle(4, 2, Math.Max(20, e.Item.Width - 8), e.Item.Height - 4);
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                using (GraphicsPath path = RoundedRect(rect, 7f))
+                using (SolidBrush fill = new SolidBrush(Color.FromArgb(28, 44, 70)))
+                using (Pen border = new Pen(Color.FromArgb(92, 121, 170), 1f))
+                {
+                    e.Graphics.FillPath(fill, path);
+                    e.Graphics.DrawPath(border, path);
+                }
+            }
+
+            protected override void OnRenderItemCheck(ToolStripItemImageRenderEventArgs e)
+            {
+                Rectangle rect = new Rectangle(e.ImageRectangle.X + 5, e.ImageRectangle.Y + 7, 12, 12);
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                using (GraphicsPath path = RoundedRect(rect, 6f))
+                using (SolidBrush fill = new SolidBrush(AccentGreen))
+                {
+                    e.Graphics.FillPath(fill, path);
+                }
+            }
+
+            protected override void OnRenderSeparator(ToolStripSeparatorRenderEventArgs e)
+            {
+                Rectangle rect = new Rectangle(8, e.Item.Height / 2, Math.Max(16, e.Item.Width - 16), 1);
+                using (SolidBrush line = new SolidBrush(Color.FromArgb(46, 64, 92)))
+                {
+                    e.Graphics.FillRectangle(line, rect);
+                }
+            }
+        }
+
         private sealed class SmartNapTrayRenderer : ToolStripProfessionalRenderer
         {
             public SmartNapTrayRenderer() : base(new SmartNapTrayColors()) { }
@@ -5338,15 +5490,16 @@ internal static class SmartBackgroundNap
             {
                 ToolStripMenuItem item = e.Item as ToolStripMenuItem;
                 if (item == null) { base.OnRenderMenuItemBackground(e); return; }
-                Rectangle rect = new Rectangle(5, 3, e.Item.Width - 10, e.Item.Height - 6);
+                int width = Math.Max(e.Item.Width, e.ToolStrip == null ? e.Item.Width : e.ToolStrip.ClientSize.Width);
+                Rectangle rect = new Rectangle(7, 3, Math.Max(24, width - 14), e.Item.Height - 6);
                 bool hot = item.Selected || item.Pressed;
                 bool active = IsTrayItemActive(item);
                 if (!hot && !active) { return; }
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 Color accent = active ? AccentGreen : AccentBlue;
                 using (GraphicsPath path = RoundedRect(rect, 12f))
-                using (LinearGradientBrush fill = new LinearGradientBrush(rect, active ? Color.FromArgb(42, 53, 232, 154) : Color.FromArgb(30, 84, 162, 255), Color.FromArgb(13, 24, 40), 0f))
-                using (Pen border = new Pen(Color.FromArgb(hot ? 160 : 100, accent), 1f))
+                using (LinearGradientBrush fill = new LinearGradientBrush(rect, active ? Color.FromArgb(24, 53, 232, 154) : Color.FromArgb(28, 84, 162, 255), Color.FromArgb(13, 24, 40), 0f))
+                using (Pen border = new Pen(Color.FromArgb(hot ? 165 : 95, accent), 1f))
                 {
                     e.Graphics.FillPath(fill, path);
                     e.Graphics.DrawPath(border, path);
@@ -7101,7 +7254,7 @@ internal static class SmartBackgroundNap
                 }
                 if (String.Equals(action, "refreshGames", StringComparison.OrdinalIgnoreCase))
                 {
-                    RunUserAction("Procurando jogos instalados...", "Busca de jogos concluÃ­da.", delegate { int found = RefreshGameDiscoveryCache(); return new RunResult(0, "Busca concluÃ­da: " + found.ToString(CultureInfo.InvariantCulture) + " jogo(s) com caminho salvo. Se um jogo nÃ£o aparecer, use Escolher pasta no card dele."); });
+                    RunUserAction("Procurando jogos instalados...", "Busca de jogos concluída.", delegate { int found = RefreshGameDiscoveryCache(); return new RunResult(0, "Busca concluída: " + found.ToString(CultureInfo.InvariantCulture) + " jogo(s) com caminho salvo. Se um jogo não aparecer, use Escolher pasta no card dele."); });
                     return;
                 }
                 if (String.Equals(action, "selectGameFolder", StringComparison.OrdinalIgnoreCase))
@@ -7427,8 +7580,8 @@ internal static class SmartBackgroundNap
                     Description = "Biblioteca beta com ajustes de comunidade para cache/shader, frame pacing, CPU-bound e stutter em partidas grandes.",
                     ProcessNames = new[] { "bf6", "Battlefield6", "Battlefield" },
                     InstallKeywords = new[] { "Battlefield 6", "Battlefield6", "Battlefield" },
-                    SafeOptions = new[] { "Pipeline de shader/cache: backup e reconstruÃ§Ã£o guiada apÃ³s update", "Frame pacing competitivo: cap estÃ¡vel por Hz e anti-stutter", "Config de engine segura: streaming e orÃ§amento de CPU mais leve", "DX12/driver cache hygiene: remover cache antigo sem apagar saves", "Overlay/download guard: EA, Steam, Discord e capturas em modo leve", "Preset CPU-bound: reduzir pÃ³s-processamento pesado sem mudar controles" },
-                    ExperimentalOptions = new[] { "user.cfg avanÃ§ado: thread budget e render queue em teste A/B", "Cache rebuild agressivo: DX/NVIDIA/AMD shader cache com aviso de stutter inicial", "Ultra low CPU fallback: streaming, efeitos e partÃ­culas em orÃ§amento mÃ­nimo", "Overlay hard-off test: EA/Steam por config reversÃ­vel com backup", "Frame cap lab: 90/120/144/165 com mediÃ§Ã£o de pacing" }
+                    SafeOptions = new[] { "Pipeline de shader/cache: backup e reconstrução guiada após update", "Frame pacing competitivo: cap estável por Hz e anti-stutter", "Config de engine segura: streaming e orçamento de CPU mais leve", "DX12/driver cache hygiene: remover cache antigo sem apagar saves", "Overlay/download guard: EA, Steam, Discord e capturas em modo leve", "Preset CPU-bound: reduzir pós-processamento pesado sem mudar controles" },
+                    ExperimentalOptions = new[] { "user.cfg avançado: thread budget e render queue em teste A/B", "Cache rebuild agressivo: DX/NVIDIA/AMD shader cache com aviso de stutter inicial", "Ultra low CPU fallback: streaming, efeitos e partículas em orçamento mínimo", "Overlay hard-off test: EA/Steam por config reversível com backup", "Frame cap lab: 90/120/144/165 com medição de pacing" }
                 },
                 new GamePresetDefinition
                 {
@@ -7440,8 +7593,8 @@ internal static class SmartBackgroundNap
                     Description = "Receitas de comunidade para reduzir stutter, estabilizar frame pacing e controlar EA/Steam sem alterar gameplay.",
                     ProcessNames = new[] { "FC26", "FC25", "FC24" },
                     InstallKeywords = new[] { "EA SPORTS FC 26", "EA Sports FC 26", "FC26", "EA SPORTS FC" },
-                    SafeOptions = new[] { "FC setup sanity: detectar arquivo de settings e fazer backup", "Stutter guard: cap de FPS por Hz e estabilidade de cutscenes", "EA/Steam overlay guard: reduzir overlays e downloads durante partida", "Shader/cache refresh guiado apÃ³s update de driver ou patch", "CPU/GPU balance: crowd, hair e cloth em perfil de desempenho", "Fullscreen e Hz corretos sem mexer em cÃ¢mera, controle ou gameplay" },
-                    ExperimentalOptions = new[] { "FC microstutter lab: caps 60/90/120/144 com rollback", "Stadium heavy preset: reduzir crowd, cloth e hair para PC fraco", "EA overlay hard-off via user_*.ini com backup", "Cache rebuild agressivo em Documents/AppData quando hÃ¡ travadas", "Steam input/overlay isolation quando FC abre via Steam" }
+                    SafeOptions = new[] { "FC setup sanity: detectar arquivo de settings e fazer backup", "Stutter guard: cap de FPS por Hz e estabilidade de cutscenes", "EA/Steam overlay guard: reduzir overlays e downloads durante partida", "Shader/cache refresh guiado após update de driver ou patch", "CPU/GPU balance: crowd, hair e cloth em perfil de desempenho", "Fullscreen e Hz corretos sem mexer em câmera, controle ou gameplay" },
+                    ExperimentalOptions = new[] { "FC microstutter lab: caps 60/90/120/144 com rollback", "Stadium heavy preset: reduzir crowd, cloth e hair para PC fraco", "EA overlay hard-off via user_*.ini com backup", "Cache rebuild agressivo em Documents/AppData quando há travadas", "Steam input/overlay isolation quando FC abre via Steam" }
                 },
                 new GamePresetDefinition
                 {
@@ -7453,8 +7606,8 @@ internal static class SmartBackgroundNap
                     Description = "Receitas competitivas de comunidade para launch options limpas, autoexec, shader cache, Reflex e frame pacing.",
                     ProcessNames = new[] { "cs2" },
                     InstallKeywords = new[] { "Counter-Strike Global Offensive", "Counter-Strike 2", "csgo", "cs2" },
-                    SafeOptions = new[] { "Launch options auditor: remover comandos antigos ou prejudiciais", "Autoexec performance pack: telemetria, pacing e cvars seguras", "NVIDIA Reflex check: orientar ON quando suportado", "Shader prewarm/cache hygiene apÃ³s update do jogo ou driver", "Frame cap estÃ¡vel por Hz para reduzir variaÃ§Ã£o de frametime", "Steam overlay/download guard durante partida competitiva" },
-                    ExperimentalOptions = new[] { "-vulkan A/B test com reversÃ£o automÃ¡tica", "fps_max lab: 0, refresh+buffer ou cap competitivo", "DX shader cache rebuild agressivo", "Low-end cfg: partÃ­culas, decals e streaming budget reduzidos", "Workshop/custom cfg quarantine para caÃ§ar stutter" }
+                    SafeOptions = new[] { "Launch options auditor: remover comandos antigos ou prejudiciais", "Autoexec performance pack: telemetria, pacing e cvars seguras", "NVIDIA Reflex check: orientar ON quando suportado", "Shader prewarm/cache hygiene após update do jogo ou driver", "Frame cap estável por Hz para reduzir variação de frametime", "Steam overlay/download guard durante partida competitiva" },
+                    ExperimentalOptions = new[] { "-vulkan A/B test com reversão automática", "fps_max lab: 0, refresh+buffer ou cap competitivo", "DX shader cache rebuild agressivo", "Low-end cfg: partículas, decals e streaming budget reduzidos", "Workshop/custom cfg quarantine para caçar stutter" }
                 },
                 new GamePresetDefinition
                 {
@@ -7463,11 +7616,11 @@ internal static class SmartBackgroundNap
                     ShortName = "VALORANT",
                     Tier = "Tactical FPS",
                     Accent = "violet",
-                    Description = "Receitas seguras de comunidade para FPS alto, baixa latÃªncia, cache limpo e estabilidade sem tocar no Vanguard.",
+                    Description = "Receitas seguras de comunidade para FPS alto, baixa latência, cache limpo e estabilidade sem tocar no Vanguard.",
                     ProcessNames = new[] { "VALORANT-Win64-Shipping", "VALORANT" },
                     InstallKeywords = new[] { "VALORANT", "Riot Games" },
-                    SafeOptions = new[] { "Config backup Riot e validaÃ§Ã£o de GameUserSettings", "Multithreaded Rendering check quando a CPU suporta", "NVIDIA Reflex/low latency check quando suportado", "FPS cap por menu/background para aliviar stutter tÃ©rmico", "Fullscreen e Hz sanity sem tocar em sensibilidade ou mira", "Overlay/download guard sem tocar no Vanguard" },
-                    ExperimentalOptions = new[] { "FPS cap lab por cenÃ¡rio: menu, background e in-game", "Low-end GPU profile: material, detail e UI em modo performance", "Cache/config reset guiado com backup", "Overlay hard isolation sem mexer no Vanguard", "Frame pacing stress test por monitor" }
+                    SafeOptions = new[] { "Config backup Riot e validação de GameUserSettings", "Multithreaded Rendering check quando a CPU suporta", "NVIDIA Reflex/low latency check quando suportado", "FPS cap por menu/background para aliviar stutter térmico", "Fullscreen e Hz sanity sem tocar em sensibilidade ou mira", "Overlay/download guard sem tocar no Vanguard" },
+                    ExperimentalOptions = new[] { "FPS cap lab por cenário: menu, background e in-game", "Low-end GPU profile: material, detail e UI em modo performance", "Cache/config reset guiado com backup", "Overlay hard isolation sem mexer no Vanguard", "Frame pacing stress test por monitor" }
                 }
             };
         }
@@ -7496,7 +7649,7 @@ internal static class SmartBackgroundNap
 
                     string manualPath = FindManualGameInstallPath(definition);
                     string installedPath = !String.IsNullOrWhiteSpace(runningPath) ? runningPath : manualPath;
-                    string detectionSource = running != null ? "Rodando" : (!String.IsNullOrWhiteSpace(manualPath) ? "Pasta salva" : (!String.IsNullOrWhiteSpace(installedPath) ? "Biblioteca detectada" : "NÃ£o encontrado"));
+                    string detectionSource = running != null ? "Rodando" : (!String.IsNullOrWhiteSpace(manualPath) ? "Pasta salva" : (!String.IsNullOrWhiteSpace(installedPath) ? "Biblioteca detectada" : "Não encontrado"));
                     output.Add(new WebGamePreset
                     {
                         Id = definition.Id,
@@ -7887,7 +8040,7 @@ internal static class SmartBackgroundNap
             {
                 using (System.Windows.Forms.FolderBrowserDialog dialog = new System.Windows.Forms.FolderBrowserDialog())
                 {
-                    dialog.Description = "Escolha a pasta onde " + definition.Name + " estÃ¡ instalado";
+                    dialog.Description = "Escolha a pasta onde " + definition.Name + " está instalado";
                     dialog.ShowNewFolderButton = false;
                     string current = FindManualGameInstallPath(definition);
                     if (String.IsNullOrWhiteSpace(current)) { current = FindManualGameInstallPath(definition); }
@@ -8003,7 +8156,7 @@ internal static class SmartBackgroundNap
             string installPath = FindGameInstallPath(definition);
             if (String.IsNullOrWhiteSpace(installPath))
             {
-                return new RunResult(2, "Localize a pasta de " + definition.Name + " antes de aplicar o preset. Assim o Smart Nap sÃ³ altera arquivos do jogo correto.");
+                return new RunResult(2, "Localize a pasta de " + definition.Name + " antes de aplicar o preset. Assim o Smart Nap só altera arquivos do jogo correto.");
             }
 
             List<string> selectedSafeOptions = GetMapStringList(message, "safeOptions");
@@ -8609,11 +8762,13 @@ internal static class SmartBackgroundNap
 
             string currentGame = CleanGameDisplayName(meta.NetworkUdpGuardGame);
             bool currentLooksWrong = String.IsNullOrWhiteSpace(currentGame) || IsBlockedNetworkUdpGameName(currentGame) || !IsDashboardGameProcessName(currentGame);
-            if (meta.NetworkUdpGuardActive && !currentLooksWrong) { return; }
+            bool currentConfirmed = meta.NetworkUdpGuardEndpoints > 0;
+            if (meta.NetworkUdpGuardActive && !currentLooksWrong && currentConfirmed) { return; }
 
             int endpoints = Math.Max(meta.NetworkUdpGuardEndpoints, gameRow == null ? 0 : gameRow.UdpEndpoints);
+            bool rowConfirmed = endpoints > 0;
             int processCount = Math.Max(meta.NetworkUdpGuardProcessCount, endpoints > 0 ? 1 : 0);
-            int confidence = Math.Max(meta.NetworkUdpGuardConfidence, endpoints > 0 ? 74 : 58);
+            int confidence = Math.Max(meta.NetworkUdpGuardConfidence, endpoints > 0 ? 74 : 45);
             string confidenceLabel = endpoints > 0 ? "Medium" : "Low";
             if (gameRow != null && (gameRow.UdpGameProtected || gameRow.UdpGuardActive || gameRow.UdpConfidence >= 85))
             {
@@ -8626,6 +8781,24 @@ internal static class SmartBackgroundNap
                 confidenceLabel = String.IsNullOrWhiteSpace(gameRow.UdpConfidenceLabel) ? confidenceLabel : gameRow.UdpConfidenceLabel;
             }
 
+            if (!rowConfirmed)
+            {
+                meta.NetworkUdpGuardActive = false;
+                meta.NetworkUdpGuardMode = "Armed";
+                meta.NetworkUdpGuardGame = gameName;
+                meta.NetworkUdpGuardEndpoints = 0;
+                meta.NetworkUdpGuardProcessCount = processCount;
+                meta.NetworkUdpGuardConfidence = confidence;
+                meta.NetworkUdpGuardConfidenceLabel = "Low";
+                meta.NetworkUdpGuardReason = "Jogo detectado; aguardando UDP confirmado antes de aplicar o Zero Ping.";
+                meta.NetworkUdpGuardShieldMode = "Observe";
+                if (String.IsNullOrWhiteSpace(meta.NetworkUdpGuardQosStatus) || String.Equals(meta.NetworkUdpGuardQosStatus, "Off", StringComparison.OrdinalIgnoreCase)) { meta.NetworkUdpGuardQosStatus = "Ready"; }
+                if (meta.NetworkUdpGuardSignals == null) { meta.NetworkUdpGuardSignals = new List<string>(); }
+                string candidateSignal = "Game candidate: " + gameName;
+                if (!meta.NetworkUdpGuardSignals.Contains(candidateSignal)) { meta.NetworkUdpGuardSignals.Add(candidateSignal); }
+                return;
+            }
+
             meta.NetworkUdpGuardActive = true;
             meta.NetworkUdpGuardMode = "Protecting";
             meta.NetworkUdpGuardGame = gameName;
@@ -8634,7 +8807,7 @@ internal static class SmartBackgroundNap
             meta.NetworkUdpGuardProtectedCount = Math.Max(1, meta.NetworkUdpGuardProtectedCount);
             meta.NetworkUdpGuardConfidence = confidence;
             meta.NetworkUdpGuardConfidenceLabel = confidenceLabel;
-            meta.NetworkUdpGuardReason = endpoints > 0 ? "Game process is open; UDP signals are tied to the game session or helper tree." : "Game process is open; Zero Ping locked before UDP confirmation.";
+            meta.NetworkUdpGuardReason = "UDP confirmado no jogo ou na arvore relacionada. Zero Ping ativo.";
             if (String.IsNullOrWhiteSpace(meta.NetworkUdpGuardShieldMode) || String.Equals(meta.NetworkUdpGuardShieldMode, "Off", StringComparison.OrdinalIgnoreCase)) { meta.NetworkUdpGuardShieldMode = "Netcode Shield"; }
             if (String.IsNullOrWhiteSpace(meta.NetworkUdpGuardQosStatus) || String.Equals(meta.NetworkUdpGuardQosStatus, "Off", StringComparison.OrdinalIgnoreCase)) { meta.NetworkUdpGuardQosStatus = "Ready"; }
             if (meta.NetworkUdpGuardSignals == null) { meta.NetworkUdpGuardSignals = new List<string>(); }
@@ -10896,8 +11069,8 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                     Description = "Biblioteca beta com ajustes de comunidade para cache/shader, frame pacing, CPU-bound e stutter em partidas grandes.",
                     ProcessNames = new[] { "bf6", "Battlefield6", "Battlefield" },
                     InstallKeywords = new[] { "Battlefield 6", "Battlefield6", "Battlefield" },
-                    SafeOptions = new[] { "Pipeline de shader/cache: backup e reconstruÃ§Ã£o guiada apÃ³s update", "Frame pacing competitivo: cap estÃ¡vel por Hz e anti-stutter", "Config de engine segura: streaming e orÃ§amento de CPU mais leve", "DX12/driver cache hygiene: remover cache antigo sem apagar saves", "Overlay/download guard: EA, Steam, Discord e capturas em modo leve", "Preset CPU-bound: reduzir pÃ³s-processamento pesado sem mudar controles" },
-                    ExperimentalOptions = new[] { "user.cfg avanÃ§ado: thread budget e render queue em teste A/B", "Cache rebuild agressivo: DX/NVIDIA/AMD shader cache com aviso de stutter inicial", "Ultra low CPU fallback: streaming, efeitos e partÃ­culas em orÃ§amento mÃ­nimo", "Overlay hard-off test: EA/Steam por config reversÃ­vel com backup", "Frame cap lab: 90/120/144/165 com mediÃ§Ã£o de pacing" }
+                    SafeOptions = new[] { "Pipeline de shader/cache: backup e reconstrução guiada após update", "Frame pacing competitivo: cap estável por Hz e anti-stutter", "Config de engine segura: streaming e orçamento de CPU mais leve", "DX12/driver cache hygiene: remover cache antigo sem apagar saves", "Overlay/download guard: EA, Steam, Discord e capturas em modo leve", "Preset CPU-bound: reduzir pós-processamento pesado sem mudar controles" },
+                    ExperimentalOptions = new[] { "user.cfg avançado: thread budget e render queue em teste A/B", "Cache rebuild agressivo: DX/NVIDIA/AMD shader cache com aviso de stutter inicial", "Ultra low CPU fallback: streaming, efeitos e partículas em orçamento mínimo", "Overlay hard-off test: EA/Steam por config reversível com backup", "Frame cap lab: 90/120/144/165 com medição de pacing" }
                 },
                 new GamePresetDefinition
                 {
@@ -10909,8 +11082,8 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                     Description = "Receitas de comunidade para reduzir stutter, estabilizar frame pacing e controlar EA/Steam sem alterar gameplay.",
                     ProcessNames = new[] { "FC26", "FC25", "FC24" },
                     InstallKeywords = new[] { "EA SPORTS FC 26", "EA Sports FC 26", "FC26", "EA SPORTS FC" },
-                    SafeOptions = new[] { "FC setup sanity: detectar arquivo de settings e fazer backup", "Stutter guard: cap de FPS por Hz e estabilidade de cutscenes", "EA/Steam overlay guard: reduzir overlays e downloads durante partida", "Shader/cache refresh guiado apÃ³s update de driver ou patch", "CPU/GPU balance: crowd, hair e cloth em perfil de desempenho", "Fullscreen e Hz corretos sem mexer em cÃ¢mera, controle ou gameplay" },
-                    ExperimentalOptions = new[] { "FC microstutter lab: caps 60/90/120/144 com rollback", "Stadium heavy preset: reduzir crowd, cloth e hair para PC fraco", "EA overlay hard-off via user_*.ini com backup", "Cache rebuild agressivo em Documents/AppData quando hÃ¡ travadas", "Steam input/overlay isolation quando FC abre via Steam" }
+                    SafeOptions = new[] { "FC setup sanity: detectar arquivo de settings e fazer backup", "Stutter guard: cap de FPS por Hz e estabilidade de cutscenes", "EA/Steam overlay guard: reduzir overlays e downloads durante partida", "Shader/cache refresh guiado após update de driver ou patch", "CPU/GPU balance: crowd, hair e cloth em perfil de desempenho", "Fullscreen e Hz corretos sem mexer em câmera, controle ou gameplay" },
+                    ExperimentalOptions = new[] { "FC microstutter lab: caps 60/90/120/144 com rollback", "Stadium heavy preset: reduzir crowd, cloth e hair para PC fraco", "EA overlay hard-off via user_*.ini com backup", "Cache rebuild agressivo em Documents/AppData quando há travadas", "Steam input/overlay isolation quando FC abre via Steam" }
                 },
                 new GamePresetDefinition
                 {
@@ -10922,8 +11095,8 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                     Description = "Receitas competitivas de comunidade para launch options limpas, autoexec, shader cache, Reflex e frame pacing.",
                     ProcessNames = new[] { "cs2" },
                     InstallKeywords = new[] { "Counter-Strike Global Offensive", "Counter-Strike 2", "csgo", "cs2" },
-                    SafeOptions = new[] { "Launch options auditor: remover comandos antigos ou prejudiciais", "Autoexec performance pack: telemetria, pacing e cvars seguras", "NVIDIA Reflex check: orientar ON quando suportado", "Shader prewarm/cache hygiene apÃ³s update do jogo ou driver", "Frame cap estÃ¡vel por Hz para reduzir variaÃ§Ã£o de frametime", "Steam overlay/download guard durante partida competitiva" },
-                    ExperimentalOptions = new[] { "-vulkan A/B test com reversÃ£o automÃ¡tica", "fps_max lab: 0, refresh+buffer ou cap competitivo", "DX shader cache rebuild agressivo", "Low-end cfg: partÃ­culas, decals e streaming budget reduzidos", "Workshop/custom cfg quarantine para caÃ§ar stutter" }
+                    SafeOptions = new[] { "Launch options auditor: remover comandos antigos ou prejudiciais", "Autoexec performance pack: telemetria, pacing e cvars seguras", "NVIDIA Reflex check: orientar ON quando suportado", "Shader prewarm/cache hygiene após update do jogo ou driver", "Frame cap estável por Hz para reduzir variação de frametime", "Steam overlay/download guard durante partida competitiva" },
+                    ExperimentalOptions = new[] { "-vulkan A/B test com reversão automática", "fps_max lab: 0, refresh+buffer ou cap competitivo", "DX shader cache rebuild agressivo", "Low-end cfg: partículas, decals e streaming budget reduzidos", "Workshop/custom cfg quarantine para caçar stutter" }
                 },
                 new GamePresetDefinition
                 {
@@ -10932,11 +11105,11 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                     ShortName = "VALORANT",
                     Tier = "Tactical FPS",
                     Accent = "violet",
-                    Description = "Receitas seguras de comunidade para FPS alto, baixa latÃªncia, cache limpo e estabilidade sem tocar no Vanguard.",
+                    Description = "Receitas seguras de comunidade para FPS alto, baixa latência, cache limpo e estabilidade sem tocar no Vanguard.",
                     ProcessNames = new[] { "VALORANT-Win64-Shipping", "VALORANT" },
                     InstallKeywords = new[] { "VALORANT", "Riot Games" },
-                    SafeOptions = new[] { "Config backup Riot e validaÃ§Ã£o de GameUserSettings", "Multithreaded Rendering check quando a CPU suporta", "NVIDIA Reflex/low latency check quando suportado", "FPS cap por menu/background para aliviar stutter tÃ©rmico", "Fullscreen e Hz sanity sem tocar em sensibilidade ou mira", "Overlay/download guard sem tocar no Vanguard" },
-                    ExperimentalOptions = new[] { "FPS cap lab por cenÃ¡rio: menu, background e in-game", "Low-end GPU profile: material, detail e UI em modo performance", "Cache/config reset guiado com backup", "Overlay hard isolation sem mexer no Vanguard", "Frame pacing stress test por monitor" }
+                    SafeOptions = new[] { "Config backup Riot e validação de GameUserSettings", "Multithreaded Rendering check quando a CPU suporta", "NVIDIA Reflex/low latency check quando suportado", "FPS cap por menu/background para aliviar stutter térmico", "Fullscreen e Hz sanity sem tocar em sensibilidade ou mira", "Overlay/download guard sem tocar no Vanguard" },
+                    ExperimentalOptions = new[] { "FPS cap lab por cenário: menu, background e in-game", "Low-end GPU profile: material, detail e UI em modo performance", "Cache/config reset guiado com backup", "Overlay hard isolation sem mexer no Vanguard", "Frame pacing stress test por monitor" }
                 }
             };
         }
@@ -13225,8 +13398,8 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                     Description = "Biblioteca beta com ajustes de comunidade para cache/shader, frame pacing, CPU-bound e stutter em partidas grandes.",
                     ProcessNames = new[] { "bf6", "Battlefield6", "Battlefield" },
                     InstallKeywords = new[] { "Battlefield 6", "Battlefield6", "Battlefield" },
-                    SafeOptions = new[] { "Pipeline de shader/cache: backup e reconstruÃ§Ã£o guiada apÃ³s update", "Frame pacing competitivo: cap estÃ¡vel por Hz e anti-stutter", "Config de engine segura: streaming e orÃ§amento de CPU mais leve", "DX12/driver cache hygiene: remover cache antigo sem apagar saves", "Overlay/download guard: EA, Steam, Discord e capturas em modo leve", "Preset CPU-bound: reduzir pÃ³s-processamento pesado sem mudar controles" },
-                    ExperimentalOptions = new[] { "user.cfg avanÃ§ado: thread budget e render queue em teste A/B", "Cache rebuild agressivo: DX/NVIDIA/AMD shader cache com aviso de stutter inicial", "Ultra low CPU fallback: streaming, efeitos e partÃ­culas em orÃ§amento mÃ­nimo", "Overlay hard-off test: EA/Steam por config reversÃ­vel com backup", "Frame cap lab: 90/120/144/165 com mediÃ§Ã£o de pacing" }
+                    SafeOptions = new[] { "Pipeline de shader/cache: backup e reconstrução guiada após update", "Frame pacing competitivo: cap estável por Hz e anti-stutter", "Config de engine segura: streaming e orçamento de CPU mais leve", "DX12/driver cache hygiene: remover cache antigo sem apagar saves", "Overlay/download guard: EA, Steam, Discord e capturas em modo leve", "Preset CPU-bound: reduzir pós-processamento pesado sem mudar controles" },
+                    ExperimentalOptions = new[] { "user.cfg avançado: thread budget e render queue em teste A/B", "Cache rebuild agressivo: DX/NVIDIA/AMD shader cache com aviso de stutter inicial", "Ultra low CPU fallback: streaming, efeitos e partículas em orçamento mínimo", "Overlay hard-off test: EA/Steam por config reversível com backup", "Frame cap lab: 90/120/144/165 com medição de pacing" }
                 },
                 new GamePresetDefinition
                 {
@@ -13238,8 +13411,8 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                     Description = "Receitas de comunidade para reduzir stutter, estabilizar frame pacing e controlar EA/Steam sem alterar gameplay.",
                     ProcessNames = new[] { "FC26", "FC25", "FC24" },
                     InstallKeywords = new[] { "EA SPORTS FC 26", "EA Sports FC 26", "FC26", "EA SPORTS FC" },
-                    SafeOptions = new[] { "FC setup sanity: detectar arquivo de settings e fazer backup", "Stutter guard: cap de FPS por Hz e estabilidade de cutscenes", "EA/Steam overlay guard: reduzir overlays e downloads durante partida", "Shader/cache refresh guiado apÃ³s update de driver ou patch", "CPU/GPU balance: crowd, hair e cloth em perfil de desempenho", "Fullscreen e Hz corretos sem mexer em cÃ¢mera, controle ou gameplay" },
-                    ExperimentalOptions = new[] { "FC microstutter lab: caps 60/90/120/144 com rollback", "Stadium heavy preset: reduzir crowd, cloth e hair para PC fraco", "EA overlay hard-off via user_*.ini com backup", "Cache rebuild agressivo em Documents/AppData quando hÃ¡ travadas", "Steam input/overlay isolation quando FC abre via Steam" }
+                    SafeOptions = new[] { "FC setup sanity: detectar arquivo de settings e fazer backup", "Stutter guard: cap de FPS por Hz e estabilidade de cutscenes", "EA/Steam overlay guard: reduzir overlays e downloads durante partida", "Shader/cache refresh guiado após update de driver ou patch", "CPU/GPU balance: crowd, hair e cloth em perfil de desempenho", "Fullscreen e Hz corretos sem mexer em câmera, controle ou gameplay" },
+                    ExperimentalOptions = new[] { "FC microstutter lab: caps 60/90/120/144 com rollback", "Stadium heavy preset: reduzir crowd, cloth e hair para PC fraco", "EA overlay hard-off via user_*.ini com backup", "Cache rebuild agressivo em Documents/AppData quando há travadas", "Steam input/overlay isolation quando FC abre via Steam" }
                 },
                 new GamePresetDefinition
                 {
@@ -13251,8 +13424,8 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                     Description = "Receitas competitivas de comunidade para launch options limpas, autoexec, shader cache, Reflex e frame pacing.",
                     ProcessNames = new[] { "cs2" },
                     InstallKeywords = new[] { "Counter-Strike Global Offensive", "Counter-Strike 2", "csgo", "cs2" },
-                    SafeOptions = new[] { "Launch options auditor: remover comandos antigos ou prejudiciais", "Autoexec performance pack: telemetria, pacing e cvars seguras", "NVIDIA Reflex check: orientar ON quando suportado", "Shader prewarm/cache hygiene apÃ³s update do jogo ou driver", "Frame cap estÃ¡vel por Hz para reduzir variaÃ§Ã£o de frametime", "Steam overlay/download guard durante partida competitiva" },
-                    ExperimentalOptions = new[] { "-vulkan A/B test com reversÃ£o automÃ¡tica", "fps_max lab: 0, refresh+buffer ou cap competitivo", "DX shader cache rebuild agressivo", "Low-end cfg: partÃ­culas, decals e streaming budget reduzidos", "Workshop/custom cfg quarantine para caÃ§ar stutter" }
+                    SafeOptions = new[] { "Launch options auditor: remover comandos antigos ou prejudiciais", "Autoexec performance pack: telemetria, pacing e cvars seguras", "NVIDIA Reflex check: orientar ON quando suportado", "Shader prewarm/cache hygiene após update do jogo ou driver", "Frame cap estável por Hz para reduzir variação de frametime", "Steam overlay/download guard durante partida competitiva" },
+                    ExperimentalOptions = new[] { "-vulkan A/B test com reversão automática", "fps_max lab: 0, refresh+buffer ou cap competitivo", "DX shader cache rebuild agressivo", "Low-end cfg: partículas, decals e streaming budget reduzidos", "Workshop/custom cfg quarantine para caçar stutter" }
                 },
                 new GamePresetDefinition
                 {
@@ -13261,11 +13434,11 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
                     ShortName = "VALORANT",
                     Tier = "Tactical FPS",
                     Accent = "violet",
-                    Description = "Receitas seguras de comunidade para FPS alto, baixa latÃªncia, cache limpo e estabilidade sem tocar no Vanguard.",
+                    Description = "Receitas seguras de comunidade para FPS alto, baixa latência, cache limpo e estabilidade sem tocar no Vanguard.",
                     ProcessNames = new[] { "VALORANT-Win64-Shipping", "VALORANT" },
                     InstallKeywords = new[] { "VALORANT", "Riot Games" },
-                    SafeOptions = new[] { "Config backup Riot e validaÃ§Ã£o de GameUserSettings", "Multithreaded Rendering check quando a CPU suporta", "NVIDIA Reflex/low latency check quando suportado", "FPS cap por menu/background para aliviar stutter tÃ©rmico", "Fullscreen e Hz sanity sem tocar em sensibilidade ou mira", "Overlay/download guard sem tocar no Vanguard" },
-                    ExperimentalOptions = new[] { "FPS cap lab por cenÃ¡rio: menu, background e in-game", "Low-end GPU profile: material, detail e UI em modo performance", "Cache/config reset guiado com backup", "Overlay hard isolation sem mexer no Vanguard", "Frame pacing stress test por monitor" }
+                    SafeOptions = new[] { "Config backup Riot e validação de GameUserSettings", "Multithreaded Rendering check quando a CPU suporta", "NVIDIA Reflex/low latency check quando suportado", "FPS cap por menu/background para aliviar stutter térmico", "Fullscreen e Hz sanity sem tocar em sensibilidade ou mira", "Overlay/download guard sem tocar no Vanguard" },
+                    ExperimentalOptions = new[] { "FPS cap lab por cenário: menu, background e in-game", "Low-end GPU profile: material, detail e UI em modo performance", "Cache/config reset guiado com backup", "Overlay hard isolation sem mexer no Vanguard", "Frame pacing stress test por monitor" }
                 }
             };
         }

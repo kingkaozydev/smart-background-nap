@@ -12,9 +12,11 @@
 
 > All documentation screenshots use fictional sample app names, fictional telemetry, and generic hardware labels.
 
-**Smart Background Nap** is a local-first Windows performance companion for people who keep a lot of apps open while gaming, streaming, coding, recording, or multitasking.
+**Smart Background Nap** is a local-first Windows performance companion for people who keep a lot of apps open while gaming, streaming, coding, editing, recording, or multitasking.
 
-It does not close your apps or pretend to be a magic FPS button. It watches the current user session, identifies safe background processes, gives them a quieter profile, and restores responsiveness when you bring an app back to the foreground.
+The 0.5.60 engine combines the approved 0.5.45 dashboard experience with the newer backend: stronger foreground restore, Zero Ping for UDP game sessions, CPU-Bound Assist, GPU/VRAM pressure awareness, streamer-safe behavior, game-library presets, rollback tracking, and safer install/update handling.
+
+It does not close your apps or pretend to be a magic FPS button. It watches the current user session, identifies safe background pressure, gives background processes a quieter profile, and restores responsiveness when an app, game, stream, or professional workload becomes important again.
 
 Created by **KaozyKing**.
 
@@ -23,6 +25,19 @@ Created by **KaozyKing**.
 - Latest release: [Download SmartBackgroundNap.exe](https://github.com/kingkaozydev/smart-background-nap/releases/latest)
 
 > Keep apps open. Quiet the background. Wake the foreground fast.
+
+## Current App Summary
+
+Smart Background Nap is designed to reduce local contention around the task that matters right now. It is aggressive against wasted background CPU, RAM, I/O, EcoQoS, and helper-process pressure, but conservative around foreground apps, games, streaming tools, voice, anti-cheat, launchers that are still required, Windows internals, and unknown processes.
+
+The current release focuses on:
+
+- **Foreground reliability**: foreground apps recover their priority, I/O, memory priority, EcoQoS, and temporary affinity state when you return to them.
+- **Gaming stability**: real games receive a fast protection pass, launcher/helper filtering, CPU-bound assistance, GPU/VRAM pressure awareness, and safer rollback behavior.
+- **Zero Ping**: optional UDP-session protection for online games, with game/helper classification, UDP confidence, QoS/DSCP readiness, and no DNS, IP, Winsock, adapter, or driver changes.
+- **Streaming safety**: OBS, Streamlabs, TikTok Studio, Discord/voice, capture, and encoder-sensitive workloads are protected while non-essential browser/helper pressure is reduced more carefully.
+- **Beta Games library**: per-game discovery, community preset structure, backup-before-apply, restore-to-default flow, and apply gating so presets do not run against the wrong folder.
+- **Installer and updater polish**: WebView-only runtime path, idempotent startup setup, old-runtime cleanup, internal update flow, and preservation of user settings across updates.
 
 <p align="center">
   <img src="docs/images/smart-nap-about-panel.png" alt="Smart Background Nap overview" width="100%">
@@ -46,6 +61,9 @@ For safe background apps, the engine can apply:
 - Windows Power Throttling / EcoQoS where supported
 - timer-resolution isolation for throttled background apps
 - cooldown-aware working set trimming above configurable RAM thresholds
+- temporary, reversible helper affinity containment when the engine has a safe classification
+- optional QoS/DSCP policy readiness for confirmed UDP game sessions
+- GPU/VRAM pressure observation to reduce surrounding contention without driver tuning
 
 It avoids the things that should stay awake:
 
@@ -59,22 +77,25 @@ It avoids the things that should stay awake:
 ## Key Features
 
 - **Single EXE release**: download `SmartBackgroundNap.exe` and run it.
-- **Modern dashboard**: .NET 9 / WebView2 launcher with live telemetry, event stream, and real-time manager.
-- **Tray indicator**: quick access to dashboard, optimize now, logs, config, restore, and exit.
-- **Automatic mode**: scheduled optimization passes after login and every few minutes.
+- **Approved dashboard visual**: the 0.5.60 release keeps the cleaner 0.5.45 dashboard look while exposing the newer backend data.
+- **Modern WebView launcher**: .NET 9 / WebView2 dashboard with live telemetry, event stream, Live Manager, language selector, and real-time controls.
+- **Tray control**: quick access to dashboard, optimize now, pause/resume, mode switching, power actions, update actions, and exit.
+- **Automatic motor**: scheduled optimization passes after login and during the session, with manual Optimize Now when the user wants an immediate pass.
 - **Start with Windows**: managed per-user startup copy under `%LOCALAPPDATA%\Programs\SmartBackgroundNap`.
-- **Intent Engine**: detects whether the session looks like desktop work, gaming, media/calls, downloads/installs, or real memory pressure.
-- **Contention Radar**: reports which apps are currently creating CPU, memory, burst, or guarded workload pressure.
-- **Per-app policy**: set apps to Auto, Protect, Light, Balanced, or Deep directly from the Live Manager.
-- **Foreground Wake Restore**: priority, memory priority, I/O priority, and EcoQoS are restored quickly when an app becomes active.
-- **Foreground Switch Accelerator**: apps you bring back repeatedly are protected from overly aggressive naps.
-- **Adaptive nap tiers**: Light, Balanced, and Deep decisions based on process behavior and session context.
-- **Media and launcher guards**: active calls, media, streams, game launchers, downloads, and installers are treated cautiously.
+- **Intent Engine**: detects whether the session looks like desktop work, gaming, streaming, media/calls, downloads/installs, professional work, development, or memory pressure.
+- **Foreground Wake Restore**: priority, memory priority, I/O priority, EcoQoS, and safe affinity state are restored quickly when an app becomes active.
+- **CPU-Bound Assist**: reduces safe background contention around CPU-limited games and heavy workloads so the foreground workload has more room to breathe.
+- **GPU/VRAM Pressure Guard**: observes GPU and VRAM pressure and reduces surrounding helper pressure without changing drivers, clocks, overclocking, or game graphics preferences.
+- **Zero Ping**: optional UDP-session protection for online games with game/process-tree classification, UDP confidence, QoS/DSCP readiness, and no DNS/IP/Winsock changes.
+- **Streaming Safe Lane**: protects OBS, Streamlabs, TikTok Studio, Discord/voice, capture, and encoder-sensitive sessions while treating non-essential browser helpers more carefully.
+- **Game and launcher intelligence**: separates real games from Steam, EA App, Epic, browser helpers, anti-cheat helpers, and other intermediate processes.
+- **Beta Games library**: community preset groundwork with local game discovery, backup/restore flow, restore-to-default, and safer apply gating.
 - **Smart Learning**: optional local profiles that adapt nap strength when memory pressure rises.
-- **Permission Guard**: shows apps that denied changes and can request one administrator pass through UAC.
+- **Per-app policy**: set apps to Auto, Protect, Light, Balanced, or Deep directly from the Live Manager.
+- **Permission Guard**: shows apps that denied changes and can request one administrator pass through UAC when needed.
+- **Rollback and diagnostics**: restore state, safety report, event stream, and regression guard coverage for critical engine behavior.
 - **Multilingual UI**: Portuguese BR, English, Russian, Spanish, French, and German.
-- **Safety report**: local report with executable path, SHA-256, runtime folder, task status, and behavior summary.
-- **Official update check**: checks GitHub Releases for a newer version, with user-controlled automatic reminders, manual search, update, and ignore-this-version actions.
+- **Internal update flow**: checks official GitHub Releases, downloads updates inside the app, preserves settings, and cleans old runtime files.
 
 ## Intelligence Engine
 
@@ -135,15 +156,15 @@ The launcher includes:
 - Pause / resume motor
 - Restore latest state
 - Smart Learning toggle with explanation
+- Zero Ping toggle with explanation
+- Mode selection: Auto, Gaming, Competitive, Live / Streamer, Work, and Focus
 - Permission Guard with administrator request
-- Live Manager
-- One-click app policy controls
-- Intent Engine telemetry
-- Contention Radar telemetry
-- Event Stream
-- Engine Telemetry
-- Nap Score
+- Live Manager with one-click app policy controls
+- Beta Games library with per-game discovery and preset review
+- Intent Engine, Contention Radar, Zero Ping, GPU/VRAM, CPU-Bound, and streaming telemetry
+- Event Stream and diagnostic output
 - Language selector
+- Internal update controls
 - Local files, logs, config, safety report, README, and GitHub shortcuts
 
 ## Trust And Privacy
@@ -244,16 +265,18 @@ python .\tools\art\render-readme-images.py
 Smart Background Nap avoids invasive tuning:
 
 - no app killing
-- no forced process suspension
-- no CPU affinity rules
-- no CPU Sets
+- no blind process suspension
 - no overclocking
 - no undervolting
-- no GPU tuning
 - no driver changes
+- no GPU clock, voltage, BIOS, or control-panel tuning
+- no DNS, IP, Winsock, adapter, or firewall rewrites for Zero Ping
+- no game input, field-of-view, sensitivity, or gameplay preference changes
 - no Windows service disabling
+- no broad registry-cleaner style tweaks
+- no arbitrary CPU pinning; affinity is only used as a temporary, reversible containment tool for known-safe helpers when enabled
 
-It is a background-pressure reducer. Results depend on workload, hardware, Windows version, and app behavior.
+It is a background-pressure reducer and foreground-protection engine. Results depend on workload, hardware, Windows version, game behavior, streaming setup, permissions, and thermal/power limits.
 
 ## Suggested Topics
 
@@ -261,6 +284,7 @@ It is a background-pressure reducer. Results depend on workload, hardware, Windo
 windows
 windows-11
 gaming
+competitive-gaming
 performance
 optimization
 background-apps
@@ -268,6 +292,14 @@ process-priority
 memory-management
 ecoqos
 power-throttling
+zero-ping
+udp-netcode
+qos-dscp
+cpu-bound
+gpu-pressure
+vram-pressure
+obs
+streaming
 tray-app
 webview2
 dotnet-9
@@ -276,8 +308,8 @@ ram-optimizer
 multitasking
 foreground-boost
 windows-performance
+game-optimizer
 ```
-
 ## License
 
 MIT License. See `LICENSE`.

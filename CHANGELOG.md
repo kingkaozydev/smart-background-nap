@@ -1,3 +1,20 @@
+# Changelog
+
+## 0.5.60 - 2026-07-28
+
+- Restored the launcher to the approved 0.5.45 dashboard visual while keeping the 0.5.60 backend, telemetry, and feature set.
+- Strengthened foreground restore so apps, games, development tools, media apps, and streaming tools recover priority, memory priority, I/O priority, EcoQoS state, and safe affinity state when they become important again.
+- Added stronger process-state safeguards, rollback tracking, cooldowns, protected-process filtering, and regression checks so background tweaks do not remain stuck on foreground apps.
+- Added CPU-Bound Assist for games and heavy workloads: the engine reduces safe background contention around the active workload instead of blindly boosting everything.
+- Added GPU/VRAM pressure awareness, including GPU helper detection and VRAM-pressure behavior that reduces surrounding pressure without touching drivers, clocks, overclocking, DNS, Winsock, or game input settings.
+- Added streamer-safe behavior for OBS, Streamlabs, TikTok Studio, Discord/voice, capture, browser helpers, and encoder-sensitive sessions.
+- Added the stronger Zero Ping stack: session classification, game/helper correlation, launcher filtering, UDP confidence, netcode shield metadata, QoS/DSCP readiness, and stricter lock-on that only reports active protection after UDP is confirmed on the game or related process tree.
+- Added Game Shockwave / Process Start Radar style behavior so real games and serious foreground workloads receive immediate protection before slower UDP confirmation finishes.
+- Preserved the beta Games library groundwork: game discovery, per-game community preset structure, backup/restore flow, apply gating, and restore-to-default support for file-based tweaks.
+- Improved installation and update robustness with the .NET WebView-only runtime path, idempotent startup handling, first-run/admin setup safeguards, cleanup of old runtimes, internal update flow, and preservation of existing user settings.
+- Restored the approved 0.5.45 dashboard look for the 0.5.60 release while adapting only the bindings needed for the new backend fields.
+- Added regression coverage for core engine invariants so future changes do not silently weaken foreground restore, game detection, Zero Ping context, or rollback safety.
+
 ## 0.5.45 - Dashboard spacing and stability polish
 
 - Refined the main dashboard hero so the Zero Ping and engine control area use space cleanly instead of leaving a large empty block.
@@ -5,7 +22,7 @@
 - Kept the beta Games library work: per-game presets, restore-to-default flow for file-based tweaks, better local game discovery, and clearer preset confirmation.
 - Kept the premium WebView launcher refresh, new logo/tray identity, improved layout behavior, and safer update/install flow.
 - Preserved user settings during updates and avoided resetting optional features such as Zero Ping and Smart Learning.
-# Changelog
+
 ## 0.4.13 - 2026-07-15
 
 - Fixed Live Manager policy buttons so A/P/L/B/D update immediately after selection.
@@ -47,6 +64,7 @@
 - Added a public landing site that pulls the latest release and recent repository changes from GitHub automatically.
 - Updated trust documentation so the network model is explicit: no telemetry and no user data uploads; update checks only read official GitHub release metadata.
 - Fixed the first-run language selector labels so multilingual choices render cleanly.
+
 ## 0.4.5 - 2026-07-15
 
 - Added Behavior Engine, a local per-app profiler that learns from aggregate app behavior instead of treating every child process as a separate app.

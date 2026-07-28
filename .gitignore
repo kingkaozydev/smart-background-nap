@@ -3,6 +3,7 @@ bin/
 obj/
 .dotnet-sdk/
 .dotnet-home/
+.build-data/
 .appdata/
 .nuget/
 *.WebView2/
