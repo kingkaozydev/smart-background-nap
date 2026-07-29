@@ -1,5 +1,49 @@
 # Changelog
 
+## 0.6.6 - 2026-07-29
+
+- Added generic game executable detection for Zero Ping, ShaderBoost, CPU-bound assist, and GPU/VRAM optimization, so unknown games can be detected by foreground/fullscreen, UDP, CPU, executable path, install roots, and related process hints instead of relying only on preset game names.
+- Added executable path fallback through `Win32_Process.ExecutablePath` plus cached PID lookup when `Process.Path` is unavailable.
+- Expanded game executable resolution through saved user paths, related process roots, common store/library roots, and bounded `.exe` search while keeping launcher/service/helper exclusions.
+- Kept EA launcher/local host/anti-cheat helper processes blocked from becoming the active game even when broad EA path fragments exist in user config.
+
+## 0.6.5 - 2026-07-29
+
+- Added VRAM Action Mode: during protected gameplay with VRAM pressure, background browsers and launcher helpers using GPU/VRAM can receive stronger temporary containment.
+- Applied a more aggressive but guarded action path for eligible helpers: lower priority, lower memory/I/O priority, and tighter CPU affinity, while preserving the game, anti-cheat, foreground tree, streaming/audio/media, and protected apps.
+- Added configurable thresholds for VRAM action containment so the mode can be tuned without changing code.
+- Tightened game lock-on so EA launcher/local host/anti-cheat helper processes are not treated as the active game when the real game is closed.
+
+## 0.6.4 - 2026-07-29
+
+- Added a saved game path fallback for protected games whose executable path is hidden by anti-cheat, letting Zero Ping and ShaderBoost recover the trusted game executable from `game-paths.user.json`.
+- Merged built-in game path fragments with configured fragments so store-specific roots such as Battlefield/EA folders remain recognized even when the config supplies its own list.
+- Improved ShaderBoost game anchoring for protected games so `GameRoot`, game update detection, cache inventory, and Zero Ping QoS path handling can work from a validated local install path.
+
+## 0.6.3 - 2026-07-29
+
+- Added Frame Stability Mode for ShaderBoost sessions: when shader cache is healthy but VRAM/CPU pressure is hurting frametime, bursty background browsers can receive temporary CPU affinity containment.
+- Kept the protection conservative: games, anti-cheat, foreground trees, protected apps, stream/audio/media, and Zero Ping protected processes are not affinity-limited by this mode.
+- Added configurable frame-stability thresholds for browser affinity containment during gaming.
+
+## 0.6.2 - 2026-07-29
+
+- Added ShaderBoost Gameplay Light Scan so cache inventory uses a lighter scan and recent cached inventory while a game is active, reducing CPU/disk contention during gameplay.
+- Added ShaderBoost frame stability telemetry to flag when FPS instability is more likely VRAM/CPU pressure than shader-cache health.
+- Exposed ShaderBoost scan mode and frame-stability reason in dashboard telemetry.
+
+## 0.6.1 - 2026-07-28
+
+- Removed the active power plan summary card from the main dashboard card row so ShaderBoost, Zero Ping, and pass metrics realign without the extra empty row.
+- Fixed ShaderBoost localization keys so the dashboard card and telemetry line render the proper ShaderBoost name instead of raw i18n keys.
+- Fixed ShaderBoost game detection to reuse the Zero Ping game anchor even when anti-cheat or process permissions hide the executable path.
+- Prepared this as the local 0.6.1 test build before publication.
+
+## 0.6.0 - 2026-07-28
+
+- Added the first ShaderBoost / Shader Optimization Engine foundation as a safe observe-first system for GPU/API/driver detection, shader cache inventory, cache health classification, readiness scoring, driver/game invalidation detection, and compiler-process protection.
+- Added ShaderBoost dashboard telemetry and NapScore fields for state, readiness, API, GPU/vendor, cache manager, cache size, recommendation, warmup method, and possible shader compilation detection.
+- Added regression guards to keep ShaderBoost from becoming a destructive cache cleaner: the coordinator and inventory are not allowed to delete, move, or clear cache data.
 ## 0.5.60 - 2026-07-28
 
 - Restored the launcher to the approved 0.5.45 dashboard visual while keeping the 0.5.60 backend, telemetry, and feature set.

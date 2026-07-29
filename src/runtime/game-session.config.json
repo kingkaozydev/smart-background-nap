@@ -1,4 +1,4 @@
-﻿{
+{
     "ProtectedProcessNames":  [
                                   "ProcessLasso",
                                   "ProcessGovernor",
@@ -135,6 +135,7 @@
                       "LearningAggressiveFreeMemoryMB":  3072,
                       "IntentEngine":  true,
                       "IntentMinConfidence":  60,
+                      "GenericGameDetection":  true,
                       "ForegroundSwitchAccelerator":  true,
                       "ForegroundSwitchWindowSeconds":  90,
                       "ForegroundSwitchMinWakes":  2,
@@ -182,6 +183,7 @@
                                                         "Battle.net",
                                                         "EADesktop",
                                                         "EABackgroundService",
+                                                        "EALocalHostSvc",
                                                         "RiotClientServices",
                                                         "RiotClientUx",
                                                         "UbisoftConnect",
@@ -192,7 +194,9 @@
                                                         "EACefSubProcess",
                                                         "EALauncher",
                                                         "EASteamLauncher",
-                                                        "EAConnect"
+                                                        "EAConnect",
+                                                        "EAAntiCheat.GameService",
+                                                        "EAAntiCheat.GameServiceLauncher"
                                                     ],
                       "KnownCommunicationProcessNames":  [
                                                              "Discord",
@@ -218,7 +222,15 @@
                                                      "\\Battle.net\\",
                                                      "\\GOG Galaxy\\Games\\",
                                                      "\\EA Games\\",
-                                                     "\\Electronic Arts\\Games\\"
+                                                     "\\Electronic Arts\\Games\\",
+                                                     "\\Electronic Arts\\Battlefield",
+                                                     "\\Electronic Arts\\Apex",
+                                                     "\\Electronic Arts\\The Sims",
+                                                     "\\Electronic Arts\\FC",
+                                                     "\\Electronic Arts\\EA SPORTS FC",
+                                                     "\\Battlefield 6\\",
+                                                     "\\Battlefield6\\",
+                                                     "\\EA SPORTS FC 26\\"
                                                  ],
                       "NeverGameProcessNames":  [
                                                     "explorer",
@@ -387,10 +399,20 @@
                       "GpuHelperGuard":  true,
                       "GpuHelperDedicatedMemoryMB":  384,
                       "GpuHelperCpuCeiling":  2.4,
+                      "VramActionMode":  true,
+                      "VramActionDedicatedMemoryMB":  256,
+                      "VramActionGpuPercent":  0.8,
+                      "VramActionCpuAffinityPercent":  28,
+                      "VramActionMaxCpuPercent":  8.0,
+                      "VramActionMaxAffinityTargets":  4,
                       "CpuBoundAssist":  true,
                       "CpuBoundGameCpuPercent":  6,
                       "CpuBoundBackgroundBoost":  1.35,
                       "CpuBoundAffinityPercent":  45,
+                      "FrameStabilityMode":  true,
+                      "FrameStabilityBrowserAffinityPercent":  38,
+                      "FrameStabilityMinBurstCount":  8,
+                      "FrameStabilityMaxCpuPercent":  10.0,
                       "EngineHealthCheck":  true,
                       "RollbackAudit":  true,
                       "RollbackAuditMaxEntries":  180,
@@ -423,6 +445,19 @@
                                                     "Warzone"
                                                 ]
                   },
+    "ShaderBoost":  {
+                        "Enabled":  true,
+                        "ObserveOnly":  true,
+                        "WarmupEnabled":  false,
+                        "RepairEnabled":  false,
+                        "CacheScanMaxFiles":  1200,
+                        "GameplayScanThrottle":  true,
+                        "GameplayScanIntervalSeconds":  180,
+                        "GameplayScanMaxFiles":  240,
+                        "ReadinessMarginPercent":  30,
+                        "MinFreeDiskGB":  20.0,
+                        "MaxCacheBudgetPercent":  8.0
+                    },
     "Automation":  {
                        "TaskName":  "SmartBackgroundNap",
                        "IntervalMinutes":  5,

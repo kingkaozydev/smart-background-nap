@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 [assembly: AssemblyTitle("Smart Background Nap")]
@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTrademark("KaozyKing")]
 [assembly: ComVisible(false)]
 [assembly: Guid("3e5c6fd8-8ef9-4baf-92c7-6a32e2dd0eb6")]
-[assembly: AssemblyVersion("0.5.60.0")]
-[assembly: AssemblyFileVersion("0.5.60.0")]
-[assembly: AssemblyInformationalVersion("0.5.60")]
+[assembly: AssemblyVersion("0.6.6.0")]
+[assembly: AssemblyFileVersion("0.6.6.0")]
+[assembly: AssemblyInformationalVersion("0.6.6")]
 

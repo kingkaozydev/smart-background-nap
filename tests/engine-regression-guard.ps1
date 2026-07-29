@@ -67,6 +67,17 @@ Assert-Contains "Test-RealGameProcessCandidate" "Real game candidate classifier 
 Assert-Contains "Smart(Background)?Nap" "Smart Nap self-process exclusion is missing."
 Assert-Contains '$knownGameNames = New-Object' "Known game name set is missing."
 Assert-Contains "bf6" "BF6 executable alias is missing from game detection."
+Assert-Contains "game-paths.user.json" "Saved game path fallback is missing."
+Assert-Contains "Resolve-UserGamePathForProcess" "Protected game path resolver is missing."
+Assert-Contains "Resolve-GameExecutablePath" "Generic game executable resolver is missing."
+Assert-Contains "Test-GenericGameProcessCandidate" "Generic game process classifier is missing."
+Assert-Contains "GenericGameDetection" "Generic game detection flag is missing."
+Assert-Contains "Get-CommonGameSearchRoots" "Common game install root search is missing."
+Assert-Contains "Get-ProcessGameRootHints" "Related process game root hints are missing."
+Assert-Contains "Win32_Process" "Process executable path fallback is missing."
+Assert-Contains "VramActionMode" "VRAM action mode config is missing."
+Assert-Contains "EALocalHostSvc" "EA launcher local host service must be classified as launcher, not game."
+Assert-Contains '"\Electronic Arts\"' "Broad Electronic Arts game path fragment filter is missing."
 Assert-Contains "Get-StreamingContext" "Streaming context telemetry is missing."
 Assert-Contains "Get-GpuOptimizationContext" "GPU optimization context is missing."
 Assert-Contains "Test-StreamingSafeLaneActive" "Streaming safe lane switch is missing."
@@ -104,14 +115,14 @@ foreach ($needle in @("Find-StateProcessItem", "Restore-ProcessRuntimeState", "G
 }
 
 $udpGuardBlock = Get-FunctionBlock "Get-UdpGuardContext"
-foreach ($needle in @("anchorLooksLikeGame", "Test-RealGameProcessCandidate", "Get-RelatedUdpEndpointSummary")) {
+foreach ($needle in @("anchorLooksLikeGame", "Test-RealGameProcessCandidate", "Get-RelatedUdpEndpointSummary", "Resolve-GameExecutablePath", "QosStatus")) {
     if ($udpGuardBlock -notlike "*$needle*") {
         throw "Zero Ping context is missing $needle."
     }
 }
 
 $intentBlock = Get-FunctionBlock "Get-IntentContext"
-foreach ($needle in @("fgLooksLikeGame", "Test-RealGameProcessCandidate", "udp-game-background")) {
+foreach ($needle in @("fgLooksLikeGame", "Test-RealGameProcessCandidate", "Resolve-GameExecutablePath", "udp-game-background")) {
     if ($intentBlock -notlike "*$needle*") {
         throw "Intent context is missing $needle."
     }
@@ -140,7 +151,7 @@ foreach ($needle in @("Test-StreamingSafeLaneActive", "GpuOptimizationActive", "
 }
 
 $policyBlock = Get-FunctionBlock "Get-NapPolicy"
-foreach ($needle in @("Test-StreamingSafeLaneActive", "gpu-workload-helper-containment")) {
+foreach ($needle in @("Test-StreamingSafeLaneActive", "gpu-workload-helper-containment", "vram-action-helper-containment", "gpu-action")) {
     if ($policyBlock -notlike "*$needle*") {
         throw "Nap policy is missing $needle."
     }
@@ -161,10 +172,62 @@ foreach ($needle in @("rollbackStatePath", "UdpGameProtected", "GpuHelperPressur
 }
 
 $scoreBlock = Get-FunctionBlock "Write-NapScore"
-foreach ($needle in @("StreamGuardProfile", "GpuOptimizationStatus", "GpuOptimizationReason")) {
+foreach ($needle in @("StreamGuardProfile", "GpuOptimizationStatus", "GpuOptimizationReason", "ShaderBoostState", "ShaderBoostReadiness", "ShaderBoostCompilationState")) {
     if ($scoreBlock -notlike "*$needle*") {
         throw "Nap score output is missing $needle."
     }
 }
+
+$shaderCoordinatorBlock = Get-FunctionBlock "Get-ShaderBoostCoordinator"
+foreach ($needle in @("ShaderBoostCoordinator", "ShaderCapabilityDetector", "ShaderCacheInventory", "ShaderCacheHealthAnalyzer", "ShaderCacheBudgetManager", "ShaderCacheGuardian", "SmartShaderWarmup", "ObserveOnly", "no automatic repair", "CacheScanMode", "FrameStabilityGuard")) {
+    if ($shaderCoordinatorBlock -notlike "*$needle*") {
+        throw "ShaderBoost coordinator is missing $needle."
+    }
+}
+foreach ($forbidden in @("Remove-Item", "Clear-Item", "Move-Item", "rmdir", "del ")) {
+    if ($shaderCoordinatorBlock -like "*$forbidden*") {
+        throw "ShaderBoost coordinator must not behave like a shader cache cleaner: $forbidden"
+    }
+}
+
+$shaderAnchorBlock = Get-FunctionBlock "Get-ShaderBoostGameAnchor"
+foreach ($needle in @("UdpGuard.GamePid", "Get-ProcessPathText", "Resolve-GameExecutablePath", 'Source = "ZeroPing"')) {
+    if ($shaderAnchorBlock -notlike "*$needle*") {
+        throw "ShaderBoost game anchor must reuse Zero Ping game detection without requiring a readable game path: $needle"
+    }
+}
+if ($shaderAnchorBlock -like "*UdpGuard.GamePath))*") {
+    throw "ShaderBoost must not require Zero Ping GamePath before accepting the detected game."
+}
+
+$shaderInventoryBlock = Get-FunctionBlock "Get-ShaderCacheInventory"
+foreach ($needle in @("WindowsManaged", "NvidiaShaderAdapter", "AmdShaderAdapter", "IntelShaderAdapter", "GameManaged", "GameplayActive", "CachedGameplay", "LightGameplay", "shaderBoostInventoryStatePath")) {
+    if ($shaderInventoryBlock -notlike "*$needle*") {
+        throw "Shader cache inventory is missing $needle."
+    }
+}
+foreach ($forbidden in @("Remove-Item", "Clear-Item", "Move-Item", "rmdir", "del ")) {
+    if ($shaderInventoryBlock -like "*$forbidden*") {
+        throw "Shader cache inventory must not delete or move caches: $forbidden"
+    }
+}
+
+$guardBlock = Get-FunctionBlock "Get-GuardDecision"
+foreach ($needle in @("ShaderCompilationGuard", "ShaderCompiler")) {
+    if ($guardBlock -notlike "*$needle*") {
+        throw "Shader compilation protection is missing $needle."
+    }
+}
+
+$frameStabilityAffinityBlock = Get-FunctionBlock "Test-FrameStabilityAffinityCandidate"
+foreach ($needle in @("FrameStabilityGuard", '"Browser"', "UdpGameProtected", "ForegroundTreeProtected", "frameStabilityMinBurstCount")) {
+    if ($frameStabilityAffinityBlock -notlike "*$needle*") {
+        throw "Frame stability affinity guard is missing $needle."
+    }
+}
+
+Assert-Contains "OKFrameStability" "Frame stability affinity application result is missing."
+Assert-Contains "Test-VramActionCandidate" "VRAM action candidate guard is missing."
+Assert-Contains "OKVramAction" "VRAM action affinity application result is missing."
 
 "engine regression guard ok"

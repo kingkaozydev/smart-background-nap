@@ -30,7 +30,7 @@ using Microsoft.Web.WebView2.Wpf;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.5.60";
+    private const string AppVersion = "0.6.6";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
@@ -8646,6 +8646,30 @@ internal static class SmartBackgroundNap
             state.GpuTopProcessPid = scoreMeta.GpuTopProcessPid;
             state.GpuTopProcessPercent = scoreMeta.GpuTopProcessPercent;
             state.GpuTopProcessDedicatedMB = scoreMeta.GpuTopProcessDedicatedMB;
+            state.ShaderBoostEnabled = scoreMeta.ShaderBoostEnabled;
+            state.ShaderBoostObserveOnly = scoreMeta.ShaderBoostObserveOnly;
+            state.ShaderBoostState = scoreMeta.ShaderBoostState;
+            state.ShaderBoostSharedState = scoreMeta.ShaderBoostSharedState;
+            state.ShaderBoostReadiness = scoreMeta.ShaderBoostReadiness;
+            state.ShaderBoostRecommendation = scoreMeta.ShaderBoostRecommendation;
+            state.ShaderBoostGame = scoreMeta.ShaderBoostGame;
+            state.ShaderBoostGamePid = scoreMeta.ShaderBoostGamePid;
+            state.ShaderBoostGameRoot = scoreMeta.ShaderBoostGameRoot;
+            state.ShaderBoostApi = scoreMeta.ShaderBoostApi;
+            state.ShaderBoostApiConfidence = scoreMeta.ShaderBoostApiConfidence;
+            state.ShaderBoostGpu = scoreMeta.ShaderBoostGpu;
+            state.ShaderBoostVendor = scoreMeta.ShaderBoostVendor;
+            state.ShaderBoostDriverVersion = scoreMeta.ShaderBoostDriverVersion;
+            state.ShaderBoostCacheState = scoreMeta.ShaderBoostCacheState;
+            state.ShaderBoostCacheLocatedCount = scoreMeta.ShaderBoostCacheLocatedCount;
+            state.ShaderBoostCacheTotalSizeMB = scoreMeta.ShaderBoostCacheTotalSizeMB;
+            state.ShaderBoostCacheManager = scoreMeta.ShaderBoostCacheManager;
+            state.ShaderBoostCompilationState = scoreMeta.ShaderBoostCompilationState;
+            state.ShaderBoostCompilationPossible = scoreMeta.ShaderBoostCompilationPossible;
+            state.ShaderBoostPreparationMethod = scoreMeta.ShaderBoostPreparationMethod;
+            state.ShaderBoostWarmupState = scoreMeta.ShaderBoostWarmupState;
+            state.ShaderBoostSignals = scoreMeta.ShaderBoostSignals;
+            state.ShaderBoostDetails = scoreMeta.ShaderBoostDetails;
             state.CpuBoundAssistActive = scoreMeta.CpuBoundAssistActive;
             state.CpuBoundAssistGame = scoreMeta.CpuBoundAssistGame;
             state.CpuBoundAssistGamePid = scoreMeta.CpuBoundAssistGamePid;
@@ -8969,6 +8993,30 @@ internal static class SmartBackgroundNap
                 meta.GpuTopProcessPid = GetInt(root, "GpuTopProcessPid");
                 meta.GpuTopProcessPercent = GetDouble(root, "GpuTopProcessPercent");
                 meta.GpuTopProcessDedicatedMB = GetDouble(root, "GpuTopProcessDedicatedMB");
+                meta.ShaderBoostEnabled = GetBool(root, "ShaderBoostEnabled");
+                meta.ShaderBoostObserveOnly = GetBool(root, "ShaderBoostObserveOnly");
+                meta.ShaderBoostState = GetString(root, "ShaderBoostState");
+                meta.ShaderBoostSharedState = GetString(root, "ShaderBoostSharedState");
+                meta.ShaderBoostReadiness = GetInt(root, "ShaderBoostReadiness");
+                meta.ShaderBoostRecommendation = GetString(root, "ShaderBoostRecommendation");
+                meta.ShaderBoostGame = GetString(root, "ShaderBoostGame");
+                meta.ShaderBoostGamePid = GetInt(root, "ShaderBoostGamePid");
+                meta.ShaderBoostGameRoot = GetString(root, "ShaderBoostGameRoot");
+                meta.ShaderBoostApi = GetString(root, "ShaderBoostApi");
+                meta.ShaderBoostApiConfidence = GetInt(root, "ShaderBoostApiConfidence");
+                meta.ShaderBoostGpu = GetString(root, "ShaderBoostGpu");
+                meta.ShaderBoostVendor = GetString(root, "ShaderBoostVendor");
+                meta.ShaderBoostDriverVersion = GetString(root, "ShaderBoostDriverVersion");
+                meta.ShaderBoostCacheState = GetString(root, "ShaderBoostCacheState");
+                meta.ShaderBoostCacheLocatedCount = GetInt(root, "ShaderBoostCacheLocatedCount");
+                meta.ShaderBoostCacheTotalSizeMB = GetDouble(root, "ShaderBoostCacheTotalSizeMB");
+                meta.ShaderBoostCacheManager = GetString(root, "ShaderBoostCacheManager");
+                meta.ShaderBoostCompilationState = GetString(root, "ShaderBoostCompilationState");
+                meta.ShaderBoostCompilationPossible = GetBool(root, "ShaderBoostCompilationPossible");
+                meta.ShaderBoostPreparationMethod = GetString(root, "ShaderBoostPreparationMethod");
+                meta.ShaderBoostWarmupState = GetString(root, "ShaderBoostWarmupState");
+                meta.ShaderBoostSignals = ReadStringList(root, "ShaderBoostSignals");
+                meta.ShaderBoostDetails = ReadStringList(root, "ShaderBoostDetails");
                 meta.CpuBoundAssistActive = GetBool(root, "CpuBoundAssistActive");
                 meta.CpuBoundAssistGame = GetString(root, "CpuBoundAssistGame");
                 meta.CpuBoundAssistGamePid = GetInt(root, "CpuBoundAssistGamePid");
@@ -9952,6 +10000,30 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public int GpuTopProcessPid { get; set; }
             public double GpuTopProcessPercent { get; set; }
             public double GpuTopProcessDedicatedMB { get; set; }
+            public bool ShaderBoostEnabled { get; set; }
+            public bool ShaderBoostObserveOnly { get; set; }
+            public string ShaderBoostState { get; set; }
+            public string ShaderBoostSharedState { get; set; }
+            public int ShaderBoostReadiness { get; set; }
+            public string ShaderBoostRecommendation { get; set; }
+            public string ShaderBoostGame { get; set; }
+            public int ShaderBoostGamePid { get; set; }
+            public string ShaderBoostGameRoot { get; set; }
+            public string ShaderBoostApi { get; set; }
+            public int ShaderBoostApiConfidence { get; set; }
+            public string ShaderBoostGpu { get; set; }
+            public string ShaderBoostVendor { get; set; }
+            public string ShaderBoostDriverVersion { get; set; }
+            public string ShaderBoostCacheState { get; set; }
+            public int ShaderBoostCacheLocatedCount { get; set; }
+            public double ShaderBoostCacheTotalSizeMB { get; set; }
+            public string ShaderBoostCacheManager { get; set; }
+            public string ShaderBoostCompilationState { get; set; }
+            public bool ShaderBoostCompilationPossible { get; set; }
+            public string ShaderBoostPreparationMethod { get; set; }
+            public string ShaderBoostWarmupState { get; set; }
+            public List<string> ShaderBoostSignals { get; set; }
+            public List<string> ShaderBoostDetails { get; set; }
             public bool CpuBoundAssistActive { get; set; }
             public string CpuBoundAssistGame { get; set; }
             public int CpuBoundAssistGamePid { get; set; }
@@ -10099,6 +10171,30 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public int GpuTopProcessPid { get; set; }
             public double GpuTopProcessPercent { get; set; }
             public double GpuTopProcessDedicatedMB { get; set; }
+            public bool ShaderBoostEnabled { get; set; }
+            public bool ShaderBoostObserveOnly { get; set; }
+            public string ShaderBoostState { get; set; }
+            public string ShaderBoostSharedState { get; set; }
+            public int ShaderBoostReadiness { get; set; }
+            public string ShaderBoostRecommendation { get; set; }
+            public string ShaderBoostGame { get; set; }
+            public int ShaderBoostGamePid { get; set; }
+            public string ShaderBoostGameRoot { get; set; }
+            public string ShaderBoostApi { get; set; }
+            public int ShaderBoostApiConfidence { get; set; }
+            public string ShaderBoostGpu { get; set; }
+            public string ShaderBoostVendor { get; set; }
+            public string ShaderBoostDriverVersion { get; set; }
+            public string ShaderBoostCacheState { get; set; }
+            public int ShaderBoostCacheLocatedCount { get; set; }
+            public double ShaderBoostCacheTotalSizeMB { get; set; }
+            public string ShaderBoostCacheManager { get; set; }
+            public string ShaderBoostCompilationState { get; set; }
+            public bool ShaderBoostCompilationPossible { get; set; }
+            public string ShaderBoostPreparationMethod { get; set; }
+            public string ShaderBoostWarmupState { get; set; }
+            public List<string> ShaderBoostSignals { get; set; }
+            public List<string> ShaderBoostDetails { get; set; }
             public bool CpuBoundAssistActive { get; set; }
             public string CpuBoundAssistGame { get; set; }
             public int CpuBoundAssistGamePid { get; set; }

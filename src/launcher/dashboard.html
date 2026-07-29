@@ -1345,7 +1345,7 @@ body:after{opacity:.12!important;background-size:44px 44px!important;mask-image:
             <div class="card"><small data-i18n="cardPassActionsK">Ações no passe</small><b id="actionsCard">-</b></div>
             <div class="card"><small data-i18n="cardBurstsK">Picos recentes</small><b id="burstsCard">-</b></div>
             <div class="card"><small data-i18n="cardUdpK">Zero Ping</small><b id="udpCard">-</b></div>
-            <div class="card"><small data-i18n="cardPowerK">Plano ativo</small><b id="powerCard">-</b></div>
+            <div class="card"><small data-i18n="cardShaderK">ShaderBoost</small><b id="shaderBoostCard">-</b></div>
           </section>
           <section class="updatePanel" id="updatePanel">
             <div class="updateCopy">
@@ -1420,6 +1420,7 @@ body:after{opacity:.12!important;background-size:44px 44px!important;mask-image:
               <div class="focusLine metric-intent"><small data-i18n="intentState">Intent engine</small><b id="intentState">-</b></div>
               <div class="focusLine metric-radar"><small data-i18n="contentionRadar">Contention radar</small><b id="radarState">-</b></div>
               <div class="focusLine metric-zero"><small data-i18n="udpTelemetryK">Zero Ping</small><b id="udpTelemetry">-</b></div>
+              <div class="focusLine metric-shader"><small data-i18n="shaderTelemetryK">ShaderBoost</small><b id="shaderBoostState">-</b></div>
               <div class="focusLine metric-gpu"><small data-i18n="gpuPressureK">GPU/VRAM</small><b id="gpuPressureState">-</b></div>
               <div class="focusLine metric-cpu"><small data-i18n="cpuBoundK">CPU-Bound Assist</small><b id="cpuBoundState">-</b></div>
               <div class="focusLine metric-live"><small data-i18n="streamTelemetryK">Live Guard</small><b id="streamTelemetry">-</b></div>
@@ -1883,11 +1884,11 @@ Object.assign(LANGS["en-US"],{engineProcessesK:"Analyzed processes",engineAction
 Object.assign(LANGS["es-ES"],{engineProcessesK:"Procesos analizados",engineActionsK:"Acciones aplicadas",engineAccessK:"Permisos",engineIntentK:"Contexto detectado",engineMemoryK:"RAM libre",enginePassK:"Ultimo pase",pulseCpuK:"Prioridad CPU",pulseRamK:"Memoria",pulseIoK:"Prioridad I/O",pulseEcoK:"EcoQoS",cardProcessesK:"Procesos leidos",cardGroupedK:"Apps agrupadas",cardFreeRamK:"RAM libre",cardNextK:"Proximo ciclo",cardDeniedK:"Bloqueos",modeIntentK:"Contexto detectado",modePoliciesK:"Reglas manuales",modeAccessK:"Permisos",processesLabel:"procesos",accessClear:"Sin bloqueos",manualRuleSingular:"regla",manualRulePlural:"reglas",noAppliedActions:"Sin cambios nuevos",actionSummaryShort:"CPU {cpu} / I/O {io} / Eco {eco}",notTouched:"Sin ajuste",ramPulseTrim:"{trim} trim / {memory} prioridad",ramPulsePriority:"{memory} prioridades",ramPulseCooldown:"{count} en pausa",passAppliedTitle:"{apps} apps agrupadas en {processes} procesos"});
 Object.assign(LANGS["fr-FR"],{engineProcessesK:"Processus analyses",engineActionsK:"Actions appliquees",engineAccessK:"Permissions",engineIntentK:"Contexte detecte",engineMemoryK:"RAM libre",enginePassK:"Dernier passage",pulseCpuK:"Priorite CPU",pulseRamK:"Memoire",pulseIoK:"Priorite I/O",pulseEcoK:"EcoQoS",cardProcessesK:"Processus lus",cardGroupedK:"Apps groupees",cardFreeRamK:"RAM libre",cardNextK:"Prochain cycle",cardDeniedK:"Blocages",modeIntentK:"Contexte detecte",modePoliciesK:"Regles manuelles",modeAccessK:"Permissions",processesLabel:"processus",accessClear:"Aucun blocage",manualRuleSingular:"regle",manualRulePlural:"regles",noAppliedActions:"Aucun changement",actionSummaryShort:"CPU {cpu} / I/O {io} / Eco {eco}",notTouched:"Aucun ajustement",ramPulseTrim:"{trim} trim / {memory} priorite",ramPulsePriority:"{memory} priorites",ramPulseCooldown:"{count} en pause",passAppliedTitle:"{apps} apps groupees sur {processes} processus"});
 Object.assign(LANGS["de-DE"],{engineProcessesK:"Analysierte Prozesse",engineActionsK:"Angewandte Aktionen",engineAccessK:"Rechte",engineIntentK:"Erkannter Kontext",engineMemoryK:"Freier RAM",enginePassK:"Letzter Durchlauf",pulseCpuK:"CPU-Prioritaet",pulseRamK:"Speicher",pulseIoK:"I/O-Prioritaet",pulseEcoK:"EcoQoS",cardProcessesK:"Gelesene Prozesse",cardGroupedK:"Gruppierte Apps",cardFreeRamK:"Freier RAM",cardNextK:"Naechster Zyklus",cardDeniedK:"Blockiert",modeIntentK:"Erkannter Kontext",modePoliciesK:"Manuelle Regeln",modeAccessK:"Rechte",processesLabel:"Prozesse",accessClear:"Keine Blockaden",manualRuleSingular:"Regel",manualRulePlural:"Regeln",noAppliedActions:"Keine neuen Aenderungen",actionSummaryShort:"CPU {cpu} / I/O {io} / Eco {eco}",notTouched:"Keine Aenderung",ramPulseTrim:"{trim} trim / {memory} Prioritaet",ramPulsePriority:"{memory} Prioritaeten",ramPulseCooldown:"{count} Pause",passAppliedTitle:"{apps} gruppierte Apps in {processes} Prozessen"});
-Object.assign(LANGS["pt-BR"],{cardPassActionsK:"Ações no passe",cardBurstsK:"Picos recentes",cardUdpK:"Zero Ping",cardPowerK:"Plano ativo",accessNeedsAdmin:"{count} bloqueios",noBursts:"Sem picos",burstSummary:"{bursts} picos / {apps} apps",actionSummaryShort:"CPU {cpu} / RAM {ram} / I/O {io} / Eco {eco}"});
-Object.assign(LANGS["en-US"],{cardPassActionsK:"Pass actions",cardBurstsK:"Recent peaks",cardUdpK:"Zero Ping",cardPowerK:"Active power plan",accessNeedsAdmin:"{count} blocks",noBursts:"No peaks",burstSummary:"{bursts} peaks / {apps} apps",actionSummaryShort:"CPU {cpu} / RAM {ram} / I/O {io} / Eco {eco}"});
-Object.assign(LANGS["es-ES"],{cardPassActionsK:"Acciones del pase",cardBurstsK:"Picos recientes",cardUdpK:"Zero Ping",cardPowerK:"Plan activo",accessNeedsAdmin:"{count} bloqueos",noBursts:"Sin picos",burstSummary:"{bursts} picos / {apps} apps",actionSummaryShort:"CPU {cpu} / RAM {ram} / I/O {io} / Eco {eco}"});
-Object.assign(LANGS["fr-FR"],{cardPassActionsK:"Actions du passage",cardBurstsK:"Pics recents",cardUdpK:"Zero Ping",cardPowerK:"Mode actif",accessNeedsAdmin:"{count} blocages",noBursts:"Aucun pic",burstSummary:"{bursts} pics / {apps} apps",actionSummaryShort:"CPU {cpu} / RAM {ram} / I/O {io} / Eco {eco}"});
-Object.assign(LANGS["de-DE"],{cardPassActionsK:"Durchlaufaktionen",cardBurstsK:"Letzte Peaks",cardUdpK:"Zero Ping",cardPowerK:"Aktiver Energieplan",accessNeedsAdmin:"{count} Blockaden",noBursts:"Keine Peaks",burstSummary:"{bursts} Peaks / {apps} Apps",actionSummaryShort:"CPU {cpu} / RAM {ram} / I/O {io} / Eco {eco}"});
+Object.assign(LANGS["pt-BR"],{cardPassActionsK:"Ações no passe",cardBurstsK:"Picos recentes",cardUdpK:"Zero Ping",cardShaderK:"ShaderBoost",shaderTelemetryK:"ShaderBoost",cardPowerK:"Plano ativo",accessNeedsAdmin:"{count} bloqueios",noBursts:"Sem picos",burstSummary:"{bursts} picos / {apps} apps",actionSummaryShort:"CPU {cpu} / RAM {ram} / I/O {io} / Eco {eco}"});
+Object.assign(LANGS["en-US"],{cardPassActionsK:"Pass actions",cardBurstsK:"Recent peaks",cardUdpK:"Zero Ping",cardShaderK:"ShaderBoost",shaderTelemetryK:"ShaderBoost",cardPowerK:"Active power plan",accessNeedsAdmin:"{count} blocks",noBursts:"No peaks",burstSummary:"{bursts} peaks / {apps} apps",actionSummaryShort:"CPU {cpu} / RAM {ram} / I/O {io} / Eco {eco}"});
+Object.assign(LANGS["es-ES"],{cardPassActionsK:"Acciones del pase",cardBurstsK:"Picos recientes",cardUdpK:"Zero Ping",cardShaderK:"ShaderBoost",shaderTelemetryK:"ShaderBoost",cardPowerK:"Plan activo",accessNeedsAdmin:"{count} bloqueos",noBursts:"Sin picos",burstSummary:"{bursts} picos / {apps} apps",actionSummaryShort:"CPU {cpu} / RAM {ram} / I/O {io} / Eco {eco}"});
+Object.assign(LANGS["fr-FR"],{cardPassActionsK:"Actions du passage",cardBurstsK:"Pics recents",cardUdpK:"Zero Ping",cardShaderK:"ShaderBoost",shaderTelemetryK:"ShaderBoost",cardPowerK:"Mode actif",accessNeedsAdmin:"{count} blocages",noBursts:"Aucun pic",burstSummary:"{bursts} pics / {apps} apps",actionSummaryShort:"CPU {cpu} / RAM {ram} / I/O {io} / Eco {eco}"});
+Object.assign(LANGS["de-DE"],{cardPassActionsK:"Durchlaufaktionen",cardBurstsK:"Letzte Peaks",cardUdpK:"Zero Ping",cardShaderK:"ShaderBoost",shaderTelemetryK:"ShaderBoost",cardPowerK:"Aktiver Energieplan",accessNeedsAdmin:"{count} Blockaden",noBursts:"Keine Peaks",burstSummary:"{bursts} Peaks / {apps} Apps",actionSummaryShort:"CPU {cpu} / RAM {ram} / I/O {io} / Eco {eco}"});
 Object.assign(LANGS["pt-BR"],{udpConfidenceHigh:"Confiança alta",udpConfidenceMedium:"Confiança média",udpConfidenceLow:"Confiança baixa",qosActive:"ativo",qosNeedsAdmin:"precisa admin",qosNoPath:"sem caminho",qosUnavailable:"indisponível",qosTip:"QoS/DSCP por aplicativo para priorizar pacotes UDP quando o Windows e a rede respeitam a marcação.",udpConfidenceTip:"Confiança da sessão Zero Ping baseada em jogo ativo, UDP, helper, tela cheia e histórico.",gpuPressureK:"GPU/VRAM",gpuPressureUnavailable:"Sem leitura",gpuHelperBadge:"GPU helper",gpuHelperTip:"App em segundo plano com uso de GPU; o motor reduz contenção sem mexer no driver.",vramPressureTip:"Pressão de VRAM detectada; o motor reduz disputa local em volta do jogo.",cpuBoundK:"CPU-Bound Assist",cpuBoundTip:"Jogo preso em CPU; o motor reduz disputa de fundo para liberar mais tempo ao jogo.",ready:"Pronto"});
 Object.assign(LANGS["en-US"],{udpConfidenceHigh:"High confidence",udpConfidenceMedium:"Medium confidence",udpConfidenceLow:"Low confidence",qosActive:"active",qosNeedsAdmin:"needs admin",qosNoPath:"no path",qosUnavailable:"unavailable",qosTip:"Per-app QoS/DSCP for UDP packets when Windows and the network honor the mark.",udpConfidenceTip:"Zero Ping session confidence based on active game, UDP, helper, fullscreen and history.",gpuPressureK:"GPU/VRAM",gpuPressureUnavailable:"No read",gpuHelperBadge:"GPU helper",gpuHelperTip:"Background GPU app; the engine reduces contention without touching the driver.",vramPressureTip:"VRAM pressure detected; the engine reduces local contention around the game.",cpuBoundK:"CPU-Bound Assist",cpuBoundTip:"CPU-bound game; the engine reduces background contention to free more time for the game.",ready:"Ready"});
 const LANGUAGE_ORDER = ["pt-BR","en-US","ru-RU","es-ES","fr-FR","de-DE"];
@@ -2464,8 +2465,7 @@ function paintState(state){
   txt("actionsCard",formatActionSummary(actions));
   txt("burstsCard",formatBurstSummary(s));
   txt("udpCard",formatUdpQuick(s));
-
-  txt("powerCard",formatPowerPlanSummary(s));
+  txt("shaderBoostCard",safeFormat(()=>formatShaderBoostQuick(s),"-"));
   txt("hardwareCpu",s.HardwareCpu || "-");
   txt("hardwareCpuDetail",s.HardwareCpuDetail || "-");
   txt("hardwareRam",safeFormat(()=>formatHardwareRam(s),s.HardwareRam||"-"));
@@ -2497,11 +2497,14 @@ function paintState(state){
   txt("intentState",safeFormat(()=>formatIntent(s),"-"));
   txt("radarState",safeFormat(()=>formatRadar(s),"-"));
   txt("udpTelemetry",safeFormat(()=>formatUdpTelemetry(s),"-"));
+  txt("shaderBoostState",safeFormat(()=>formatShaderBoostTelemetry(s),"-"));
   txt("gpuPressureState",safeFormat(()=>formatGpuPressure(s),"-"));
   txt("cpuBoundState",safeFormat(()=>formatCpuBoundAssist(s),"-"));
   txt("streamTelemetry",safeFormat(()=>formatStreamTelemetry(s),"-"));
   setTitle("udpCard",safeFormat(()=>formatUdpDetail(s),""));
   setTitle("udpTelemetry",safeFormat(()=>formatUdpDetail(s),""));
+  setTitle("shaderBoostCard",safeFormat(()=>formatShaderBoostDetail(s),""));
+  setTitle("shaderBoostState",safeFormat(()=>formatShaderBoostDetail(s),""));
   setTitle("gpuPressureState",safeFormat(()=>formatGpuPressureDetail(s),""));
   setTitle("cpuBoundState",safeFormat(()=>formatCpuBoundAssistDetail(s),""));
   setTitle("streamTelemetry",safeFormat(()=>formatStreamTelemetryDetail(s),""));
@@ -2770,6 +2773,55 @@ function formatUdpQuick(s){
   if(protectedCount>0) return state+" / "+protectedCount+" "+t("protectedGames");
   return endpoints>0 ? state+" / "+endpoints+" UDP" : state;
 }
+function shaderBoostStatusLabel(state){
+  const pt=isPt();
+  const raw=String(state||"NotAnalyzed");
+  const map={Disabled:pt?"Desativado":"Disabled",WaitingForGame:pt?"Aguardando jogo":"Waiting for game",NotAnalyzed:pt?"Nao analisado":"Not analyzed",CacheCold:pt?"Cache frio":"Cold cache",CacheBuilding:pt?"Cache em construcao":"Cache building",CacheHealthy:pt?"Shaders prontos":"Shaders ready",CacheInsufficient:pt?"Cache insuficiente":"Cache insufficient",CacheOutdated:pt?"Cache desatualizado":"Cache outdated",ShaderCompilationDetected:pt?"Compilacao detectada":"Compilation detected",RepairRecommended:pt?"Reparo recomendado":"Repair recommended",Unsupported:pt?"Nao disponivel":"Unavailable"};
+  return map[raw] || raw.replace(/([a-z])([A-Z])/g,"$1 $2");
+}
+function formatShaderBoostQuick(s){
+  if(!s || !s.ShaderBoostEnabled) return isPt()?"Desativado":"Disabled";
+  const status=shaderBoostStatusLabel(s.ShaderBoostState||s.ShaderBoostCacheState);
+  const ready=Number(s.ShaderBoostReadiness||0);
+  return status+(ready>0?" / "+ready+"%":"");
+}
+function formatShaderBoostTelemetry(s){
+  if(!s || !s.ShaderBoostEnabled) return isPt()?"Desativado":"Disabled";
+  const bits=[shaderBoostStatusLabel(s.ShaderBoostState||s.ShaderBoostCacheState)];
+  const game=String(s.ShaderBoostGame||"").trim();
+  const api=String(s.ShaderBoostApi||"").trim();
+  const ready=Number(s.ShaderBoostReadiness||0);
+  if(game) bits.push(game);
+  if(api && api!=="Unknown") bits.push(api);
+  if(ready>0) bits.push(ready+"%");
+  return bits.join(" / ");
+}
+function formatShaderBoostDetail(s){
+  if(!s || !s.ShaderBoostEnabled) return isPt()?"ShaderBoost desativado":"ShaderBoost disabled";
+  const lines=[formatShaderBoostTelemetry(s)];
+  const rec=String(s.ShaderBoostRecommendation||"").trim();
+  const gpu=String(s.ShaderBoostGpu||"").trim();
+  const vendor=String(s.ShaderBoostVendor||"").trim();
+  const driver=String(s.ShaderBoostDriverVersion||"").trim();
+  const cache=Number(s.ShaderBoostCacheLocatedCount||0);
+  const cacheSize=formatMb(s.ShaderBoostCacheTotalSizeMB||0);
+  const manager=String(s.ShaderBoostCacheManager||"").trim();
+  const scan=String(s.ShaderBoostCacheScanMode||"").trim();
+  const stability=String(s.ShaderBoostFrameStabilityReason||"").trim();
+  const method=String(s.ShaderBoostPreparationMethod||"").trim();
+  const shared=String(s.ShaderBoostSharedState||"").trim();
+  if(rec) lines.push(rec);
+  if(gpu) lines.push("GPU: "+gpu+(vendor&&vendor!=="Unknown"?" / "+vendor:""));
+  if(driver) lines.push("Driver: "+driver);
+  if(cache>0) lines.push((isPt()?"Caches localizados: ":"Caches found: ")+cache+(cacheSize?" / "+cacheSize:""));
+  if(manager) lines.push((isPt()?"Gerenciado por: ":"Managed by: ")+manager);
+  if(scan) lines.push((isPt()?"Varredura: ":"Scan: ")+scan+(Number(s.ShaderBoostCacheScanMaxFiles||0)>0?" / "+Number(s.ShaderBoostCacheScanMaxFiles||0)+" files":""));
+  if(s.ShaderBoostFrameStabilityGuard) lines.push((isPt()?"Estabilidade ativa: ":"Stability active: ")+(stability||"gameplay"));
+  if(method) lines.push((isPt()?"Metodo: ":"Method: ")+method);
+  if(shared) lines.push((isPt()?"Estado do motor: ":"Engine state: ")+shared);
+  if(s.ShaderBoostObserveOnly) lines.push(isPt()?"Modo seguro: observacao, sem reparo automatico":"Safe mode: observe-only, no automatic repair");
+  return lines.filter(Boolean).join("\n");
+}
 function formatGpuPressure(s){
   if(!s || !s.GpuPressureAvailable) return s&&s.GpuOptimizationActive ? formatGpuOptimization(s) : t("gpuPressureUnavailable");
   const level=translatePressure(String(s.GpuPressureLevel||"Unknown"));
@@ -2918,6 +2970,7 @@ function updateEnginePulse(s){
   updatePulseStep("pulseEco",stats.eco>0?"net":"",pulseActionText(stats.eco));
   setMetricLineVisible("streamTelemetry",!!(s&&(s.StreamGuardActive||Number(s.StreamGuardAppCount||0)>0||Number(s.StreamGuardHelperCount||0)>0||normalizedModeName(s.SessionMode)==="Streamer")));
   setMetricLineVisible("udpTelemetry",!!(s&&s.NetworkUdpGuard));
+  setMetricLineVisible("shaderBoostState",!!(s&&s.ShaderBoostEnabled));
   setMetricLineVisible("gpuPressureState",!!(s&&(s.GpuPressureAvailable||s.GpuOptimizationActive)));
   setMetricLineVisible("cpuBoundState",!!(s&&(s.CpuBoundAssistActive||s.CpuBoundAssistGame)));
 }
@@ -3314,6 +3367,7 @@ function formatGuardLabel(value){
   const raw=String(value||"").trim();
   const compact=raw.replace(/\d+/g,"").replace(/Guard/gi,"").replace(/\s+/g," ").trim();
   if(/MediaCall/i.test(raw)) return t("guardMediaCall");
+  if(/ShaderCompilation/i.test(raw)) return "ShaderBoost";
   if(/Streaming|Stream/i.test(raw)) return t("guardStreaming");
   if(/Protect/i.test(raw)) return t("guardProtected");
   if(/Launcher/i.test(raw)) return t("guardLauncher");

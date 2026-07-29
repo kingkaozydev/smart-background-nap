@@ -1,4 +1,4 @@
-﻿param(
+param(
     [ValidateSet("Status", "Apply", "Restore", "Watch", "ForegroundRestore")]
     [string]$Action = "Status",
 
@@ -38,6 +38,7 @@ if (-not $nap -or -not $nap.Enabled) {
     throw "BackgroundNap is disabled or missing in config."
 }
 $smart = $config.SmartMode
+$shaderBoost = $config.ShaderBoost
 
 if (-not $LogPath) {
     $workspace = $PSScriptRoot
@@ -59,6 +60,7 @@ $learningStatePath = Join-Path $outDir "background-nap-learning-latest.json"
 $intentStatePath = Join-Path $outDir "background-nap-intent-latest.json"
 $foregroundSwitchStatePath = Join-Path $outDir "background-nap-foreground-switch-latest.json"
 $gameProfileStatePath = Join-Path $outDir "background-nap-game-profiles-latest.json"
+$gamePathUserStatePath = Join-Path $outDir "game-paths.user.json"
 $behaviorStatePath = Join-Path $outDir "background-nap-behavior-latest.json"
 $appPolicyStatePath = Join-Path $outDir "background-nap-app-policies.json"
 $radarStatePath = Join-Path $outDir "background-nap-radar-latest.json"
@@ -69,6 +71,10 @@ $networkQosStatePath = Join-Path $outDir "background-nap-qos-latest.json"
 $gpuPressureStatePath = Join-Path $outDir "background-nap-gpu-pressure-latest.json"
 $streamGuardStatePath = Join-Path $outDir "background-nap-stream-guard-latest.json"
 $gpuOptimizationStatePath = Join-Path $outDir "background-nap-gpu-optimization-latest.json"
+$shaderBoostStatePath = Join-Path $outDir "background-nap-shaderboost-latest.json"
+$shaderBoostDriverStatePath = Join-Path $outDir "background-nap-shaderboost-drivers.json"
+$shaderBoostGameStatePath = Join-Path $outDir "background-nap-shaderboost-games.json"
+$shaderBoostInventoryStatePath = Join-Path $outDir "background-nap-shaderboost-inventory.json"
 $engineHealthStatePath = Join-Path $outDir "background-nap-engine-health-latest.json"
 $rollbackAuditStatePath = Join-Path $outDir "background-nap-rollback-audit-latest.json"
 $rollbackStatePath = Join-Path $outDir "background-nap-rollback-state-latest.json"
@@ -112,6 +118,7 @@ $learningElevatedFreeMemoryMB = 6144.0
 $learningAggressiveFreeMemoryMB = 3072.0
 $intentEngine = $true
 $intentMinConfidence = 60
+$genericGameDetection = $true
 $foregroundSwitchAccelerator = $true
 $foregroundSwitchWindowSeconds = 90
 $foregroundSwitchMinWakes = 2
@@ -171,10 +178,31 @@ $vramPressureCriticalPercent = 92.0
 $gpuHelperGuard = $true
 $gpuHelperDedicatedMemoryMB = 384.0
 $gpuHelperCpuCeiling = 2.4
+$vramActionMode = $true
+$vramActionDedicatedMemoryMB = 256.0
+$vramActionGpuPercent = 0.8
+$vramActionCpuAffinityPercent = 28
+$vramActionMaxCpuPercent = 8.0
+$vramActionMaxAffinityTargets = 4
 $cpuBoundAssist = $true
 $cpuBoundGameCpuPercent = 6.0
 $cpuBoundBackgroundBoost = 1.35
 $cpuBoundAffinityPercent = 45
+$frameStabilityMode = $true
+$frameStabilityBrowserAffinityPercent = 38
+$frameStabilityMinBurstCount = 8
+$frameStabilityMaxCpuPercent = 10.0
+$shaderBoostEnabled = $true
+$shaderBoostObserveOnly = $true
+$shaderBoostWarmupEnabled = $false
+$shaderBoostRepairEnabled = $false
+$shaderBoostCacheScanMaxFiles = 1200
+$shaderBoostGameplayScanThrottle = $true
+$shaderBoostGameplayScanIntervalSeconds = 180
+$shaderBoostGameplayScanMaxFiles = 240
+$shaderBoostReadinessMarginPercent = 30
+$shaderBoostMinFreeDiskGB = 20.0
+$shaderBoostMaxCacheBudgetPercent = 8.0
 $foregroundTreeProtectMinutes = 4
 $newProcessStabilizeSeconds = 45
 $maxDeepTargetsPerPass = 8
@@ -207,7 +235,7 @@ $balancedNapIoPriorityName = "Low"
 $deepNapIoPriorityName = "VeryLow"
 $realtimeFriendlyDefaults = @("Discord", "Spotify", "WhatsApp", "Telegram", "Slack", "Teams", "steam")
 $realtimeFriendlyConfigured = $null
-$knownLauncherDefaults = @("steam", "steamwebhelper", "EpicGamesLauncher", "EpicWebHelper", "Battle.net", "EADesktop", "EABackgroundService", "EACefSubProcess", "EALauncher", "EASteamLauncher", "EAConnect", "RiotClientServices", "RiotClientUx", "UbisoftConnect", "upc", "GalaxyClient", "GOG Galaxy", "XboxPcApp")
+$knownLauncherDefaults = @("steam", "steamwebhelper", "EpicGamesLauncher", "EpicWebHelper", "Battle.net", "EADesktop", "EABackgroundService", "EACefSubProcess", "EALocalHostSvc", "EALauncher", "EASteamLauncher", "EAConnect", "EAAntiCheat.GameService", "EAAntiCheat.GameServiceLauncher", "RiotClientServices", "RiotClientUx", "UbisoftConnect", "upc", "GalaxyClient", "GOG Galaxy", "XboxPcApp")
 $knownGameNameDefaults = @("FC26", "FC25", "FC24", "FIFA24", "FIFA23", "FIFA22", "bf6", "Battlefield6", "Battlefield", "bf2042", "bfv", "bf1", "bf4", "cs2", "csgo", "VALORANT-Win64-Shipping", "VALORANT", "FortniteClient-Win64-Shipping", "RocketLeague", "r5apex", "League of Legends", "RainbowSix", "RainbowSix_Vulkan", "cod", "ModernWarfare", "Warzone")
 $knownCommunicationDefaults = @("Discord", "Teams", "Slack", "Zoom", "Telegram", "WhatsApp")
 $knownMediaDefaults = @("Spotify", "vlc", "mpv", "Lightshot", "ShareX", "Greenshot", "SnippingTool", "ScreenClippingHost", "GameBar", "GameBarFTServer", "XboxGameBar", "NVIDIA Share")
@@ -216,7 +244,7 @@ $knownProfessionalDefaults = @("Photoshop", "Illustrator", "AfterFX", "Adobe Pre
 $knownDevelopmentDefaults = @("devenv", "Code", "Code - Insiders", "cursor", "windsurf", "rider64", "idea64", "pycharm64", "webstorm64", "clion64", "datagrip64", "goland64", "phpstorm64", "rustrover64", "sublime_text", "notepad++", "zed", "codex")
 $streamerBrowserHelperNameDefaults = @("obs-browser-page", "CefSharp.BrowserSubprocess", "QtWebEngineProcess", "msedgewebview2", "chrome", "msedge", "brave", "firefox")
 $streamerBrowserHelperPathDefaults = @("\obs-studio\", "\Streamlabs\", "\TikTok LIVE Studio\", "\TikTokLiveStudio\", "\TikTokStudio\", "\PRISMLiveStudio\", "\Twitch Studio\", "\XSplit\", "\vMix\")
-$knownGamePathDefaults = @("\steamapps\common\", "\XboxGames\", "\Epic Games\", "\Riot Games\", "\Battle.net\", "\GOG Galaxy\Games\", "\EA Games\", "\Electronic Arts\Games\")
+$knownGamePathDefaults = @("\steamapps\common\", "\XboxGames\", "\Epic Games\", "\Riot Games\", "\Battle.net\", "\GOG Galaxy\Games\", "\EA Games\", "\Electronic Arts\Games\", "\Electronic Arts\Battlefield", "\Electronic Arts\Apex", "\Electronic Arts\The Sims", "\Electronic Arts\FC", "\Electronic Arts\EA SPORTS FC", "\Battlefield 6\", "\Battlefield6\", "\EA SPORTS FC 26\")
 $neverGameProcessDefaults = @("explorer", "SmartBackgroundNap", "SmartBackgroundNapTray", "background-nap", "manage-background-nap-tray", "ApplicationFrameHost", "ShellExperienceHost", "StartMenuExperienceHost", "SearchHost", "SearchApp", "SearchIndexer", "RuntimeBroker", "TextInputHost", "ctfmon", "sihost", "taskhostw", "dwm", "SystemSettings", "SecurityHealthSystray", "chrome", "msedge", "firefox", "zen", "brave", "opera", "vivaldi", "librewolf", "waterfox", "floorp", "arc", "tor", "msedgewebview2", "Lightshot", "ShareX", "Greenshot", "SnippingTool", "ScreenClippingHost", "GameBar", "GameBarFTServer", "XboxGameBar", "NVIDIA Share", "Code", "codex", "powershell", "pwsh", "cmd", "conhost", "notepad", "taskmgr")
 $knownLauncherConfigured = $null
 $knownCommunicationConfigured = $null
@@ -254,6 +282,7 @@ if ($smart) {
     if ($smart.PSObject.Properties.Name -contains "LearningAggressiveFreeMemoryMB") { $learningAggressiveFreeMemoryMB = [double]$smart.LearningAggressiveFreeMemoryMB }
     if ($smart.PSObject.Properties.Name -contains "IntentEngine") { $intentEngine = [bool]$smart.IntentEngine }
     if ($smart.PSObject.Properties.Name -contains "IntentMinConfidence") { $intentMinConfidence = [int]$smart.IntentMinConfidence }
+    if ($smart.PSObject.Properties.Name -contains "GenericGameDetection") { $genericGameDetection = [bool]$smart.GenericGameDetection }
     if ($smart.PSObject.Properties.Name -contains "ForegroundSwitchAccelerator") { $foregroundSwitchAccelerator = [bool]$smart.ForegroundSwitchAccelerator }
     if ($smart.PSObject.Properties.Name -contains "ForegroundSwitchWindowSeconds") { $foregroundSwitchWindowSeconds = [int]$smart.ForegroundSwitchWindowSeconds }
     if ($smart.PSObject.Properties.Name -contains "ForegroundSwitchMinWakes") { $foregroundSwitchMinWakes = [int]$smart.ForegroundSwitchMinWakes }
@@ -313,10 +342,20 @@ if ($smart) {
     if ($smart.PSObject.Properties.Name -contains "GpuHelperGuard") { $gpuHelperGuard = [bool]$smart.GpuHelperGuard }
     if ($smart.PSObject.Properties.Name -contains "GpuHelperDedicatedMemoryMB") { $gpuHelperDedicatedMemoryMB = [double]$smart.GpuHelperDedicatedMemoryMB }
     if ($smart.PSObject.Properties.Name -contains "GpuHelperCpuCeiling") { $gpuHelperCpuCeiling = [double]$smart.GpuHelperCpuCeiling }
+    if ($smart.PSObject.Properties.Name -contains "VramActionMode") { $vramActionMode = [bool]$smart.VramActionMode }
+    if ($smart.PSObject.Properties.Name -contains "VramActionDedicatedMemoryMB") { $vramActionDedicatedMemoryMB = [double]$smart.VramActionDedicatedMemoryMB }
+    if ($smart.PSObject.Properties.Name -contains "VramActionGpuPercent") { $vramActionGpuPercent = [double]$smart.VramActionGpuPercent }
+    if ($smart.PSObject.Properties.Name -contains "VramActionCpuAffinityPercent") { $vramActionCpuAffinityPercent = [int]$smart.VramActionCpuAffinityPercent }
+    if ($smart.PSObject.Properties.Name -contains "VramActionMaxCpuPercent") { $vramActionMaxCpuPercent = [double]$smart.VramActionMaxCpuPercent }
+    if ($smart.PSObject.Properties.Name -contains "VramActionMaxAffinityTargets") { $vramActionMaxAffinityTargets = [int]$smart.VramActionMaxAffinityTargets }
     if ($smart.PSObject.Properties.Name -contains "CpuBoundAssist") { $cpuBoundAssist = [bool]$smart.CpuBoundAssist }
     if ($smart.PSObject.Properties.Name -contains "CpuBoundGameCpuPercent") { $cpuBoundGameCpuPercent = [double]$smart.CpuBoundGameCpuPercent }
     if ($smart.PSObject.Properties.Name -contains "CpuBoundBackgroundBoost") { $cpuBoundBackgroundBoost = [double]$smart.CpuBoundBackgroundBoost }
     if ($smart.PSObject.Properties.Name -contains "CpuBoundAffinityPercent") { $cpuBoundAffinityPercent = [int]$smart.CpuBoundAffinityPercent }
+    if ($smart.PSObject.Properties.Name -contains "FrameStabilityMode") { $frameStabilityMode = [bool]$smart.FrameStabilityMode }
+    if ($smart.PSObject.Properties.Name -contains "FrameStabilityBrowserAffinityPercent") { $frameStabilityBrowserAffinityPercent = [int]$smart.FrameStabilityBrowserAffinityPercent }
+    if ($smart.PSObject.Properties.Name -contains "FrameStabilityMinBurstCount") { $frameStabilityMinBurstCount = [int]$smart.FrameStabilityMinBurstCount }
+    if ($smart.PSObject.Properties.Name -contains "FrameStabilityMaxCpuPercent") { $frameStabilityMaxCpuPercent = [double]$smart.FrameStabilityMaxCpuPercent }
     if ($smart.PSObject.Properties.Name -contains "ForegroundTreeProtectMinutes") { $foregroundTreeProtectMinutes = [int]$smart.ForegroundTreeProtectMinutes }
     if ($smart.PSObject.Properties.Name -contains "NewProcessStabilizeSeconds") { $newProcessStabilizeSeconds = [int]$smart.NewProcessStabilizeSeconds }
     if ($smart.PSObject.Properties.Name -contains "MaxDeepTargetsPerPass") { $maxDeepTargetsPerPass = [int]$smart.MaxDeepTargetsPerPass }
@@ -361,6 +400,21 @@ if ($smart) {
     if ($smart.PSObject.Properties.Name -contains "NeverGameProcessNames") { $neverGameProcessConfigured = @($smart.NeverGameProcessNames) }
     if ($smart.PSObject.Properties.Name -contains "NapScore") { $smartNapScore = [bool]$smart.NapScore }
 }
+
+if ($shaderBoost) {
+    if ($shaderBoost.PSObject.Properties.Name -contains "Enabled") { $shaderBoostEnabled = [bool]$shaderBoost.Enabled }
+    if ($shaderBoost.PSObject.Properties.Name -contains "ObserveOnly") { $shaderBoostObserveOnly = [bool]$shaderBoost.ObserveOnly }
+    if ($shaderBoost.PSObject.Properties.Name -contains "WarmupEnabled") { $shaderBoostWarmupEnabled = [bool]$shaderBoost.WarmupEnabled }
+    if ($shaderBoost.PSObject.Properties.Name -contains "RepairEnabled") { $shaderBoostRepairEnabled = [bool]$shaderBoost.RepairEnabled }
+    if ($shaderBoost.PSObject.Properties.Name -contains "CacheScanMaxFiles") { $shaderBoostCacheScanMaxFiles = [int]$shaderBoost.CacheScanMaxFiles }
+    if ($shaderBoost.PSObject.Properties.Name -contains "GameplayScanThrottle") { $shaderBoostGameplayScanThrottle = [bool]$shaderBoost.GameplayScanThrottle }
+    if ($shaderBoost.PSObject.Properties.Name -contains "GameplayScanIntervalSeconds") { $shaderBoostGameplayScanIntervalSeconds = [int]$shaderBoost.GameplayScanIntervalSeconds }
+    if ($shaderBoost.PSObject.Properties.Name -contains "GameplayScanMaxFiles") { $shaderBoostGameplayScanMaxFiles = [int]$shaderBoost.GameplayScanMaxFiles }
+    if ($shaderBoost.PSObject.Properties.Name -contains "ReadinessMarginPercent") { $shaderBoostReadinessMarginPercent = [int]$shaderBoost.ReadinessMarginPercent }
+    if ($shaderBoost.PSObject.Properties.Name -contains "MinFreeDiskGB") { $shaderBoostMinFreeDiskGB = [double]$shaderBoost.MinFreeDiskGB }
+    if ($shaderBoost.PSObject.Properties.Name -contains "MaxCacheBudgetPercent") { $shaderBoostMaxCacheBudgetPercent = [double]$shaderBoost.MaxCacheBudgetPercent }
+}
+
 $sessionMode = ([string]$sessionMode).Trim()
 if ([string]::IsNullOrWhiteSpace($sessionMode)) { $sessionMode = "Auto" }
 switch -Regex ($sessionMode) {
@@ -465,6 +519,24 @@ if ($cpuBoundBackgroundBoost -lt 1.0) { $cpuBoundBackgroundBoost = 1.0 }
 if ($cpuBoundBackgroundBoost -gt 2.5) { $cpuBoundBackgroundBoost = 2.5 }
 if ($cpuBoundAffinityPercent -lt 20) { $cpuBoundAffinityPercent = 20 }
 if ($cpuBoundAffinityPercent -gt 75) { $cpuBoundAffinityPercent = 75 }
+if ($frameStabilityBrowserAffinityPercent -lt 20) { $frameStabilityBrowserAffinityPercent = 20 }
+if ($frameStabilityBrowserAffinityPercent -gt 75) { $frameStabilityBrowserAffinityPercent = 75 }
+if ($frameStabilityMinBurstCount -lt 1) { $frameStabilityMinBurstCount = 1 }
+if ($frameStabilityMinBurstCount -gt 120) { $frameStabilityMinBurstCount = 120 }
+if ($frameStabilityMaxCpuPercent -lt 1.0) { $frameStabilityMaxCpuPercent = 1.0 }
+if ($frameStabilityMaxCpuPercent -gt 40.0) { $frameStabilityMaxCpuPercent = 40.0 }
+if ($shaderBoostCacheScanMaxFiles -lt 100) { $shaderBoostCacheScanMaxFiles = 100 }
+if ($shaderBoostCacheScanMaxFiles -gt 5000) { $shaderBoostCacheScanMaxFiles = 5000 }
+if ($shaderBoostGameplayScanIntervalSeconds -lt 30) { $shaderBoostGameplayScanIntervalSeconds = 30 }
+if ($shaderBoostGameplayScanIntervalSeconds -gt 1800) { $shaderBoostGameplayScanIntervalSeconds = 1800 }
+if ($shaderBoostGameplayScanMaxFiles -lt 50) { $shaderBoostGameplayScanMaxFiles = 50 }
+if ($shaderBoostGameplayScanMaxFiles -gt $shaderBoostCacheScanMaxFiles) { $shaderBoostGameplayScanMaxFiles = $shaderBoostCacheScanMaxFiles }
+if ($shaderBoostReadinessMarginPercent -lt 0) { $shaderBoostReadinessMarginPercent = 0 }
+if ($shaderBoostReadinessMarginPercent -gt 100) { $shaderBoostReadinessMarginPercent = 100 }
+if ($shaderBoostMinFreeDiskGB -lt 1.0) { $shaderBoostMinFreeDiskGB = 1.0 }
+if ($shaderBoostMinFreeDiskGB -gt 512.0) { $shaderBoostMinFreeDiskGB = 512.0 }
+if ($shaderBoostMaxCacheBudgetPercent -lt 1.0) { $shaderBoostMaxCacheBudgetPercent = 1.0 }
+if ($shaderBoostMaxCacheBudgetPercent -gt 25.0) { $shaderBoostMaxCacheBudgetPercent = 25.0 }
 if ($foregroundTreeProtectMinutes -lt 1) { $foregroundTreeProtectMinutes = 1 }
 if ($foregroundTreeProtectMinutes -gt 15) { $foregroundTreeProtectMinutes = 15 }
 if ($newProcessStabilizeSeconds -lt 10) { $newProcessStabilizeSeconds = 10 }
@@ -544,7 +616,7 @@ $realtimeFriendlySource = if ($realtimeFriendlyConfigured -ne $null) { $realtime
 @($realtimeFriendlySource) | Where-Object { $_ } | ForEach-Object { [void]$realtimeFriendlyNames.Add([string]$_) }
 
 $knownLauncherNames = New-Object "System.Collections.Generic.HashSet[string]" ([System.StringComparer]::OrdinalIgnoreCase)
-$knownLauncherSource = if ($knownLauncherConfigured -ne $null) { $knownLauncherConfigured } else { $knownLauncherDefaults }
+$knownLauncherSource = @($knownLauncherDefaults) + @($knownLauncherConfigured)
 @($knownLauncherSource) | Where-Object { $_ } | ForEach-Object { [void]$knownLauncherNames.Add([string]$_) }
 
 $knownGameNames = New-Object "System.Collections.Generic.HashSet[string]" ([System.StringComparer]::OrdinalIgnoreCase)
@@ -580,8 +652,14 @@ $streamerBrowserHelperPathSource = if ($streamerBrowserHelperPathConfigured -ne 
 @($streamerBrowserHelperPathSource) | Where-Object { $_ } | ForEach-Object { $streamerBrowserHelperPathFragments += [string]$_ }
 
 $knownGamePathFragments = @()
-$knownGamePathSource = if ($knownGamePathConfigured -ne $null) { $knownGamePathConfigured } else { $knownGamePathDefaults }
-@($knownGamePathSource) | Where-Object { $_ } | ForEach-Object { $knownGamePathFragments += [string]$_ }
+$knownGamePathSource = @($knownGamePathDefaults) + @($knownGamePathConfigured)
+@($knownGamePathSource) | Where-Object { $_ } | ForEach-Object {
+    $fragmentText = [string]$_
+    $normalizedFragment = "\" + $fragmentText.Trim().Trim('\', '/') + "\"
+    if ($normalizedFragment -notin @("\Electronic Arts\", "\EA Desktop\", "\Program Files\", "\Program Files (x86)\")) {
+        $knownGamePathFragments += $fragmentText
+    }
+}
 
 $neverGameProcessNames = New-Object "System.Collections.Generic.HashSet[string]" ([System.StringComparer]::OrdinalIgnoreCase)
 @($neverGameProcessDefaults + $neverGameProcessConfigured + $knownLauncherSource) | Where-Object { $_ } | ForEach-Object { [void]$neverGameProcessNames.Add([string]$_) }
@@ -595,11 +673,13 @@ $script:gameProfileMap = @{}
 $script:behaviorMap = @{}
 $script:appPolicyMap = @{}
 $script:udpEndpointCountByPid = @{}
+$script:processPathFallbackByPid = @{}
 $script:currentUdpGuard = $null
 $script:currentGpuPressure = $null
 $script:currentCpuBoundAssist = $null
 $script:currentStreamingContext = $null
 $script:currentGpuOptimization = $null
+$script:currentShaderBoost = $null
 $script:currentEngineHealth = $null
 
 $memoryPriorityMap = @{
@@ -1122,7 +1202,49 @@ function Get-ProcessPriorityText {
 
 function Get-ProcessPathText {
     param([System.Diagnostics.Process]$Process)
-    try { return [string]$Process.Path } catch { return $null }
+    if (-not $Process) { return $null }
+    try {
+        $path = [string]$Process.Path
+        if (-not [string]::IsNullOrWhiteSpace($path)) { return $path }
+    } catch {
+    }
+
+    $pidValue = 0
+    try { $pidValue = [int]$Process.Id } catch { $pidValue = 0 }
+    if ($pidValue -le 0) { return $null }
+    if ($script:processPathFallbackByPid.ContainsKey($pidValue)) { return [string]$script:processPathFallbackByPid[$pidValue] }
+
+    $fallback = $null
+    try {
+        $procInfo = Get-CimInstance -ClassName Win32_Process -Filter ("ProcessId=" + $pidValue.ToString()) -ErrorAction Stop
+        if ($procInfo -and -not [string]::IsNullOrWhiteSpace([string]$procInfo.ExecutablePath)) {
+            $fallback = [string]$procInfo.ExecutablePath
+        }
+    } catch {
+    }
+    $script:processPathFallbackByPid[$pidValue] = if ($fallback) { $fallback } else { "" }
+    return $fallback
+}
+
+function Get-ProcessPathTextFromObject {
+    param([object]$ProcessLike)
+
+    if (-not $ProcessLike) { return $null }
+    if ($ProcessLike -is [System.Diagnostics.Process]) {
+        return Get-ProcessPathText -Process $ProcessLike
+    }
+    try {
+        if ($ProcessLike.PSObject.Properties.Name -contains "Path" -and -not [string]::IsNullOrWhiteSpace([string]$ProcessLike.Path)) {
+            return [string]$ProcessLike.Path
+        }
+    } catch { }
+    try {
+        if ($ProcessLike.PSObject.Properties.Name -contains "Id" -and [int]$ProcessLike.Id -gt 0) {
+            $process = Get-Process -Id ([int]$ProcessLike.Id) -ErrorAction SilentlyContinue
+            if ($process) { return Get-ProcessPathText -Process $process }
+        }
+    } catch { }
+    return $null
 }
 
 function Get-ProcessIoPriorityText {
@@ -1339,6 +1461,7 @@ function Get-ProcessRole {
     )
 
     if (Test-LauncherBrowserHelper -ProcessName $ProcessName -Path $Path) { return "LauncherHelper" }
+    if (Test-ShaderCompilationProcess -ProcessName $ProcessName -Path $Path) { return "ShaderCompiler" }
     if (Test-NameInSet -Set $knownLauncherNames -Name $ProcessName) { return "Launcher" }
     if (Test-NameInSet -Set $knownCommunicationNames -Name $ProcessName) { return "Communication" }
     if (Test-NameInSet -Set $knownStreamingNames -Name $ProcessName) { return "Streaming" }
@@ -1407,6 +1530,250 @@ function Get-GameSessionRootFromPath {
         $dir = [System.IO.Path]::GetDirectoryName($full)
         if (-not [string]::IsNullOrWhiteSpace($dir)) { return $dir.ToLowerInvariant().TrimEnd('\', '/') }
     } catch {
+    }
+    return ""
+}
+
+function Normalize-GamePathLookupText {
+    param([string]$Text)
+    if ([string]::IsNullOrWhiteSpace($Text)) { return "" }
+    return ([regex]::Replace(([string]$Text).ToLowerInvariant(), '[^a-z0-9]+', ''))
+}
+
+function Read-UserGamePathMap {
+    $map = @{}
+    try {
+        if (-not (Test-Path -LiteralPath $gamePathUserStatePath -PathType Leaf)) { return $map }
+        $json = Get-Content -LiteralPath $gamePathUserStatePath -Raw | ConvertFrom-Json
+        if (-not $json) { return $map }
+        foreach ($prop in @($json.PSObject.Properties)) {
+            $key = Normalize-GamePathLookupText -Text ([string]$prop.Name)
+            $value = [string]$prop.Value
+            if ([string]::IsNullOrWhiteSpace($key) -or [string]::IsNullOrWhiteSpace($value)) { continue }
+            $candidate = $value.Trim().Trim('"')
+            if ((Test-Path -LiteralPath $candidate -PathType Leaf) -or (Test-Path -LiteralPath $candidate -PathType Container)) {
+                $map[$key] = $candidate
+            }
+        }
+    } catch {
+    }
+    return $map
+}
+
+function Find-ExecutableBelowPathLimited {
+    param(
+        [string]$Root,
+        [string]$ExeName,
+        [int]$MaxDepth = 5,
+        [int]$MaxDirectories = 360
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Root) -or [string]::IsNullOrWhiteSpace($ExeName)) { return "" }
+    if (-not (Test-Path -LiteralPath $Root -PathType Container)) { return "" }
+
+    $queue = New-Object "System.Collections.Generic.Queue[object]"
+    $queue.Enqueue([pscustomobject]@{ Path = $Root; Depth = 0 })
+    $visited = 0
+    while ($queue.Count -gt 0 -and $visited -lt $MaxDirectories) {
+        $item = $queue.Dequeue()
+        $visited++
+        $dir = [string]$item.Path
+        $depth = [int]$item.Depth
+        try {
+            $hit = Get-ChildItem -LiteralPath $dir -Filter $ExeName -File -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($hit) { return [string]$hit.FullName }
+        } catch {
+        }
+        if ($depth -ge $MaxDepth) { continue }
+        try {
+            foreach ($child in @(Get-ChildItem -LiteralPath $dir -Directory -ErrorAction SilentlyContinue)) {
+                if ($visited + $queue.Count -ge $MaxDirectories) { break }
+                $queue.Enqueue([pscustomobject]@{ Path = [string]$child.FullName; Depth = ($depth + 1) })
+            }
+        } catch {
+        }
+    }
+    return ""
+}
+
+function Resolve-UserGamePathForProcess {
+    param(
+        [string]$ProcessName,
+        [string]$GameName
+    )
+
+    $map = Read-UserGamePathMap
+    if (-not $map -or $map.Count -eq 0) { return "" }
+    $processText = ([string]$ProcessName).Trim()
+    $gameText = ([string]$GameName).Trim()
+    $processKey = Normalize-GamePathLookupText -Text $processText
+    $gameKey = Normalize-GamePathLookupText -Text $gameText
+    $keys = @($processKey, $gameKey) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | Select-Object -Unique
+    $exeName = if ($processText.EndsWith(".exe", [System.StringComparison]::OrdinalIgnoreCase)) { $processText } else { $processText + ".exe" }
+
+    $candidateRoots = New-Object System.Collections.ArrayList
+    foreach ($key in @($keys)) {
+        if ($map.ContainsKey($key)) { [void]$candidateRoots.Add([string]$map[$key]) }
+    }
+    foreach ($entryKey in @($map.Keys)) {
+        foreach ($key in @($keys)) {
+            if ([string]::IsNullOrWhiteSpace([string]$key) -or [string]::IsNullOrWhiteSpace([string]$entryKey)) { continue }
+            if ([string]$key -eq [string]$entryKey -or (([string]$key).Length -ge 4 -and ([string]$entryKey).Contains([string]$key)) -or (([string]$entryKey).Length -ge 4 -and ([string]$key).Contains([string]$entryKey))) {
+                [void]$candidateRoots.Add([string]$map[$entryKey])
+            }
+        }
+    }
+    foreach ($root in @($map.Values)) {
+        if (-not $candidateRoots.Contains([string]$root)) { [void]$candidateRoots.Add([string]$root) }
+    }
+
+    foreach ($candidate in @($candidateRoots)) {
+        $path = [string]$candidate
+        if ([string]::IsNullOrWhiteSpace($path)) { continue }
+        try {
+            if (Test-Path -LiteralPath $path -PathType Leaf) {
+                $leaf = [System.IO.Path]::GetFileName($path)
+                if ([string]::Equals($leaf, $exeName, [System.StringComparison]::OrdinalIgnoreCase) -or [string]::IsNullOrWhiteSpace($processText)) { return $path }
+            } elseif (Test-Path -LiteralPath $path -PathType Container) {
+                $direct = Join-Path $path $exeName
+                if (Test-Path -LiteralPath $direct -PathType Leaf) { return $direct }
+                $found = Find-ExecutableBelowPathLimited -Root $path -ExeName $exeName
+                if (-not [string]::IsNullOrWhiteSpace($found)) { return $found }
+            }
+        } catch {
+        }
+    }
+    return ""
+}
+
+function Get-GameFolderAliases {
+    param([string]$ProcessName)
+    $key = Normalize-GamePathLookupText -Text $ProcessName
+    $aliases = New-Object System.Collections.ArrayList
+    foreach ($value in @($ProcessName)) {
+        if (-not [string]::IsNullOrWhiteSpace([string]$value)) { [void]$aliases.Add([string]$value) }
+    }
+    switch -Regex ($key) {
+        '^bf6$|^battlefield6$' { foreach ($value in @("Battlefield 6", "Battlefield6")) { [void]$aliases.Add($value) } }
+        '^bf2042$|^battlefield2042$' { foreach ($value in @("Battlefield 2042", "BF2042")) { [void]$aliases.Add($value) } }
+        '^fc2[4-9]$|^fifa2[2-9]$' { foreach ($value in @("EA SPORTS FC 26", "EA SPORTS FC 25", "EA SPORTS FC 24", "FC 26", "FC 25", "FC 24", "FIFA 23", "FIFA 22")) { [void]$aliases.Add($value) } }
+        '^valorant|^valorantwin64shipping$' { foreach ($value in @("VALORANT", "Riot Games\VALORANT")) { [void]$aliases.Add($value) } }
+        '^cs2$|^csgo$' { foreach ($value in @("Counter-Strike 2", "Counter-Strike Global Offensive", "csgo", "cs2")) { [void]$aliases.Add($value) } }
+        '^r5apex$|^apex$' { foreach ($value in @("Apex Legends", "Apex")) { [void]$aliases.Add($value) } }
+        '^fortniteclientwin64shipping$|^fortnite$' { foreach ($value in @("Fortnite", "FortniteGame")) { [void]$aliases.Add($value) } }
+        '^rocketleague$' { foreach ($value in @("rocketleague", "Rocket League")) { [void]$aliases.Add($value) } }
+        '^rainbowsix|^rainbowsixvulkan$' { foreach ($value in @("Tom Clancy's Rainbow Six Siege", "Rainbow Six Siege", "RainbowSix")) { [void]$aliases.Add($value) } }
+        '^cod|^modernwarfare|^warzone' { foreach ($value in @("Call of Duty", "Modern Warfare", "Warzone")) { [void]$aliases.Add($value) } }
+    }
+    return @($aliases | Where-Object { $_ } | Select-Object -Unique)
+}
+
+function Test-GameRootHintPath {
+    param([string]$Path)
+    if ([string]::IsNullOrWhiteSpace($Path)) { return $false }
+    if (Test-PathContainsFragment -Path $Path -Fragments @("\Windows\", "\Program Files\Electronic Arts\EA Desktop\", "\Program Files (x86)\Electronic Arts\EA Desktop\", "\EA Desktop\", "\Epic Games\Launcher\", "\Riot Client\", "\GOG Galaxy\", "\Battle.net\", "\Steam\bin\", "\Steam\clientui\")) { return $false }
+    if (Test-PathContainsFragment -Path $Path -Fragments $knownGamePathFragments) { return $true }
+    return $false
+}
+
+function Add-UniquePathHint {
+    param(
+        [System.Collections.ArrayList]$Hints,
+        [string]$Path
+    )
+    if (-not $Hints -or [string]::IsNullOrWhiteSpace($Path)) { return }
+    $candidate = $Path.Trim().Trim('"')
+    try {
+        if (Test-Path -LiteralPath $candidate -PathType Leaf) { $candidate = Split-Path -Parent $candidate }
+        if (-not (Test-Path -LiteralPath $candidate -PathType Container)) { return }
+        $full = [System.IO.Path]::GetFullPath($candidate).TrimEnd('\', '/')
+        if (-not $Hints.Contains($full)) { [void]$Hints.Add($full) }
+    } catch {
+    }
+}
+
+function Get-CommonGameSearchRoots {
+    param([string]$ProcessName)
+    $roots = New-Object System.Collections.ArrayList
+    $driveRoots = @()
+    try {
+        foreach ($disk in @(Get-CimInstance -ClassName Win32_LogicalDisk -Filter "DriveType=3" -ErrorAction Stop)) {
+            if (-not [string]::IsNullOrWhiteSpace([string]$disk.DeviceID)) { $driveRoots += ([string]$disk.DeviceID + "\") }
+        }
+    } catch {
+        try { $driveRoots = @(Get-PSDrive -PSProvider FileSystem | ForEach-Object { $_.Root }) } catch { $driveRoots = @($env:SystemDrive + "\") }
+    }
+    foreach ($drive in @($driveRoots | Select-Object -Unique)) {
+        foreach ($relative in @("SteamLibrary\steamapps\common", "steamapps\common", "XboxGames", "Epic Games", "Riot Games", "EA Games", "Electronic Arts\Games", "Games")) {
+            Add-UniquePathHint -Hints $roots -Path (Join-Path $drive $relative)
+        }
+        foreach ($alias in @(Get-GameFolderAliases -ProcessName $ProcessName)) {
+            Add-UniquePathHint -Hints $roots -Path (Join-Path $drive $alias)
+        }
+    }
+    foreach ($programRoot in @($env:ProgramFiles, ${env:ProgramFiles(x86)}, $env:LOCALAPPDATA)) {
+        if ([string]::IsNullOrWhiteSpace($programRoot)) { continue }
+        foreach ($relative in @("Steam\steamapps\common", "Epic Games", "Riot Games", "EA Games", "Electronic Arts\Games")) {
+            Add-UniquePathHint -Hints $roots -Path (Join-Path $programRoot $relative)
+        }
+    }
+    return @($roots)
+}
+
+function Get-ProcessGameRootHints {
+    param(
+        [string]$ProcessName,
+        [array]$Processes
+    )
+    $hints = New-Object System.Collections.ArrayList
+    $exeName = if ([string]::IsNullOrWhiteSpace($ProcessName)) { "" } elseif ($ProcessName.EndsWith(".exe", [System.StringComparison]::OrdinalIgnoreCase)) { $ProcessName } else { $ProcessName + ".exe" }
+    foreach ($p in @($Processes)) {
+        $path = Get-ProcessPathText -Process $p
+        if ([string]::IsNullOrWhiteSpace($path)) { continue }
+        if (Test-GameRootHintPath -Path $path) {
+            $root = Get-GameSessionRootFromPath -Path $path
+            Add-UniquePathHint -Hints $hints -Path $root
+        }
+        if (-not [string]::IsNullOrWhiteSpace($exeName)) {
+            try {
+                $dir = Split-Path -Parent $path
+                if (-not [string]::IsNullOrWhiteSpace($dir) -and (Test-Path -LiteralPath (Join-Path $dir $exeName) -PathType Leaf)) {
+                    Add-UniquePathHint -Hints $hints -Path $dir
+                }
+            } catch {
+            }
+        }
+    }
+    return @($hints)
+}
+
+function Resolve-GameExecutablePath {
+    param(
+        [string]$ProcessName,
+        [string]$GameName,
+        [array]$Processes,
+        [string]$KnownPath
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace($KnownPath) -and (Test-Path -LiteralPath $KnownPath -PathType Leaf)) { return $KnownPath }
+    $userPath = Resolve-UserGamePathForProcess -ProcessName $ProcessName -GameName $GameName
+    if (-not [string]::IsNullOrWhiteSpace($userPath)) { return $userPath }
+
+    $exeName = if ([string]::IsNullOrWhiteSpace($ProcessName)) { "" } elseif ($ProcessName.EndsWith(".exe", [System.StringComparison]::OrdinalIgnoreCase)) { $ProcessName } else { $ProcessName + ".exe" }
+    if ([string]::IsNullOrWhiteSpace($exeName)) { return "" }
+
+    $roots = New-Object System.Collections.ArrayList
+    foreach ($hint in @(Get-ProcessGameRootHints -ProcessName $ProcessName -Processes $Processes)) { Add-UniquePathHint -Hints $roots -Path $hint }
+    foreach ($hint in @(Get-CommonGameSearchRoots -ProcessName $ProcessName)) { Add-UniquePathHint -Hints $roots -Path $hint }
+
+    foreach ($root in @($roots)) {
+        try {
+            $direct = Join-Path ([string]$root) $exeName
+            if (Test-Path -LiteralPath $direct -PathType Leaf) { return $direct }
+            $found = Find-ExecutableBelowPathLimited -Root ([string]$root) -ExeName $exeName -MaxDepth 5 -MaxDirectories 420
+            if (-not [string]::IsNullOrWhiteSpace($found)) { return $found }
+        } catch {
+        }
     }
     return ""
 }
@@ -1493,13 +1860,61 @@ function Test-KnownGameExecutableName {
     return ($name -match '(?i)^(FC2[4-9]|FIFA(22|23|24)|bf6|bf2042|bfv|bf1|bf4|Battlefield(2042|6)?|cs2|csgo|VALORANT-Win64-Shipping|VALORANT|FortniteClient-Win64-Shipping|RocketLeague|r5apex|League of Legends|RainbowSix|RainbowSix_Vulkan|cod|ModernWarfare|Warzone)$')
 }
 
+function Test-GenericGameProcessCandidate {
+    param(
+        [int]$ProcessId,
+        [string]$ProcessName,
+        [string]$Path,
+        [string]$Role,
+        [object]$Foreground,
+        [double]$CpuPercent = 0.0,
+        [int]$UdpEndpoints = 0,
+        [switch]$AllowKnownPathOnly
+    )
+
+    if (-not $genericGameDetection) { return $false }
+    if ([string]::IsNullOrWhiteSpace($ProcessName)) { return $false }
+    if (Test-NeverGameProcess -ProcessId $ProcessId -ProcessName $ProcessName -Path $Path -Role $Role) { return $false }
+    if ($Role -in @("Browser", "Communication", "Media", "Streaming", "StreamHelper", "Launcher", "LauncherHelper", "Professional", "Development", "ShaderCompiler")) { return $false }
+
+    $name = ([string]$ProcessName).Trim()
+    if ($name -match '(?i)(^|[-_])(setup|install|uninstall|updater|update|patcher|crash|reporter|helper|service|launcher|bootstrapper|overlay)([-_]|$)') { return $false }
+    if ($name -match '(?i)(crashhandler|crashreport|bugreport|eossdk|cefsubprocess|webhelper|redist|vc_redist|directx|dxsetup)') { return $false }
+
+    $hasExePath = $false
+    if (-not [string]::IsNullOrWhiteSpace($Path)) {
+        try {
+            $leaf = [System.IO.Path]::GetFileName($Path)
+            $extension = [System.IO.Path]::GetExtension($Path)
+            $hasExePath = (-not [string]::IsNullOrWhiteSpace($leaf) -and [string]::Equals($extension, ".exe", [System.StringComparison]::OrdinalIgnoreCase))
+        } catch {
+            $hasExePath = $false
+        }
+    }
+
+    $knownPath = Test-PathContainsFragment -Path $Path -Fragments $knownGamePathFragments
+    if ($knownPath -and $hasExePath) { return $true }
+    if ($AllowKnownPathOnly -and $knownPath) { return $true }
+
+    $isForeground = $Foreground -and [int]$Foreground.Id -eq $ProcessId
+    $isFullscreen = $isForeground -and [bool]$Foreground.IsFullscreen
+    if ($isFullscreen -and $hasExePath) { return $true }
+    if ($isForeground -and $hasExePath -and $UdpEndpoints -ge $networkUdpGuardMinEndpoints) { return $true }
+    if ($isForeground -and $hasExePath -and $CpuPercent -ge [math]::Max(1.0, $networkUdpGuardGameCpuFloor)) { return $true }
+
+    return $false
+}
+
 function Test-RealGameProcessCandidate {
     param(
         [int]$ProcessId,
         [string]$ProcessName,
         [string]$Path,
         [string]$Role,
-        [switch]$AllowKnownPathOnly
+        [switch]$AllowKnownPathOnly,
+        [object]$Foreground,
+        [double]$CpuPercent = 0.0,
+        [int]$UdpEndpoints = 0
     )
 
     if (Test-NeverGameProcess -ProcessId $ProcessId -ProcessName $ProcessName -Path $Path -Role $Role) { return $false }
@@ -1508,6 +1923,7 @@ function Test-RealGameProcessCandidate {
     if ($knownName) { return $true }
     if ($Role -eq "GameCandidate" -and $knownPath) { return $true }
     if ($AllowKnownPathOnly -and $knownPath -and $Role -notin @("Launcher", "LauncherHelper", "Browser", "StreamHelper", "Communication", "Media", "Streaming", "Professional", "Development")) { return $true }
+    if (Test-GenericGameProcessCandidate -ProcessId $ProcessId -ProcessName $ProcessName -Path $Path -Role $Role -Foreground $Foreground -CpuPercent $CpuPercent -UdpEndpoints $UdpEndpoints -AllowKnownPathOnly:$AllowKnownPathOnly) { return $true }
     return $false
 }
 
@@ -1574,13 +1990,18 @@ function Find-OpenGameForUdpGuard {
     foreach ($p in @($Processes)) {
         $processIdValue = 0; try { $processIdValue = [int]$p.Id } catch { $processIdValue = 0 }
         if ($processIdValue -le 0) { continue }
+        $processNameText = [string]$p.ProcessName
         $path = Get-ProcessPathText -Process $p
-        $role = Get-ProcessRole -ProcessName ([string]$p.ProcessName) -Path $path
-        $knownName = Test-KnownGameExecutableName -ProcessName ([string]$p.ProcessName)
-        $knownPath = Test-PathContainsFragment -Path $path -Fragments $knownGamePathFragments
-        if (-not (Test-RealGameProcessCandidate -ProcessId $processIdValue -ProcessName ([string]$p.ProcessName) -Path $path -Role $role -AllowKnownPathOnly)) { continue }
+        $knownName = Test-KnownGameExecutableName -ProcessName $processNameText
         $cpu = if ($CpuMap -and $CpuMap.ContainsKey($processIdValue)) { [double]$CpuMap[$processIdValue] } else { 0.0 }
         $directUdp = if ($UdpMap -and $UdpMap.ContainsKey($processIdValue)) { [int]$UdpMap[$processIdValue] } else { 0 }
+        $isForeground = $Foreground -and [int]$Foreground.Id -eq $processIdValue
+        if ([string]::IsNullOrWhiteSpace($path) -and ($knownName -or ($genericGameDetection -and ($isForeground -or $directUdp -ge $networkUdpGuardMinEndpoints)))) {
+            $path = Resolve-GameExecutablePath -ProcessName $processNameText -GameName $processNameText -Processes $Processes
+        }
+        $role = Get-ProcessRole -ProcessName $processNameText -Path $path
+        $knownPath = Test-PathContainsFragment -Path $path -Fragments $knownGamePathFragments
+        if (-not (Test-RealGameProcessCandidate -ProcessId $processIdValue -ProcessName $processNameText -Path $path -Role $role -AllowKnownPathOnly -Foreground $Foreground -CpuPercent $cpu -UdpEndpoints $directUdp)) { continue }
         $related = Get-RelatedUdpEndpointSummary -Anchor $p -AnchorPath $path -Processes $Processes -UdpMap $UdpMap
         $relatedEndpointCount = if ($related) { [int]$related.EndpointCount } else { 0 }
         $effectiveRelated = $related
@@ -1594,7 +2015,6 @@ function Find-OpenGameForUdpGuard {
             $endpointCount = [int]$assistiveSummary.EndpointCount
         }
         if ($endpointCount -lt $networkUdpGuardMinEndpoints) { continue }
-        $isForeground = $Foreground -and [int]$Foreground.Id -eq $processIdValue
         $root = Get-GameSessionRootFromPath -Path $path
         $signals = @('udp-session', 'open-game-lock', 'local-contention-only')
         if ($directUdp -ge $networkUdpGuardMinEndpoints) { $signals += 'direct-udp' }
@@ -1609,7 +2029,7 @@ function Find-OpenGameForUdpGuard {
         if ($isForeground) { $confidence += 10 }
         if ($Foreground -and [bool]$Foreground.IsFullscreen -and $isForeground) { $confidence += 8 }
         if ($effectiveRelated -and @($effectiveRelated.Signals) -contains 'assistive-udp-near-game') { $confidence += 12 }
-        $confidence += Get-UdpProfileBonus -Map $ProfileMap -ProcessName ([string]$p.ProcessName) -Path $path -Root $root
+        $confidence += Get-UdpProfileBonus -Map $ProfileMap -ProcessName $processNameText -Path $path -Root $root
         if ($confidence -gt 100) { $confidence = 100 }
         $score = 300.0 + ([double]$confidence * 3.0) + ([double]$endpointCount * 8.0) + ([double]$cpu * 6.0)
         if ($knownName) { $score += 520.0 }
@@ -1990,8 +2410,11 @@ function Get-CpuBoundAssistContext {
     $anchorIsForeground = $false
     if ($Foreground -and [int]$Foreground.Id -gt 0) {
         $foregroundPath = [string]$Foreground.Path
+        if ([string]::IsNullOrWhiteSpace($foregroundPath) -and ((Test-KnownGameExecutableName -ProcessName ([string]$Foreground.ProcessName)) -or $genericGameDetection)) {
+            $foregroundPath = Resolve-GameExecutablePath -ProcessName ([string]$Foreground.ProcessName) -GameName ([string]$Foreground.ProcessName) -Processes $Processes
+        }
         $foregroundRole = Get-ProcessRole -ProcessName ([string]$Foreground.ProcessName) -Path $foregroundPath
-        if (Test-RealGameProcessCandidate -ProcessId ([int]$Foreground.Id) -ProcessName ([string]$Foreground.ProcessName) -Path $foregroundPath -Role $foregroundRole -AllowKnownPathOnly) {
+        if (Test-RealGameProcessCandidate -ProcessId ([int]$Foreground.Id) -ProcessName ([string]$Foreground.ProcessName) -Path $foregroundPath -Role $foregroundRole -Foreground $Foreground -AllowKnownPathOnly) {
             $anchor = $Foreground
             $anchorPath = $foregroundPath
             $anchorIsForeground = $true
@@ -2004,7 +2427,7 @@ function Get-CpuBoundAssistContext {
         if ($anchor -and @($anchor).Count -gt 0) { $anchor = $anchor[0] }
         if ($anchor) {
             $anchorPath = [string]$UdpGuard.GamePath
-            if ([string]::IsNullOrWhiteSpace($anchorPath)) { $anchorPath = Get-ProcessPathText -Process $anchor }
+            if ([string]::IsNullOrWhiteSpace($anchorPath)) { $anchorPath = Get-ProcessPathTextFromObject -ProcessLike $anchor }
         }
     }
 
@@ -2015,9 +2438,9 @@ function Get-CpuBoundAssistContext {
     $gpu = 0.0
     if ($GpuSnapshot -and $GpuSnapshot.ProcessGpuPercentByPid -and $GpuSnapshot.ProcessGpuPercentByPid.ContainsKey($processIdValue)) { $gpu = [double]$GpuSnapshot.ProcessGpuPercentByPid[$processIdValue] }
     $path = $anchorPath
-    if ([string]::IsNullOrWhiteSpace($path)) { $path = Get-ProcessPathText -Process $anchor }
+    if ([string]::IsNullOrWhiteSpace($path)) { $path = Get-ProcessPathTextFromObject -ProcessLike $anchor }
     $role = Get-ProcessRole -ProcessName ([string]$anchor.ProcessName) -Path $path
-    $looksGame = (Test-RealGameProcessCandidate -ProcessId $processIdValue -ProcessName ([string]$anchor.ProcessName) -Path $path -Role $role -AllowKnownPathOnly) -or ($UdpGuard -and [bool]$UdpGuard.Active -and [int]$UdpGuard.GamePid -eq $processIdValue)
+    $looksGame = (Test-RealGameProcessCandidate -ProcessId $processIdValue -ProcessName ([string]$anchor.ProcessName) -Path $path -Role $role -Foreground $Foreground -CpuPercent $cpu -AllowKnownPathOnly) -or ($UdpGuard -and [bool]$UdpGuard.Active -and [int]$UdpGuard.GamePid -eq $processIdValue)
     $minimumCpu = $cpuBoundGameCpuPercent
     if ($UdpGuard -and [bool]$UdpGuard.Active -and [int]$UdpGuard.GamePid -eq $processIdValue) {
         $minimumCpu = [math]::Min($cpuBoundGameCpuPercent, 1.0)
@@ -2149,7 +2572,7 @@ function Test-UdpGameCandidate {
     if ($UdpEndpoints -lt $networkUdpGuardMinEndpoints) { return $false }
     if (Test-NameInSet -Set $knownLauncherNames -Name $ProcessName) { return $false }
     if (Test-LauncherBrowserHelper -ProcessName $ProcessName -Path $Path) { return $false }
-    return (Test-RealGameProcessCandidate -ProcessId $ProcessId -ProcessName $ProcessName -Path $Path -Role $Role -AllowKnownPathOnly)
+    return (Test-RealGameProcessCandidate -ProcessId $ProcessId -ProcessName $ProcessName -Path $Path -Role $Role -Foreground $Foreground -CpuPercent $CpuPercent -UdpEndpoints $UdpEndpoints -AllowKnownPathOnly)
 }
 
 
@@ -2273,8 +2696,12 @@ function Get-GpuOptimizationContext {
     }
     if (-not $anchor -and $Foreground -and [int]$Foreground.Id -gt 0) {
         $fgPath = [string]$Foreground.Path
+        if ([string]::IsNullOrWhiteSpace($fgPath) -and ((Test-KnownGameExecutableName -ProcessName ([string]$Foreground.ProcessName)) -or $genericGameDetection)) {
+            $fgPath = Resolve-GameExecutablePath -ProcessName ([string]$Foreground.ProcessName) -GameName ([string]$Foreground.ProcessName) -Processes $Processes
+        }
         $fgRole = Get-ProcessRole -ProcessName ([string]$Foreground.ProcessName) -Path $fgPath
-        if (Test-RealGameProcessCandidate -ProcessId ([int]$Foreground.Id) -ProcessName ([string]$Foreground.ProcessName) -Path $fgPath -Role $fgRole -AllowKnownPathOnly) {
+        $fgCpu = if ($CpuMap -and $CpuMap.ContainsKey([int]$Foreground.Id)) { [double]$CpuMap[[int]$Foreground.Id] } else { 0.0 }
+        if (Test-RealGameProcessCandidate -ProcessId ([int]$Foreground.Id) -ProcessName ([string]$Foreground.ProcessName) -Path $fgPath -Role $fgRole -Foreground $Foreground -CpuPercent $fgCpu -AllowKnownPathOnly) {
             $anchor = $Foreground
             $anchorPath = $fgPath
         }
@@ -2286,7 +2713,7 @@ function Get-GpuOptimizationContext {
     }
 
     $gameProcessId = [int]$anchor.Id
-    if ([string]::IsNullOrWhiteSpace($anchorPath)) { $anchorPath = Get-ProcessPathText -Process $anchor }
+    if ([string]::IsNullOrWhiteSpace($anchorPath)) { $anchorPath = Get-ProcessPathTextFromObject -ProcessLike $anchor }
     $cpu = if ($CpuMap -and $CpuMap.ContainsKey($gameProcessId)) { [double]$CpuMap[$gameProcessId] } else { 0.0 }
     $gpu = 0.0
     $dedicated = 0.0
@@ -2326,6 +2753,481 @@ function Get-GpuOptimizationContext {
     return $state
 }
 
+function Get-ShaderBoostVendorName {
+    param([int]$VendorId, [string]$Name)
+    switch ($VendorId) { 0x10DE { return "NVIDIA" } 0x1002 { return "AMD" } 0x1022 { return "AMD" } 0x8086 { return "Intel" } }
+    $text = [string]$Name
+    if ($text -match '(?i)nvidia|geforce|rtx|gtx') { return "NVIDIA" }
+    if ($text -match '(?i)amd|radeon|rx\s|vega') { return "AMD" }
+    if ($text -match '(?i)intel|arc|iris|uhd|hd graphics') { return "Intel" }
+    return "Unknown"
+}
+
+function Convert-ShaderBoostDateText {
+    param([object]$Value)
+    if (-not $Value) { return "" }
+    try {
+        $raw = [string]$Value
+        if ($raw -match '^\d{14}\.\d{6}[+-]\d{3}$') { return ([System.Management.ManagementDateTimeConverter]::ToDateTime($raw)).ToString("o") }
+        return ([datetime]$Value).ToString("o")
+    } catch { return [string]$Value }
+}
+
+function Get-ShaderBoostGpuAdapters {
+    $items = @()
+    $dxgi = Get-DxgiVideoMemorySnapshot
+    if ($dxgi -and [bool]$dxgi.Available) {
+        foreach ($adapter in @($dxgi.Adapters)) {
+            $vendorId = 0; $deviceId = 0
+            try { $vendorId = [int]$adapter.VendorId } catch { }
+            try { $deviceId = [int]$adapter.DeviceId } catch { }
+            $dedicatedVideoMemoryMB = 0.0; $localUsageMB = 0.0
+            try { $dedicatedVideoMemoryMB = [double]$adapter.DedicatedVideoMemoryMB } catch { }
+            try { $localUsageMB = [double]$adapter.LocalUsageMB } catch { }
+            $items += [pscustomobject]@{ Source="DXGI"; Name=[string]$adapter.Name; Vendor=(Get-ShaderBoostVendorName -VendorId $vendorId -Name ([string]$adapter.Name)); VendorId=$vendorId; DeviceId=$deviceId; DriverVersion=""; DriverDate=""; DedicatedVideoMemoryMB=$dedicatedVideoMemoryMB; LocalUsageMB=$localUsageMB; PnpDeviceId="" }
+        }
+    }
+    try {
+        foreach ($video in @(Get-CimInstance -ClassName Win32_VideoController -ErrorAction Stop)) {
+            $name=[string]$video.Name; $pnp=[string]$video.PNPDeviceID; $vendorId=0; $deviceId=0
+            if ($pnp -match 'VEN_([0-9A-Fa-f]{4})') { $vendorId=[Convert]::ToInt32($matches[1],16) }
+            if ($pnp -match 'DEV_([0-9A-Fa-f]{4})') { $deviceId=[Convert]::ToInt32($matches[1],16) }
+            $matched=$false
+            foreach ($existing in @($items)) {
+                if ($vendorId -gt 0 -and [int]$existing.VendorId -eq $vendorId -and ($deviceId -eq 0 -or [int]$existing.DeviceId -eq $deviceId)) { $existing.DriverVersion=[string]$video.DriverVersion; $existing.DriverDate=Convert-ShaderBoostDateText $video.DriverDate; $existing.PnpDeviceId=$pnp; $matched=$true; break }
+            }
+            if (-not $matched) { $adapterRamMB = 0.0; try { $adapterRamMB = [math]::Round(([double]$video.AdapterRAM/1MB),1) } catch { }; $items += [pscustomobject]@{ Source="CIM"; Name=$name; Vendor=(Get-ShaderBoostVendorName -VendorId $vendorId -Name $name); VendorId=$vendorId; DeviceId=$deviceId; DriverVersion=[string]$video.DriverVersion; DriverDate=(Convert-ShaderBoostDateText $video.DriverDate); DedicatedVideoMemoryMB=$adapterRamMB; LocalUsageMB=0.0; PnpDeviceId=$pnp } }
+        }
+    } catch { }
+    return @($items | Sort-Object @{Expression={try{[double]$_.LocalUsageMB}catch{0.0}};Descending=$true}, @{Expression={try{[double]$_.DedicatedVideoMemoryMB}catch{0.0}};Descending=$true})
+}
+
+function Get-ShaderBoostGameAnchor {
+    param([object]$Foreground, [array]$Processes, [object]$UdpGuard)
+    if ($UdpGuard -and [int]$UdpGuard.GamePid -gt 0) {
+        $udpPid = [int]$UdpGuard.GamePid
+        $udpProcess = $Processes | Where-Object { try { [int]$_.Id -eq $udpPid } catch { $false } } | Select-Object -First 1
+        $udpPath = [string]$UdpGuard.GamePath
+        if ([string]::IsNullOrWhiteSpace($udpPath) -and $udpProcess) { $udpPath = Get-ProcessPathText -Process $udpProcess }
+        if ([string]::IsNullOrWhiteSpace($udpPath)) { $udpPath = Resolve-GameExecutablePath -ProcessName ([string]$UdpGuard.Game) -GameName ([string]$UdpGuard.Game) -Processes $Processes }
+        $udpRoot = [string]$UdpGuard.GameRoot
+        if ([string]::IsNullOrWhiteSpace($udpRoot) -and -not [string]::IsNullOrWhiteSpace($udpPath)) { $udpRoot = Get-GameSessionRootFromPath -Path $udpPath }
+        $udpName = [string]$UdpGuard.Game
+        if ([string]::IsNullOrWhiteSpace($udpName) -and $udpProcess) { $udpName = [string]$udpProcess.ProcessName }
+        if ([string]::IsNullOrWhiteSpace($udpName)) { $udpName = "GamePid-$udpPid" }
+        $udpConfidence = 70
+        try { if ([int]$UdpGuard.Confidence -gt 0) { $udpConfidence = [int]$UdpGuard.Confidence } } catch { }
+        return [pscustomobject]@{
+            Name = $udpName
+            Pid = $udpPid
+            Path = $udpPath
+            Root = $udpRoot
+            Source = "ZeroPing"
+            Confidence = $udpConfidence
+        }
+    }
+    if ($Foreground -and [int]$Foreground.Id -gt 0) {
+        $fgPath = [string]$Foreground.Path
+        if ([string]::IsNullOrWhiteSpace($fgPath) -and ((Test-KnownGameExecutableName -ProcessName ([string]$Foreground.ProcessName)) -or $genericGameDetection)) {
+            $fgPath = Resolve-GameExecutablePath -ProcessName ([string]$Foreground.ProcessName) -GameName ([string]$Foreground.ProcessName) -Processes $Processes
+        }
+        $fgRole = Get-ProcessRole -ProcessName ([string]$Foreground.ProcessName) -Path $fgPath
+        if (Test-RealGameProcessCandidate -ProcessId ([int]$Foreground.Id) -ProcessName ([string]$Foreground.ProcessName) -Path $fgPath -Role $fgRole -Foreground $Foreground -AllowKnownPathOnly) {
+            return [pscustomobject]@{
+                Name = [string]$Foreground.ProcessName
+                Pid = [int]$Foreground.Id
+                Path = $fgPath
+                Root = Get-GameSessionRootFromPath -Path $fgPath
+                Source = if ([bool]$Foreground.IsFullscreen) { "ForegroundFullscreen" } else { "Foreground" }
+                Confidence = if ([bool]$Foreground.IsFullscreen) { 78 } else { 64 }
+            }
+        }
+    }
+    return [pscustomobject]@{ Name=""; Pid=0; Path=""; Root=""; Source="None"; Confidence=0 }
+}
+
+function Get-GraphicsApiDetector {
+    param([object]$Anchor)
+    $signals=@(); $api="Unknown"; $confidence=0
+    if (-not $Anchor -or [int]$Anchor.Pid -le 0) { return [pscustomobject]@{ Detector="GraphicsApiDetector"; Api=$api; Confidence=0; Signals=@("no-running-game"); ProcessId=0 } }
+    try { $proc=Get-Process -Id ([int]$Anchor.Pid) -ErrorAction Stop; try { foreach($m in @($proc.Modules)){ $n=[string]$m.ModuleName; if($n -match '(?i)^d3d12\.dll$'){$signals+='d3d12.dll'} elseif($n -match '(?i)^d3d11\.dll$'){$signals+='d3d11.dll'} elseif($n -match '(?i)^vulkan-1\.dll$'){$signals+='vulkan-1.dll'} elseif($n -match '(?i)^opengl32\.dll$'){$signals+='opengl32.dll'} elseif($n -match '(?i)^dxgi\.dll$'){$signals+='dxgi.dll'} } } catch { $signals+='modules-inaccessible' } } catch { $signals+='process-inaccessible' }
+    if($signals -contains 'vulkan-1.dll'){$api='Vulkan';$confidence=92} elseif($signals -contains 'd3d12.dll'){$api='DirectX 12';$confidence=90} elseif($signals -contains 'd3d11.dll'){$api='DirectX 11';$confidence=88} elseif($signals -contains 'opengl32.dll'){$api='OpenGL';$confidence=80} elseif($signals -contains 'dxgi.dll'){$api='DirectX';$confidence=56}
+    if($api -eq 'Unknown' -and [string]$Anchor.Name -match '(?i)vulkan'){$api='Vulkan';$confidence=52;$signals+='name-vulkan'}
+    if($api -eq 'Unknown' -and [string]$Anchor.Name -match '(?i)-win64-shipping$'){$api='DirectX';$confidence=42;$signals+='unreal-shipping-name'}
+    return [pscustomobject]@{ Detector="GraphicsApiDetector"; Api=$api; Confidence=$confidence; Signals=@($signals|Select-Object -Unique); ProcessId=[int]$Anchor.Pid }
+}
+function Get-ShaderCapabilityDetector {
+    param([array]$Adapters, [object]$Api)
+    $adapter=@($Adapters|Select-Object -First 1); $adapter=if($adapter.Count -gt 0){$adapter[0]}else{$null}
+    $vendor=if($adapter){[string]$adapter.Vendor}else{"Unknown"}
+    $vendorPrecompiled="Unknown"
+    if($vendor -eq "Intel"){$vendorPrecompiled="RequiresOfficialIntelEligibility"} elseif($vendor -in @("NVIDIA","AMD")){$vendorPrecompiled="NotExposedAsUniversalLauncherFeature"}
+    [pscustomobject]@{
+        Detector="ShaderCapabilityDetector"; PrimaryAdapter=if($adapter){[string]$adapter.Name}else{""}; Vendor=$vendor; VendorId=if($adapter){[int]$adapter.VendorId}else{0}; DeviceId=if($adapter){[int]$adapter.DeviceId}else{0}; DriverVersion=if($adapter){[string]$adapter.DriverVersion}else{""}; DriverDate=if($adapter){[string]$adapter.DriverDate}else{""}; Api=if($Api){[string]$Api.Api}else{"Unknown"}
+        Matrix=[pscustomobject]@{ AutomaticInProcessCache="UnknownUntilNativeApiProbe"; AutomaticDiskCache=if($vendor -ne "Unknown"){"DriverManagedLikely"}else{"Unknown"}; DriverManagedCache=if($vendor -ne "Unknown"){"AvailableByVendorDriver"}else{"Unknown"}; PipelineLibrary=if($Api -and [string]$Api.Api -eq "DirectX 12"){"RequiresGameSupport"}else{"NotApplicableOrUnknown"}; ShaderCacheSession=if($Api -and [string]$Api.Api -eq "DirectX 12"){"RequiresNativeD3D12Probe"}else{"NotApplicableOrUnknown"}; VendorPrecompiledShaders=$vendorPrecompiled; GameNativePrecompile="ProfileRequired"; EnginePSOPrecache="ProfileRequired"; CacheCompatibilityValidation="DriverGpuGameMetadata" }
+        Notes=@("capability-matrix-not-model-list","no-universal-shader-compiler")
+    }
+}
+
+function Measure-ShaderCacheFolder {
+    param([string]$Path, [int]$MaxFiles = 0)
+    $result=[ordered]@{Exists=$false;SizeMB=0.0;FileCount=0;LastWriteUtc="";Truncated=$false;Readable=$false;WritableState="Unknown"}
+    if([string]::IsNullOrWhiteSpace($Path) -or -not(Test-Path -LiteralPath $Path -PathType Container)){return [pscustomobject]$result}
+    $scanMax = if ($MaxFiles -gt 0) { [int]$MaxFiles } else { [int]$shaderBoostCacheScanMaxFiles }
+    $result.Exists=$true
+    try{$dir=Get-Item -LiteralPath $Path -ErrorAction Stop; $result.WritableState=if(($dir.Attributes -band [IO.FileAttributes]::ReadOnly)-ne 0){"ReadOnlyAttribute"}else{"NotReadOnlyAttribute"}}catch{}
+    try{$latest=$null;$size=0.0;$count=0; foreach($file in @(Get-ChildItem -LiteralPath $Path -File -Recurse -ErrorAction SilentlyContinue | Select-Object -First $scanMax)){ $count++; try{$size += [double]$file.Length}catch{}; try{if(-not $latest -or $file.LastWriteTimeUtc -gt $latest){$latest=$file.LastWriteTimeUtc}}catch{} }; $result.Readable=$true; $result.FileCount=$count; $result.SizeMB=[math]::Round($size/1MB,1); $result.Truncated=($count -ge $scanMax); if($latest){$result.LastWriteUtc=$latest.ToString("o")}}catch{$result.Readable=$false}
+    return [pscustomobject]$result
+}
+
+function Add-ShaderCacheCandidate {
+    param([System.Collections.ArrayList]$Items,[string]$Name,[string]$Manager,[string]$Path,[string]$Api="",[int]$MaxFiles = 0)
+    if([string]::IsNullOrWhiteSpace($Path)){return}
+    $full=$Path; try{$full=[IO.Path]::GetFullPath($Path)}catch{}
+    foreach($item in @($Items)){ if([string]$item.Path -and ([string]$item.Path).Equals($full,[StringComparison]::OrdinalIgnoreCase)){return} }
+    $measure=Measure-ShaderCacheFolder -Path $full -MaxFiles $MaxFiles
+    [void]$Items.Add([pscustomobject]@{Name=$Name;Manager=$Manager;Api=$Api;Path=$full;Exists=[bool]$measure.Exists;Readable=[bool]$measure.Readable;WritableState=[string]$measure.WritableState;SizeMB=[double]$measure.SizeMB;FileCount=[int]$measure.FileCount;LastWriteUtc=[string]$measure.LastWriteUtc;Truncated=[bool]$measure.Truncated})
+}
+
+function Read-ShaderCacheInventoryState {
+    try {
+        if (Test-Path -LiteralPath $shaderBoostInventoryStatePath) {
+            return Get-Content -LiteralPath $shaderBoostInventoryStatePath -Raw | ConvertFrom-Json
+        }
+    } catch { }
+    return $null
+}
+
+function Get-ShaderCacheInventory {
+    param([object]$Anchor,[object]$Capability,[bool]$GameplayActive = $false)
+    $lightGameplay = [bool]($shaderBoostGameplayScanThrottle -and $GameplayActive -and $Anchor -and [int]$Anchor.Pid -gt 0)
+    if ($lightGameplay) {
+        $cached = Read-ShaderCacheInventoryState
+        if ($cached -and $cached.Timestamp) {
+            try {
+                $ageSeconds = ((Get-Date) - [datetime]$cached.Timestamp).TotalSeconds
+                if ($ageSeconds -ge 0 -and $ageSeconds -lt $shaderBoostGameplayScanIntervalSeconds) {
+                    return [pscustomobject]@{
+                        Component = "ShaderCacheInventory"
+                        Timestamp = (Get-Date).ToString("o")
+                        ScanMode = "CachedGameplay"
+                        ScanMaxFiles = [int]$cached.ScanMaxFiles
+                        LocatedCount = [int]$cached.LocatedCount
+                        CandidateCount = [int]$cached.CandidateCount
+                        TotalSizeMB = [double]$cached.TotalSizeMB
+                        Items = @($cached.Items)
+                    }
+                }
+            } catch { }
+        }
+    }
+    $scanMaxFiles = if ($lightGameplay) { [int]$shaderBoostGameplayScanMaxFiles } else { [int]$shaderBoostCacheScanMaxFiles }
+    $scanMode = if ($lightGameplay) { "LightGameplay" } else { "Full" }
+    $items=New-Object System.Collections.ArrayList
+    $local=[Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData); $programData=[Environment]::GetFolderPath([Environment+SpecialFolder]::CommonApplicationData)
+    Add-ShaderCacheCandidate $items "DirectX Shader Cache" "WindowsManaged" (Join-Path $local "D3DSCache") "DirectX" $scanMaxFiles
+    Add-ShaderCacheCandidate $items "NVIDIA DXCache" "NvidiaShaderAdapter" (Join-Path $local "NVIDIA\DXCache") "DirectX" $scanMaxFiles
+    Add-ShaderCacheCandidate $items "NVIDIA GLCache" "NvidiaShaderAdapter" (Join-Path $local "NVIDIA\GLCache") "OpenGL" $scanMaxFiles
+    Add-ShaderCacheCandidate $items "NVIDIA NV_Cache" "NvidiaShaderAdapter" (Join-Path $programData "NVIDIA Corporation\NV_Cache") "Driver" $scanMaxFiles
+    Add-ShaderCacheCandidate $items "AMD DxCache" "AmdShaderAdapter" (Join-Path $local "AMD\DxCache") "DirectX" $scanMaxFiles
+    Add-ShaderCacheCandidate $items "AMD GLCache" "AmdShaderAdapter" (Join-Path $local "AMD\GLCache") "OpenGL" $scanMaxFiles
+    Add-ShaderCacheCandidate $items "AMD VkCache" "AmdShaderAdapter" (Join-Path $local "AMD\VkCache") "Vulkan" $scanMaxFiles
+    Add-ShaderCacheCandidate $items "Intel ShaderCache" "IntelShaderAdapter" (Join-Path $local "Intel\ShaderCache") "Driver" $scanMaxFiles
+    $gameRoot=if($Anchor){[string]$Anchor.Root}else{""}
+    if(-not [string]::IsNullOrWhiteSpace($gameRoot) -and (Test-Path -LiteralPath $gameRoot -PathType Container)){
+        foreach($rel in @("Saved\PipelineCaches","Saved\CollectedPSOs","Saved\ShaderDebugInfo","Saved\Config","shadercache","cache")){Add-ShaderCacheCandidate $items ("Game "+$rel) "GameManaged" (Join-Path $gameRoot $rel) "Game" $scanMaxFiles}
+        try{foreach($dir in @(Get-ChildItem -LiteralPath $gameRoot -Directory -Recurse -Depth 3 -ErrorAction SilentlyContinue | Where-Object {$_.Name -match '(?i)shader|pso|pipeline|vkcache|dxcache|glcache'} | Select-Object -First 20)){Add-ShaderCacheCandidate $items ("Game cache "+$dir.Name) "GameManaged" $dir.FullName "Game" $scanMaxFiles}}catch{}
+    }
+    $existing=@($items|Where-Object{[bool]$_.Exists}); $total=0.0; foreach($item in @($existing)){$total += [double]$item.SizeMB}
+    $state = [pscustomobject]@{Component="ShaderCacheInventory"; Timestamp=(Get-Date).ToString("o"); ScanMode=$scanMode; ScanMaxFiles=$scanMaxFiles; LocatedCount=@($existing).Count; CandidateCount=@($items).Count; TotalSizeMB=[math]::Round($total,1); Items=@($items)}
+    try { Write-StateObject -Path $shaderBoostInventoryStatePath -Depth 8 -Value $state } catch { }
+    return $state
+}
+function Read-ShaderBoostStateMap {
+    param([string]$Path)
+    try { if(Test-Path -LiteralPath $Path){ return Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json } } catch { }
+    return $null
+}
+
+function Get-ShaderBoostDriverChangeDetector {
+    param([array]$Adapters)
+    $previous=Read-ShaderBoostStateMap -Path $shaderBoostDriverStatePath; $previousMap=@{}
+    if($previous -and $previous.Adapters){ foreach($item in @($previous.Adapters)){ $key="{0}:{1}:{2}" -f ([int]$item.VendorId),([int]$item.DeviceId),([string]$item.Name).ToLowerInvariant(); $previousMap[$key]=[string]$item.DriverVersion+"|"+[string]$item.DriverDate } }
+    $changed=$false; $changes=@()
+    foreach($adapter in @($Adapters)){ $key="{0}:{1}:{2}" -f ([int]$adapter.VendorId),([int]$adapter.DeviceId),([string]$adapter.Name).ToLowerInvariant(); $value=[string]$adapter.DriverVersion+"|"+[string]$adapter.DriverDate; if($previousMap.ContainsKey($key) -and [string]$previousMap[$key] -ne $value){$changed=$true;$changes += [pscustomobject]@{Adapter=[string]$adapter.Name;Previous=[string]$previousMap[$key];Current=$value}} elseif((-not $previousMap.ContainsKey($key)) -and $previous){$changed=$true;$changes += [pscustomobject]@{Adapter=[string]$adapter.Name;Previous="";Current=$value}} }
+    try{Write-StateObject -Path $shaderBoostDriverStatePath -Depth 7 -Value ([pscustomobject]@{Timestamp=(Get-Date).ToString("o");Changed=[bool]$changed;Changes=@($changes);Adapters=@($Adapters)})}catch{}
+    return [pscustomobject]@{Component="DriverChangeDetector";Changed=[bool]$changed;Changes=@($changes)}
+}
+
+function Get-GameUpdateDetector {
+    param([object]$Anchor)
+    if(-not $Anchor -or [string]::IsNullOrWhiteSpace([string]$Anchor.Path) -or -not(Test-Path -LiteralPath ([string]$Anchor.Path))){return [pscustomobject]@{Component="GameUpdateDetector";Changed=$false;Known=$false;Reason="no-game-anchor"}}
+    $previous=Read-ShaderBoostStateMap -Path $shaderBoostGameStatePath; $key=([string]$Anchor.Path).ToLowerInvariant(); $current=""
+    try{$file=Get-Item -LiteralPath ([string]$Anchor.Path) -ErrorAction Stop; $current="{0}|{1}" -f $file.LastWriteTimeUtc.ToString("o"),$file.Length}catch{}
+    $old=""; if($previous -and $previous.Items){foreach($item in @($previous.Items)){if([string]$item.Key -eq $key){$old=[string]$item.Value;break}}}
+    $changed=(-not [string]::IsNullOrWhiteSpace($old) -and $old -ne $current); $items=@(); if($previous -and $previous.Items){$items=@($previous.Items|Where-Object{[string]$_.Key -ne $key})}
+    $items += [pscustomobject]@{Key=$key;Value=$current;Name=[string]$Anchor.Name;Path=[string]$Anchor.Path;LastSeen=(Get-Date).ToString("o")}
+    try{Write-StateObject -Path $shaderBoostGameStatePath -Depth 6 -Value ([pscustomobject]@{Timestamp=(Get-Date).ToString("o");Items=@($items|Select-Object -First 240)})}catch{}
+    return [pscustomobject]@{Component="GameUpdateDetector";Changed=[bool]$changed;Known=$true;Reason=if($changed){"game-binary-changed"}else{"unchanged-or-first-observation"}}
+}
+
+function Get-ShaderCacheBudgetManager {
+    param([object]$Inventory,[object]$Capability)
+    $drive=$env:SystemDrive; $freeGB=0.0; $totalGB=0.0
+    try{$disk=Get-CimInstance -ClassName Win32_LogicalDisk -Filter ("DeviceID='"+$drive+"'") -ErrorAction Stop; $freeGB=[math]::Round(([double]$disk.FreeSpace/1GB),1); $totalGB=[math]::Round(([double]$disk.Size/1GB),1)}catch{}
+    $workingSet=if($Inventory){[double]$Inventory.TotalSizeMB}else{0.0}; $withMargin=[math]::Round($workingSet*(1.0+([double]$shaderBoostReadinessMarginPercent/100.0)),1); $recommended=0
+    foreach($value in @(128,256,512,1024,5120,10240,102400)){if($recommended -eq 0 -and $value -ge $withMargin){$recommended=$value}}
+    if($recommended -eq 0){$recommended=102400}
+    $maxBudgetMB=if($totalGB -gt 0){[math]::Round(($totalGB*1024.0)*([double]$shaderBoostMaxCacheBudgetPercent/100.0),1)}else{0.0}
+    $pressure=if($freeGB -gt 0 -and $freeGB -lt $shaderBoostMinFreeDiskGB){"StoragePressure"}elseif($maxBudgetMB -gt 0 -and $recommended -gt $maxBudgetMB){"BudgetTooLarge"}else{"OK"}
+    $rec=if($pressure -eq "StoragePressure"){"Low free storage; do not expand shader cache yet"}elseif($pressure -eq "BudgetTooLarge"){"Recommended cache limit would be too large for this disk"}else{"Cache budget looks safe"}
+    $nvidiaLimit=0; if($Capability -and [string]$Capability.Vendor -eq "NVIDIA"){$nvidiaLimit=$recommended}
+    return [pscustomobject]@{Component="ShaderCacheBudgetManager";FreeDiskGB=$freeGB;TotalDiskGB=$totalGB;ObservedWorkingSetMB=[math]::Round($workingSet,1);MarginPercent=[int]$shaderBoostReadinessMarginPercent;WorkingSetWithMarginMB=$withMargin;RecommendedNvidiaLimitMB=$nvidiaLimit;MaxBudgetMB=$maxBudgetMB;Pressure=$pressure;Recommendation=$rec}
+}
+
+function Get-ShaderCacheHealthAnalyzer {
+    param([object]$Inventory,[object]$Capability,[object]$Api,[object]$Anchor,[object]$DriverChange,[object]$GameUpdate,[object]$Budget)
+    if(-not $shaderBoostEnabled){return [pscustomobject]@{Component="ShaderCacheHealthAnalyzer";Status="Disabled";Readiness=0;Recommendation="ShaderBoost disabled";Details=@();Signals=@("disabled")}}
+    $signals=@(); $details=@(); $score=5
+    if($Capability -and [string]$Capability.PrimaryAdapter){$score+=15;$details+="GPU adapter detected"}else{$signals+="gpu-not-detected"}
+    if($Capability -and [string]$Capability.DriverVersion){$score+=10;$details+="Driver version recorded"}else{$signals+="driver-version-missing"}
+    if($Api -and [string]$Api.Api -ne "Unknown"){$score+=10;$details+="Graphics API detected"}else{$signals+="api-unknown"}
+    if($Anchor -and [int]$Anchor.Pid -gt 0){$score+=10;$details+="Game anchor detected"}else{$signals+="no-running-game"}
+    if($Inventory -and [int]$Inventory.LocatedCount -gt 0){$score+=20;$details+="Shader cache located"}else{$signals+="cache-not-located"}
+    if($Budget -and [string]$Budget.Pressure -eq "OK"){$score+=15;$details+="Storage budget OK"}else{$signals+="storage-pressure"}
+    if($DriverChange -and [bool]$DriverChange.Changed){$signals+="driver-changed"}else{$score+=10;$details+="No driver change detected"}
+    if($GameUpdate -and [bool]$GameUpdate.Changed){$signals+="game-updated"}else{$score+=5;$details+="No game update detected"}
+    if($shaderBoostObserveOnly){$score+=5;$details+="Safe observe-only mode"}; if($score -gt 100){$score=100}
+    $recent=$false; if($Inventory){foreach($item in @($Inventory.Items)){if([bool]$item.Exists -and -not [string]::IsNullOrWhiteSpace([string]$item.LastWriteUtc)){try{if(((Get-Date).ToUniversalTime()-[datetime]$item.LastWriteUtc).TotalMinutes -le 45){$recent=$true;break}}catch{}}}}
+    $status="NotAnalyzed"; $rec="Open a game or run a pass to analyze shader cache state"
+    if($Anchor -and [int]$Anchor.Pid -gt 0){ if($DriverChange -and [bool]$DriverChange.Changed){$status="CacheCold";$rec="Driver changed; prepare before playing and do not restore old driver cache"} elseif($GameUpdate -and [bool]$GameUpdate.Changed){$status="CacheOutdated";$rec="Game binary changed; first run may rebuild shaders"} elseif($Budget -and [string]$Budget.Pressure -ne "OK"){$status="CacheInsufficient";$rec=[string]$Budget.Recommendation} elseif($Inventory -and [int]$Inventory.LocatedCount -le 0){$status="CacheCold";$rec="No known shader cache found yet; monitor first execution"} elseif($recent){$status="CacheBuilding";$rec="Cache activity detected; keep compiler and game protected"} else {$status="CacheHealthy";$rec="Cache found and no invalidation signal detected"} }
+    return [pscustomobject]@{Component="ShaderCacheHealthAnalyzer";Status=$status;Readiness=[int]$score;Recommendation=$rec;Details=@($details);Signals=@($signals|Select-Object -Unique)}
+}
+
+function Get-ShaderWarmupOrchestrator { param([object]$Health,[object]$Anchor) $method="MonitoringOnly";$state="Waiting"; if($shaderBoostWarmupEnabled -and $Anchor -and [int]$Anchor.Pid -gt 0 -and $Health -and [string]$Health.Status -in @("CacheCold","CacheOutdated","CacheBuilding")){$method="GuidedFirstRun";$state="Detecting"}; return [pscustomobject]@{Component="ShaderWarmupOrchestrator";Enabled=[bool]$shaderBoostWarmupEnabled;PreparationAvailable=$false;Method=$method;State=$state;Cancelable=$true;ObserveOnly=[bool]$shaderBoostObserveOnly} }
+
+function Test-ShaderCompilationProcess { param([string]$ProcessName,[string]$Path) if(-not $shaderBoostEnabled){return $false}; $name=[string]$ProcessName; if($name -match '(?i)^(ShaderCompileWorker|UnrealShaderCompileWorker|ShaderCompilerWorker|ShaderCompiler)$'){return $true}; if($name -match '(?i)shader.*compile|compile.*shader|pso.*compile'){return $true}; $root=if($script:currentShaderBoost -and $script:currentShaderBoost.GameRoot){[string]$script:currentShaderBoost.GameRoot}else{""}; if(-not [string]::IsNullOrWhiteSpace($root) -and -not [string]::IsNullOrWhiteSpace($Path) -and $Path.StartsWith($root,[StringComparison]::OrdinalIgnoreCase) -and ($name -match '(?i)shader|pso|pipeline|compile')){return $true}; return $false }
+
+function Get-ShaderCompilationDetector { param([array]$Processes,[hashtable]$CpuMap,[object]$Inventory) $items=@(); foreach($p in @($Processes)){ $path=Get-ProcessPathText -Process $p; if(-not(Test-ShaderCompilationProcess -ProcessName ([string]$p.ProcessName) -Path $path)){continue}; $pid=0; try{$pid=[int]$p.Id}catch{}; $cpu=if($CpuMap -and $CpuMap.ContainsKey($pid)){[double]$CpuMap[$pid]}else{0.0}; $items += [pscustomobject]@{Id=$pid;Name=[string]$p.ProcessName;CpuPercent=[math]::Round($cpu,1);Path=$path} }; $state=if(@($items).Count -gt 0){"Compiling"}else{"Waiting"}; return [pscustomobject]@{Component="SmartShaderWarmup";State=$state;Possible=($state -ne "Waiting");Processes=@($items|Select-Object -First 8)} }
+function Get-ShaderBoostCoordinator {
+    param(
+        [object]$Foreground,
+        [array]$Processes,
+        [hashtable]$CpuMap,
+        [object]$GpuSnapshot,
+        [object]$UdpGuard
+    )
+
+    $started = Get-Date
+    $modules = @(
+        "ShaderBoostCoordinator",
+        "ShaderCapabilityDetector",
+        "GraphicsApiDetector",
+        "GraphicsVendorAdapter",
+        "ShaderCacheInventory",
+        "ShaderCacheHealthAnalyzer",
+        "DriverChangeDetector",
+        "GameUpdateDetector",
+        "ShaderWarmupOrchestrator",
+        "GameShaderProfileRegistry",
+        "EngineShaderAdapter",
+        "ShaderCacheRepairService",
+        "ShaderCacheBudgetManager",
+        "ShaderPerformanceMonitor",
+        "ShaderBoostStateMachine",
+        "ShaderBoostBackupManager",
+        "ShaderBoostRestoreManager",
+        "ShaderBoostTelemetry",
+        "ShaderCacheGuardian",
+        "SmartShaderWarmup"
+    )
+
+    if (-not $shaderBoostEnabled) {
+        $disabled = [pscustomobject]@{
+            Timestamp = $started.ToString("o")
+            Feature = "ShaderBoost"
+            InternalName = "Shader Optimization Engine"
+            Enabled = $false
+            ObserveOnly = [bool]$shaderBoostObserveOnly
+            State = "Disabled"
+            SharedState = "Waiting"
+            Readiness = 0
+            Recommendation = "ShaderBoost disabled"
+            Game = ""
+            GamePid = 0
+            GamePath = ""
+            GameRoot = ""
+            GameSource = "None"
+            Api = "Unknown"
+            ApiConfidence = 0
+            Gpu = ""
+            Vendor = "Unknown"
+            VendorId = 0
+            DeviceId = 0
+            DriverVersion = ""
+            DriverDate = ""
+            CacheState = "Disabled"
+            CacheLocatedCount = 0
+            CacheTotalSizeMB = 0.0
+            CacheManager = ""
+            CacheScanMode = "Off"
+            CacheScanMaxFiles = 0
+            FrameStabilityGuard = $false
+            FrameStabilityReason = ""
+            VramPressure = "Unknown"
+            CompilationState = "Waiting"
+            CompilationPossible = $false
+            PreparationMethod = "MonitoringOnly"
+            WarmupState = "Waiting"
+            Signals = @("disabled")
+            Details = @()
+            SharedStates = @("GameLaunching", "ShaderCompilationDetected", "ShaderPreparationActive", "ShaderValidation", "GameplayReady", "GameplayActive", "GameClosing")
+            Safety = @("observe-only-by-default", "no automatic repair", "no cache deletion")
+            Modules = $modules
+        }
+        try { Write-StateObject -Path $shaderBoostStatePath -Depth 8 -Value $disabled } catch { }
+        return $disabled
+    }
+
+    $adapters = @(Get-ShaderBoostGpuAdapters)
+    $anchor = Get-ShaderBoostGameAnchor -Foreground $Foreground -Processes $Processes -UdpGuard $UdpGuard
+    $anchorPid = 0; try { $anchorPid = [int]$anchor.Pid } catch { }
+    $gameplayActive = [bool]($anchorPid -gt 0 -and (($UdpGuard -and [bool]$UdpGuard.Active) -or ($Foreground -and [int]$Foreground.Id -eq $anchorPid) -or ([string]$sessionMode -eq "Gaming")))
+    $api = Get-GraphicsApiDetector -Anchor $anchor
+    $capability = Get-ShaderCapabilityDetector -Adapters $adapters -Api $api
+    $inventory = Get-ShaderCacheInventory -Anchor $anchor -Capability $capability -GameplayActive:$gameplayActive
+    $driverChange = Get-ShaderBoostDriverChangeDetector -Adapters $adapters
+    $gameUpdate = Get-GameUpdateDetector -Anchor $anchor
+    $budget = Get-ShaderCacheBudgetManager -Inventory $inventory -Capability $capability
+    $health = Get-ShaderCacheHealthAnalyzer -Inventory $inventory -Capability $capability -Api $api -Anchor $anchor -DriverChange $driverChange -GameUpdate $gameUpdate -Budget $budget
+    $warmup = Get-ShaderWarmupOrchestrator -Health $health -Anchor $anchor
+    $compilation = Get-ShaderCompilationDetector -Processes $Processes -CpuMap $CpuMap -Inventory $inventory
+
+    $gamePid = 0; try { $gamePid = [int]$anchor.Pid } catch { }
+    $gameName = if ($anchor) { [string]$anchor.Name } else { "" }
+    $gamePath = if ($anchor) { [string]$anchor.Path } else { "" }
+    $gameRoot = if ($anchor) { [string]$anchor.Root } else { "" }
+    $apiName = if ($api) { [string]$api.Api } else { "Unknown" }
+    $apiConfidence = if ($api) { [int]$api.Confidence } else { 0 }
+    $stateName = if ($health) { [string]$health.Status } else { "NotAnalyzed" }
+    if ($gamePid -le 0) { $stateName = "WaitingForGame" }
+    if ($compilation -and [bool]$compilation.Possible) { $stateName = "ShaderCompilationDetected" }
+    $sharedState = "Waiting"
+    if ($gamePid -gt 0) { $sharedState = "GameLaunching" }
+    if ($stateName -eq "ShaderCompilationDetected") { $sharedState = "ShaderCompilationDetected" }
+    elseif ($warmup -and [string]$warmup.State -eq "Detecting") { $sharedState = "ShaderPreparationActive" }
+    elseif ($stateName -eq "CacheHealthy") { $sharedState = "GameplayReady" }
+    elseif ($gamePid -gt 0 -and $stateName -in @("CacheBuilding", "CacheCold", "CacheOutdated")) { $sharedState = "ShaderValidation" }
+
+    $cacheManagers = @()
+    if ($inventory) {
+        $cacheManagers = @($inventory.Items | Where-Object { [bool]$_.Exists } | ForEach-Object { [string]$_.Manager } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
+    }
+    $details = @(); if ($health) { $details = @($health.Details) }
+    $signals = @(); if ($health) { $signals += @($health.Signals) }; if ($api) { $signals += @($api.Signals) }
+    if ($shaderBoostObserveOnly) { $signals += "observe-only" }
+    if ($shaderBoostRepairEnabled) { $signals += "repair-enabled-by-config" }
+    if ($shaderBoostWarmupEnabled) { $signals += "warmup-enabled-by-config" }
+    if ($inventory -and [string]$inventory.ScanMode) { $signals += ("cache-scan-" + ([string]$inventory.ScanMode).ToLowerInvariant()) }
+
+    $readiness = if ($health) { [int]$health.Readiness } else { 0 }
+    $recommendation = if ($health) { [string]$health.Recommendation } else { "Open a game to analyze shader cache state" }
+    if ($compilation -and [bool]$compilation.Possible) { $recommendation = "Possible shader compilation detected; compiler processes are protected" }
+    $vramPressure = if ($GpuSnapshot) { [string]$GpuSnapshot.Pressure } else { "Unknown" }
+    $cpuBoundThisGame = [bool]($script:currentCpuBoundAssist -and [bool]$script:currentCpuBoundAssist.Active -and [int]$script:currentCpuBoundAssist.GamePid -eq $gamePid)
+    $frameStabilityGuard = [bool]($gamePid -gt 0 -and (($stateName -in @("CacheBuilding", "CacheCold", "CacheOutdated", "ShaderCompilationDetected")) -or ($vramPressure -in @("Elevated", "Critical")) -or $cpuBoundThisGame))
+    $frameStabilityReason = ""
+    if ($frameStabilityGuard) {
+        if ($stateName -in @("CacheBuilding", "CacheCold", "CacheOutdated", "ShaderCompilationDetected")) { $frameStabilityReason = "shader-cache-preparation" }
+        elseif ($vramPressure -in @("Elevated", "Critical")) { $frameStabilityReason = "vram-pressure" }
+        elseif ($cpuBoundThisGame) { $frameStabilityReason = "cpu-bound-gameplay" }
+        else { $frameStabilityReason = "gameplay-stability" }
+        $signals += "frame-stability-guard"
+        if ($gameplayActive -and $shaderBoostGameplayScanThrottle) { $signals += "gameplay-light-cache-scan" }
+    }
+    if ($frameStabilityGuard -and $stateName -eq "CacheHealthy" -and $vramPressure -in @("Elevated", "Critical")) {
+        $recommendation = "Shader cache is healthy; FPS instability is more likely VRAM pressure, so ShaderBoost uses light cache scanning during gameplay"
+    }
+
+    $state = [pscustomobject]@{
+        Timestamp = $started.ToString("o")
+        Feature = "ShaderBoost"
+        InternalName = "Shader Optimization Engine"
+        Enabled = [bool]$shaderBoostEnabled
+        ObserveOnly = [bool]$shaderBoostObserveOnly
+        State = $stateName
+        SharedState = $sharedState
+        Readiness = [int]$readiness
+        Recommendation = $recommendation
+        Game = $gameName
+        GamePid = $gamePid
+        GamePath = $gamePath
+        GameRoot = $gameRoot
+        GameSource = if ($anchor) { [string]$anchor.Source } else { "None" }
+        Api = $apiName
+        ApiConfidence = $apiConfidence
+        Gpu = if ($capability) { [string]$capability.PrimaryAdapter } else { "" }
+        Vendor = if ($capability) { [string]$capability.Vendor } else { "Unknown" }
+        VendorId = if ($capability) { [int]$capability.VendorId } else { 0 }
+        DeviceId = if ($capability) { [int]$capability.DeviceId } else { 0 }
+        DriverVersion = if ($capability) { [string]$capability.DriverVersion } else { "" }
+        DriverDate = if ($capability) { [string]$capability.DriverDate } else { "" }
+        Capability = $capability
+        Inventory = $inventory
+        CacheItems = if ($inventory) { @($inventory.Items | Select-Object -First 20) } else { @() }
+        CacheState = if ($health) { [string]$health.Status } else { "NotAnalyzed" }
+        CacheLocatedCount = if ($inventory) { [int]$inventory.LocatedCount } else { 0 }
+        CacheTotalSizeMB = if ($inventory) { [double]$inventory.TotalSizeMB } else { 0.0 }
+        CacheManager = ($cacheManagers -join ", ")
+        CacheScanMode = if ($inventory) { [string]$inventory.ScanMode } else { "Unknown" }
+        CacheScanMaxFiles = if ($inventory) { [int]$inventory.ScanMaxFiles } else { 0 }
+        FrameStabilityGuard = [bool]$frameStabilityGuard
+        FrameStabilityReason = $frameStabilityReason
+        VramPressure = $vramPressure
+        Budget = $budget
+        DriverChange = $driverChange
+        GameUpdate = $gameUpdate
+        Warmup = $warmup
+        Compilation = $compilation
+        CompilationState = if ($compilation) { [string]$compilation.State } else { "Waiting" }
+        CompilationPossible = if ($compilation) { [bool]$compilation.Possible } else { $false }
+        PreparationMethod = if ($warmup) { [string]$warmup.Method } else { "MonitoringOnly" }
+        WarmupState = if ($warmup) { [string]$warmup.State } else { "Waiting" }
+        Signals = @($signals | Select-Object -Unique)
+        Details = @($details)
+        SharedStates = @("GameLaunching", "ShaderCompilationDetected", "ShaderPreparationActive", "ShaderValidation", "GameplayReady", "GameplayActive", "GameClosing")
+        Modules = $modules
+        DurationMs = [int]((Get-Date) - $started).TotalMilliseconds
+    }
+
+    try { Write-StateObject -Path $shaderBoostStatePath -Depth 9 -Value $state } catch { }
+    $eventData = [pscustomobject]@{
+        Game = $gameName
+        PID = $gamePid
+        GPU = [string]$state.Gpu
+        Driver = [string]$state.DriverVersion
+        API = $apiName
+        Method = [string]$state.PreparationMethod
+        Directory = $gameRoot
+        Result = $stateName
+        Duration = [int]$state.DurationMs
+        ErrorCode = 0
+    }
+    try {
+        if (-not (Get-Variable -Name lastShaderBoostLogKey -Scope Script -ErrorAction SilentlyContinue)) { $script:lastShaderBoostLogKey = "" }
+        $logKey = "{0}|{1}|{2}|{3}|{4}|{5}" -f $stateName, $gamePid, [bool]$state.CompilationPossible, [bool]$driverChange.Changed, [bool]$gameUpdate.Changed, $readiness
+        if ($script:lastShaderBoostLogKey -ne $logKey) {
+            Write-EngineDiagnostic -Level "Info" -Event "ShaderBoost initialized" -Data $eventData
+            if ($driverChange -and [bool]$driverChange.Changed) { Write-EngineDiagnostic -Level "Info" -Event "Driver change detected" -Data $eventData }
+            if ($gameUpdate -and [bool]$gameUpdate.Changed) { Write-EngineDiagnostic -Level "Info" -Event "Game update detected" -Data $eventData }
+            if ($stateName -in @("CacheCold", "CacheOutdated")) { Write-EngineDiagnostic -Level "Info" -Event "Cache marked cold" -Data $eventData }
+            if ($compilation -and [bool]$compilation.Possible) { Write-EngineDiagnostic -Level "Info" -Event "Possible shader compilation detected" -Data $eventData }
+            $script:lastShaderBoostLogKey = $logKey
+        }
+    } catch { }
+    return $state
+}
+
 function Test-StreamingSafeLaneActive {
     if ($sessionMode -eq "Streamer") { return $true }
     if ($script:currentIntent -and [string]$script:currentIntent.Kind -eq "Streaming") { return $true }
@@ -2353,6 +3255,9 @@ function Write-EngineHealthState {
             StreamHelpers = if ($script:currentStreamingContext) { [int]$script:currentStreamingContext.HelperCount } else { 0 }
             GpuOptimization = if ($script:currentGpuOptimization) { [string]$script:currentGpuOptimization.Status } else { "Unknown" }
             GpuOptimizationReason = if ($script:currentGpuOptimization) { [string]$script:currentGpuOptimization.Reason } else { "" }
+            ShaderBoost = if ($script:currentShaderBoost) { [string]$script:currentShaderBoost.State } else { "NotAnalyzed" }
+            ShaderBoostReadiness = if ($script:currentShaderBoost) { [int]$script:currentShaderBoost.Readiness } else { 0 }
+            ShaderBoostSharedState = if ($script:currentShaderBoost) { [string]$script:currentShaderBoost.SharedState } else { "Waiting" }
             LastPassValid = (@($Rows).Count -gt 0)
             DiagnosticLevel = [string]$diagnosticLevel
             Elevated = (Test-ProcessElevatedRuntime)
@@ -2390,10 +3295,15 @@ function Get-UdpGuardContext {
         if ($processIdValue -le 0 -or -not $UdpMap.ContainsKey($processIdValue)) { continue }
         $udpCount = [int]$UdpMap[$processIdValue]
         $cpu = if ($CpuMap -and $CpuMap.ContainsKey($processIdValue)) { [double]$CpuMap[$processIdValue] } else { 0.0 }
+        $processNameText = [string]$p.ProcessName
         $path = Get-ProcessPathText -Process $p
-        $role = Get-ProcessRole -ProcessName $p.ProcessName -Path $path
-        $directKnownName = Test-KnownGameExecutableName -ProcessName ([string]$p.ProcessName)
-        if (-not (Test-UdpGameCandidate -ProcessId $processIdValue -ProcessName $p.ProcessName -Path $path -Role $role -Foreground $Foreground -CpuPercent $cpu -UdpEndpoints $udpCount)) { continue }
+        $directKnownName = Test-KnownGameExecutableName -ProcessName $processNameText
+        $directIsForeground = $Foreground -and [int]$Foreground.Id -eq $processIdValue
+        if ([string]::IsNullOrWhiteSpace($path) -and ($directKnownName -or ($genericGameDetection -and ($directIsForeground -or $udpCount -ge $networkUdpGuardMinEndpoints)))) {
+            $path = Resolve-GameExecutablePath -ProcessName $processNameText -GameName $processNameText -Processes $Processes
+        }
+        $role = Get-ProcessRole -ProcessName $processNameText -Path $path
+        if (-not (Test-UdpGameCandidate -ProcessId $processIdValue -ProcessName $processNameText -Path $path -Role $role -Foreground $Foreground -CpuPercent $cpu -UdpEndpoints $udpCount)) { continue }
         $root = Get-GameSessionRootFromPath -Path $path
         $signals = @("udp-session", "direct-udp", "local-contention-only")
         if ($Foreground -and [int]$Foreground.Id -eq $processIdValue) { $signals += "foreground-udp" }
@@ -2405,7 +3315,7 @@ function Get-UdpGuardContext {
         if ($role -eq "GameCandidate") { $confidence += 12 }
         if ($directKnownName) { $confidence += 18 }
         if ($Foreground -and [bool]$Foreground.IsFullscreen -and [int]$Foreground.Id -eq $processIdValue) { $confidence += 10 }
-        $confidence += Get-UdpProfileBonus -Map $profileMap -ProcessName ([string]$p.ProcessName) -Path $path -Root $root
+        $confidence += Get-UdpProfileBonus -Map $profileMap -ProcessName $processNameText -Path $path -Root $root
         if ($confidence -gt 100) { $confidence = 100 }
         $score = ([double]$udpCount * 18.0) + ([double]$cpu * 8.0) + ([double]$confidence * 2.0)
         if ($directKnownName) { $score += 260.0 }
@@ -2414,11 +3324,14 @@ function Get-UdpGuardContext {
     if (-not $best -and $Foreground -and [int]$Foreground.Id -gt 0) {
         $anchor = Get-Process -Id ([int]$Foreground.Id) -ErrorAction SilentlyContinue
         if ($anchor) {
-            $anchorPath = if ($Foreground.Path) { [string]$Foreground.Path } else { Get-ProcessPathText -Process $anchor }
+            $anchorPath = if ($Foreground.Path) { [string]$Foreground.Path } else { Get-ProcessPathTextFromObject -ProcessLike $anchor }
+            if ([string]::IsNullOrWhiteSpace($anchorPath) -and ((Test-KnownGameExecutableName -ProcessName ([string]$anchor.ProcessName)) -or $genericGameDetection)) {
+                $anchorPath = Resolve-GameExecutablePath -ProcessName ([string]$anchor.ProcessName) -GameName ([string]$anchor.ProcessName) -Processes $Processes
+            }
             $anchorRole = Get-ProcessRole -ProcessName $anchor.ProcessName -Path $anchorPath
             $anchorRoot = Get-GameSessionRootFromPath -Path $anchorPath
             $anchorCpu = if ($CpuMap -and $CpuMap.ContainsKey([int]$anchor.Id)) { [double]$CpuMap[[int]$anchor.Id] } else { 0.0 }
-            $anchorLooksLikeGame = Test-RealGameProcessCandidate -ProcessId ([int]$anchor.Id) -ProcessName ([string]$anchor.ProcessName) -Path $anchorPath -Role $anchorRole -AllowKnownPathOnly
+            $anchorLooksLikeGame = Test-RealGameProcessCandidate -ProcessId ([int]$anchor.Id) -ProcessName ([string]$anchor.ProcessName) -Path $anchorPath -Role $anchorRole -Foreground $Foreground -CpuPercent $anchorCpu -AllowKnownPathOnly
             if ($anchorLooksLikeGame -and -not [string]::IsNullOrWhiteSpace($anchorRoot) -and ([bool]$Foreground.IsFullscreen -or $anchorRole -eq "GameCandidate" -or (Test-PathContainsFragment -Path $anchorPath -Fragments $knownGamePathFragments) -or $anchorCpu -ge $networkUdpGuardGameCpuFloor)) {
                 $related = Get-RelatedUdpEndpointSummary -Anchor $anchor -AnchorPath $anchorPath -Processes $Processes -UdpMap $UdpMap
                 if ([int]$related.EndpointCount -ge $networkUdpGuardMinEndpoints) {
@@ -2444,7 +3357,8 @@ function Get-UdpGuardContext {
     $endpointCount=[int]$best.Udp; if($relatedSummary -and [int]$relatedSummary.EndpointCount -gt $endpointCount){$endpointCount=[int]$relatedSummary.EndpointCount}
     $signals=@($best.Signals); if($relatedSummary){$signals += @($relatedSummary.Signals)}; $signals=@($signals|Where-Object{$_}|Select-Object -Unique)
     $confidence=[int]$best.Confidence; $active=$confidence -ge $networkUdpGuardConfidenceFloor
-    $context=[pscustomobject]@{ Enabled=$true; Active=[bool]$active; Mode=if(-not $active){"Armed"}elseif(@($protectedPids).Count -gt 1){"NetcodeShieldAssociated"}else{"NetcodeShield"}; Game=[string]$best.Process.ProcessName; GamePid=[int]$best.Process.Id; GamePath=[string]$best.Path; GameRoot=if($relatedSummary){[string]$relatedSummary.Root}else{[string]$best.Root}; EndpointCount=$endpointCount; ProcessCount=$processCount; Confidence=$confidence; ConfidenceLabel=Get-UdpConfidenceLabel -Confidence $confidence; Reason=Get-UdpConfidenceReason -Signals $signals -Source ([string]$best.Source); Source=[string]$best.Source; ShieldMode=if($active){"LocalShield"}else{"Observe"}; ProtectedCount=@($protectedPids).Count; ProtectedPids=@($protectedPids); ProtectedPaths=@($protectedPaths); Signals=@($signals); QosStatus="Ready"; NoStackTweaks=[bool]$networkUdpGuardNoStackTweaks }
+    $contextRoot = if($relatedSummary -and -not [string]::IsNullOrWhiteSpace([string]$relatedSummary.Root)){[string]$relatedSummary.Root}else{[string]$best.Root}
+    $context=[pscustomobject]@{ Enabled=$true; Active=[bool]$active; Mode=if(-not $active){"Armed"}elseif(@($protectedPids).Count -gt 1){"NetcodeShieldAssociated"}else{"NetcodeShield"}; Game=[string]$best.Process.ProcessName; GamePid=[int]$best.Process.Id; GamePath=[string]$best.Path; GameRoot=$contextRoot; EndpointCount=$endpointCount; ProcessCount=$processCount; Confidence=$confidence; ConfidenceLabel=Get-UdpConfidenceLabel -Confidence $confidence; Reason=Get-UdpConfidenceReason -Signals $signals -Source ([string]$best.Source); Source=[string]$best.Source; ShieldMode=if($active){"LocalShield"}else{"Observe"}; ProtectedCount=@($protectedPids).Count; ProtectedPids=@($protectedPids); ProtectedPaths=@($protectedPaths); Signals=@($signals); QosStatus="Ready"; NoStackTweaks=[bool]$networkUdpGuardNoStackTweaks }
     $context.QosStatus = Ensure-ZeroPingQosPolicy -Context $context
     Update-UdpSessionProfile -Map $profileMap -Context $context
     return $context
@@ -3185,14 +4099,19 @@ function Get-IntentContext {
     $path = if ($Foreground -and $Foreground.Path) { [string]$Foreground.Path } else { "" }
     $confidence = 20
 
+    if ([string]::IsNullOrWhiteSpace($path) -and $Foreground -and [int]$Foreground.Id -gt 0 -and ((Test-KnownGameExecutableName -ProcessName $name) -or $genericGameDetection)) {
+        $path = Resolve-GameExecutablePath -ProcessName $name -GameName $name -Processes $Processes
+    }
     $fgRole = Get-ProcessRole -ProcessName $name -Path $path
     $fgUdpEndpoints = 0
     if ($UdpMap -and $Foreground -and [int]$Foreground.Id -gt 0 -and $UdpMap.ContainsKey([int]$Foreground.Id)) { $fgUdpEndpoints = [int]$UdpMap[[int]$Foreground.Id] }
+    $fgCpuPercent = 0.0
+    if ($CpuMap -and $Foreground -and [int]$Foreground.Id -gt 0 -and $CpuMap.ContainsKey([int]$Foreground.Id)) { $fgCpuPercent = [double]$CpuMap[[int]$Foreground.Id] }
     $fgNeverGame = $Foreground -and [int]$Foreground.Id -gt 0 -and (Test-NeverGameProcess -ProcessId ([int]$Foreground.Id) -ProcessName $name -Path $path -Role $fgRole)
     $fgKnownGameName = Test-KnownGameExecutableName -ProcessName $name
     $fgKnownGamePath = Test-PathContainsFragment -Path $path -Fragments $knownGamePathFragments
     $fgProcessId = if ($Foreground) { [int]$Foreground.Id } else { 0 }
-    $fgLooksLikeGame = Test-RealGameProcessCandidate -ProcessId $fgProcessId -ProcessName $name -Path $path -Role $fgRole -AllowKnownPathOnly
+    $fgLooksLikeGame = Test-RealGameProcessCandidate -ProcessId $fgProcessId -ProcessName $name -Path $path -Role $fgRole -Foreground $Foreground -CpuPercent $fgCpuPercent -UdpEndpoints $fgUdpEndpoints -AllowKnownPathOnly
     if ($networkUdpGuardEnabled -and $fgLooksLikeGame -and $fgUdpEndpoints -ge $networkUdpGuardMinEndpoints) {
         $signals += "foreground-udp"
         $confidence = [math]::Max($confidence, 76)
@@ -3342,7 +4261,15 @@ function Get-GuardDecision {
     $reason = ""
     $confidence = 0
 
-    if ($Role -eq "Streaming") {
+    if ($Role -eq "ShaderCompiler") {
+        $protect = $true
+        $reason = "ShaderCompilationGuard"
+        $confidence = 90
+        if ($CpuPercent -ge 0.5) { $confidence += 4 }
+        if ($script:currentShaderBoost -and [string]$script:currentShaderBoost.SharedState -eq "ShaderCompilationDetected") { $confidence += 4 }
+    }
+
+    if (-not $protect -and $Role -eq "Streaming") {
         $protect = $true
         $reason = "StreamGuard"
         $confidence = 88
@@ -3715,7 +4642,7 @@ function Get-RelatedProcessIdSet {
     )
 
     $set = New-Object 'System.Collections.Generic.HashSet[int]'
-    if ($RootPid -le 0 -or -not $ParentByPid -or -not $Processes) { return $set }
+    if ($RootPid -le 0 -or -not $ParentByPid -or -not $Processes) { Write-Output -NoEnumerate $set; return }
     [void]$set.Add([int]$RootPid)
 
     $frontier = @([int]$RootPid)
@@ -3733,7 +4660,27 @@ function Get-RelatedProcessIdSet {
         }
         $frontier = @($next)
     }
-    return $set
+    Write-Output -NoEnumerate $set
+    return
+}
+
+function ConvertTo-ProcessIdSet {
+    param([object]$Value)
+
+    $set = New-Object 'System.Collections.Generic.HashSet[int]'
+    foreach ($item in @($Value)) {
+        try {
+            if ($item -is [System.Collections.IEnumerable] -and -not ($item -is [string])) {
+                foreach ($nested in @($item)) {
+                    try { if ([int]$nested -gt 0) { [void]$set.Add([int]$nested) } } catch { }
+                }
+            } else {
+                if ([int]$item -gt 0) { [void]$set.Add([int]$item) }
+            }
+        } catch { }
+    }
+    Write-Output -NoEnumerate $set
+    return
 }
 
 function Test-RoleStabilizeSensitive {
@@ -4134,6 +5081,10 @@ function Get-NapPolicy {
             $reason = "streamer-background-containment"
         }
         $policySource = "streamer"
+    } elseif (Test-VramActionCandidate -Row $Row) {
+        $tier = "Balanced"
+        $reason = "vram-action-helper-containment"
+        $policySource = "gpu-action"
     } elseif ([bool]$Row.GpuOptimizationActive -and -not $restoreGuard -and -not [bool]$Row.SwitchFastWake -and -not $Row.GuardReason -and -not [bool]$Row.UdpGameProtected -and ([string]$Row.Role -in @("Browser", "LauncherHelper", "StreamHelper"))) {
         $tier = "Balanced"
         $reason = "gpu-workload-helper-containment"
@@ -4171,12 +5122,21 @@ function Get-NapPolicy {
         if ($policySource -eq "auto") { $policySource = "governor" }
     }
 
+    $priorityClassValue = $napTierPriority[$tier]
+    $memoryPriorityValue = [int]$napTierMemory[$tier]
+    $ioPriorityValue = [int]$napTierIo[$tier]
+    if ($reason -eq "vram-action-helper-containment") {
+        $priorityClassValue = $napTierPriority["Deep"]
+        $memoryPriorityValue = [int]$napTierMemory["Deep"]
+        $ioPriorityValue = [int]$napTierIo["Deep"]
+    }
+
     [pscustomobject]@{
         Tier = $tier
         Reason = $reason
-        PriorityClass = $napTierPriority[$tier]
-        MemoryPriority = [int]$napTierMemory[$tier]
-        IoPriority = [int]$napTierIo[$tier]
+        PriorityClass = $priorityClassValue
+        MemoryPriority = $memoryPriorityValue
+        IoPriority = $ioPriorityValue
         TrimMinimumMB = Get-PressureTrimMinimum -BaseMinimum ([double]$napTierTrimMinimum[$tier]) -Tier $tier
         Source = $policySource
         LearningSummary = if ($smartLearning -and [int]$Row.LearningObservations -gt 0) { "L " + [string]$Row.LearningPreferredTier } else { "" }
@@ -4205,9 +5165,9 @@ function Convert-AffinityTextToInt64 {
 }
 
 function Get-StreamerAffinityMask {
-    param([int]$Percent = 0)
+    param([int]$Percent = 0, [switch]$IgnoreStreamerToggle)
 
-    if (-not $streamerCpuContainment) { return [UInt64]0 }
+    if (-not $streamerCpuContainment -and -not $IgnoreStreamerToggle) { return [UInt64]0 }
     if ($logicalProcessorCount -lt 4 -or $logicalProcessorCount -gt 62) { return [UInt64]0 }
     $percentToUse = if ($Percent -gt 0) { $Percent } else { $streamerBackgroundAffinityPercent }
     if ($percentToUse -lt 15) { $percentToUse = 15 }
@@ -4248,6 +5208,56 @@ function Test-StreamerAffinityCandidate {
     }
     if ([string]$Row.Role -in @("Streaming", "Communication", "Media", "GameCandidate", "Launcher", "LauncherHelper", "Browser", "Professional", "Development")) { return $false }
     if ([double]$Row.CpuPercent -gt 8.0) { return $false }
+    return $true
+}
+
+function Test-FrameStabilityAffinityCandidate {
+    param(
+        [object]$Row,
+        [object]$Policy
+    )
+
+    if (-not $frameStabilityMode) { return $false }
+    if (-not $script:currentShaderBoost -or -not [bool]$script:currentShaderBoost.FrameStabilityGuard) { return $false }
+    if (-not $Policy -or [string]$Policy.Tier -eq "Light") { return $false }
+    if ([bool]$Row.ForegroundTreeProtected -or [bool]$Row.NewProcessStabilizing) { return $false }
+    if ($Row.GuardReason -or [bool]$Row.SwitchFastWake -or [bool]$Row.UdpGameProtected) { return $false }
+    if ([string]$Row.AppPolicy -in @("Protect", "Light")) { return $false }
+    if ($realtimeFriendlyNames.Contains([string]$Row.ProcessName)) { return $false }
+    if ([string]$Row.Role -ne "Browser") { return $false }
+    if ([double]$Row.CpuPercent -gt $frameStabilityMaxCpuPercent) { return $false }
+    if ([int]$Row.BurstCount -ge $frameStabilityMinBurstCount) { return $true }
+    if ([double]$Row.CpuPercent -ge 0.6 -and [double]$Row.WorkingSetMB -ge 120.0) { return $true }
+    return $false
+}
+
+function Test-VramActionCandidate {
+    param([object]$Row)
+
+    if (-not $vramActionMode) { return $false }
+    if (-not $script:currentGpuOptimization -or -not [bool]$script:currentGpuOptimization.Active) { return $false }
+    if ([string]$script:currentGpuOptimization.Status -ne "VRAMPressureGuard") { return $false }
+    if ([string]$script:currentGpuOptimization.VramPressure -notin @("Elevated", "Critical", "Busy")) { return $false }
+    if (-not [bool]$Row.GpuOptimizationActive -or -not [bool]$Row.VramPressureActive) { return $false }
+    if ([bool]$Row.ForegroundTreeProtected -or [bool]$Row.NewProcessStabilizing) { return $false }
+    if ([bool]$Row.UdpGameProtected -or $Row.GuardReason -or [bool]$Row.SwitchFastWake) { return $false }
+    if ([string]$Row.AppPolicy -in @("Protect", "Light")) { return $false }
+    if ($realtimeFriendlyNames.Contains([string]$Row.ProcessName)) { return $false }
+    if ([string]$Row.Role -notin @("Browser", "LauncherHelper")) { return $false }
+    if ([double]$Row.CpuPercent -gt $vramActionMaxCpuPercent) { return $false }
+    if ([double]$Row.GpuDedicatedMB -ge $vramActionDedicatedMemoryMB) { return $true }
+    if ([double]$Row.GpuPercent -ge $vramActionGpuPercent -and [double]$Row.WorkingSetMB -ge 80.0) { return $true }
+    return $false
+}
+
+function Test-VramActionAffinityCandidate {
+    param(
+        [object]$Row,
+        [object]$Policy
+    )
+
+    if (-not (Test-VramActionCandidate -Row $Row)) { return $false }
+    if (-not $Policy -or [string]$Policy.Tier -eq "Light") { return $false }
     return $true
 }
 
@@ -4472,12 +5482,12 @@ function Get-BackgroundProcessRows {
     }
 
     $cpuPercentByPid = @{}
-    if ($skipHighCpu -or $intentEngine -or $downloadLauncherGuard -or $mediaCallProtection -or $behaviorEngine -or $networkUdpGuardEnabled -or $streamerCpuContainment -or $gpuPressureMonitor -or $cpuBoundAssist) {
+    if ($skipHighCpu -or $intentEngine -or $downloadLauncherGuard -or $mediaCallProtection -or $behaviorEngine -or $networkUdpGuardEnabled -or $streamerCpuContainment -or $gpuPressureMonitor -or $cpuBoundAssist -or $shaderBoostEnabled) {
         $cpuPercentByPid = Get-ProcessCpuPercentMap
     }
     $all = @(Get-Process -ErrorAction SilentlyContinue | Sort-Object ProcessName, Id)
     $parentByPid = Get-ProcessParentIdMap
-    $foregroundTreePids = Get-RelatedProcessIdSet -RootPid ([int]$foreground.Id) -ParentByPid $parentByPid -Processes $all -MaxDepth 5
+    $foregroundTreePids = ConvertTo-ProcessIdSet -Value (Get-RelatedProcessIdSet -RootPid ([int]$foreground.Id) -ParentByPid $parentByPid -Processes $all -MaxDepth 5)
     if ($smartAutoProtect -and $foregroundTreePids -and $foregroundTreePids.Count -gt 1) {
         foreach ($treeProc in @($all | Where-Object { $foregroundTreePids.Contains([int]$_.Id) })) {
             if ([int]$treeProc.Id -eq [int]$currentPid) { continue }
@@ -4496,6 +5506,7 @@ function Get-BackgroundProcessRows {
     $script:currentCpuBoundAssist = Get-CpuBoundAssistContext -Foreground $foreground -CpuMap $cpuPercentByPid -GpuSnapshot $script:currentGpuPressure -UdpGuard $script:currentUdpGuard -Processes $all
     $script:currentStreamingContext = Get-StreamingContext -Processes $all -CpuMap $cpuPercentByPid -GpuSnapshot $script:currentGpuPressure -Foreground $foreground -UdpGuard $script:currentUdpGuard
     $script:currentGpuOptimization = Get-GpuOptimizationContext -Foreground $foreground -CpuMap $cpuPercentByPid -GpuSnapshot $script:currentGpuPressure -UdpGuard $script:currentUdpGuard -Processes $all
+    $script:currentShaderBoost = Get-ShaderBoostCoordinator -Foreground $foreground -Processes $all -CpuMap $cpuPercentByPid -GpuSnapshot $script:currentGpuPressure -UdpGuard $script:currentUdpGuard
     Write-IntentState
     Write-UdpGuardState
     if ($smartAutoProtect -and $script:currentUdpGuard -and [bool]$script:currentUdpGuard.Active) {
@@ -4605,6 +5616,9 @@ function Get-BackgroundProcessRows {
             GpuOptimizationActive = if ($script:currentGpuOptimization) { [bool]$script:currentGpuOptimization.Active } else { $false }
             GpuOptimizationStatus = if ($script:currentGpuOptimization) { [string]$script:currentGpuOptimization.Status } else { "Unknown" }
             GpuOptimizationReason = if ($script:currentGpuOptimization) { [string]$script:currentGpuOptimization.Reason } else { "" }
+            ShaderCompilationProtected = ([string]$role -eq "ShaderCompiler" -or [string]$guardReasonText -eq "ShaderCompilationGuard")
+            ShaderBoostState = if ($script:currentShaderBoost) { [string]$script:currentShaderBoost.State } else { "NotAnalyzed" }
+            ShaderBoostReadiness = if ($script:currentShaderBoost) { [int]$script:currentShaderBoost.Readiness } else { 0 }
             SwitchFastWake = [bool]$switchFastWake
             SwitchWakeCount = if ($switchProfile) { [int]$switchProfile.WakeCount } else { 0 }
             IntentKind = if ($script:currentIntent) { [string]$script:currentIntent.Kind } else { "Desktop" }
@@ -4649,7 +5663,7 @@ function New-StateSnapshot {
     }
 
     $snapshotRows = @($Rows | Where-Object {
-        $_.Candidate -or $_.UdpGameProtected -or $_.CpuBoundAssist -or $_.GpuHelperPressure -or $_.ForegroundTreeProtected -or $_.NewProcessStabilizing
+        $_.Candidate -or $_.UdpGameProtected -or $_.CpuBoundAssist -or $_.GpuHelperPressure -or $_.ShaderCompilationProtected -or $_.ForegroundTreeProtected -or $_.NewProcessStabilizing
     })
     $state = [pscustomobject]@{
         Timestamp = (Get-Date).ToString("o")
@@ -4670,6 +5684,9 @@ function New-StateSnapshot {
                 UdpGameProtected = [bool]$_.UdpGameProtected
                 CpuBoundAssist = [bool]$_.CpuBoundAssist
                 GpuHelperPressure = [bool]$_.GpuHelperPressure
+                ShaderCompilationProtected = [bool]$_.ShaderCompilationProtected
+                ShaderBoostState = [string]$_.ShaderBoostState
+                ShaderBoostReadiness = [int]$_.ShaderBoostReadiness
                 ForegroundTreeProtected = [bool]$_.ForegroundTreeProtected
                 NewProcessStabilizing = [bool]$_.NewProcessStabilizing
             }
@@ -5001,6 +6018,35 @@ function Write-NapScore {
         GpuOptimizationGpuPercent = if ($script:currentGpuOptimization) { [double]$script:currentGpuOptimization.GpuPercent } else { 0.0 }
         GpuOptimizationDedicatedMB = if ($script:currentGpuOptimization) { [double]$script:currentGpuOptimization.DedicatedMB } else { 0.0 }
         GpuOptimizationVramPressure = if ($script:currentGpuOptimization) { [string]$script:currentGpuOptimization.VramPressure } else { "Unknown" }
+        ShaderBoostEnabled = [bool]$shaderBoostEnabled
+        ShaderBoostObserveOnly = [bool]$shaderBoostObserveOnly
+        ShaderBoostState = if ($script:currentShaderBoost) { [string]$script:currentShaderBoost.State } else { "NotAnalyzed" }
+        ShaderBoostSharedState = if ($script:currentShaderBoost) { [string]$script:currentShaderBoost.SharedState } else { "Waiting" }
+        ShaderBoostReadiness = if ($script:currentShaderBoost) { [int]$script:currentShaderBoost.Readiness } else { 0 }
+        ShaderBoostRecommendation = if ($script:currentShaderBoost) { [string]$script:currentShaderBoost.Recommendation } else { "Open a game to analyze shader cache state" }
+        ShaderBoostGame = if ($script:currentShaderBoost) { [string]$script:currentShaderBoost.Game } else { "" }
+        ShaderBoostGamePid = if ($script:currentShaderBoost) { [int]$script:currentShaderBoost.GamePid } else { 0 }
+        ShaderBoostGameRoot = if ($script:currentShaderBoost) { [string]$script:currentShaderBoost.GameRoot } else { "" }
+        ShaderBoostApi = if ($script:currentShaderBoost) { [string]$script:currentShaderBoost.Api } else { "Unknown" }
+        ShaderBoostApiConfidence = if ($script:currentShaderBoost) { [int]$script:currentShaderBoost.ApiConfidence } else { 0 }
+        ShaderBoostGpu = if ($script:currentShaderBoost) { [string]$script:currentShaderBoost.Gpu } else { "" }
+        ShaderBoostVendor = if ($script:currentShaderBoost) { [string]$script:currentShaderBoost.Vendor } else { "Unknown" }
+        ShaderBoostDriverVersion = if ($script:currentShaderBoost) { [string]$script:currentShaderBoost.DriverVersion } else { "" }
+        ShaderBoostCacheState = if ($script:currentShaderBoost) { [string]$script:currentShaderBoost.CacheState } else { "NotAnalyzed" }
+        ShaderBoostCacheLocatedCount = if ($script:currentShaderBoost) { [int]$script:currentShaderBoost.CacheLocatedCount } else { 0 }
+        ShaderBoostCacheTotalSizeMB = if ($script:currentShaderBoost) { [double]$script:currentShaderBoost.CacheTotalSizeMB } else { 0.0 }
+        ShaderBoostCacheManager = if ($script:currentShaderBoost) { [string]$script:currentShaderBoost.CacheManager } else { "" }
+        ShaderBoostCacheScanMode = if ($script:currentShaderBoost) { [string]$script:currentShaderBoost.CacheScanMode } else { "Unknown" }
+        ShaderBoostCacheScanMaxFiles = if ($script:currentShaderBoost) { [int]$script:currentShaderBoost.CacheScanMaxFiles } else { 0 }
+        ShaderBoostFrameStabilityGuard = if ($script:currentShaderBoost) { [bool]$script:currentShaderBoost.FrameStabilityGuard } else { $false }
+        ShaderBoostFrameStabilityReason = if ($script:currentShaderBoost) { [string]$script:currentShaderBoost.FrameStabilityReason } else { "" }
+        ShaderBoostVramPressure = if ($script:currentShaderBoost) { [string]$script:currentShaderBoost.VramPressure } else { "Unknown" }
+        ShaderBoostCompilationState = if ($script:currentShaderBoost) { [string]$script:currentShaderBoost.CompilationState } else { "Waiting" }
+        ShaderBoostCompilationPossible = if ($script:currentShaderBoost) { [bool]$script:currentShaderBoost.CompilationPossible } else { $false }
+        ShaderBoostPreparationMethod = if ($script:currentShaderBoost) { [string]$script:currentShaderBoost.PreparationMethod } else { "MonitoringOnly" }
+        ShaderBoostWarmupState = if ($script:currentShaderBoost) { [string]$script:currentShaderBoost.WarmupState } else { "Waiting" }
+        ShaderBoostSignals = if ($script:currentShaderBoost) { @($script:currentShaderBoost.Signals) } else { @() }
+        ShaderBoostDetails = if ($script:currentShaderBoost) { @($script:currentShaderBoost.Details) } else { @() }
         EngineHealthStatus = $healthStatus
         EngineHealthSummary = $healthSummary
         RollbackAuditEnabled = [bool]$rollbackAudit
@@ -5033,6 +6079,7 @@ function Invoke-ApplyOnce {
 
     $deepTargetsUsed = 0
     $affinityTargetsUsed = 0
+    $vramActionTargetsUsed = 0
     $trimTargetsUsed = 0
     $results = foreach ($row in $targets) {
         $p = Get-Process -Id $row.Id -ErrorAction SilentlyContinue
@@ -5085,18 +6132,25 @@ function Invoke-ApplyOnce {
 
         $affinityStatus = "Disabled"
         $affinityTarget = [UInt64]0
-        if (Test-StreamerAffinityCandidate -Row $row -Policy $policy) {
-            if ($affinityTargetsUsed -ge $maxAffinityTargetsPerPass) {
-                $affinityStatus = "BudgetSkipped"
+        $vramActionAffinity = Test-VramActionAffinityCandidate -Row $row -Policy $policy
+        $frameStabilityAffinity = Test-FrameStabilityAffinityCandidate -Row $row -Policy $policy
+        if ($vramActionAffinity -or (Test-StreamerAffinityCandidate -Row $row -Policy $policy) -or $frameStabilityAffinity) {
+            $budgetHit = if ($vramActionAffinity) { $vramActionTargetsUsed -ge $vramActionMaxAffinityTargets } else { $affinityTargetsUsed -ge $maxAffinityTargetsPerPass }
+            if ($budgetHit) {
+                $affinityStatus = if ($vramActionAffinity) { "BudgetSkippedVramAction" } else { "BudgetSkipped" }
             } else {
-                $affinityTarget = if ([bool]$row.CpuBoundAssist) { Get-StreamerAffinityMask -Percent $cpuBoundAffinityPercent } elseif ([string]$row.Role -eq "StreamHelper") { Get-StreamerAffinityMask -Percent $streamerBrowserHelperAffinityPercent } else { Get-StreamerAffinityMask }
+                $affinityTarget = if ($vramActionAffinity) { Get-StreamerAffinityMask -Percent $vramActionCpuAffinityPercent -IgnoreStreamerToggle } elseif ($frameStabilityAffinity) { Get-StreamerAffinityMask -Percent $frameStabilityBrowserAffinityPercent -IgnoreStreamerToggle } elseif ([bool]$row.CpuBoundAssist) { Get-StreamerAffinityMask -Percent $cpuBoundAffinityPercent } elseif ([string]$row.Role -eq "StreamHelper") { Get-StreamerAffinityMask -Percent $streamerBrowserHelperAffinityPercent } else { Get-StreamerAffinityMask }
                 if ($affinityTarget -gt 0) {
                     if ($PreviewMode) {
-                        $affinityStatus = "WouldLimit"
+                        $affinityStatus = if ($vramActionAffinity) { "WouldLimitVramAction" } elseif ($frameStabilityAffinity) { "WouldLimitFrameStability" } else { "WouldLimit" }
                     } else {
                         $affinityStatus = Set-ProcessAffinityMask -Process $p -Mask $affinityTarget
+                        if ($vramActionAffinity -and $affinityStatus -eq "OK") { $affinityStatus = "OKVramAction" }
+                        if ($frameStabilityAffinity -and $affinityStatus -eq "OK") { $affinityStatus = "OKFrameStability" }
                     }
-                    if ($affinityStatus -ne "Disabled") { $affinityTargetsUsed++ }
+                    if ($affinityStatus -ne "Disabled") {
+                        if ($vramActionAffinity) { $vramActionTargetsUsed++ } else { $affinityTargetsUsed++ }
+                    }
                 }
             }
         }
@@ -5353,7 +6407,7 @@ function Invoke-ForegroundRestore {
     try {
         $all = @(Get-Process -ErrorAction SilentlyContinue)
         $parentByPid = Get-ProcessParentIdMap
-        $relatedPids = Get-RelatedProcessIdSet -RootPid ([int]$p.Id) -ParentByPid $parentByPid -Processes $all -MaxDepth 5
+        $relatedPids = ConvertTo-ProcessIdSet -Value (Get-RelatedProcessIdSet -RootPid ([int]$p.Id) -ParentByPid $parentByPid -Processes $all -MaxDepth 5)
         foreach ($related in @($all | Where-Object { $relatedPids.Contains([int]$_.Id) })) {
             if ([int]$related.Id -eq [int]$p.Id -or [int]$related.Id -eq [int]$currentPid) { continue }
             if ($related.SessionId -ne $currentSessionId) { continue }
