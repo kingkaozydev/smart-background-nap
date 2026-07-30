@@ -12,6 +12,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Security.Principal;
+using System.ServiceProcess;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Win32;
@@ -30,11 +31,15 @@ using Microsoft.Web.WebView2.Wpf;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.6.6";
+    private const string AppVersion = "0.7.0";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
     private const string DashboardTaskName = "SmartBackgroundNapDashboard";
+    private const string CoreServiceName = "SmartSNAPCoreService";
+    private const string CoreServiceDisplayName = "Smart SNAP Core Service";
+    private const int CoreServiceLoopSeconds = 25;
+    private const int CoreServiceStalePassSeconds = 150;
     private const string GitHubUrl = "https://github.com/kingkaozydev/smart-background-nap";
     private const string GitHubLatestReleaseApi = "https://api.github.com/repos/kingkaozydev/smart-background-nap/releases/latest";
     private const string GitHubLatestDownloadUrl = "https://github.com/kingkaozydev/smart-background-nap/releases/latest/download/SmartBackgroundNap.exe";
@@ -74,6 +79,7 @@ internal static class SmartBackgroundNap
     private static string previewPath;
     private static string appPolicyPath;
     private static string radarPath;
+    private static string coreServiceStatePath;
     private static string safetyReportPath;
     private static bool usingLooseRuntime;
     private static readonly object hardwareLock = new object();
@@ -258,6 +264,42 @@ internal static class SmartBackgroundNap
         if (HasArg(args, "--complete-update"))
         {
             Environment.ExitCode = CompleteSelfUpdate(args).ExitCode;
+            return;
+        }
+
+        if (HasArg(args, "--core-service") || HasArg(args, "--service"))
+        {
+            RunCoreServiceHost(args);
+            return;
+        }
+        if (HasArg(args, "--core-service-once"))
+        {
+            Environment.ExitCode = RunCoreServicePass("manual").ExitCode;
+            return;
+        }
+        if (HasArg(args, "--install-core-service"))
+        {
+            Environment.ExitCode = InstallCoreService().ExitCode;
+            return;
+        }
+        if (HasArg(args, "--uninstall-core-service"))
+        {
+            Environment.ExitCode = UninstallCoreService().ExitCode;
+            return;
+        }
+        if (HasArg(args, "--start-core-service"))
+        {
+            Environment.ExitCode = StartCoreService().ExitCode;
+            return;
+        }
+        if (HasArg(args, "--stop-core-service"))
+        {
+            Environment.ExitCode = StopCoreService().ExitCode;
+            return;
+        }
+        if (HasArg(args, "--core-service-status"))
+        {
+            Environment.ExitCode = WriteCoreServiceStatusToConsole().ExitCode;
             return;
         }
 
@@ -457,6 +499,7 @@ internal static class SmartBackgroundNap
         previewPath = Path.Combine(outputsPath, "background-nap-preview-latest.json");
         appPolicyPath = Path.Combine(outputsPath, "background-nap-app-policies.json");
         radarPath = Path.Combine(outputsPath, "background-nap-radar-latest.json");
+        coreServiceStatePath = Path.Combine(outputsPath, "smart-snap-core-service-latest.json");
         safetyReportPath = Path.Combine(outputsPath, "SmartBackgroundNap-SafetyReport.txt");
         MigrateConfigForCurrentRuntime();
         if (!usingLooseRuntime)
@@ -492,6 +535,9 @@ internal static class SmartBackgroundNap
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetWindowDisplayAffinity(IntPtr hWnd, uint dwAffinity);
 
     [DllImport("shell32.dll")]
     private static extern void SHChangeNotify(uint wEventId, uint uFlags, IntPtr dwItem1, IntPtr dwItem2);
@@ -1246,6 +1292,19 @@ internal static class SmartBackgroundNap
         TryDwmSetWindowAttribute(hwnd, 35, ColorTranslator.ToWin32(Color.FromArgb(5, 9, 15)));
         TryDwmSetWindowAttribute(hwnd, 36, ColorTranslator.ToWin32(Color.FromArgb(244, 247, 251)));
         TryDwmSetWindowAttribute(hwnd, 34, ColorTranslator.ToWin32(Color.FromArgb(255, 166, 41)));
+        AllowWindowCapture(hwnd);
+    }
+
+    private static void AllowWindowCapture(IntPtr hwnd)
+    {
+        try
+        {
+            const uint WdaNone = 0;
+            SetWindowDisplayAffinity(hwnd, WdaNone);
+        }
+        catch
+        {
+        }
     }
 
     private static void TryDwmSetWindowAttribute(IntPtr hwnd, int attribute, int value)
@@ -1262,15 +1321,24 @@ internal static class SmartBackgroundNap
     private static string GetWritableAppRoot()
     {
         string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        string[] candidates = new string[]
+        string ownerLocal = GetInstallOwnerLocalAppData();
+        List<string> candidates = new List<string>();
+        if (!String.IsNullOrWhiteSpace(ownerLocal))
         {
-            Path.Combine(local, "SmartBackgroundNap"),
-            Path.Combine(local, "Programs", "SmartBackgroundNap"),
-            Path.Combine(Path.GetTempPath(), "SmartBackgroundNap")
-        };
+            candidates.Add(Path.Combine(ownerLocal, "SmartBackgroundNap"));
+            candidates.Add(Path.Combine(ownerLocal, "Programs", "SmartBackgroundNap"));
+        }
+        candidates.Add(Path.Combine(local, "SmartBackgroundNap"));
+        candidates.Add(Path.Combine(local, "Programs", "SmartBackgroundNap"));
+        candidates.Add(Path.Combine(Path.GetTempPath(), "SmartBackgroundNap"));
+
+        HashSet<string> seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        string[] uniqueCandidates = candidates
+            .Where(delegate(string item) { return !String.IsNullOrWhiteSpace(item) && seen.Add(Path.GetFullPath(item)); })
+            .ToArray();
 
         Exception last = null;
-        foreach (string candidate in candidates)
+        foreach (string candidate in uniqueCandidates)
         {
             try
             {
@@ -1287,6 +1355,29 @@ internal static class SmartBackgroundNap
         }
 
         throw new UnauthorizedAccessException("Could not create a writable Smart Background Nap runtime folder.", last);
+    }
+
+    private static string GetInstallOwnerLocalAppData()
+    {
+        try
+        {
+            string exePath = Application.ExecutablePath;
+            if (String.IsNullOrWhiteSpace(exePath)) { return ""; }
+
+            string normalized = exePath.Replace('/', '\\');
+            const string marker = "\\AppData\\Local\\Programs\\SmartBackgroundNap\\";
+            int markerIndex = normalized.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+            if (markerIndex <= 0) { return ""; }
+
+            string profileRoot = normalized.Substring(0, markerIndex);
+            if (String.IsNullOrWhiteSpace(profileRoot)) { return ""; }
+            string ownerLocal = Path.Combine(profileRoot, "AppData", "Local");
+            return Directory.Exists(ownerLocal) ? ownerLocal : "";
+        }
+        catch
+        {
+            return "";
+        }
     }
 
     private static string NormalizeUiLanguage(string value)
@@ -1657,7 +1748,7 @@ internal static class SmartBackgroundNap
             : InstallComplete(false);
         EnsureSmartLearningDefaultEnabled();
         SaveAutoUpdateChecks(true);
-        string summary = "install=" + install.ExitCode.ToString(CultureInfo.InvariantCulture) + "; auto=" + IsAutomaticEngineEnabled().ToString(CultureInfo.InvariantCulture) + "; startup=" + IsStartupInstalled().ToString(CultureInfo.InvariantCulture) + "; adminSetup=" + IsAdminSetupCurrentForVersion().ToString(CultureInfo.InvariantCulture);
+        string summary = "install=" + install.ExitCode.ToString(CultureInfo.InvariantCulture) + "; auto=" + IsAutomaticEngineEnabled().ToString(CultureInfo.InvariantCulture) + "; startup=" + IsStartupInstalled().ToString(CultureInfo.InvariantCulture) + "; coreService=" + IsCoreServiceInstalled().ToString(CultureInfo.InvariantCulture) + "; adminSetup=" + IsAdminSetupCurrentForVersion().ToString(CultureInfo.InvariantCulture);
         MarkInitialDefaultsApplied(summary);
         AppendOperationalLog("action=first-run-defaults " + summary);
     }
@@ -1670,7 +1761,7 @@ internal static class SmartBackgroundNap
 
             bool wantsAuto = IsAutomaticEngineEnabled();
             bool wantsStartup = IsStartupInstalled();
-            bool needsRepair = (wantsAuto && !IsTaskInstalled(AutoTaskName)) || (wantsStartup && !IsTaskInstalled(TrayTaskName)) || !IsTaskInstalled(DashboardTaskName);
+            bool needsRepair = (wantsAuto && !IsTaskInstalled(AutoTaskName)) || (wantsStartup && !IsTaskInstalled(TrayTaskName)) || !IsTaskInstalled(DashboardTaskName) || !IsCoreServiceInstalled() || !IsCoreServiceRunning();
             if (!needsRepair) { return; }
             if (WasAdminSetupPromptedForCurrentVersion() && !WasAdminSetupCompletedForCurrentVersion()) { return; }
             if (!ShouldAttemptElevatedSetupRepair()) { return; }
@@ -1713,7 +1804,7 @@ internal static class SmartBackgroundNap
 
     private static bool IsAdminSetupCurrentForVersion()
     {
-        return WasAdminSetupCompletedForCurrentVersion() && ArePrimaryScheduledTasksInstalled();
+        return WasAdminSetupCompletedForCurrentVersion() && ArePrimaryScheduledTasksInstalled() && IsCoreServiceInstalled();
     }
 
     private static bool ShouldRequestAdminSetupForCurrentVersion()
@@ -1746,7 +1837,7 @@ internal static class SmartBackgroundNap
             settings["AdminSetupPromptedVersion"] = AppVersion;
             settings["AdminSetupCompletedVersion"] = AppVersion;
             settings["AdminSetupCompletedAt"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
-            settings["AdminSetupRunLevel"] = "HighestAvailable";
+            settings["AdminSetupRunLevel"] = "HighestAvailable+CoreService";
             settings["AdminSetupSource"] = source ?? "setup";
             SaveUiSettings(settings);
             SaveLocalAutoEngine(false);
@@ -1765,6 +1856,7 @@ internal static class SmartBackgroundNap
         {
             if (result != null && result.ExitCode != 0) { return; }
             if (!ArePrimaryScheduledTasksInstalled()) { return; }
+            if (!IsCoreServiceInstalled()) { return; }
             MarkAdminSetupCompletedForCurrentVersion(source);
         }
         catch (Exception ex)
@@ -2975,6 +3067,362 @@ internal static class SmartBackgroundNap
         }
         return result.ExitCode == 0 ? new RunResult(0, "Elevated launcher task removed.") : result;
     }
+
+    private static void RunCoreServiceHost(string[] args)
+    {
+        try
+        {
+            SmartSnapCoreService service = new SmartSnapCoreService();
+            if (Environment.UserInteractive)
+            {
+                service.RunConsole(args);
+                return;
+            }
+
+            ServiceBase.Run(new ServiceBase[] { service });
+        }
+        catch (Exception ex)
+        {
+            AppendOperationalLog("action=core-service-host status=failed detail=" + ShortTaskError(ex.Message));
+            WriteCrash(ex);
+            Environment.ExitCode = 1;
+        }
+    }
+
+    private static bool IsCoreServiceInstalled()
+    {
+        ServiceControllerStatus status;
+        if (TryGetCoreServiceStatus(out status))
+        {
+            return true;
+        }
+
+        RunResult result = RunHidden("sc.exe", "query " + CoreServiceName, 8000);
+        return result.ExitCode == 0;
+    }
+
+    private static bool IsCoreServiceRunning()
+    {
+        ServiceControllerStatus status;
+        if (TryGetCoreServiceStatus(out status))
+        {
+            return status == ServiceControllerStatus.Running;
+        }
+
+        RunResult result = RunHidden("sc.exe", "query " + CoreServiceName, 8000);
+        return result.ExitCode == 0 && result.Output.IndexOf("RUNNING", StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static string GetCoreServiceStatusText()
+    {
+        ServiceControllerStatus status;
+        if (TryGetCoreServiceStatus(out status))
+        {
+            return status.ToString().ToLowerInvariant();
+        }
+
+        RunResult result = RunHidden("sc.exe", "query " + CoreServiceName, 8000);
+        if (result.ExitCode != 0)
+        {
+            return "not installed";
+        }
+
+        Match match = Regex.Match(result.Output ?? "", @"STATE\s*:\s*\d+\s+([A-Z_]+)", RegexOptions.IgnoreCase);
+        if (match.Success)
+        {
+            return match.Groups[1].Value.ToLowerInvariant().Replace('_', ' ');
+        }
+
+        return "installed";
+    }
+
+    private static bool TryGetCoreServiceStatus(out ServiceControllerStatus status)
+    {
+        status = ServiceControllerStatus.Stopped;
+        try
+        {
+            ServiceController[] services = ServiceController.GetServices();
+            foreach (ServiceController service in services)
+            {
+                try
+                {
+                    if (String.Equals(service.ServiceName, CoreServiceName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        status = service.Status;
+                        return true;
+                    }
+                }
+                finally
+                {
+                    service.Dispose();
+                }
+            }
+        }
+        catch
+        {
+        }
+        return false;
+    }
+
+    private static RunResult WriteCoreServiceStatusToConsole()
+    {
+        RunResult query = RunHidden("sc.exe", "query " + CoreServiceName, 8000);
+        ServiceControllerStatus serviceStatus;
+        bool installed = TryGetCoreServiceStatus(out serviceStatus) || query.ExitCode == 0;
+        bool running = installed && serviceStatus == ServiceControllerStatus.Running;
+        int scoreAgeSeconds = GetFileAgeSeconds(scorePath);
+        IDictionary<string, object> state = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        state["AppVersion"] = AppVersion;
+        state["ServiceName"] = CoreServiceName;
+        state["DisplayName"] = CoreServiceDisplayName;
+        state["Installed"] = installed;
+        state["Running"] = running;
+        state["Status"] = installed ? GetCoreServiceStatusText() : "not installed";
+        state["AutoTaskInstalled"] = IsTaskInstalled(AutoTaskName);
+        state["ScoreAgeSeconds"] = scoreAgeSeconds;
+        state["StatePath"] = coreServiceStatePath;
+        state["CheckedAt"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+        if (!String.IsNullOrWhiteSpace(query.Output))
+        {
+            state["RawStatus"] = ShortTaskError(query.Output);
+        }
+        WriteCoreServiceState(installed ? (running ? "Running" : "Installed") : "NotInstalled", "Status", query, IsTaskInstalled(AutoTaskName), false, scoreAgeSeconds, CoreServiceStalePassSeconds);
+        Console.WriteLine(JsonCompat.SerializeObject(state));
+        return new RunResult(0, JsonCompat.SerializeObject(state));
+    }
+
+    private static RunResult InstallCoreService()
+    {
+        return InstallCoreService(true);
+    }
+
+    private static RunResult InstallCoreService(bool allowElevatedRepair)
+    {
+        if (!IsCurrentProcessElevated())
+        {
+            if (IsCoreServiceInstalled() && IsCoreServiceRunning())
+            {
+                SaveUiFlag("CoreServiceEnabled", true);
+                return new RunResult(0, "Core service already installed and running.");
+            }
+            if (allowElevatedRepair)
+            {
+                return RunElevatedSelfCommand("--install-core-service", "install-core-service", 120000);
+            }
+            return new RunResult(5, "Administrator permission is required to install the Smart SNAP Core Service.");
+        }
+
+        try
+        {
+            string exePath = GetLaunchExecutablePath();
+            string serviceCommand = Quote(exePath) + " --core-service";
+            string serviceCommandArgument = Quote(serviceCommand);
+            RunResult result = IsCoreServiceInstalled()
+                ? RunHidden("sc.exe", "config " + CoreServiceName + " binPath= " + serviceCommandArgument + " DisplayName= " + Quote(CoreServiceDisplayName), 30000)
+                : RunHidden("sc.exe", "create " + CoreServiceName + " binPath= " + serviceCommandArgument + " DisplayName= " + Quote(CoreServiceDisplayName) + " start= auto", 30000);
+
+            if (result.ExitCode != 0)
+            {
+                AppendOperationalLog("action=core-service-install status=FAIL detail=" + ShortTaskError(result.Output));
+                WriteCoreServiceState("InstallFailed", "Install", result, IsTaskInstalled(AutoTaskName), false, GetFileAgeSeconds(scorePath), CoreServiceStalePassSeconds);
+                return result;
+            }
+
+            RunHidden("sc.exe", "description " + CoreServiceName + " " + Quote("Smart SNAP watchdog and privileged broker for Smart Background Nap engine tasks."), 15000);
+            RunHidden("sc.exe", "config " + CoreServiceName + " start= delayed-auto", 15000);
+            RunHidden("sc.exe", "failure " + CoreServiceName + " reset= 86400 actions= restart/60000/restart/120000/none/0", 15000);
+
+            RunResult start = StartCoreService(false);
+            SaveUiFlag("CoreServiceEnabled", true);
+            bool running = IsCoreServiceRunning();
+            WriteCoreServiceState(running ? "Running" : "Installed", "Install", start, IsTaskInstalled(AutoTaskName), false, GetFileAgeSeconds(scorePath), CoreServiceStalePassSeconds);
+            AppendOperationalLog("action=core-service-install status=OK running=" + running.ToString().ToLowerInvariant());
+            return start.ExitCode == 0 || running
+                ? new RunResult(0, "Core service installed.")
+                : new RunResult(0, "Core service installed; start is pending. " + ShortTaskError(start.Output));
+        }
+        catch (Exception ex)
+        {
+            AppendOperationalLog("action=core-service-install status=failed detail=" + ShortTaskError(ex.Message));
+            WriteCrash(ex);
+            return new RunResult(1, "Could not install the Smart SNAP Core Service: " + ex.Message);
+        }
+    }
+
+    private static RunResult UninstallCoreService()
+    {
+        return UninstallCoreService(true);
+    }
+
+    private static RunResult UninstallCoreService(bool allowElevatedRepair)
+    {
+        if (!IsCoreServiceInstalled())
+        {
+            SaveUiFlag("CoreServiceEnabled", false);
+            return new RunResult(0, "Core service was already off.");
+        }
+
+        if (!IsCurrentProcessElevated())
+        {
+            if (allowElevatedRepair)
+            {
+                return RunElevatedSelfCommand("--uninstall-core-service", "uninstall-core-service", 120000);
+            }
+            return new RunResult(5, "Administrator permission is required to remove the Smart SNAP Core Service.");
+        }
+
+        try
+        {
+            RunResult stop = StopCoreService(false);
+            RunResult delete = RunHidden("sc.exe", "delete " + CoreServiceName, 30000);
+            SaveUiFlag("CoreServiceEnabled", IsCoreServiceInstalled());
+            WriteCoreServiceState(IsCoreServiceInstalled() ? "DeletePending" : "Removed", "Uninstall", delete, IsTaskInstalled(AutoTaskName), false, GetFileAgeSeconds(scorePath), CoreServiceStalePassSeconds);
+            AppendOperationalLog("action=core-service-uninstall status=" + (delete.ExitCode == 0 ? "OK" : "FAIL") + " detail=" + ShortTaskError(delete.Output));
+            if (delete.ExitCode != 0) { return RunResult.Combine(stop, delete); }
+            return new RunResult(0, "Core service removed.");
+        }
+        catch (Exception ex)
+        {
+            AppendOperationalLog("action=core-service-uninstall status=failed detail=" + ShortTaskError(ex.Message));
+            WriteCrash(ex);
+            return new RunResult(1, "Could not remove the Smart SNAP Core Service: " + ex.Message);
+        }
+    }
+
+    private static RunResult StartCoreService()
+    {
+        return StartCoreService(true);
+    }
+
+    private static RunResult StartCoreService(bool allowElevatedRepair)
+    {
+        if (IsCoreServiceRunning())
+        {
+            return new RunResult(0, "Core service already running.");
+        }
+
+        if (!IsCoreServiceInstalled())
+        {
+            return InstallCoreService(allowElevatedRepair);
+        }
+
+        if (!IsCurrentProcessElevated())
+        {
+            if (allowElevatedRepair)
+            {
+                return RunElevatedSelfCommand("--start-core-service", "start-core-service", 120000);
+            }
+            return new RunResult(5, "Administrator permission is required to start the Smart SNAP Core Service.");
+        }
+
+        RunResult result = RunHidden("sc.exe", "start " + CoreServiceName, 30000);
+        bool running = IsCoreServiceRunning();
+        WriteCoreServiceState(running ? "Running" : "StartPending", "Start", result, IsTaskInstalled(AutoTaskName), false, GetFileAgeSeconds(scorePath), CoreServiceStalePassSeconds);
+        return result.ExitCode == 0 || running ? new RunResult(0, "Core service started.") : result;
+    }
+
+    private static RunResult StopCoreService()
+    {
+        return StopCoreService(true);
+    }
+
+    private static RunResult StopCoreService(bool allowElevatedRepair)
+    {
+        if (!IsCoreServiceInstalled())
+        {
+            return new RunResult(0, "Core service was not installed.");
+        }
+
+        if (!IsCoreServiceRunning())
+        {
+            return new RunResult(0, "Core service already stopped.");
+        }
+
+        if (!IsCurrentProcessElevated())
+        {
+            if (allowElevatedRepair)
+            {
+                return RunElevatedSelfCommand("--stop-core-service", "stop-core-service", 120000);
+            }
+            return new RunResult(5, "Administrator permission is required to stop the Smart SNAP Core Service.");
+        }
+
+        RunResult result = RunHidden("sc.exe", "stop " + CoreServiceName, 30000);
+        WriteCoreServiceState(IsCoreServiceRunning() ? "StopPending" : "Stopped", "Stop", result, IsTaskInstalled(AutoTaskName), false, GetFileAgeSeconds(scorePath), CoreServiceStalePassSeconds);
+        return result.ExitCode == 0 || !IsCoreServiceRunning() ? new RunResult(0, "Core service stopped.") : result;
+    }
+
+    private static int GetFileAgeSeconds(string path)
+    {
+        try
+        {
+            if (String.IsNullOrWhiteSpace(path) || !File.Exists(path)) { return -1; }
+            double age = (DateTime.UtcNow - File.GetLastWriteTimeUtc(path)).TotalSeconds;
+            if (Double.IsNaN(age) || Double.IsInfinity(age)) { return -1; }
+            return Math.Max(0, (int)Math.Round(age));
+        }
+        catch
+        {
+            return -1;
+        }
+    }
+
+    private static void WriteCoreServiceState(string status, string action, RunResult result, bool autoTaskInstalled, bool kicked, int scoreAgeSeconds, int staleThresholdSeconds)
+    {
+        try
+        {
+            Directory.CreateDirectory(outputsPath);
+            IDictionary<string, object> state = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            state["AppVersion"] = AppVersion;
+            state["ServiceName"] = CoreServiceName;
+            state["DisplayName"] = CoreServiceDisplayName;
+            state["Status"] = status ?? "Unknown";
+            state["Action"] = action ?? "Observe";
+            state["AutoTaskInstalled"] = autoTaskInstalled;
+            state["AutoTaskKicked"] = kicked;
+            state["ScorePath"] = scorePath;
+            state["ScoreAgeSeconds"] = scoreAgeSeconds;
+            state["StaleThresholdSeconds"] = staleThresholdSeconds;
+            state["LoopSeconds"] = CoreServiceLoopSeconds;
+            state["ExitCode"] = result == null ? 0 : result.ExitCode;
+            state["Detail"] = result == null ? "" : ShortTaskError(result.Output);
+            state["UpdatedAt"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+            AtomicWriteJsonMap(coreServiceStatePath, state);
+        }
+        catch (Exception ex)
+        {
+            AppendOperationalLog("action=core-service-state status=failed detail=" + ShortTaskError(ex.Message));
+        }
+    }
+
+    private static RunResult RunCoreServicePass(string source)
+    {
+        bool autoTaskInstalled = IsTaskInstalled(AutoTaskName);
+        int scoreAgeSeconds = GetFileAgeSeconds(scorePath);
+        int intervalSeconds = Math.Max(60, LoadAutomationIntervalMinutes() * 60);
+        int staleThresholdSeconds = Math.Max(CoreServiceStalePassSeconds, intervalSeconds * 2);
+        bool stale = scoreAgeSeconds < 0 || scoreAgeSeconds > staleThresholdSeconds;
+        string action = "Observe";
+        bool kicked = false;
+        RunResult result = new RunResult(0, "Engine telemetry is fresh.");
+
+        if (!autoTaskInstalled)
+        {
+            action = "NoAutoTask";
+            result = new RunResult(0, "Automatic engine task is not installed.");
+        }
+        else if (stale)
+        {
+            action = "KickAutoTask";
+            result = RunHidden("schtasks.exe", "/Run /TN " + Quote(AutoTaskName), 15000);
+            kicked = result.ExitCode == 0;
+            AppendOperationalLog("action=core-service-watchdog source=" + SanitizeLogToken(source) + " status=" + (kicked ? "kicked" : "failed") + " scoreAgeSeconds=" + scoreAgeSeconds.ToString(CultureInfo.InvariantCulture) + " detail=" + ShortTaskError(result.Output));
+        }
+
+        WriteCoreServiceState("Running", action, result, autoTaskInstalled, kicked, scoreAgeSeconds, staleThresholdSeconds);
+        return result.ExitCode == 0 ? new RunResult(0, action) : result;
+    }
+
     private static RunResult InstallAutomatic()
     {
         return InstallAutomatic(true);
@@ -3183,10 +3631,10 @@ internal static class SmartBackgroundNap
 
     private static RunResult InstallComplete(bool allowElevatedRepair)
     {
-                if (allowElevatedRepair && !IsCurrentProcessElevated() && !ArePrimaryScheduledTasksInstalled())
+        if (allowElevatedRepair && !IsCurrentProcessElevated() && (!ArePrimaryScheduledTasksInstalled() || !IsCoreServiceInstalled() || !IsCoreServiceRunning()))
         {
             RunResult elevated = RunElevatedInstallComplete();
-            if (ArePrimaryScheduledTasksInstalled())
+            if (ArePrimaryScheduledTasksInstalled() && IsCoreServiceInstalled())
             {
                 return elevated.ExitCode == 0 ? elevated : new RunResult(0, "Elevated task base repaired.");
             }
@@ -3196,6 +3644,12 @@ internal static class SmartBackgroundNap
         RunResult dashboard = InstallDashboardTask();
         RunResult auto = InstallAutomatic(false);
         RunResult startup = InstallStartup(false);
+        RunResult coreService = InstallCoreService(false);
+        if (coreService.ExitCode != 0)
+        {
+            AppendOperationalLog("action=install-core-service status=deferred detail=" + ShortTaskError(coreService.Output));
+            coreService = new RunResult(0, "Core service deferred: " + ShortTaskError(coreService.Output));
+        }
         RunResult power = EnsureSmartNapPowerPlans();
         if (power.ExitCode != 0)
         {
@@ -3207,19 +3661,20 @@ internal static class SmartBackgroundNap
         {
             AppendOperationalLog("action=install-start-menu-shortcut status=deferred detail=" + ShortTaskError(shortcuts.Output));
         }
-        return RunResult.Combine(RunResult.Combine(dashboard, auto), startup);
+        return RunResult.Combine(RunResult.Combine(RunResult.Combine(dashboard, auto), startup), coreService);
     }
     private static RunResult UninstallComplete()
     {
-                RunResult startup = UninstallStartup();
+        RunResult startup = UninstallStartup();
         RunResult auto = UninstallAutomatic();
         RunResult dashboard = UninstallDashboardTask();
+        RunResult coreService = UninstallCoreService(true);
         RunResult shortcuts = RemoveStartMenuShortcuts();
         if (shortcuts.ExitCode != 0)
         {
             AppendOperationalLog("action=uninstall-start-menu-shortcut status=deferred detail=" + ShortTaskError(shortcuts.Output));
         }
-        return RunResult.Combine(RunResult.Combine(startup, auto), dashboard);
+        return RunResult.Combine(RunResult.Combine(RunResult.Combine(startup, auto), dashboard), coreService);
     }
 
     private static bool IsTaskInstalled(string taskName)
@@ -3631,6 +4086,21 @@ internal static class SmartBackgroundNap
         }
     }
 
+    private static PowerPlanSnapshot GetRecommendedPowerPlanForSessionMode(string mode)
+    {
+        string normalized = NormalizeSessionMode(mode);
+        if (String.Equals(normalized, "Gaming", StringComparison.OrdinalIgnoreCase) ||
+            String.Equals(normalized, "Competitive", StringComparison.OrdinalIgnoreCase))
+        {
+            return new PowerPlanSnapshot { Guid = SmartNapGamePowerPlanGuid, Name = SmartNapGamePowerPlanName };
+        }
+        if (String.Equals(normalized, "Streamer", StringComparison.OrdinalIgnoreCase))
+        {
+            return new PowerPlanSnapshot { Guid = SmartNapLivePowerPlanGuid, Name = SmartNapLivePowerPlanName };
+        }
+        return null;
+    }
+
     private static bool IsAdaptiveExclusionsEnabled()
     {
         try
@@ -3973,8 +4443,24 @@ internal static class SmartBackgroundNap
             string current = Application.ExecutablePath;
             if (!String.Equals(Path.GetFullPath(current), Path.GetFullPath(target), StringComparison.OrdinalIgnoreCase))
             {
+                bool restartCoreService = IsCoreServiceRunning();
+                if (restartCoreService)
+                {
+                    RunResult stopService = StopCoreService(false);
+                    if (stopService.ExitCode != 0)
+                    {
+                        AppendOperationalLog("action=managed-copy-core-service-stop status=deferred detail=" + ShortTaskError(stopService.Output));
+                    }
+                    WaitForCoreServiceRunningState(false, 12000);
+                }
+
                 StopSmartNapProcessesForUpdate(target, Process.GetCurrentProcess().Id);
                 CopyFileWithRetries(current, target, 20, 250);
+                if (restartCoreService)
+                {
+                    RunResult startService = StartCoreService(false);
+                    AppendOperationalLog("action=managed-copy-core-service-restart exitCode=" + startService.ExitCode.ToString(CultureInfo.InvariantCulture) + " detail=" + ShortTaskError(startService.Output));
+                }
             }
             return target;
         }
@@ -3990,6 +4476,21 @@ internal static class SmartBackgroundNap
             }
             return Application.ExecutablePath;
         }
+    }
+
+    private static bool WaitForCoreServiceRunningState(bool running, int timeoutMs)
+    {
+        DateTime deadline = DateTime.UtcNow.AddMilliseconds(Math.Max(1000, timeoutMs));
+        do
+        {
+            if (IsCoreServiceRunning() == running)
+            {
+                return true;
+            }
+            Thread.Sleep(250);
+        }
+        while (DateTime.UtcNow < deadline);
+        return IsCoreServiceRunning() == running;
     }
 
 
@@ -4077,7 +4578,8 @@ internal static class SmartBackgroundNap
         report.AppendLine(BuildTaskStatusLine(TrayTaskName));
         report.AppendLine(BuildTaskStatusLine(DashboardTaskName));
         report.AppendLine("Startup method: per-user scheduled tasks with HighestAvailable after user-approved setup; HKCU Run fallback if Task Scheduler is blocked.");
-        report.AppendLine("Service installed: no.");
+        report.AppendLine("Core service: " + GetCoreServiceStatusText() + ".");
+        report.AppendLine("Core service state file: " + coreServiceStatePath);
         report.AppendLine("Driver installed: no.");
         report.AppendLine("Startup registry key: no.");
         report.AppendLine();
@@ -6746,6 +7248,8 @@ internal static class SmartBackgroundNap
         private const double ResizeBorderSize = 18.0;
         private const double DragBandHeight = 54.0;
         private const double WindowButtonReserveWidth = 128.0;
+        private const double ResponsiveMinWindowWidth = 560.0;
+        private const double ResponsiveMinWindowHeight = 460.0;
         [DllImport("user32.dll", EntryPoint = "ReleaseCapture")]
         private static extern bool ReleaseCaptureForDrag();
 
@@ -6758,8 +7262,8 @@ internal static class SmartBackgroundNap
             Title = AppName;
             Width = 1440;
             Height = 780;
-            MinWidth = 760;
-            MinHeight = 500;
+            MinWidth = ResponsiveMinWindowWidth;
+            MinHeight = ResponsiveMinWindowHeight;
             WindowStartupLocation = System.Windows.WindowStartupLocation.CenterScreen;
             WindowStyle = System.Windows.WindowStyle.None;
             ResizeMode = System.Windows.ResizeMode.CanResize;
@@ -6820,8 +7324,8 @@ internal static class SmartBackgroundNap
             try
             {
                 System.Windows.Rect workArea = System.Windows.SystemParameters.WorkArea;
-                double availableWidth = Math.Max(760.0, workArea.Width - 28.0);
-                double availableHeight = Math.Max(500.0, workArea.Height - 72.0);
+                double availableWidth = Math.Max(ResponsiveMinWindowWidth, workArea.Width - 28.0);
+                double availableHeight = Math.Max(ResponsiveMinWindowHeight, workArea.Height - 72.0);
 
                 // Do not cap MaxWidth/MaxHeight: WPF applies those caps when the native maximize button is clicked.
                 // Keeping them infinite lets Windows fill the full work area while preserving a sane first-open size.
@@ -6829,8 +7333,8 @@ internal static class SmartBackgroundNap
                 MaxHeight = Double.PositiveInfinity;
                 Width = Math.Min(1440.0, availableWidth);
                 Height = Math.Min(820.0, availableHeight);
-                MinWidth = Math.Min(760.0, Width);
-                MinHeight = Math.Min(500.0, Height);
+                MinWidth = Math.Min(ResponsiveMinWindowWidth, Width);
+                MinHeight = Math.Min(ResponsiveMinWindowHeight, Height);
             }
             catch
             {
@@ -6955,8 +7459,12 @@ internal static class SmartBackgroundNap
             try
             {
                 System.Windows.Rect workArea = GetCurrentWindowWorkArea();
-                if (Width > workArea.Width) { Width = Math.Max(MinWidth, workArea.Width - 20.0); }
-                if (Height > workArea.Height) { Height = Math.Max(MinHeight, workArea.Height - 20.0); }
+                double safeWidth = Math.Max(360.0, workArea.Width - 20.0);
+                double safeHeight = Math.Max(360.0, workArea.Height - 20.0);
+                if (MinWidth > safeWidth) { MinWidth = safeWidth; }
+                if (MinHeight > safeHeight) { MinHeight = safeHeight; }
+                if (Width > workArea.Width) { Width = Math.Max(MinWidth, safeWidth); }
+                if (Height > workArea.Height) { Height = Math.Max(MinHeight, safeHeight); }
                 if (Left < workArea.Left + 8.0) { Left = workArea.Left + 8.0; }
                 if (Top < workArea.Top + 8.0) { Top = workArea.Top + 8.0; }
                 if (Left + Width > workArea.Right - 8.0) { Left = Math.Max(workArea.Left + 8.0, workArea.Right - Width - 8.0); }
@@ -6971,11 +7479,10 @@ internal static class SmartBackgroundNap
         {
             System.Windows.Controls.Border overlay = new System.Windows.Controls.Border();
             overlay.Background = System.Windows.Media.Brushes.Transparent;
-            overlay.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
+            overlay.HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch;
             overlay.VerticalAlignment = System.Windows.VerticalAlignment.Top;
-            overlay.Margin = new System.Windows.Thickness(78.0, 0.0, 0.0, 0.0);
-            overlay.Width = 520.0;
-            overlay.Height = 86.0;
+            overlay.Margin = new System.Windows.Thickness(78.0, 0.0, WindowButtonReserveWidth, 0.0);
+            overlay.Height = DragBandHeight;
             overlay.Cursor = System.Windows.Input.Cursors.SizeAll;
             overlay.MouseLeftButtonDown += delegate(object sender, System.Windows.Input.MouseButtonEventArgs e)
             {
@@ -8596,10 +9103,19 @@ internal static class SmartBackgroundNap
             state.SessionMode = GetSessionMode();
             PowerPlanSnapshot activePowerPlan = GetActivePowerPlan();
             PowerPlanSnapshot previousPowerPlan = LoadPreviousPowerPlan();
+            PowerPlanSnapshot recommendedPowerPlan = GetRecommendedPowerPlanForSessionMode(state.SessionMode);
             state.PowerPlanName = activePowerPlan == null ? "" : activePowerPlan.Name;
             state.PowerPlanGuid = activePowerPlan == null ? "" : activePowerPlan.Guid;
             state.powerPlanName = state.PowerPlanName;
             state.powerPlanGuid = state.PowerPlanGuid;
+            state.RecommendedPowerPlanName = recommendedPowerPlan == null ? "" : recommendedPowerPlan.Name;
+            state.RecommendedPowerPlanGuid = recommendedPowerPlan == null ? "" : recommendedPowerPlan.Guid;
+            state.recommendedPowerPlanName = state.RecommendedPowerPlanName;
+            state.recommendedPowerPlanGuid = state.RecommendedPowerPlanGuid;
+            state.GamePowerPlanName = SmartNapGamePowerPlanName;
+            state.GamePowerPlanGuid = SmartNapGamePowerPlanGuid;
+            state.LivePowerPlanName = SmartNapLivePowerPlanName;
+            state.LivePowerPlanGuid = SmartNapLivePowerPlanGuid;
             state.PreviousPowerPlanName = previousPowerPlan == null ? "" : previousPowerPlan.Name;
             state.PreviousPowerPlanGuid = previousPowerPlan == null ? "" : previousPowerPlan.Guid;
             state.EnergyIdleGuardEnabled = LoadEnergyIdleGuardEnabled();
@@ -8678,7 +9194,9 @@ internal static class SmartBackgroundNap
             state.EngineHealthStatus = scoreMeta.EngineHealthStatus;
             state.EngineHealthSummary = scoreMeta.EngineHealthSummary;
             state.RollbackAuditEnabled = scoreMeta.RollbackAuditEnabled;
-            state.PolicyCount = CountManualPolicies();
+            int manualPolicyCount = CountManualPolicies();
+            state.PolicyCount = manualPolicyCount;
+            state.ManualPolicyCount = manualPolicyCount;
             state.AppCount = scoreMeta.AppCount > 0 ? scoreMeta.AppCount : rows.Count;
             state.ProcessCount = scoreMeta.ProcessCount > 0 ? scoreMeta.ProcessCount : rows.Count;
             PreviewSummary preview = LoadPreviewSummary();
@@ -9927,7 +10445,7 @@ function smartNapUpdate(s){
  txt('version','v'+s.AppVersion); txt('creator',s.Creator); txt('actionTitle',s.Title); txt('detail',s.Detail); txt('state',s.RunState);
  txt('enginePass',s.Managed+' apps'); txt('engineNext',s.NextPass); txt('engineEvent',s.LastEventAge); txt('engineBeat',s.Heartbeat);
  txt('autoCard',s.AutoMode?'On':'Off'); txt('managedCard',s.Managed+' apps'); txt('learningCard',s.Learning?'On':'Off'); txt('lastCard',s.LastRun); txt('resultCard',s.Result);
- txt('motorBtn',s.AutoMode?'Pausar motor':'Retomar motor'); txt('apply',s.CanStop?'Parar':'Otimizar agora');
+ txt('motorBtn',s.AutoMode?'Pausar motor':'Retomar motor'); txt('apply',s.CanStop?'Cancelar passe':'Otimizar agora');
  document.getElementById('apply').className=s.CanStop?'btn danger':'btn primary';
  cls('motor',s.AutoMode?'pill good':'pill warn'); txt('motor',s.AutoMode?'MOTOR ACTIVE':'MANUAL');
  cls('startup',s.Startup?'pill good':'pill'); txt('startup',s.Startup?'STARTUP ON':'STARTUP OFF'); cls('live','pill good'); txt('live','LIVE '+s.Heartbeat);
@@ -9959,6 +10477,14 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public string PowerPlanGuid { get; set; }
             public string powerPlanName { get; set; }
             public string powerPlanGuid { get; set; }
+            public string RecommendedPowerPlanName { get; set; }
+            public string RecommendedPowerPlanGuid { get; set; }
+            public string recommendedPowerPlanName { get; set; }
+            public string recommendedPowerPlanGuid { get; set; }
+            public string GamePowerPlanName { get; set; }
+            public string GamePowerPlanGuid { get; set; }
+            public string LivePowerPlanName { get; set; }
+            public string LivePowerPlanGuid { get; set; }
             public string PreviousPowerPlanName { get; set; }
             public string PreviousPowerPlanGuid { get; set; }
             public bool EnergyIdleGuardEnabled { get; set; }
@@ -10036,6 +10562,7 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public int StreamHelperCount { get; set; }
             public int StreamGameProtectedCount { get; set; }
             public int PolicyCount { get; set; }
+            public int ManualPolicyCount { get; set; }
             public int AppCount { get; set; }
             public int ProcessCount { get; set; }
             public int PreviewTargets { get; set; }
@@ -11921,7 +12448,7 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             busy = isBusy;
             activeRunCanStop = isBusy && canStop;
             optimizeButton.IsEnabled = !isBusy || activeRunCanStop;
-            optimizeButton.Content = activeRunCanStop ? "Parar" : "Aplicar agora";
+            optimizeButton.Content = activeRunCanStop ? "Cancelar passe" : "Aplicar agora";
             optimizeButton.Background = activeRunCanStop ? DangerBrush : AccentBrush;
             optimizeButton.BorderBrush = activeRunCanStop ? DangerBrush : AccentBrush;
             optimizeButton.Foreground = activeRunCanStop ? TextBrush : MakeBrush(18, 20, 24);
@@ -13439,7 +13966,7 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             busy = isBusy;
             activeRunCanStop = isBusy && canStop;
             optimizeButton.Enabled = !isBusy || activeRunCanStop;
-            optimizeButton.Text = activeRunCanStop ? "Parar" : "Aplicar agora";
+            optimizeButton.Text = activeRunCanStop ? "Cancelar passe" : "Aplicar agora";
             optimizeButton.BackColor = activeRunCanStop ? Warn : Accent;
             optimizeButton.ForeColor = activeRunCanStop ? Color.White : Color.FromArgb(18, 20, 24);
             if (motorButton != null) { motorButton.Enabled = !isBusy; }
@@ -15202,6 +15729,93 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
     }
 
     #endif
+
+    private sealed class SmartSnapCoreService : ServiceBase
+    {
+        private readonly ManualResetEvent stopSignal = new ManualResetEvent(false);
+        private Thread worker;
+
+        public SmartSnapCoreService()
+        {
+            ServiceName = CoreServiceName;
+            CanStop = true;
+            CanPauseAndContinue = false;
+            AutoLog = true;
+        }
+
+        protected override void OnStart(string[] args)
+        {
+            TryRequestExtraTime(10000);
+            WriteCoreServiceState("Starting", "Start", new RunResult(0, "Starting."), IsTaskInstalled(AutoTaskName), false, GetFileAgeSeconds(scorePath), CoreServiceStalePassSeconds);
+            worker = new Thread(WorkerLoop);
+            worker.IsBackground = true;
+            worker.Name = "Smart SNAP Core Service";
+            worker.Start();
+        }
+
+        protected override void OnStop()
+        {
+            TryRequestExtraTime(10000);
+            stopSignal.Set();
+            if (worker != null && worker.IsAlive)
+            {
+                try { worker.Join(TimeSpan.FromSeconds(8)); } catch { }
+            }
+            WriteCoreServiceState("Stopped", "Stop", new RunResult(0, "Stopped."), IsTaskInstalled(AutoTaskName), false, GetFileAgeSeconds(scorePath), CoreServiceStalePassSeconds);
+        }
+
+        public void RunConsole(string[] args)
+        {
+            OnStart(args);
+            try
+            {
+                Console.WriteLine("Smart SNAP Core Service console mode. Press Enter to stop.");
+                Console.ReadLine();
+            }
+            catch
+            {
+                try { Thread.Sleep(Timeout.Infinite); } catch { }
+            }
+            finally
+            {
+                OnStop();
+            }
+        }
+
+        private void WorkerLoop()
+        {
+            AppendOperationalLog("action=core-service event=started");
+            try
+            {
+                RunCoreServicePass("service-start");
+            }
+            catch (Exception ex)
+            {
+                AppendOperationalLog("action=core-service status=failed detail=" + ShortTaskError(ex.Message));
+                WriteCoreServiceState("Error", "ServiceStart", new RunResult(1, ex.Message), IsTaskInstalled(AutoTaskName), false, GetFileAgeSeconds(scorePath), CoreServiceStalePassSeconds);
+            }
+
+            while (!stopSignal.WaitOne(TimeSpan.FromSeconds(CoreServiceLoopSeconds)))
+            {
+                try
+                {
+                    RunCoreServicePass("watchdog");
+                }
+                catch (Exception ex)
+                {
+                    AppendOperationalLog("action=core-service status=failed detail=" + ShortTaskError(ex.Message));
+                    WriteCoreServiceState("Error", "Watchdog", new RunResult(1, ex.Message), IsTaskInstalled(AutoTaskName), false, GetFileAgeSeconds(scorePath), CoreServiceStalePassSeconds);
+                }
+            }
+
+            AppendOperationalLog("action=core-service event=stopped");
+        }
+
+        private void TryRequestExtraTime(int milliseconds)
+        {
+            try { RequestAdditionalTime(milliseconds); } catch { }
+        }
+    }
 
     private static class JsonCompat
     {

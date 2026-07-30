@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0 - 2026-07-29
+
+- Added Smart SNAP Core Service as a Windows watchdog/broker for the engine, keeping the user-session game detector in charge while the service restarts the scheduled engine task if telemetry goes stale.
+- Added service install/start/stop/status command-line controls and a shared service state file for launcher visibility.
+- Kept service behavior narrow and safe: no Session 0 foreground guessing, no shader/game file manipulation, and no direct replacement of Zero Ping or ShaderBoost game detection.
+- Reworked launcher responsiveness across the WPF/WebView shell, Dashboard, Games library, live manager, cards, modals, portrait layouts, and DPI handling with automated responsive visual guards.
+
 ## 0.6.6 - 2026-07-29
 
 - Added generic game executable detection for Zero Ping, ShaderBoost, CPU-bound assist, and GPU/VRAM optimization, so unknown games can be detected by foreground/fullscreen, UDP, CPU, executable path, install roots, and related process hints instead of relying only on preset game names.
