@@ -33,7 +33,7 @@ using Microsoft.Web.WebView2.Wpf;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.7.1";
+    private const string AppVersion = "0.7.2";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
@@ -8869,6 +8869,14 @@ internal static class SmartBackgroundNap
         public string Status { get; set; }
         public string DetectedPath { get; set; }
         public string DetectionSource { get; set; }
+        public string Platform { get; set; }
+        public bool PresetApplied { get; set; }
+        public string PresetStatus { get; set; }
+        public string LastAppliedAt { get; set; }
+        public int BackupFiles { get; set; }
+        public bool Restored { get; set; }
+        public int SelectedSafeCount { get; set; }
+        public int SelectedExperimentalCount { get; set; }
         public List<string> SafeOptions { get; set; }
         public List<string> ExperimentalOptions { get; set; }
         public List<string> SafeOptimizations { get; set; }
@@ -10063,6 +10071,13 @@ internal static class SmartBackgroundNap
         {
             List<WebGamePreset> output = new List<WebGamePreset>();
             List<Process> processes = new List<Process>();
+            IDictionary<string, object> presetState = LoadJsonMapWithRecovery(Path.Combine(outputsPath, "game-presets.state.json"));
+            string appliedGameId = GetMapString(presetState, "LastGameId");
+            string appliedAt = GetMapString(presetState, "Timestamp");
+            bool restored = GetBool(presetState, "Restored");
+            int backupFiles = GetInt(presetState, "BackupFiles");
+            List<string> appliedSafeOptions = GetMapStringList(presetState, "SafeOptions");
+            List<string> appliedExperimentalOptions = GetMapStringList(presetState, "ExperimentalOptions");
             try { processes.AddRange(Process.GetProcesses()); } catch { }
             try
             {
@@ -10084,6 +10099,7 @@ internal static class SmartBackgroundNap
                     string manualPath = FindManualGameInstallPath(definition);
                     string installedPath = !String.IsNullOrWhiteSpace(runningPath) ? runningPath : manualPath;
                     string detectionSource = running != null ? "Rodando" : (!String.IsNullOrWhiteSpace(manualPath) ? "Pasta salva" : (!String.IsNullOrWhiteSpace(installedPath) ? "Biblioteca detectada" : "Não encontrado"));
+                    bool presetApplied = !restored && String.Equals(appliedGameId, definition.Id, StringComparison.OrdinalIgnoreCase);
                     output.Add(new WebGamePreset
                     {
                         Id = definition.Id,
@@ -10104,6 +10120,14 @@ internal static class SmartBackgroundNap
                         DetectedPath = installedPath,
                         Status = running != null ? "Running" : (!String.IsNullOrWhiteSpace(installedPath) ? "Installed" : "Not found"),
                         DetectionSource = detectionSource,
+                        Platform = DetectGamePlatform(definition, installedPath),
+                        PresetApplied = presetApplied,
+                        PresetStatus = presetApplied ? "Applied" : (restored && String.Equals(appliedGameId, definition.Id, StringComparison.OrdinalIgnoreCase) ? "Restored" : "Not applied"),
+                        LastAppliedAt = presetApplied ? appliedAt : "",
+                        BackupFiles = presetApplied ? backupFiles : 0,
+                        Restored = restored && String.Equals(appliedGameId, definition.Id, StringComparison.OrdinalIgnoreCase),
+                        SelectedSafeCount = presetApplied && appliedSafeOptions.Count > 0 ? appliedSafeOptions.Count : 0,
+                        SelectedExperimentalCount = presetApplied ? appliedExperimentalOptions.Count : 0,
                         SafeOptions = new List<string>(definition.SafeOptions ?? new string[0]),
                         ExperimentalOptions = new List<string>(definition.ExperimentalOptions ?? new string[0]),
                         SafeOptimizations = new List<string>(definition.SafeOptions ?? new string[0]),
@@ -10116,6 +10140,22 @@ internal static class SmartBackgroundNap
                 foreach (Process process in processes) { try { process.Dispose(); } catch { } }
             }
             return output;
+        }
+
+        private static string DetectGamePlatform(GamePresetDefinition definition, string installPath)
+        {
+            string id = (definition == null ? "" : definition.Id ?? "").Trim().ToLowerInvariant();
+            string path = (installPath ?? "").Trim().ToLowerInvariant();
+            if (path.IndexOf("steamapps", StringComparison.OrdinalIgnoreCase) >= 0) { return "Steam"; }
+            if (path.IndexOf("epic", StringComparison.OrdinalIgnoreCase) >= 0) { return "Epic Games"; }
+            if (path.IndexOf("riot games", StringComparison.OrdinalIgnoreCase) >= 0) { return "Riot Client"; }
+            if (path.IndexOf("battle.net", StringComparison.OrdinalIgnoreCase) >= 0) { return "Battle.net"; }
+            if (path.IndexOf("ubisoft", StringComparison.OrdinalIgnoreCase) >= 0) { return "Ubisoft Connect"; }
+            if (id == "valorant") { return "Riot Client"; }
+            if (id == "cs2") { return "Steam"; }
+            if (id == "eafc26") { return "EA App"; }
+            if (id == "bf6") { return "EA App"; }
+            return "";
         }
 
         private static int RefreshGameDiscoveryCache()

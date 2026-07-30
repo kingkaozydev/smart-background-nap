@@ -4986,6 +4986,178 @@ body.view-dashboard .commandMainFlow{
     max-height:46vh!important;
   }
 }
+/* v0.7.2 games optimization library: compact controls, contextual cards and guided preset review */
+.gamesView>.gamesHero:not(.gamesLibraryHero),
+.gamesView>.gameBetaInline:not(.gamesBetaHub){display:none!important}
+.gamesLibraryHero{min-height:0!important;padding:22px 24px!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;gap:18px!important}
+.gamesHeroCopy{display:grid!important;gap:6px!important}
+.gamesHeroCopy small{display:block!important;color:#ffb24a!important;font-weight:950!important;text-transform:uppercase!important;letter-spacing:.08em!important;font-size:10px!important}
+.gamesHeroCopy h2{margin:0!important;font-size:36px!important;line-height:1.02!important;letter-spacing:-.035em!important}
+.gamesHeroCopy p{margin:0!important;max-width:780px!important;color:#aebbd0!important;font-size:13px!important;line-height:1.48!important}
+.gamesHeroActions{display:flex!important;justify-content:flex-end!important;gap:10px!important}
+.gamesLibrarySummary{display:flex!important;align-items:center!important;gap:10px!important;flex-wrap:wrap!important;color:#aebbd0!important;font-size:12px!important;font-weight:850!important}
+.gamesLibrarySummary span{display:inline-flex!important;align-items:center!important;gap:7px!important}
+.gamesLibrarySummary i{width:6px!important;height:6px!important;border-radius:999px!important;background:#35e89a!important;box-shadow:0 0 14px rgba(53,232,154,.35)!important}
+.gamesToolbar{display:grid!important;grid-template-columns:minmax(220px,1.1fr) minmax(0,2fr) minmax(150px,.55fr) auto!important;gap:10px!important;align-items:center!important;padding:10px!important;border:1px solid rgba(148,166,195,.14)!important;border-radius:18px!important;background:linear-gradient(180deg,rgba(10,18,31,.82),rgba(7,13,23,.82))!important}
+.gamesSearch,.gamesSort{display:grid!important;gap:5px!important;min-width:0!important}
+.gamesSearch span,.gamesSort span{font-size:10px!important;text-transform:uppercase!important;letter-spacing:.07em!important;color:#8091aa!important;font-weight:950!important}
+.gamesSearch input,.gamesSort select{height:38px!important;border-radius:12px!important;border:1px solid rgba(148,166,195,.16)!important;background:#081323!important;color:#e7eef9!important;padding:0 12px!important;font:850 12px Inter,'Segoe UI',system-ui,sans-serif!important;outline:0!important}
+.gamesSearch input:focus,.gamesSort select:focus{border-color:rgba(98,168,255,.48)!important;box-shadow:0 0 0 3px rgba(98,168,255,.12)!important}
+.gameFilterGroup,.gamesViewToggle{display:flex!important;align-items:center!important;gap:7px!important;min-width:0!important;flex-wrap:wrap!important}
+.gameFilterGroup button,.gamesViewToggle button{height:34px!important;border-radius:999px!important;border:1px solid rgba(148,166,195,.15)!important;background:rgba(9,17,30,.72)!important;color:#aebbd0!important;padding:0 11px!important;font:900 11px Inter,'Segoe UI',system-ui,sans-serif!important;cursor:pointer!important;transition:background var(--motion-fast,140ms) var(--ease-standard,ease),border-color var(--motion-fast,140ms) var(--ease-standard,ease),transform var(--motion-fast,140ms) var(--ease-standard,ease),color var(--motion-fast,140ms) var(--ease-standard,ease)!important}
+.gameFilterGroup button:hover,.gamesViewToggle button:hover{transform:translateY(-1px)!important;border-color:rgba(98,168,255,.28)!important;color:#eef6ff!important}
+.gameFilterGroup button.active,.gamesViewToggle button.active{border-color:rgba(255,159,28,.48)!important;background:rgba(255,159,28,.13)!important;color:#ffbd63!important}
+.gamesViewToggle button{font-size:0!important}
+.gamesViewToggle button:before{font-size:11px!important}
+.gamesViewToggle button[data-view-mode="grid"]:before{content:"Grid"}
+.gamesViewToggle button[data-view-mode="list"]:before{content:"Lista"}
+.gamesContinue{border:1px solid rgba(255,159,28,.22)!important;border-radius:18px!important;background:linear-gradient(135deg,rgba(255,159,28,.10),rgba(18,29,48,.78))!important;padding:14px 16px!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;gap:12px!important}
+.gamesContinue[hidden]{display:none!important}
+.gamesContinue b{display:block!important;font-size:14px!important;color:#fff!important}
+.gamesContinue span{display:block!important;margin-top:3px!important;color:#aebbd0!important;font-size:12px!important;line-height:1.35!important}
+.gamesContinue button{height:34px!important}
+.gamesSectionTitle{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;color:#f2f6fb!important;font-weight:950!important;font-size:15px!important}
+.gamesSectionTitle small{color:#8899b2!important;font-size:11px!important;font-weight:900!important}
+.gamesGrid{grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))!important;gap:16px!important}
+.gamesGrid[data-view="list"]{grid-template-columns:1fr!important}
+.gameCard{min-height:0!important;border-radius:20px!important;transition:transform var(--motion-standard,200ms) var(--ease-standard,ease),border-color var(--motion-fast,140ms) var(--ease-standard,ease),box-shadow var(--motion-standard,200ms) var(--ease-standard,ease)!important}
+.gameCard:hover,.gameCard:focus-visible{transform:translateY(-2px)!important}
+.gamePoster{aspect-ratio:16/11!important;min-height:0!important}
+.gameCard .posterBadge{position:absolute!important;z-index:3;left:14px;top:14px;display:inline-flex;align-items:center;gap:7px;min-height:24px;padding:0 9px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(5,10,18,.64);backdrop-filter:blur(10px);color:#f4f8ff;font-size:10px;font-weight:950;text-transform:uppercase;letter-spacing:.04em}
+.gameCard .posterBadge:before{content:"";width:6px;height:6px;border-radius:999px;background:var(--game-accent,#ff9f1c);box-shadow:0 0 14px color-mix(in srgb,var(--game-accent,#ff9f1c) 60%,transparent)}
+.gameCard[data-status="attention"] .posterBadge{border-color:rgba(255,159,28,.36);color:#ffd18a}
+.gameCard[data-status="running"] .posterBadge{border-color:rgba(53,232,154,.34);color:#4cf2a6}
+.gameBody{padding:16px!important;gap:9px!important}
+.gameBody .gameCategory{color:var(--game-accent,#ff9f1c)!important;font-size:10px!important;text-transform:uppercase!important;font-weight:950!important;letter-spacing:.07em!important}
+.gameBody h3{font-size:20px!important}
+.gameTechLine{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:#aebbd0;font-size:11px;font-weight:850}
+.gameTechLine span{display:inline-flex;align-items:center;gap:6px}
+.gamePresetLine{color:#dce8f7;font-size:12px;font-weight:900;line-height:1.35}
+.gamePresetLine.muted{color:#91a2bb}
+.gameImpactLine{color:#8fa1bb;font-size:11px;font-weight:850;line-height:1.35}
+.gameCardControls{display:flex!important;align-items:center!important;gap:8px!important;margin-top:5px!important}
+.gameCardControls .gameMiniBtn.primary{flex:1 1 auto!important;min-width:0!important}
+.gameMore{position:relative!important;flex:0 0 auto!important}
+.gameMore summary{list-style:none!important;width:36px!important;height:34px!important;border-radius:12px!important;border:1px solid rgba(148,166,195,.18)!important;background:rgba(9,17,30,.74)!important;color:#dce8f7!important;display:grid!important;place-items:center!important;font-weight:950!important;cursor:pointer!important}
+.gameMore summary::-webkit-details-marker{display:none!important}
+.gameMore[open] summary,.gameMore summary:hover{border-color:rgba(98,168,255,.34)!important;background:rgba(98,168,255,.10)!important}
+.gameMoreMenu{position:absolute!important;right:0!important;bottom:calc(100% + 8px)!important;z-index:8!important;width:190px!important;padding:8px!important;border:1px solid rgba(148,166,195,.18)!important;border-radius:14px!important;background:#07111f!important;box-shadow:0 22px 60px rgba(0,0,0,.48)!important;display:grid!important;gap:6px!important}
+.gameMoreMenu button{height:32px!important;border:0!important;border-radius:10px!important;background:transparent!important;color:#dce8f7!important;text-align:left!important;padding:0 10px!important;font:850 11px Inter,'Segoe UI',system-ui,sans-serif!important;cursor:pointer!important}
+.gameMoreMenu button:hover{background:rgba(98,168,255,.10)!important}
+.gamesGrid[data-view="list"] .gameCard{display:grid!important;grid-template-columns:118px minmax(0,1fr)!important;min-height:136px!important}
+.gamesGrid[data-view="list"] .gamePoster{height:100%!important;aspect-ratio:auto!important}
+.gamesGrid[data-view="list"] .gameBody{padding:14px 16px!important}
+.gamesGrid[data-view="list"] .gameBody p{display:none!important}
+.gamesGrid[data-view="list"] .gameCardControls{margin-top:4px!important}
+.gamesBetaHub{display:flex!important}
+.gamePresetTabs{display:flex!important;gap:8px!important;flex-wrap:wrap!important;margin-bottom:14px!important}
+.gamePresetTabs button{height:34px!important;border-radius:999px!important;border:1px solid rgba(148,166,195,.16)!important;background:rgba(9,17,30,.72)!important;color:#aebbd0!important;padding:0 12px!important;font:900 11px Inter,'Segoe UI',system-ui,sans-serif!important;cursor:pointer!important}
+.gamePresetTabs button.active{border-color:rgba(255,159,28,.46)!important;background:rgba(255,159,28,.13)!important;color:#ffbd63!important}
+.gamePresetReview{display:grid!important;gap:12px!important}
+.gamePresetGroup{display:grid!important;gap:8px!important}
+.gamePresetGroup h4{margin:0!important;color:#f4f8ff!important;font-size:12px!important;text-transform:uppercase!important;letter-spacing:.07em!important}
+.gameOptionCard{display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;gap:10px!important;align-items:start!important;border:1px solid rgba(148,166,195,.14)!important;border-radius:14px!important;background:rgba(9,17,30,.66)!important;padding:11px!important;transition:border-color var(--motion-fast,140ms) ease,background var(--motion-fast,140ms) ease!important}
+.gameOptionCard:hover{border-color:rgba(98,168,255,.26)!important;background:rgba(14,24,40,.76)!important}
+.gameOptionCard input{width:16px!important;height:16px!important;margin-top:2px!important;accent-color:#35e89a!important}
+.gameOptionCard.experimental input{accent-color:#ff9f1c!important}
+.gameOptionMain{display:grid!important;gap:6px!important}
+.gameOptionMain b{color:#eef6ff!important;font-size:12px!important;line-height:1.35!important}
+.gameOptionMeta{display:flex!important;gap:6px!important;flex-wrap:wrap!important}
+.gameOptionMeta span{display:inline-flex!important;align-items:center!important;min-height:22px!important;border:1px solid rgba(148,166,195,.14)!important;border-radius:999px!important;padding:0 8px!important;color:#9dafc6!important;font-size:10px!important;font-weight:900!important}
+.gameOptionDetails{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px 12px!important;color:#9dafc6!important;font-size:11px!important}
+.gameOptionDetails span{display:grid!important;gap:2px!important}
+.gameOptionDetails small{color:#72849f!important;text-transform:uppercase!important;letter-spacing:.06em!important;font-weight:950!important}
+.gamePresetFootSummary{margin-top:auto!important;padding-top:14px!important;border-top:1px solid rgba(148,166,195,.13)!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;flex-wrap:wrap!important;color:#aebbd0!important;font-size:12px!important;font-weight:850!important}
+.gamePresetTechnical{display:flex!important;align-items:center!important;gap:8px!important;color:#9dafc6!important;font-size:11px!important;font-weight:850!important}
+.gamePresetPanel .gameActions{margin-top:14px!important}
+.gamePresetMeta .gamePresetSideRow{display:grid!important;grid-template-columns:1fr!important;gap:4px!important}
+.gamePresetMeta .gamePresetSideRow em{font-style:normal!important;color:#91a2bb!important;font-size:11px!important;text-transform:none!important;font-weight:800!important}
+.gamePresetEmpty{border:1px solid rgba(148,166,195,.12)!important;border-radius:14px!important;background:rgba(9,17,30,.52)!important;padding:14px!important;color:#aebbd0!important;font-size:12px!important;line-height:1.45!important}
+@media(max-width:1180px){.gamesToolbar{grid-template-columns:1fr!important}.gameFilterGroup{overflow:auto!important;flex-wrap:nowrap!important}.gamesViewToggle{justify-content:flex-end!important}.gamesLibraryHero{grid-template-columns:1fr!important}.gamesHeroActions{justify-content:flex-start!important}.gamePresetFootSummary{display:grid!important}.gamePresetPanel .gameActions{grid-template-columns:1fr!important}}
+@media(max-width:720px){.gamesGrid[data-view="list"] .gameCard{grid-template-columns:1fr!important}.gamesGrid[data-view="list"] .gamePoster{height:auto!important;aspect-ratio:16/9!important}.gameOptionDetails{grid-template-columns:1fr!important}}
+/* v0.7.2 game preset modal final polish: true-state CTA, UTF-8 copy, compact toggle and sticky decision footer */
+#gamePresetOverlay.open{align-items:center!important;overflow:hidden!important}
+#gamePresetOverlay .gamePresetPanel{display:grid!important;width:min(1000px,calc(100vw - 32px))!important;height:min(900px,calc(100dvh - 32px))!important;max-height:calc(100dvh - 32px)!important;min-height:0!important;overflow:hidden!important}
+#gamePresetOverlay .gamePresetShell{display:grid!important;grid-template-columns:minmax(248px,300px) minmax(0,1fr)!important;height:100%!important;min-height:0!important;max-height:none!important;overflow:hidden!important}
+#gamePresetOverlay .gamePresetLead{height:100%!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;align-self:stretch!important}
+#gamePresetOverlay .gamePresetMeta{margin-top:0!important;align-content:start!important}
+#gamePresetOverlay .gamePresetMain{display:grid!important;grid-template-rows:auto auto minmax(0,1fr) auto auto!important;height:100%!important;min-height:0!important;overflow:hidden!important}
+#gamePresetOverlay .gamePresetReview{min-height:0!important;overflow:auto!important;overflow-x:hidden!important;padding-right:6px!important;overscroll-behavior:contain!important}
+#gamePresetOverlay .gamePresetFootSummary{position:sticky!important;bottom:0!important;z-index:3!important;margin-top:0!important;padding:12px 0!important;background:linear-gradient(180deg,rgba(10,18,31,.92),rgba(8,14,24,.98))!important}
+#gamePresetOverlay .gameActions{margin-top:0!important;flex:0 0 auto!important}
+#gamePresetOverlay .gamePresetTechnical{position:relative!important;display:inline-flex!important;align-items:center!important;gap:9px!important;border:1px solid rgba(148,166,195,.16)!important;border-radius:999px!important;background:rgba(9,17,30,.58)!important;padding:6px 8px 6px 12px!important;cursor:pointer!important;user-select:none!important}
+#gamePresetOverlay .gamePresetTechnical input{position:absolute!important;opacity:0!important;width:1px!important;height:1px!important;pointer-events:none!important}
+#gamePresetOverlay .gamePresetTechnical i{position:relative!important;display:inline-block!important;width:34px!important;height:20px!important;border-radius:999px!important;background:rgba(148,166,195,.15)!important;border:1px solid rgba(148,166,195,.18)!important;transition:background .18s ease,border-color .18s ease!important}
+#gamePresetOverlay .gamePresetTechnical i:after{content:""!important;position:absolute!important;left:2px!important;top:2px!important;width:14px!important;height:14px!important;border-radius:999px!important;background:#c9d6e8!important;box-shadow:0 2px 8px rgba(0,0,0,.34)!important;transition:transform .18s ease,background .18s ease!important}
+#gamePresetOverlay .gamePresetTechnical input:checked+i{background:rgba(255,159,28,.24)!important;border-color:rgba(255,159,28,.42)!important}
+#gamePresetOverlay .gamePresetTechnical input:checked+i:after{transform:translateX(14px)!important;background:#ffbd63!important}
+#gamePresetOverlay .gamePresetHardwareList{display:grid!important;gap:4px!important;line-height:1.25!important}
+#gamePresetOverlay .gamePresetHardwareList b{font-size:12px!important;color:#f1f6ff!important;font-weight:900!important}
+#gamePresetOverlay .gamePresetHardwareList em{font-size:11px!important;color:#91a2bb!important;font-style:normal!important;font-weight:800!important}
+#gamePresetOverlay .gamePresetMetaRows{display:grid!important;gap:5px!important}
+#gamePresetOverlay .gamePresetMetaRow{display:flex!important;align-items:baseline!important;justify-content:space-between!important;gap:12px!important}
+#gamePresetOverlay .gamePresetMetaRow small{color:#72849f!important;text-transform:uppercase!important;letter-spacing:.06em!important;font-size:9px!important;font-weight:950!important}
+#gamePresetOverlay .gamePresetMetaRow b{color:#eaf2ff!important;font-size:12px!important}
+#gamePresetOverlay .gameActions .gameRestoreBtnNeutral{border-color:rgba(148,166,195,.18)!important;background:rgba(14,24,40,.72)!important;color:#c9d7e9!important}
+#gamePresetOverlay .gameActions .btn.primary.is-applied,#gamePresetOverlay .gameActions .btn.primary:disabled{background:#18243a!important;border-color:rgba(148,166,195,.20)!important;color:#b7c5d8!important;cursor:default!important;opacity:.82!important}
+/* v0.7.2 game preset modal viewport scroll repair: technical details stay inside the review scroller */
+@media(max-width:900px){
+  #gamePresetOverlay.open{align-items:center!important;overflow:hidden!important}
+  #gamePresetOverlay .gamePresetPanel{width:min(680px,calc(100vw - 20px))!important;height:calc(100dvh - 20px)!important;max-height:calc(100dvh - 20px)!important;overflow:hidden!important}
+  #gamePresetOverlay .gamePresetShell{display:grid!important;grid-template-columns:1fr!important;grid-template-rows:auto minmax(0,1fr)!important;height:100%!important;min-height:0!important;overflow:hidden!important}
+  #gamePresetOverlay .gamePresetLead{height:auto!important;max-height:28dvh!important;overflow-y:auto!important;overflow-x:hidden!important;border-right:0!important;border-bottom:1px solid rgba(148,166,195,.12)!important}
+  #gamePresetOverlay .gamePresetMain{height:100%!important;min-height:0!important;overflow:hidden!important;display:grid!important}
+  #gamePresetOverlay .gamePresetReview{min-height:0!important;overflow:auto!important;overflow-x:hidden!important}
+}
+/* v0.7.2 games library density polish: stable grid columns, professional list rows and compact contextual actions */
+body.view-games .gamesToolbar{grid-template-columns:minmax(260px,.95fr) minmax(0,1.45fr) minmax(170px,.42fr) auto!important;gap:12px!important;padding:12px!important}
+body.view-games .gameFilterGroup button{display:inline-flex!important;align-items:center!important;gap:7px!important;padding:0 10px!important}
+body.view-games .gameFilterGroup button em{min-width:18px!important;height:18px!important;padding:0 6px!important;border-radius:999px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;background:rgba(148,166,195,.12)!important;color:#c8d6ea!important;font-style:normal!important;font-size:10px!important;font-weight:950!important}
+body.view-games .gameFilterGroup button.active em{background:rgba(255,159,28,.20)!important;color:#ffd08a!important}
+body.view-games .gameFilterGroup button:disabled{opacity:.46!important;cursor:not-allowed!important;transform:none!important}
+body.view-games .gamesViewToggle{justify-content:flex-end!important;gap:0!important;padding:3px!important;border:1px solid rgba(148,166,195,.14)!important;border-radius:999px!important;background:rgba(7,13,23,.74)!important}
+body.view-games .gamesViewToggle button{height:30px!important;min-height:30px!important;border-radius:999px!important;border:0!important;background:transparent!important;padding:0 10px!important;color:#93a4bb!important}
+body.view-games .gamesViewToggle button:before{font-size:11px!important}
+body.view-games .gamesViewToggle button[data-view-mode="grid"]:before{content:"Grade"!important}
+body.view-games .gamesViewToggle button[data-view-mode="list"]:before{content:"Lista"!important}
+body.view-games .gamesViewToggle button.active{background:rgba(255,159,28,.14)!important;color:#ffbf6c!important;box-shadow:0 0 0 1px rgba(255,159,28,.30) inset!important}
+body.view-games .gamesContinue{min-height:0!important;padding:12px 14px!important;grid-template-columns:46px minmax(0,1fr) auto!important;border-radius:16px!important}
+body.view-games .gamesContinueIcon{width:40px!important;height:40px!important;border-radius:12px!important;overflow:hidden!important;background:rgba(255,159,28,.12)!important;border:1px solid rgba(255,159,28,.22)!important;display:grid!important;place-items:center!important;color:#ffbf6c!important;font-weight:950!important}
+body.view-games .gamesContinueIcon img{width:100%!important;height:100%!important;object-fit:cover!important}
+body.view-games .gamesContinueActions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:8px!important}
+body.view-games .gamesContinue .btn.primary{width:auto!important;min-width:148px!important;max-width:190px!important;height:34px!important;min-height:34px!important;padding:0 14px!important;border-radius:12px!important;background:#ff9f1c!important;border-color:#ff9f1c!important;color:#06111f!important}
+body.view-games .gameContinueClose{width:34px!important;height:34px!important;min-height:34px!important;border-radius:12px!important;border:1px solid rgba(148,166,195,.16)!important;background:rgba(9,17,30,.70)!important;color:#aebbd0!important;font-weight:950!important;cursor:pointer!important}
+body.view-games .gamesGrid[data-view="grid"]{grid-template-columns:repeat(4,minmax(0,1fr))!important;align-items:start!important;justify-content:start!important;gap:16px!important}
+body.view-games .gamesGrid[data-view="grid"] .gameCard{width:100%!important;max-width:none!important;min-height:0!important;display:flex!important}
+body.view-games .gamesGrid[data-view="grid"] .gamePoster{aspect-ratio:3/4!important;height:auto!important;max-height:318px!important}
+body.view-games .gamesGrid[data-view="grid"] .gameBody{min-height:198px!important}
+body.view-games .gameCardText{display:grid!important;gap:8px!important;min-width:0!important}
+body.view-games .gameCardText p{display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important;overflow:hidden!important}
+body.view-games .gameCardControls{justify-content:flex-start!important;align-items:center!important;gap:8px!important}
+body.view-games .gameCardControls .gameMiniBtn.primary{flex:0 0 auto!important;width:auto!important;min-width:142px!important;max-width:190px!important;height:36px!important;min-height:36px!important;padding:0 14px!important;border-radius:12px!important;background:linear-gradient(180deg,#ffb33f,#ff9f1c)!important;border-color:#ffad2f!important;color:#06111f!important;box-shadow:none!important}
+body.view-games .gameCardControls .gameMiniBtn.primary.needsPath{background:rgba(255,159,28,.12)!important;border-color:rgba(255,159,28,.48)!important;color:#ffd28a!important}
+body.view-games .gamesGrid[data-view="list"]{grid-template-columns:1fr!important;gap:12px!important}
+body.view-games .gamesGrid[data-view="list"] .gameCard{display:grid!important;grid-template-columns:104px minmax(0,1fr)!important;min-height:132px!important;max-height:none!important;border-radius:16px!important}
+body.view-games .gamesGrid[data-view="list"] .gamePoster{width:104px!important;height:132px!important;aspect-ratio:auto!important}
+body.view-games .gamesGrid[data-view="list"] .posterBadge{left:10px!important;top:10px!important;max-width:86px!important;white-space:normal!important;line-height:1.05!important;min-height:22px!important;padding:4px 8px!important}
+body.view-games .gamesGrid[data-view="list"] .gameBody{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(178px,220px)!important;align-items:center!important;gap:18px!important;padding:14px 16px!important;background:linear-gradient(180deg,rgba(12,20,34,.88),rgba(8,14,24,.94))!important}
+body.view-games .gamesGrid[data-view="list"] .gameCardText{grid-column:1!important;align-content:center!important}
+body.view-games .gamesGrid[data-view="list"] .gameBody p{display:none!important}
+body.view-games .gamesGrid[data-view="list"] .gameBody h3{font-size:20px!important;line-height:1.08!important}
+body.view-games .gamesGrid[data-view="list"] .gameCardControls{grid-column:2!important;align-self:center!important;justify-content:flex-end!important;margin-top:0!important}
+body.view-games .gamesGrid[data-view="list"] .gameCardControls .gameMiniBtn.primary{min-width:150px!important;max-width:180px!important}
+body.view-games .gamesGrid[data-view="list"] .gameMoreMenu{bottom:auto!important;top:calc(100% + 8px)!important}
+body.view-games .gameBetaHub{padding:11px 14px!important;min-height:0!important}
+body.view-games .gameBetaHub>div{display:flex!important;align-items:center!important;gap:9px!important;min-width:0!important}
+body.view-games .gameBetaHub b{height:22px!important;padding:0 8px!important;border-radius:999px!important;border:1px solid rgba(255,159,28,.30)!important;background:rgba(255,159,28,.10)!important;color:#ffbd63!important;font-size:10px!important;letter-spacing:.06em!important;display:inline-flex!important;align-items:center!important;flex:0 0 auto!important}
+body.view-games .gameBetaHub span{display:block!important;min-width:0!important}
+body.view-games .gamesEmpty{grid-column:1/-1!important;display:grid!important;align-items:start!important;gap:8px!important}
+body.view-games .gamesEmpty b{color:#fff!important;font-size:14px!important}
+body.view-games .gamesEmpty span{color:#9eacc0!important}
+body.view-games .gamesEmpty .btn{width:max-content!important;min-width:150px!important;height:34px!important}
+@media(max-width:1480px){body.view-games .gamesGrid[data-view="grid"]{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+@media(max-width:1080px){body.view-games .gamesGrid[data-view="grid"]{grid-template-columns:repeat(2,minmax(0,1fr))!important}body.view-games .gamesToolbar{grid-template-columns:1fr!important}body.view-games .gameFilterGroup{overflow:auto!important;flex-wrap:nowrap!important}body.view-games .gamesViewToggle{justify-self:start!important}body.view-games .gamesContinue{grid-template-columns:40px minmax(0,1fr)!important}body.view-games .gamesContinueActions{grid-column:1/-1!important;justify-content:flex-start!important}}
+@media(max-width:720px){body.view-games .gamesGrid[data-view="grid"],body.view-games .gamesGrid[data-view="list"]{grid-template-columns:1fr!important}body.view-games .gamesGrid[data-view="list"] .gameCard{grid-template-columns:86px minmax(0,1fr)!important;min-height:118px!important}body.view-games .gamesGrid[data-view="list"] .gamePoster{width:86px!important;height:118px!important}body.view-games .gamesGrid[data-view="list"] .gameBody{grid-template-columns:1fr!important;gap:10px!important}body.view-games .gamesGrid[data-view="list"] .gameCardControls{grid-column:1!important;justify-content:flex-start!important}body.view-games .gameBetaHub{display:grid!important}}
 </style>
 </head>
 <body>
@@ -5249,11 +5421,40 @@ body.view-dashboard .commandMainFlow{
         </aside>
       </section>
       <section class="gamesView" id="gamesView" hidden>
+        <div class="gamesHero gamesLibraryHero">
+          <div class="gamesHeroCopy">
+            <small>Biblioteca beta</small>
+            <h2>Biblioteca de jogos</h2>
+            <p>Presets adaptados ao seu hardware e instalação, com backup antes de aplicar e revisão clara do que muda em cada jogo.</p>
+          </div>
+          <div class="gamesHeroActions">
+            <button class="btn primary" type="button" onclick="refreshGameDiscovery('')">Escanear bibliotecas</button>
+          </div>
+        </div>
         <div class="gamesHero">
           <h2>Biblioteca de jogos</h2>
           <p>Presets por jogo com ajustes seguros, opções experimentais e confirmação antes de aplicar. A ideia é adaptar o Windows ao jogo real, ao launcher usado e ao hardware da pessoa.</p>
         </div>
+        <div class="gamesLibrarySummary" id="gamesLibraryStats">Carregando biblioteca...</div>
+        <div class="gamesToolbar" aria-label="Controles da biblioteca de jogos">
+          <label class="gamesSearch"><span>Pesquisar</span><input id="gameSearch" type="search" placeholder="Nome, plataforma ou categoria" oninput="updateGameLibraryControls()"></label>
+          <div class="gameFilterGroup" id="gameFilterGroup" role="tablist" aria-label="Filtros de jogos">
+            <button type="button" data-filter="all" onclick="setGameLibraryFilter('all')">Todos</button>
+            <button type="button" data-filter="installed" onclick="setGameLibraryFilter('installed')">Instalados</button>
+            <button type="button" data-filter="configured" onclick="setGameLibraryFilter('configured')">Configurados</button>
+            <button type="button" data-filter="running" onclick="setGameLibraryFilter('running')">Em execução</button>
+            <button type="button" data-filter="attention" onclick="setGameLibraryFilter('attention')">Atenção</button>
+          </div>
+          <label class="gamesSort"><span>Ordenar</span><select id="gameSort" onchange="updateGameLibraryControls()"><option value="recommended">Recomendados</option><option value="installed">Instalados primeiro</option><option value="running">Em execução</option><option value="name">Nome</option></select></label>
+          <div class="gamesViewToggle" role="group" aria-label="Modo de visualização">
+            <button type="button" data-view-mode="grid" onclick="setGameLibraryView('grid')" title="Grade visual">▦</button>
+            <button type="button" data-view-mode="list" onclick="setGameLibraryView('list')" title="Lista compacta">☰</button>
+          </div>
+        </div>
+        <div class="gamesContinue" id="gamesContinue" hidden></div>
+        <div class="gamesSectionTitle"><span>Seus jogos</span><small id="gamesLibraryCount">0 jogos</small></div>
         <div class="gamesGrid" id="gamesGrid"></div>
+        <div class="gameBetaInline gamesBetaHub"><div><b>BETA</b><span>Receitas por jogo são revisadas antes da aplicação. Backups ficam disponíveis após um preset ser aplicado.</span></div><button class="btn gameRestoreBtn" onclick="send('restoreGamePreset')">Backups e restauração</button></div>
         <div class="gameBetaInline"><div><b>Beta tester ativo</b><span>Presets por jogo com revisão antes de aplicar. Ajustes experimentais ficam sempre destacados.</span></div><button class="btn gameRestoreBtn" onclick="send('restoreGamePreset')">Restaurar alterações</button></div>
         <div class="infoOverlay gameScopedOverlay" id="gameBetaOverlay" role="dialog" aria-modal="true">
           <div class="infoPanel">
@@ -5283,7 +5484,7 @@ body.view-dashboard .commandMainFlow{
               <section class="gamePresetMain">
                 <div class="gamePresetTop"><div><h3>Otimizações selecionadas</h3><p>Revise o que será aplicado. Experimentos ficam separados para você decidir com clareza.</p></div><button class="gamePresetClose" onclick="closeGamePreset()">&times;</button></div>
                 <div class="gameOptions"><div><h4>Seguro</h4><ul id="gameSafeList"></ul></div><div class="experimental"><h4>Experimental</h4><ul id="gameExperimentalList"></ul></div></div>
-                <div class="gameActions"><button class="btn danger" onclick="restoreSelectedGamePreset()">Restaurar para padrão</button><button class="btn" onclick="closeGamePreset()">Cancelar</button><button class="btn primary" onclick="confirmGamePreset()">Ativar preset</button></div>
+                <div class="gameActions"><button class="btn gameRestoreBtnNeutral" onclick="restoreSelectedGamePreset()">Restaurar padrão</button><button class="btn" onclick="closeGamePreset()">Cancelar</button><button class="btn primary" id="gamePresetApplyButton" onclick="confirmGamePreset()">Aplicar preset</button></div>
               </section>
             </div>
           </div>
@@ -5836,6 +6037,11 @@ let selectedGameOptions = { safe: new Set(), experimental: new Set() };
 let gameActionPending = "";
 let gameActionGameId = "";
 let gameActionStartedAt = 0;
+let gameLibraryFilter = "all";
+let gameLibraryView = "grid";
+let gameContinueDismissedId = "";
+let gamePresetActiveTab = "recommended";
+let gamePresetTechnical = false;
 let selectedInsightKey = "";
 const MOTION_COMMAND_TARGETS = {
   apply:"#apply",
@@ -5850,7 +6056,7 @@ const MOTION_COMMAND_TARGETS = {
   toggleUdpGuard:"#udpGuardToggle,#udpGuardConfirm",
   setSessionMode:"#energyPrimary,#energyKeep,#energyRestore,#energyBalanced",
   applyGamePreset:".gameMiniBtn.primary,.gameModeChoice,.gameModeActiveActions .btn.primary,#gamePresetOverlay .gameActions .btn.primary",
-  restoreGamePreset:".gameRestoreBtn,#gamePresetOverlay .gameActions .btn.danger",
+  restoreGamePreset:".gameRestoreBtn,.gameRestoreBtnNeutral,#gamePresetOverlay .gameActions .btn.danger",
   refreshGames:".gameMiniBtn.scan",
   selectGameFolder:".gameMiniBtn.folder",
   runElevatedApply:"#adminConfirm"
@@ -6375,7 +6581,17 @@ function openGamePreset(id){
   openOverlay("gamePresetOverlay");
 }
 function closeGamePreset(){ closeGameModePrompt(); selectedGamePreset=null; selectedGameOptions={ safe:new Set(), experimental:new Set() }; closeOverlay("gamePresetOverlay"); }
-function restoreSelectedGamePreset(){ const id=selectedGamePreset&&selectedGamePreset.Id?selectedGamePreset.Id:""; setGamePending("restore",id); send("restoreGamePreset",{gameId:id}); closeGamePreset(); }
+function restoreSelectedGamePreset(){
+  const id=selectedGamePreset&&selectedGamePreset.Id?selectedGamePreset.Id:"";
+  const files=Number(selectedGamePreset&&selectedGamePreset.BackupFiles||0);
+  if(!id) return;
+  if(files<=0){ window.alert("Nenhum backup válido foi encontrado para esta instalação."); return; }
+  const ok=window.confirm("As configurações aplicadas pelo Smart Nap serão removidas e o estado anterior registrado no backup será restaurado.");
+  if(!ok) return;
+  setGamePending("restore",id);
+  send("restoreGamePreset",{gameId:id});
+  closeGamePreset();
+}
 function selectedGamePresetPayload(){
   if(!selectedGamePreset) return null;
   const safe=Array.isArray(selectedGamePreset.SafeOptimizations)?selectedGamePreset.SafeOptimizations:(selectedGamePreset.SafeOptions||[]);
@@ -6416,7 +6632,12 @@ function openGameModePrompt(){
   openOverlay("gameModeOverlay");
 }
 function closeGameModePrompt(){ closeOverlay("gameModeOverlay"); }
-function confirmGamePreset(){ if(!selectedGamePreset) return; if(!(selectedGamePreset.Running||selectedGamePreset.Installed||selectedGamePreset.DetectedPath||selectedGamePreset.Path)){ selectGameFolder(selectedGamePreset.Id||""); return; } openGameModePrompt(); }
+function confirmGamePreset(){
+  if(!selectedGamePreset) return;
+  if(!gamePresetReady(selectedGamePreset)){ selectGameFolder(selectedGamePreset.Id||""); return; }
+  if(gamePresetApplied(selectedGamePreset) && !gamePresetSelectionChanged()) return;
+  openGameModePrompt();
+}
 function applyGamePresetModeChoice(choice,reviewEnergy){
   if(!selectedGamePreset) return;
   const payload=selectedGamePresetPayload();
@@ -6426,6 +6647,373 @@ function applyGamePresetModeChoice(choice,reviewEnergy){
   closeGamePreset();
   if(target){ setSessionMode(target); return; }
   if(reviewEnergy && isPowerSessionMode(current)) openEnergyPrompt(current);
+}
+/* v0.7.2 games library controller: overrides the legacy beta-card renderer without touching backend actions. */
+function gameStorageGet(key, fallback){ try{ const value=localStorage.getItem(key); return value||fallback; }catch{return fallback;} }
+function gameStorageSet(key, value){ try{ localStorage.setItem(key,value); }catch{} }
+function ensureGameLibraryPrefs(){
+  if(window.__gameLibraryPrefsReady) return;
+  window.__gameLibraryPrefsReady=true;
+  gameLibraryView=gameStorageGet("sbn.gameLibrary.view","grid");
+  gameLibraryFilter=gameStorageGet("sbn.gameLibrary.filter","all");
+  const sort=$("gameSort"); if(sort) sort.value=gameStorageGet("sbn.gameLibrary.sort","recommended");
+}
+function setGameLibraryFilter(filter){ gameLibraryFilter=filter||"all"; gameStorageSet("sbn.gameLibrary.filter",gameLibraryFilter); renderGamePresets(lastState||{}); }
+function setGameLibraryView(view){ gameLibraryView=view==="list"?"list":"grid"; gameStorageSet("sbn.gameLibrary.view",gameLibraryView); renderGamePresets(lastState||{}); }
+function updateGameLibraryControls(){ const sort=$("gameSort"); if(sort) gameStorageSet("sbn.gameLibrary.sort",sort.value||"recommended"); renderGamePresets(lastState||{}); }
+function gamePresetReady(g){ return !!(g&&(g.Running||g.Installed||g.DetectedPath||g.Path)); }
+function gamePresetApplied(g){ return !!(g&&(g.PresetApplied||String(g.PresetStatus||"").toLowerCase()==="applied")); }
+function gamePresetNeedsAttention(g){ return !!(g&&!gamePresetReady(g)); }
+function gamePresetPlatform(g){ return String(g&&g.Platform||g&&g.DetectionSource||"").trim(); }
+function gameSearchText(g){ return [g.Id,g.Name,g.ShortName,g.Tier,g.Genre,g.Platform,g.DetectionSource,g.Status].map(x=>String(x||"").toLowerCase()).join(" "); }
+function gameSortRank(g){ if(g&&g.Running) return 0; if(gamePresetNeedsAttention(g)) return 1; if(gamePresetApplied(g)) return 2; if(gamePresetReady(g)) return 3; return 4; }
+function gameStatusInfo(g,pending){
+  if(pending) return {key:"pending",label:gamePendingLabel(gameActionPending)||"Processando"};
+  if(g&&g.Running) return {key:"running",label:"Em execução"};
+  if(gamePresetNeedsAttention(g)) return {key:"attention",label:"Localizar jogo"};
+  if(gamePresetApplied(g)) return {key:"applied",label:"Preset aplicado"};
+  if(gamePresetReady(g)) return {key:"installed",label:"Instalado"};
+  return {key:"attention",label:"Atenção"};
+}
+function gamePrimaryLabel(g,pending){
+  if(pending) return gamePendingLabel(gameActionPending);
+  if(!gamePresetReady(g)) return "Localizar jogo";
+  if(gamePresetApplied(g)) return "Gerenciar";
+  return "Configurar";
+}
+function filteredGamePresets(items){
+  ensureGameLibraryPrefs();
+  const query=String(($("gameSearch")&&$("gameSearch").value)||"").trim().toLowerCase();
+  const sort=($("gameSort")&&$("gameSort").value)||gameStorageGet("sbn.gameLibrary.sort","recommended");
+  let list=(Array.isArray(items)?items:[]).filter(g=>{
+    if(query && !gameSearchText(g).includes(query)) return false;
+    if(gameLibraryFilter==="installed") return gamePresetReady(g);
+    if(gameLibraryFilter==="configured") return gamePresetApplied(g);
+    if(gameLibraryFilter==="running") return !!g.Running;
+    if(gameLibraryFilter==="attention") return gamePresetNeedsAttention(g);
+    return true;
+  });
+  list.sort((a,b)=>{
+    if(sort==="name") return String(a.Name||"").localeCompare(String(b.Name||""),"pt-BR");
+    if(sort==="installed") return (gamePresetReady(b)?1:0)-(gamePresetReady(a)?1:0) || gameSortRank(a)-gameSortRank(b);
+    if(sort==="running") return (b.Running?1:0)-(a.Running?1:0) || gameSortRank(a)-gameSortRank(b);
+    return gameSortRank(a)-gameSortRank(b) || String(a.Name||"").localeCompare(String(b.Name||""),"pt-BR");
+  });
+  return list;
+}
+function gameLibraryFilterLabel(filter){
+  if(filter==="installed") return "Instalados";
+  if(filter==="configured") return "Configurados";
+  if(filter==="running") return "Em execução";
+  if(filter==="attention") return "Atenção";
+  return "Todos";
+}
+function dismissGameContinue(id){
+  gameContinueDismissedId=String(id||"");
+  const cont=$("gamesContinue");
+  if(cont) cont.hidden=true;
+}
+function syncGameLibraryChrome(allItems,shownItems){
+  const total=allItems.length;
+  const installed=allItems.filter(gamePresetReady).length;
+  const configured=allItems.filter(gamePresetApplied).length;
+  const attention=allItems.filter(gamePresetNeedsAttention).length;
+  const running=allItems.filter(g=>g&&g.Running).length;
+  const stats=$("gamesLibraryStats");
+  if(stats) stats.innerHTML='<span><i></i>'+total+' jogos</span><span>'+installed+' instalados</span><span>'+configured+' configurados</span><span>'+attention+' precisam de atenção</span>';
+  const query=String(($("gameSearch")&&$("gameSearch").value)||"").trim();
+  const filtered=!!query||gameLibraryFilter!=="all";
+  const resultWord=shownItems.length===1?"resultado":"resultados";
+  txt("gamesLibraryCount",filtered?(shownItems.length+" "+resultWord+" de "+total+" jogos"):(total+" jogos"));
+  const counts={all:total,installed,configured,running,attention};
+  document.querySelectorAll("#gameFilterGroup button").forEach(btn=>{
+    const key=btn.dataset.filter||"all";
+    const count=Number(counts[key]||0);
+    btn.classList.toggle("active",key===gameLibraryFilter);
+    btn.innerHTML='<span>'+esc(gameLibraryFilterLabel(key))+'</span><em>'+count+'</em>';
+    btn.disabled=(key==="running"||key==="attention")&&count===0&&key!==gameLibraryFilter;
+  });
+  document.querySelectorAll(".gamesViewToggle button").forEach(btn=>btn.classList.toggle("active",btn.dataset.viewMode===gameLibraryView));
+  const cont=$("gamesContinue");
+  if(cont){
+    const item=shownItems.find(g=>g.Running)||shownItems.find(gamePresetNeedsAttention);
+    const onlyFocusedResult=!!item && shownItems.length===1 && gameLibraryFilter!=="all";
+    if(item && !onlyFocusedResult && String(item.Id||"")!==gameContinueDismissedId){
+      const action=gamePresetNeedsAttention(item)?"Localizar jogo":"Revisar otimizações";
+      const message=item.Running?"Jogo em execução. Verifique preset, backup e módulos ativos antes de mudar configurações.":"Instalação não localizada. Configure a pasta para liberar preset e backup.";
+      const title=gamePresetNeedsAttention(item)?"Finalizar configuração do "+String(item.Name||"jogo"):("Continuar otimizando "+String(item.Name||"jogo"));
+      const cover=gameCoverFor(item);
+      const icon=cover?'<img alt="" src="'+esc(cover)+'">':esc(gameInitials(item.Name));
+      cont.hidden=false;
+      cont.innerHTML='<div class="gamesContinueIcon">'+icon+'</div><div class="gamesContinueCopy"><b>'+esc(title)+'</b><span>'+esc(message)+'</span></div><div class="gamesContinueActions"><button class="btn primary" type="button" onclick="'+(gamePresetNeedsAttention(item)?"selectGameFolder":"openGamePreset")+'(\''+esc(String(item.Id||""))+'\')">'+esc(action)+'</button><button class="gameContinueClose" type="button" aria-label="Ocultar aviso" onclick="dismissGameContinue(\''+esc(String(item.Id||""))+'\')">×</button></div>';
+    }else{
+      cont.hidden=true;
+      cont.innerHTML="";
+    }
+  }
+}
+function gamePendingLabel(kind){
+  if(kind==="scan") return "Escaneando...";
+  if(kind==="apply") return "Aplicando...";
+  if(kind==="restore") return "Restaurando...";
+  if(kind==="folder") return "Abrindo seletor...";
+  return "";
+}
+function refreshGamePresetCounts(){
+  if(!selectedGamePreset) return;
+  txt("gameSafeCount", selectedGameOptions.safe.size + " selecionadas");
+  txt("gameExperimentalCount", selectedGameOptions.experimental.size + " selecionadas");
+  renderGamePresetFooter();
+  updateGamePresetActionState();
+}
+function renderGameCard(g){
+  const id=String(g.Id||"");
+  const pending=!!(gameActionPending && (!gameActionGameId || gameActionGameId===id));
+  const ready=gamePresetReady(g);
+  const status=gameStatusInfo(g,pending);
+  const cover=gameCoverFor(g);
+  const poster=cover?'<img alt="" src="'+esc(cover)+'">':'';
+  const safeCount=(Array.isArray(g.SafeOptimizations)?g.SafeOptimizations:g.SafeOptions||[]).length;
+  const expCount=(Array.isArray(g.ExperimentalOptimizations)?g.ExperimentalOptimizations:g.ExperimentalOptions||[]).length;
+  const platform=gamePresetPlatform(g);
+  const applied=gamePresetApplied(g);
+  const stateLine=applied?"Preset aplicado":(ready?"Preset disponível":"Instalação não localizada");
+  const statusLine=(platform?platform:"Plataforma não identificada")+(ready?" • Caminho detectado":" • Localizar instalação");
+  const impact=safeCount+" recomendados"+(expCount>0?" • "+expCount+" avançados":"");
+  const primaryAction=ready?"openGamePreset":"selectGameFolder";
+  const style='--game-accent:'+esc(g.Accent||"#ff9f1c")+';--game-fallback:'+esc(gameFallbackFor(g));
+  return '<article class="gameCard'+(pending?' pending':'')+'" data-status="'+esc(status.key)+'" tabindex="0" role="button" data-game-id="'+esc(id)+'" style="'+style+'"><div class="gamePoster">'+poster+'<span class="posterBadge">'+esc(status.label)+'</span><span class="posterMark">'+(!cover?esc(gameInitials(g.Name)):'')+'</span></div><div class="gameBody"><div class="gameCardText"><span class="gameCategory">'+esc(g.Tier||g.Genre||"Preset")+'</span><h3>'+esc(g.Name||"Jogo")+'</h3><div class="gameTechLine"><span>'+esc(statusLine)+'</span></div><div class="gamePresetLine'+(!ready?' muted':'')+'">'+esc(stateLine)+'</div><div class="gameImpactLine">'+esc(impact)+'</div><p>'+esc(g.Summary||g.Description||"Ajustes por jogo com confirmação antes de aplicar.")+'</p></div><div class="gameCardControls"><button type="button" class="gameMiniBtn primary '+(!ready?'needsPath':'')+'" '+(pending?'disabled':'')+' onclick="event.stopPropagation();'+primaryAction+'(\''+esc(id)+'\')">'+esc(gamePrimaryLabel(g,pending))+'</button><details class="gameMore" onclick="event.stopPropagation()"><summary aria-label="Mais ações">...</summary><div class="gameMoreMenu"><button type="button" onclick="refreshGameDiscovery(\''+esc(id)+'\')">Buscar novamente</button><button type="button" onclick="selectGameFolder(\''+esc(id)+'\')">'+(ready?'Alterar pasta':'Escolher pasta')+'</button><button type="button" onclick="selectedGamePreset=findGamePreset(\''+esc(id)+'\');restoreSelectedGamePreset()">Restaurar backup</button></div></details></div></div></article>';
+}
+function renderGameEmptyState(){
+  const title=gameLibraryFilter==="configured"?"Nenhum jogo configurado":(gameLibraryFilter==="running"?"Nenhum jogo em execução agora":(gameLibraryFilter==="attention"?"Nenhum jogo precisa de atenção":"Nenhum jogo encontrado"));
+  const body=gameLibraryFilter==="configured"?"Os jogos com preset aplicado aparecerão aqui.":(gameLibraryFilter==="running"?"Quando um jogo for detectado em execução, ele aparece neste filtro.":"Ajuste a busca ou volte para a biblioteca completa.");
+  return '<div class="gamesNote gamesEmpty"><b>'+esc(title)+'</b><span>'+esc(body)+'</span><button type="button" class="btn" onclick="setGameLibraryFilter(\'all\')">Ver todos os jogos</button></div>';
+}
+function renderGamePresets(s){
+  const grid=$("gamesGrid"); if(!grid) return;
+  ensureGameLibraryPrefs();
+  if(gameActionPending && gameActionStartedAt && Date.now()-gameActionStartedAt>9000) clearGamePending();
+  const items=Array.isArray(s.GamePresets)?s.GamePresets:[];
+  const visible=filteredGamePresets(items);
+  syncGameLibraryChrome(items,visible);
+  grid.dataset.view=gameLibraryView;
+  if(!items.length){ grid.innerHTML='<div class="gamesNote gamesEmpty"><b>Nenhum preset carregado ainda.</b><span>Escaneie bibliotecas ou aguarde o backend publicar os jogos disponíveis.</span></div>'; return; }
+  if(!visible.length){ grid.innerHTML=renderGameEmptyState(); return; }
+  grid.innerHTML=visible.map(renderGameCard).join('');
+  grid.querySelectorAll(".gameCard[data-game-id]").forEach(card=>{
+    const open=()=>{ const g=findGamePreset(card.dataset.gameId||""); if(g&&gamePresetReady(g)) openGamePreset(card.dataset.gameId||""); else selectGameFolder(card.dataset.gameId||""); };
+    card.addEventListener("click",open);
+    card.addEventListener("keydown",ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); open(); } });
+  });
+  grid.querySelectorAll(".gamePoster img").forEach(img=>img.addEventListener("error",()=>img.remove(),{once:true}));
+}
+function gamePresetCleanHardwareName(value){
+  return String(value||"").replace(/\(R\)|\(TM\)/g,"").replace(/\s+/g," ").trim();
+}
+function gamePresetGbFromMb(value){
+  const mb=Number(value||0);
+  if(!Number.isFinite(mb)||mb<=0) return "";
+  return (mb/1024).toLocaleString("pt-BR",{maximumFractionDigits:1})+" GB";
+}
+function gamePresetRamLine(){
+  const total=Number(statePick(lastState,"HardwareRamTotalMB","hardwareRamTotalMB")||0);
+  const free=Number(statePick(lastState,"HardwareRamFreeMB","hardwareRamFreeMB")||0);
+  if(total>0&&free>0) return gamePresetGbFromMb(total)+" RAM • "+gamePresetGbFromMb(free)+" disponíveis";
+  if(total>0) return gamePresetGbFromMb(total)+" RAM";
+  const ram=String(statePick(lastState,"HardwareRam","hardwareRam")||statePick(lastState,"AvailableMemoryText","availableMemoryText")||"").replace(/\s+free\b/i," disponíveis").trim();
+  return ram||"RAM não identificada";
+}
+function formatGamePresetHardwareSummary(){
+  const cpu=gamePresetCleanHardwareName(statePick(lastState,"HardwareCpu","hardwareCpu"))||"CPU não identificada";
+  const gpu=gamePresetCleanHardwareName(statePick(lastState,"HardwareGpu","hardwareGpu"))||"GPU não identificada";
+  return '<span class="gamePresetHardwareList"><b>'+esc(cpu)+'</b><b>'+esc(gpu)+'</b><em>'+esc(gamePresetRamLine())+'</em></span>';
+}
+function compactHardwareForGame(){
+  const cpu=gamePresetCleanHardwareName(statePick(lastState,"HardwareCpu","hardwareCpu"))||"CPU não identificada";
+  const gpu=gamePresetCleanHardwareName(statePick(lastState,"HardwareGpu","hardwareGpu"))||"GPU não identificada";
+  return [cpu,gpu,gamePresetRamLine()].filter(Boolean).join(" | ");
+}
+function gamePresetTimestamp(value){
+  const raw=String(value||"").trim();
+  if(!raw) return "";
+  const parsed=new Date(raw);
+  if(Number.isNaN(parsed.getTime())) return raw;
+  return parsed.toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});
+}
+function gamePresetVersionInfo(g){
+  const applied=String(g&&g.PresetVersion||g&&g.AppliedRecipeVersion||"").trim();
+  const latest=String(g&&g.RecipeVersion||g&&g.LatestRecipeVersion||"").trim();
+  if(applied&&latest&&applied!==latest) return {state:"Versão "+applied,hint:"Nova versão disponível: "+latest};
+  if(applied) return {state:"Versão "+applied,hint:"Receita aplicada registrada pelo backend."};
+  if(latest) return {state:"Ainda não aplicado",hint:"Versão disponível: "+latest};
+  return {state:gamePresetApplied(g)?"Aplicado":"Ainda não aplicado",hint:"Versão da receita: Informação indisponível"};
+}
+function gamePresetAppliedSafeCount(g,safe){
+  const count=Number(g&&g.SelectedSafeCount);
+  if(Number.isFinite(count)&&count>0) return count;
+  return gamePresetApplied(g)?(Array.isArray(safe)?safe.length:0):0;
+}
+function gamePresetAppliedExperimentalCount(g){
+  const count=Number(g&&g.SelectedExperimentalCount);
+  return Number.isFinite(count)&&count>0?count:0;
+}
+function gamePresetSelectionChanged(){
+  if(!selectedGamePreset||!gamePresetApplied(selectedGamePreset)) return true;
+  const safe=Array.isArray(selectedGamePreset.SafeOptimizations)?selectedGamePreset.SafeOptimizations:(selectedGamePreset.SafeOptions||[]);
+  return selectedGameOptions.safe.size!==gamePresetAppliedSafeCount(selectedGamePreset,safe) || selectedGameOptions.experimental.size!==gamePresetAppliedExperimentalCount(selectedGamePreset);
+}
+function gamePresetHasRecipeUpdate(g){
+  return !!(g&&(g.UpdateAvailable||g.RecipeUpdateAvailable||g.PresetUpdateAvailable));
+}
+function gamePresetApplyLabel(){
+  const pending=gameActionPending==="apply" && (!gameActionGameId || (selectedGamePreset&&gameActionGameId===selectedGamePreset.Id));
+  if(pending) return "Aplicando...";
+  const status=String(selectedGamePreset&&selectedGamePreset.PresetStatus||"").toLowerCase();
+  if(status.includes("fail")||status.includes("erro")||status.includes("falh")) return "Tentar novamente";
+  if(gamePresetHasRecipeUpdate(selectedGamePreset)) return "Atualizar preset";
+  if(gamePresetApplied(selectedGamePreset)&&!gamePresetSelectionChanged()) return "Preset aplicado";
+  if(gamePresetApplied(selectedGamePreset)) return "Aplicar alterações";
+  return "Aplicar preset";
+}
+function updateGamePresetActionState(){
+  const btn=$("gamePresetApplyButton");
+  if(!btn||!selectedGamePreset) return;
+  const label=gamePresetApplyLabel();
+  const pending=gameActionPending==="apply" && (!gameActionGameId || gameActionGameId===selectedGamePreset.Id);
+  const alreadyApplied=label==="Preset aplicado";
+  btn.textContent=label;
+  btn.disabled=!!(pending||alreadyApplied);
+  btn.classList.toggle("is-applied",alreadyApplied);
+}
+function updateGamePresetVersionState(g){
+  const info=gamePresetVersionInfo(g);
+  txt("gamePresetPresetState",info.state);
+  txt("gamePresetPresetHint",info.hint);
+}
+function ensureGamePresetModernShell(){
+  const lead=document.querySelector("#gamePresetOverlay .gamePresetLead");
+  const main=document.querySelector("#gamePresetOverlay .gamePresetMain");
+  if(lead && !lead.dataset.modern){
+    lead.dataset.modern="true";
+    lead.innerHTML='<div class="gamePresetBadge"><i>&#9889;</i><span id="gamePresetKind">Jogo detectado</span></div><div><h2 id="gamePresetTitle">Preset de jogo</h2><p id="gamePresetSummary">Revise impacto, backup e risco antes de aplicar.</p></div><div class="gamePresetChip" id="gamePresetChip">Perfil recomendado</div><div class="gamePresetMeta"><span class="gamePresetSideRow">Instalação <b id="gamePresetInstall">-</b><em id="gamePresetPathState">-</em></span><span class="gamePresetSideRow">Hardware considerado <span id="gamePresetHardware" class="gamePresetHardwareList">PC atual</span><em>Dados reais do perfil do PC.</em></span><span class="gamePresetSideRow">Preset atual <b id="gamePresetPresetState">Ainda não aplicado</b><em id="gamePresetPresetHint">Versão da receita: Informação indisponível</em></span><span class="gamePresetSideRow">Backup <b id="gamePresetBackup">Nenhum backup encontrado</b><em id="gamePresetBackupHint">Nenhum arquivo é alterado sem revisão.</em></span><span>Seguro <b id="gameSafeCount">0 selecionadas</b></span><span>Avançado <b id="gameExperimentalCount">0 selecionadas</b></span><span>Status <b id="gamePresetStatus">Beta</b></span></div>';
+  }
+  if(main && !main.dataset.modern){
+    main.dataset.modern="true";
+    main.innerHTML="<div class=\"gamePresetTop\"><div><h3>Configuração guiada</h3><p>Escolha o que será aplicado. Detalhes técnicos ficam separados para não poluir a decisão.</p></div><button class=\"gamePresetClose\" onclick=\"closeGamePreset()\">&times;</button></div><div class=\"gamePresetTabs\" id=\"gamePresetTabs\"><button type=\"button\" data-tab=\"recommended\" onclick=\"setGamePresetTab('recommended')\">Recomendadas</button><button type=\"button\" data-tab=\"advanced\" onclick=\"setGamePresetTab('advanced')\">Avançadas</button><button type=\"button\" data-tab=\"backups\" onclick=\"setGamePresetTab('backups')\">Backups</button><button type=\"button\" data-tab=\"history\" onclick=\"setGamePresetTab('history')\">Histórico</button></div><div class=\"gamePresetReview\" id=\"gamePresetTabBody\"></div><div class=\"gamePresetFootSummary\"><div id=\"gamePresetFootSummary\">-</div><label class=\"gamePresetTechnical\"><span>Detalhes técnicos</span><input type=\"checkbox\" id=\"gamePresetTechnicalToggle\" onchange=\"setGamePresetTechnical(this.checked)\"><i aria-hidden=\"true\"></i></label></div><div class=\"gameActions\"><button class=\"btn gameRestoreBtnNeutral\" onclick=\"restoreSelectedGamePreset()\">Restaurar padrão</button><button class=\"btn\" onclick=\"closeGamePreset()\">Cancelar</button><button class=\"btn primary\" id=\"gamePresetApplyButton\" onclick=\"confirmGamePreset()\">Aplicar preset</button></div>";
+  }
+}
+function displayGameRecommendedProfile(g){
+  const text=String((g&&g.Tier)||"").toLowerCase();
+  if(text.includes("sports")) return "Online equilibrado";
+  if(text.includes("tactical")||text.includes("competitive")) return "Competitivo equilibrado";
+  return "Desempenho seguro";
+}
+function openGamePreset(id){
+  const g=findGamePreset(id); if(!g) return;
+  if(!gamePresetReady(g)){ selectGameFolder(id); return; }
+  ensureGamePresetModernShell();
+  selectedGamePreset=g;
+  const safe=Array.isArray(g.SafeOptimizations)?g.SafeOptimizations:(Array.isArray(g.SafeOptions)?g.SafeOptions:[]);
+  selectedGameOptions={ safe:new Set(safe.map((_,i)=>i)), experimental:new Set() };
+  gamePresetActiveTab="recommended";
+  gamePresetTechnical=false;
+  const tech=$("gamePresetTechnicalToggle"); if(tech) tech.checked=false;
+  txt("gamePresetKind", g.Running ? "Jogo em execução" : "Jogo detectado");
+  txt("gamePresetTitle",g.Name||"Preset de jogo");
+  txt("gamePresetSummary",g.Summary||g.Description||"Revise os ajustes antes de aplicar.");
+  txt("gamePresetChip","Perfil recomendado: "+displayGameRecommendedProfile(g));
+  txt("gamePresetStatus",gamePresetApplied(g)?"Aplicado":(g.Running?"Rodando":"Instalado"));
+  txt("gamePresetInstall",(gamePresetPlatform(g)||"Plataforma não identificada")+" • "+(g.Running?"jogo em execução":((g.DetectedPath||g.Path)?"jogo fechado":"não detectado")));
+  txt("gamePresetPathState",(g.DetectedPath||g.Path)?"Caminho verificado":"Instalação não localizada");
+  const hw=$("gamePresetHardware"); if(hw) hw.innerHTML=formatGamePresetHardwareSummary();
+  txt("gamePresetBackup",Number(g.BackupFiles||0)>0?g.BackupFiles+" arquivo(s) em backup":"Nenhum backup encontrado");
+  txt("gamePresetBackupHint",Number(g.BackupFiles||0)>0?"Backup registrado na última aplicação.":"Nenhum backup válido foi registrado para esta instalação.");
+  updateGamePresetVersionState(g);
+  refreshGamePresetCounts();
+  renderGamePresetTabs();
+  updateGamePresetActionState();
+  openOverlay("gamePresetOverlay");
+}
+function setGamePresetTab(tab){ gamePresetActiveTab=tab||"recommended"; renderGamePresetTabs(); }
+function setGamePresetTechnical(enabled){
+  const before=$("gamePresetTabBody");
+  const previousScroll=before?before.scrollTop:0;
+  gamePresetTechnical=!!enabled;
+  const tech=$("gamePresetTechnicalToggle"); if(tech) tech.checked=gamePresetTechnical;
+  renderGamePresetTabs();
+  const after=$("gamePresetTabBody");
+  if(after){
+    const restore=()=>{ after.scrollTop=Math.min(previousScroll, Math.max(0, after.scrollHeight-after.clientHeight)); };
+    restore();
+    requestAnimationFrame(restore);
+  }
+}
+function optionTitle(text){ const parts=String(text||"").split(":"); return (parts[0]||text||"Ajuste").trim(); }
+function optionSummary(text){ const raw=String(text||""); const idx=raw.indexOf(":"); return idx>=0?raw.slice(idx+1).trim():raw; }
+function optionCategory(text){
+  const t=String(text||"").toLowerCase();
+  if(t.includes("shader")||t.includes("cache")) return "Shaders e cache";
+  if(t.includes("frame")||t.includes("fps")||t.includes("cap")) return "FPS e frame pacing";
+  if(t.includes("cpu")||t.includes("thread")) return "CPU e threads";
+  if(t.includes("overlay")||t.includes("download")) return "Overlays e auxiliares";
+  if(t.includes("reflex")||t.includes("latency")) return "Latência";
+  if(t.includes("config")||t.includes("autoexec")||t.includes("user.cfg")) return "Configuração do jogo";
+  return "Estabilidade";
+}
+function optionImpact(text){
+  const t=String(text||"").toLowerCase();
+  const tags=[];
+  if(t.includes("fps")||t.includes("frame")||t.includes("cap")) tags.push("Frame pacing");
+  if(t.includes("cache")||t.includes("shader")) tags.push("Stutter/cache");
+  if(t.includes("cpu")||t.includes("thread")) tags.push("CPU");
+  if(t.includes("overlay")||t.includes("download")) tags.push("Fundo leve");
+  if(t.includes("reflex")||t.includes("latency")) tags.push("Latência");
+  return tags.length?tags.join(" | "):"Estabilidade";
+}
+function renderGameOptionCard(text,index,kind){
+  const bucket=kind==="experimental"?selectedGameOptions.experimental:selectedGameOptions.safe;
+  const checked=bucket.has(index)?" checked":"";
+  const risk=kind==="experimental"?"Experimental":"Recomendado";
+  const backupText=Number(selectedGamePreset&&selectedGamePreset.BackupFiles||0)>0?"Backup disponível":"Backup será validado ao aplicar";
+  const tech=gamePresetTechnical?'<div class="gameOptionDetails"><span><small>Categoria</small>'+esc(optionCategory(text))+'</span><span><small>Impacto</small>'+esc(optionImpact(text))+'</span><span><small>Configuração afetada</small>Informação indisponível</span><span><small>Valor atual</small>Valor atual ainda não analisado</span><span><small>Plano</small>Preparado pelo backend ao confirmar</span><span><small>Backup</small>'+esc(backupText)+'</span></div>':'';
+  return '<label class="gameOptionCard '+(kind==="experimental"?"experimental":"")+'"><input type="checkbox"'+checked+' onchange="toggleGameOption(\''+kind+'\','+index+')"><span class="gameOptionMain"><b>'+esc(optionTitle(text))+'</b><span>'+esc(optionSummary(text))+'</span><span class="gameOptionMeta"><span>'+risk+'</span><span>'+esc(optionCategory(text))+'</span><span>'+esc(optionImpact(text))+'</span></span>'+tech+'</span></label>';
+}
+function renderOptionGroup(title,items,kind){
+  const list=Array.isArray(items)?items:[];
+  return '<div class="gamePresetGroup"><h4>'+esc(title)+'</h4>'+(list.length?list.map((item,index)=>renderGameOptionCard(item,index,kind)).join(""):'<div class="gamePresetEmpty">Nenhuma opção real disponível neste grupo.</div>')+'</div>';
+}
+function renderGamePresetTabs(){
+  if(!selectedGamePreset) return;
+  ensureGamePresetModernShell();
+  document.querySelectorAll("#gamePresetTabs button").forEach(btn=>btn.classList.toggle("active",btn.dataset.tab===gamePresetActiveTab));
+  const body=$("gamePresetTabBody"); if(!body) return;
+  const safe=Array.isArray(selectedGamePreset.SafeOptimizations)?selectedGamePreset.SafeOptimizations:(selectedGamePreset.SafeOptions||[]);
+  const exp=Array.isArray(selectedGamePreset.ExperimentalOptimizations)?selectedGamePreset.ExperimentalOptimizations:(selectedGamePreset.ExperimentalOptions||[]);
+  if(gamePresetActiveTab==="advanced"){
+    body.innerHTML=renderOptionGroup("Opcionais e experimentais",exp,"experimental");
+  }else if(gamePresetActiveTab==="backups"){
+    const files=Number(selectedGamePreset.BackupFiles||0);
+    body.innerHTML=files>0?'<div class="gamePresetEmpty"><b>Backup disponível</b><br>'+files+' arquivo(s) protegidos na última aplicação deste preset.<br><br>Use Restaurar padrão para recuperar os arquivos salvos.</div>':'<div class="gamePresetEmpty"><b>Nenhum backup encontrado</b><br>Nenhum backup válido foi registrado para esta instalação.</div>';
+  }else if(gamePresetActiveTab==="history"){
+    const appliedAt=gamePresetTimestamp(selectedGamePreset.LastAppliedAt)||"Data da aplicação indisponível";
+    body.innerHTML=gamePresetApplied(selectedGamePreset)?'<div class="gamePresetEmpty"><b>Preset aplicado</b><br>'+esc(appliedAt)+'<br>'+Number(selectedGamePreset.SelectedSafeCount||safe.length)+' recomendadas selecionadas e '+Number(selectedGamePreset.SelectedExperimentalCount||0)+' avançadas.</div>':'<div class="gamePresetEmpty"><b>Sem histórico deste jogo</b><br>A aplicação e a restauração aparecem aqui depois de confirmadas pelo backend.</div>';
+  }else{
+    body.innerHTML=renderOptionGroup("Ajustes recomendados",safe,"safe")+(String(selectedGamePreset.Id||"").toLowerCase()==="valorant"?'<div class="gamePresetEmpty"><b>Escopo seguro anti-cheat</b><br>Nenhum binário, driver, memória, hook ou arquivo protegido do Vanguard será alterado por esta receita.</div>':'');
+  }
+  renderGamePresetFooter();
+}
+function renderGamePresetFooter(){
+  const target=$("gamePresetFootSummary"); if(!target||!selectedGamePreset) return;
+  const selected=selectedGameOptions.safe.size+selectedGameOptions.experimental.size;
+  const experimental=selectedGameOptions.experimental.size;
+  const files=Number(selectedGamePreset.BackupFiles||0);
+  const parts=[selected+" ajustes selecionados"];
+  if(experimental>0) parts.push(experimental+" experimentais");
+  if(files>0) parts.push(files+" arquivo(s) com backup");
+  else parts.push("Backup será validado ao aplicar");
+  if(selectedGamePreset.Running) parts.push("Jogo em execução");
+  target.textContent=parts.join(" • ");
+  updateGamePresetActionState();
 }
 function maybeShowGameBetaWelcome(s){
   if(!s || !s.GameBetaWelcome || window.__gameBetaWelcomeShown) return;

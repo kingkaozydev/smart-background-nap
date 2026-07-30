@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.2 - 2026-07-30
+
+- Evolved the Games tab into a professional optimization library with a compact functional header, real summary counts, search, supported filters, sorting, and persisted grid/list view preference.
+- Reworked game cards around one contextual primary action, a secondary actions menu, clearer install/running/preset states, reduced cover dominance, and a compact list view for larger libraries.
+- Stabilized Games grid and list density so filtered single-game results keep normal card dimensions, list actions stay compact, pending banners respect active filters, and Portuguese UI copy keeps accents.
+- Added real preset-applied metadata to the launcher state from `game-presets.state.json`, including selected counts, backup count, last-applied timestamp, restored state, and platform hints derived from detected paths.
+- Rebuilt the game preset dialog as a guided review flow with recommended, advanced, backups, and history tabs, plus a technical-details toggle and safer anti-cheat scope copy for VALORANT.
+- Polished the game preset dialog with accented Portuguese copy, a Design System toggle for technical details, structured real-PC hardware summary, a neutral restore action, sticky decision footer, and a dynamic apply CTA that distinguishes applied, changed, updating, retry, and pending states without inventing recipe data.
+- Fixed the game preset technical-details state so expanded optimization cards scroll inside the review area while the sidebar, toggle, summary, close button, and decision actions remain reachable.
+- Kept existing folder selection, automatic scan, preset application, backup, restore, and game-mode confirmation flows intact while making the UI explain impact, risk, reversibility, and backup behavior more clearly.
+
 ## 0.7.1 - 2026-07-30
 
 - Started the Core Service v1 foundation with explicit protocol version, pipe name, migration capability list, health classification, telemetry freshness, and a versioned shared snapshot for the launcher.

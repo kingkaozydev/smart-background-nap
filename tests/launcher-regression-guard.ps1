@@ -6,9 +6,11 @@ $ErrorActionPreference = "Stop"
 $launcher = Resolve-Path -LiteralPath $LauncherPath
 $project = Resolve-Path -LiteralPath (Join-Path (Split-Path -Parent $launcher) "..\SmartBackgroundNap.csproj")
 $runtime = Resolve-Path -LiteralPath (Join-Path (Split-Path -Parent $launcher) "runtime\background-nap.ps1")
+$dashboard = Resolve-Path -LiteralPath (Join-Path (Split-Path -Parent $launcher) "launcher\dashboard.html")
 $source = Get-Content -LiteralPath $launcher -Raw
 $projectSource = Get-Content -LiteralPath $project -Raw
 $runtimeSource = Get-Content -LiteralPath $runtime -Raw
+$dashboardSource = Get-Content -LiteralPath $dashboard -Raw
 
 function Assert-Contains {
     param(
@@ -40,7 +42,17 @@ function Assert-RuntimeContains {
     }
 }
 
-Assert-Contains 'private const string AppVersion = "0.7.1"' "Launcher version was not bumped to 0.7.1."
+function Assert-DashboardContains {
+    param(
+        [string]$Needle,
+        [string]$Message
+    )
+    if (-not $dashboardSource.Contains($Needle)) {
+        throw $Message
+    }
+}
+
+Assert-Contains 'private const string AppVersion = "0.7.2"' "Launcher version was not bumped to 0.7.2."
 Assert-Contains "SmartSNAPCoreService" "Core service name is missing."
 Assert-Contains "ServiceBase.Run" "Core service host is missing."
 Assert-Contains "ServiceController.GetServices" "Core service status must not depend on localized sc.exe text."
@@ -128,6 +140,30 @@ Assert-RuntimeContains "Resolve-InstalledGameExecutablePathByName" "Runtime game
 Assert-RuntimeContains "Resolve-GameExecutablePathForActiveContext" "Runtime active game contexts must repair missing executable paths before module handoff."
 Assert-RuntimeContains "InstalledGameScan" "Runtime learned game path cache must persist installed-library discoveries."
 Assert-RuntimeContains "resolved-game-path" "Zero Ping must mark contexts repaired by executable path discovery."
+Assert-DashboardContains "v0.7.2 games optimization library" "Games optimization library CSS layer is missing."
+Assert-DashboardContains "v0.7.2 games library controller" "Games optimization library controller is missing."
+Assert-DashboardContains "gamesToolbar" "Games library search/filter toolbar is missing."
+Assert-DashboardContains "setGameLibraryView" "Games grid/list view persistence is missing."
+Assert-DashboardContains "v0.7.2 games library density polish" "Games library density polish layer is missing."
+Assert-DashboardContains 'body.view-games .gamesGrid[data-view="grid"]{grid-template-columns:repeat(4,minmax(0,1fr))' "Games grid must keep stable columns so one result does not stretch into a banner."
+Assert-DashboardContains 'body.view-games .gamesGrid[data-view="grid"] .gamePoster{aspect-ratio:3/4' "Games grid covers must keep a bounded library-card proportion."
+Assert-DashboardContains 'body.view-games .gamesGrid[data-view="list"] .gameBody{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(178px,220px)' "Games list rows must separate content from compact actions."
+Assert-DashboardContains "gameCardText" "Games list rows must wrap game details in a dedicated content column."
+Assert-DashboardContains "gamesContinueIcon" "Games continue banner must render as a compact icon-text-action row."
+Assert-DashboardContains "onlyFocusedResult" "Games continue banner must hide when the filter already focuses the single pending result."
+Assert-DashboardContains "gameLibraryFilterLabel" "Games filters must render localized labels with counts."
+Assert-DashboardContains "renderGameEmptyState" "Games filters must show a contextual empty state."
+Assert-DashboardContains "gamePresetTabs" "Guided game preset tabs are missing."
+Assert-DashboardContains "gamePresetTechnicalToggle" "Game preset technical details toggle is missing."
+Assert-DashboardContains "previousScroll" "Game preset technical details toggle must preserve the review scroll position."
+Assert-DashboardContains "gamePresetApplyButton" "Game preset primary CTA must have a stable id for dynamic state."
+Assert-DashboardContains "gamePresetSelectionChanged" "Game preset CTA must compare current selection against the applied state."
+Assert-DashboardContains "updateGamePresetActionState" "Game preset primary CTA must be driven by real operation state."
+Assert-DashboardContains "formatGamePresetHardwareSummary" "Game preset hardware summary must be structured from real PC state."
+Assert-DashboardContains "gameRestoreBtnNeutral" "Game preset restore action must use neutral tertiary styling."
+Assert-DashboardContains "Nenhum backup válido foi encontrado" "Game preset restore must handle missing backups without pretending restore is available."
+Assert-DashboardContains "Informação indisponível" "Game preset technical details must use honest unavailable-state copy instead of fake values."
+Assert-Contains "PresetApplied" "Game preset applied state is missing from the WebView model."
 Assert-RuntimeContains "PathPending" "Zero Ping QoS must expose pending game path resolution without treating local protection as failed."
 Assert-RuntimeContains 'if ($null -eq $Hints -or' "Game path hint collection must accept the first root instead of treating an empty ArrayList as missing."
 

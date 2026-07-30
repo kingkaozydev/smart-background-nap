@@ -128,6 +128,7 @@ const scenarios = [
   { name: "games-768x1024", width: 768, height: 1024, dpr: 1, view: "games" },
   { name: "games-scrolled-1366x768", width: 1366, height: 768, dpr: 1, view: "games", scrollTop: 96 },
   { name: "game-preset-modal-768x1024", width: 768, height: 1024, dpr: 1, view: "games", modal: "gamePreset" },
+  { name: "game-preset-modal-tech-1366x768", width: 1366, height: 768, dpr: 1, view: "games", modal: "gamePreset", technicalDetails: true },
   { name: "game-preset-modal-900x1440-dpi150", width: 900, height: 1440, dpr: 1.5, view: "games", modal: "gamePreset" },
   { name: "game-preset-modal-1440x2560", width: 1440, height: 2560, dpr: 1, view: "games", modal: "gamePreset" },
   { name: "energy-mode-popup-1366x768", width: 1366, height: 768, dpr: 1, view: "dashboard", modal: "energyPrompt" },
@@ -423,7 +424,13 @@ async function runScenario(client, scenario) {
   smartNapUpdate(state);
   showView(${JSON.stringify(scenario.view || "dashboard")});
   window.__expectEnergyPrompt = ${JSON.stringify(scenario.modal || "")} === "energyPrompt";
-  if (${JSON.stringify(scenario.modal || "")} === "gamePreset") openGamePreset("longgame1");
+  if (${JSON.stringify(scenario.modal || "")} === "gamePreset") {
+    openGamePreset("longgame1");
+    if (${JSON.stringify(!!scenario.technicalDetails)}) {
+      const toggle = document.querySelector("#gamePresetTechnicalToggle");
+      if (toggle && !toggle.checked) toggle.click();
+    }
+  }
   else if (${JSON.stringify(scenario.modal || "")} === "energyPrompt") setSessionMode("Gaming");
   else if (${JSON.stringify(scenario.modal || "")}) openOverlay(${JSON.stringify(scenario.modal || "")});
   const scenarioScrollTop = ${JSON.stringify(scenario.scrollTop || 0)};
@@ -938,10 +945,23 @@ window.validateResponsivePage = function(){
     if (rect.top < -2 || rect.bottom > vh + 2) errors.push("modal vertical outside viewport top=" + Math.round(rect.top) + " bottom=" + Math.round(rect.bottom) + " vh=" + vh + " height=" + Math.round(rect.height));
     if (modal.classList.contains("gamePresetPanel")) {
       const actions = modal.querySelector(".gameActions");
-      if (actions && visible(actions)) {
+      if (!actions || !visible(actions)) {
+        errors.push("game preset actions are not visible");
+      } else {
         const actionRect = actions.getBoundingClientRect();
         const bottomGap = Math.round(rect.bottom - actionRect.bottom);
         if (bottomGap > 64) errors.push("game preset modal excessive bottom gap " + bottomGap + "px");
+      }
+      const footer = modal.querySelector(".gamePresetFootSummary");
+      if (!footer || !visible(footer)) errors.push("game preset decision footer is not visible");
+      const techToggle = modal.querySelector(".gamePresetTechnical");
+      if (!techToggle || !visible(techToggle)) errors.push("game preset technical toggle is not visible");
+      const review = modal.querySelector(".gamePresetReview");
+      if (review && visible(review)) {
+        const style = getComputedStyle(review);
+        if (review.scrollHeight > review.clientHeight + 4 && !/(auto|scroll)/.test(style.overflowY)) {
+          errors.push("game preset review does not own overflow when content grows");
+        }
       }
       const close = modal.querySelector(".gamePresetClose");
       if (close && visible(close)) {
