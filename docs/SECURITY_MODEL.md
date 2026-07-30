@@ -7,7 +7,8 @@ Smart Background Nap is designed to be transparent, local-only, and easy to audi
 - No telemetry.
 - No user data uploads. The app can optionally check the official GitHub Releases endpoint for update notifications.
 - No accounts, passwords, cookies, browser profiles, documents, or game files are read.
-- No drivers, kernel components, Windows services, browser extensions, or startup registry keys are installed.
+- No drivers, kernel components, browser extensions, or startup registry keys are installed.
+- The optional Smart SNAP Core Service is a local watchdog/broker. It does not inspect foreground windows, fullscreen state, games, or OBS/live context from Session 0.
 - No administrator elevation is requested by the app manifest.
 - Optional administrator passes require an explicit UAC confirmation from the user and run only one optimization pass.
 - No apps are killed and no user files are deleted.
@@ -44,12 +45,15 @@ Smart Background Nap skips:
 
 ## Persistence
 
-Persistence is handled through two per-user scheduled tasks:
+Persistence is handled through per-user scheduled tasks plus the optional Core Service:
 
 - `SmartBackgroundNap`: runs a short optimization pass and exits.
 - `SmartBackgroundNapTray`: starts the tray/dashboard surface after logon.
+- `SmartBackgroundNapSessionAgent`: runs a lightweight interactive-session observer after logon.
 
-Both tasks run with `InteractiveToken` and `LeastPrivilege`. They do not require administrator rights.
+The optimizer and tray tasks use the current user's interactive context. The Session Agent runs with `InteractiveToken` and `LeastPrivilege`. It observes foreground/fullscreen/idle/game/live context and writes a local snapshot; it does not apply process, power, network, or shader changes.
+
+The Core Service runs as a watchdog/broker for health, recovery, IPC, and future operation coordination. It does not replace user-session detection and does not apply foreground/session optimizations directly.
 
 If an app denies process-level changes, the dashboard can offer a one-time elevated pass. That pass uses the standard Windows UAC prompt, runs `SmartBackgroundNap.exe --apply`, writes the normal local log/score files, and exits. It does not install a persistent elevated helper.
 

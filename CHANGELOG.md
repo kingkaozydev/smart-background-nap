@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.1 - 2026-07-30
+
+- Started the Core Service v1 foundation with explicit protocol version, pipe name, migration capability list, health classification, telemetry freshness, and a versioned shared snapshot for the launcher.
+- Added the first Core Pipe v1 request/response IPC surface over a local Named Pipe with explicit ACL, message size limits, `hello`, `getCapabilities`, `getSnapshot`, `getState`, `getEvents`, `getDiagnostics`, `ping`, and a heartbeat-stream `subscribe` bootstrap.
+- Added the first Session Agent v1 foundation with `--session-agent`, `--session-agent-once`, foreground/fullscreen/idle/live observation, a local session snapshot, and `publishSessionContext` / `getSessionContext` Core Pipe commands.
+- Added a least-privileged `SmartBackgroundNapSessionAgent` per-user logon task so the interactive-session observer can run alongside the Core Service without moving desktop detection into Session 0.
+- Exposed Core Service health to the launcher state and activity feed so stale telemetry, recovery kicks, stopped service, missing install, and attention states can be surfaced without treating the launcher as the engine authority.
+- Hardened install/update setup so the installer verifies the Core Service, Session Agent, startup tasks, refreshed engine telemetry, and running service state before reporting setup as ready.
+- Improved game executable path recovery for protected games whose process path is hidden, including Steam/Epic/library-root discovery, learned path persistence, and Zero Ping QoS recovery from `PathPending` to active protection.
+- Polished the Dashboard with the approved realtime-control instrument, refined engine activity panel, expandable insights, cleaner motor-mode section, and corrected desktop/vertical layout flow.
+- Kept the current service safely scoped as a watchdog/user-session bridge instead of moving foreground, fullscreen, OBS, game detection, or privileged optimization logic into Session 0.
+
 ## 0.7.0 - 2026-07-29
 
 - Added Smart SNAP Core Service as a Windows watchdog/broker for the engine, keeping the user-session game detector in charge while the service restarts the scheduled engine task if telemetry goes stale.

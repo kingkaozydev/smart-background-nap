@@ -139,14 +139,15 @@ Run automatically
 Start with Windows
 ```
 
-Smart Background Nap creates two per-user scheduled tasks when enabled:
+Smart Background Nap creates per-user scheduled tasks when enabled:
 
 ```text
 SmartBackgroundNap
 SmartBackgroundNapTray
+SmartBackgroundNapSessionAgent
 ```
 
-The optimizer task runs a short pass and exits. The tray task starts the dashboard/tray host after login.
+The optimizer task runs a short pass and exits. The tray task starts the dashboard/tray host after login. The Session Agent task runs a least-privileged interactive observer that reports foreground, fullscreen, idle, game, and live context to the Core Service.
 
 ## App Controls
 
@@ -177,8 +178,8 @@ Smart Background Nap is intentionally local:
 - no accounts
 - no browser cookies or profiles
 - no documents or game files read
-- no driver install
-- no Windows service install
+- no driver, kernel, or browser extension install
+- the optional Smart SNAP Core Service is a local watchdog/broker only; it does not inspect the interactive desktop from Session 0
 - no startup registry key
 - no app killing
 - no forced power-plan switching; optional Smart Nap power profiles are user-confirmed

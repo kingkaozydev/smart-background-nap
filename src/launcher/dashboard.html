@@ -5814,6 +5814,8 @@ Object.assign(LANGS["fr-FR"],{engineProcessingK:"Traitement de session",engineRh
 Object.assign(LANGS["de-DE"],{engineProcessingK:"Sitzungsverarbeitung",engineRhythmK:"Engine-Puls",ringProtectedShort:"geschützt",lastInterventionK:"Letzter Eingriff",sessionTimeK:"Sitzungszeit",cycleStateK:"Zyklusstatus",returnProtectionK:"Rückkehrschutz"});
 Object.assign(LANGS["pt-BR"],{cardPassActionsK:"Última intervenção",cardBurstsK:"Picos recentes",cardUdpK:"Última detecção UDP",cardShaderK:"Saúde do cache gráfico",shaderTelemetryK:"ShaderBoost",cardPowerK:"Plano ativo",accessNeedsAdmin:"{count} bloqueios",noBursts:"Sem picos",burstSummary:"{bursts} picos / {apps} apps",actionSummaryShort:"CPU {cpu} • RAM {ram} / I/O {io} • EcoQoS {eco}",activityInsightsBadge:"Ver insights",activityImpactK:"Impacto atual",activityResultsK:"Resultados da sessão",activityResourcesK:"Recursos ativos",activityRecentK:"Atividade recente",panelNeedsSync:"Sincronização atrasada",sessionProfileInsightK:"Perfil dominante",latestDecisionInsightK:"Último passe",memoryEffectInsightK:"Último alívio",sessionChangeInsightK:"Mudança de contexto"});
 Object.assign(LANGS["en-US"],{cardPassActionsK:"Latest intervention",cardBurstsK:"Recent peaks",cardUdpK:"Last UDP detection",cardShaderK:"Graphics cache health",shaderTelemetryK:"ShaderBoost",cardPowerK:"Active power plan",accessNeedsAdmin:"{count} blocks",noBursts:"No peaks",burstSummary:"{bursts} peaks / {apps} apps",actionSummaryShort:"CPU {cpu} • RAM {ram} / I/O {io} • EcoQoS {eco}",activityInsightsBadge:"View insights",activityImpactK:"Current impact",activityResultsK:"Session results",activityResourcesK:"Active resources",activityRecentK:"Recent activity",panelNeedsSync:"Sync delayed",sessionProfileInsightK:"Dominant profile",latestDecisionInsightK:"Latest pass",memoryEffectInsightK:"Latest relief",sessionChangeInsightK:"Context change"});
+Object.assign(LANGS["pt-BR"],{coreServiceAttention:"Servico precisa de atencao",coreServiceRecovering:"Servico recuperando",coreServiceHealthy:"Servico saudavel"});
+Object.assign(LANGS["en-US"],{coreServiceAttention:"Service needs attention",coreServiceRecovering:"Service recovering",coreServiceHealthy:"Service healthy"});
 Object.assign(LANGS["es-ES"],{cardPassActionsK:"Última intervención",cardBurstsK:"Picos recientes",cardUdpK:"Ultima deteccion UDP",cardShaderK:"Salud del cache grafico",shaderTelemetryK:"ShaderBoost",cardPowerK:"Plan activo",accessNeedsAdmin:"{count} bloqueos",noBursts:"Sin picos",burstSummary:"{bursts} picos / {apps} apps",actionSummaryShort:"CPU {cpu} • RAM {ram} / I/O {io} • EcoQoS {eco}"});
 Object.assign(LANGS["fr-FR"],{cardPassActionsK:"Dernière intervention",cardBurstsK:"Pics recents",cardUdpK:"Derniere detection UDP",cardShaderK:"Sante du cache graphique",shaderTelemetryK:"ShaderBoost",cardPowerK:"Mode actif",accessNeedsAdmin:"{count} blocages",noBursts:"Aucun pic",burstSummary:"{bursts} pics / {apps} apps",actionSummaryShort:"CPU {cpu} • RAM {ram} / I/O {io} • EcoQoS {eco}"});
 Object.assign(LANGS["de-DE"],{cardPassActionsK:"Letzter Eingriff",cardBurstsK:"Letzte Peaks",cardUdpK:"Letzte UDP-Erkennung",cardShaderK:"Grafikcache-Zustand",shaderTelemetryK:"ShaderBoost",cardPowerK:"Aktiver Energieplan",accessNeedsAdmin:"{count} Blockaden",noBursts:"Keine Peaks",burstSummary:"{bursts} Peaks / {apps} Apps",actionSummaryShort:"CPU {cpu} • RAM {ram} / I/O {io} • EcoQoS {eco}"});
@@ -6800,10 +6802,14 @@ function paintState(state){
   const liveEl=$("live");
   if(liveEl){
     const syncIssue=!!(s.PanelSyncWarning||s.PanelSyncStale||s.SyncWarning||s.SyncStale||s.DashboardStale);
-    liveEl.hidden=!syncIssue;
-    liveEl.className=syncIssue?"pill warn sync":"pill sync is-normal";
-    liveEl.title=(s.Heartbeat?t("lastRefresh")+": "+s.Heartbeat:t("liveReady"));
-    liveEl.innerHTML='<i class="pulseDot"></i>'+esc(syncIssue?t("panelNeedsSync"):t("liveReady"));
+    const coreRecovering=String(s.CoreServiceHealth||"").toLowerCase()==="recovering" || !!s.CoreServiceAutoTaskKicked;
+    const coreIssue=!!(s.CoreServiceNeedsAttention||coreRecovering);
+    liveEl.hidden=!(syncIssue||coreIssue);
+    liveEl.className=(syncIssue||s.CoreServiceNeedsAttention)?"pill warn sync":"pill sync is-normal";
+    const coreSummary=[s.CoreServiceSummary||"",s.CoreServiceDetail||""].filter(Boolean).join(" | ");
+    liveEl.title=coreIssue?(coreSummary||String(s.CoreServiceHealth||"")):(s.Heartbeat?t("lastRefresh")+": "+s.Heartbeat:t("liveReady"));
+    const label=syncIssue?t("panelNeedsSync"):(coreRecovering?t("coreServiceRecovering"):t("coreServiceAttention"));
+    liveEl.innerHTML='<i class="pulseDot"></i>'+esc(label);
   }
   renderRows(s.Rows || []);
   renderEvents(s.Events || []);
@@ -6919,7 +6925,7 @@ function formatUdpQos(raw){
   if(value==="Active") return t("qosActive");
   if(value==="Ready") return isPt()?"pronto":"ready";
   if(value==="NeedsAdmin") return t("qosNeedsAdmin");
-  if(value==="NoPath") return t("qosNoPath");
+  if(value==="NoPath" || value==="PathPending") return isPt()?"DSCP aguardando exe":"DSCP waiting for exe";
   if(value==="Unavailable") return t("qosUnavailable");
   return value;
 }
@@ -6934,8 +6940,8 @@ function formatUdpTelemetry(s){
   const endpoints=Number(s.NetworkUdpGuardEndpoints||0);
   const proc=Number(s.NetworkUdpGuardProcessCount||0);
   const qos=formatUdpQos(s.NetworkUdpGuardQosStatus);
+  if(s.NetworkUdpGuardActive && endpoints>0) return isPt()?"Protecao local ativa":"Local protection active";
   if(qos) return "QoS "+qos;
-  if(s.NetworkUdpGuardActive && endpoints>0) return isPt()?"UDP confirmado":"UDP confirmed";
   if(proc>0 || endpoints>0) return isPt()?"Monitorando UDP":"Monitoring UDP";
   return isPt()?"Aguardando UDP":"Waiting for UDP";
 }
@@ -6967,7 +6973,7 @@ function formatUdpDetail(s){
   if(shield && shield!==t("off")) lines.push((isPt()?"Proteção: ":"Protection: ")+shield+" / "+(Number(s.NetworkUdpGuardProtectedCount||0)||0)+" "+t("protectedGames"));
   if(confidence) lines.push((isPt()?"Confiança: ":"Confidence: ")+confidence+" ("+(Number(s.NetworkUdpGuardConfidence||0)||0)+"%)");
   if(Number(s.NetworkUdpGuardEndpoints||0)>0) lines.push((isPt()?"Sinais UDP: ":"UDP signals: ")+(Number(s.NetworkUdpGuardEndpoints||0)||0));
-  if(qos) lines.push("QoS: "+qos.charAt(0).toUpperCase()+qos.slice(1));
+  if(qos) lines.push((isPt()?"QoS por app: ":"Per-app QoS: ")+qos.charAt(0).toUpperCase()+qos.slice(1));
   if(s.NetworkUdpGuardNoStackTweaks) lines.push(isPt()?"Rede do Windows: configurações originais preservadas":"Windows network: original settings preserved");
   if(reason) lines.push((isPt()?"Motivo: ":"Reason: ")+reason);
   if(signals.length) lines.push((isPt()?"Sinais: ":"Signals: ")+signals.slice(0,5).join(" · "));
@@ -7902,7 +7908,7 @@ function formatUdpActivityDetails(s){
   rows.push(activityDetailRow(isPt()?"Estado":"State",status));
   if(proc>0) rows.push(activityDetailRow(isPt()?"Processos monitorados":"Monitored processes",String(proc)));
   if(endpoints>0) rows.push(activityDetailRow(isPt()?"Sinais UDP":"UDP signals",String(endpoints)));
-  if(qos) rows.push(activityDetailRow("QoS",qos.charAt(0).toUpperCase()+qos.slice(1)));
+  if(qos) rows.push(activityDetailRow(isPt()?"QoS por app":"Per-app QoS",qos.charAt(0).toUpperCase()+qos.slice(1)));
   if(game) rows.push(activityDetailRow(isPt()?"Jogo":"Game",shortGameName(game)));
   if(s.NetworkUdpGuardNoStackTweaks) rows.push(activityDetailRow(isPt()?"Rede do Windows":"Windows network",isPt()?"Configurações originais preservadas":"Original settings preserved"));
   return rows;
@@ -8438,6 +8444,15 @@ function describeEvent(item){
     const ok=(kv.status||"").toUpperCase()==="OK" || (kv.exitCode||"")==="0";
     return {time,kind:ok?"radar":"warn",badge:eventCopy("Radar","Radar"),title:ok?eventCopy("Reação rápida aplicada","Fast reaction applied"):eventCopy("Reação rápida falhou","Fast reaction failed"),detail:[phase,process,trigger].filter(Boolean).join(" · ") || eventCopy("Jogo/app detectado e motor reagiu.","Game/app detected and engine reacted."),raw};
   }
+  if(action==="core-service"){
+    const health=String(kv.health||"").toLowerCase();
+    const recovering=health==="recovering";
+    const attention=health==="attention"||health==="stale"||health==="stopped"||health==="notinstalled";
+    const scoreAge=kv.scoreAgeSeconds&&kv.scoreAgeSeconds!=="-1"?eventCopy("telemetria "+kv.scoreAgeSeconds+"s","telemetry "+kv.scoreAgeSeconds+"s"):"";
+    const status=friendlyCoreHealth(health);
+    const title=recovering?eventCopy("Servico recuperando o motor","Service recovering engine"):(attention?eventCopy("Servico precisa de atencao","Service needs attention"):eventCopy("Servico saudavel","Service healthy"));
+    return {time,kind:(recovering||attention)?"warn":"status",badge:eventCopy("Servico","Service"),title,detail:[status,scoreAge].filter(Boolean).join(" - ") || eventCopy("Estado do Core atualizado.","Core state updated."),raw};
+  }
   if(action==="admin-setup"){
     const ok=(kv.status||"").toLowerCase().indexOf("complete")>=0;
     return {time,kind:ok?"ok":"warn",badge:eventCopy("Permissão","Permission"),title:ok?eventCopy("Instalação reparada","Setup repaired"):eventCopy("Ajuste de permissão","Permission check"),detail:eventCopy("Tasks e inicialização verificadas de forma segura.","Tasks and startup were safely checked."),raw};
@@ -8501,6 +8516,17 @@ function friendlyTrigger(value){
   if(v.indexOf("process")>=0) return eventCopy("processo novo","new process");
   if(v.indexOf("foreground")>=0) return eventCopy("troca de janela","foreground switch");
   return value?value.replace(/-/g," "):"";
+}
+function friendlyCoreHealth(value){
+  const low=String(value||"").toLowerCase();
+  if(low==="healthy") return eventCopy("Saudavel","Healthy");
+  if(low==="recovering") return eventCopy("Recuperando telemetria","Recovering telemetry");
+  if(low==="starting") return eventCopy("Iniciando","Starting");
+  if(low==="stale") return eventCopy("Telemetria atrasada","Stale telemetry");
+  if(low==="stopped") return eventCopy("Servico parado","Service stopped");
+  if(low==="notinstalled") return eventCopy("Servico nao instalado","Service not installed");
+  if(low==="attention") return eventCopy("Atencao necessaria","Attention needed");
+  return value||"";
 }
 function cleanProcessName(value){
   return String(value||"").replace(/\.exe$/i,"").replace(/[_-]+/g," ").trim();
@@ -8596,7 +8622,7 @@ function metaBadges(row){
   const udpConfidenceLabel=formatUdpConfidenceLabel(row.UdpConfidenceLabel);
   if(udp>0) out.push('<b class="badge '+(row.UdpGameProtected?'ok':'balanced')+'" title="'+esc((row.UdpConfidenceReason||'') || (row.UdpGameProtected?t("udpProtectedTip"):t("udpObservedTip")))+'">'+esc((row.UdpGameProtected?t("udpProtectedBadge"):t("udpObservedBadge"))+" "+udp)+'</b>');
   if(udpConfidence>0) out.push('<b class="badge net" title="'+esc(row.UdpConfidenceReason||t("udpConfidenceTip"))+'">'+esc((udpConfidenceLabel||"UDP")+" "+udpConfidence+"%")+'</b>');
-  if(row.UdpQosStatus && row.UdpQosStatus!=="Off") out.push('<b class="badge balanced" title="'+esc(t("qosTip"))+'">'+esc("QoS "+formatUdpQos(row.UdpQosStatus))+'</b>');
+  if(row.UdpQosStatus && row.UdpQosStatus!=="Off" && !/^(Ready|NoPath|PathPending)$/i.test(String(row.UdpQosStatus))) out.push('<b class="badge balanced" title="'+esc(t("qosTip"))+'">'+esc("QoS "+formatUdpQos(row.UdpQosStatus))+'</b>');
   if(row.GpuHelperPressure) out.push('<b class="badge balanced" title="'+esc(t("gpuHelperTip"))+'">'+esc(t("gpuHelperBadge"))+'</b>');
   if(row.VramPressureActive) out.push('<b class="badge warn" title="'+esc(t("vramPressureTip"))+'">'+esc("VRAM")+'</b>');
   if(row.CpuBoundAssist) out.push('<b class="badge deep" title="'+esc(t("cpuBoundTip"))+'">'+esc("CPU-bound")+'</b>');

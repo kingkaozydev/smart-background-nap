@@ -6,10 +6,12 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.IO;
+using System.IO.Pipes;
 using System.Linq;
 using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security.AccessControl;
 using System.Security.Cryptography;
 using System.Security.Principal;
 using System.ServiceProcess;
@@ -31,15 +33,26 @@ using Microsoft.Web.WebView2.Wpf;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.7.0";
+    private const string AppVersion = "0.7.1";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
     private const string DashboardTaskName = "SmartBackgroundNapDashboard";
+    private const string SessionAgentTaskName = "SmartBackgroundNapSessionAgent";
     private const string CoreServiceName = "SmartSNAPCoreService";
     private const string CoreServiceDisplayName = "Smart SNAP Core Service";
     private const int CoreServiceLoopSeconds = 25;
     private const int CoreServiceStalePassSeconds = 150;
+    private const int CoreProtocolVersion = 1;
+    private const int CoreMinimumSupportedProtocolVersion = 1;
+    private const string CorePipeName = "SmartNap.Core.v1";
+    private const string CoreContextProviderLegacyBridge = "ScheduledUserSessionTask";
+    private const int CorePipeMaxMessageBytes = 65536;
+    private const int CorePipeConnectPollMilliseconds = 250;
+    private const int CorePipeSubscribeHeartbeatSeconds = 10;
+    private const int SessionAgentLoopMilliseconds = 2000;
+    private const int SessionAgentStateMaxAgeSeconds = 12;
+    private const string SessionAgentClientType = "sessionAgent";
     private const string GitHubUrl = "https://github.com/kingkaozydev/smart-background-nap";
     private const string GitHubLatestReleaseApi = "https://api.github.com/repos/kingkaozydev/smart-background-nap/releases/latest";
     private const string GitHubLatestDownloadUrl = "https://github.com/kingkaozydev/smart-background-nap/releases/latest/download/SmartBackgroundNap.exe";
@@ -80,7 +93,17 @@ internal static class SmartBackgroundNap
     private static string appPolicyPath;
     private static string radarPath;
     private static string coreServiceStatePath;
+    private static string sessionAgentStatePath;
     private static string safetyReportPath;
+    private static readonly object corePipeStateLock = new object();
+    private static bool corePipeListening;
+    private static DateTime corePipeHeartbeatUtc = DateTime.MinValue;
+    private static DateTime corePipeLastClientUtc = DateTime.MinValue;
+    private static string corePipeLastCommand = "";
+    private static string corePipeLastClientUser = "";
+    private static string corePipeLastError = "";
+    private static long corePipeRequestCount;
+    private static long corePipeEventSequence;
     private static bool usingLooseRuntime;
     private static readonly object hardwareLock = new object();
     private static HardwareSnapshot hardwareSnapshotCache;
@@ -160,8 +183,20 @@ internal static class SmartBackgroundNap
         public uint dwTime;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct WindowRect
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
     [DllImport("user32.dll")]
     private static extern bool GetLastInputInfo(ref LastInputInfo info);
+
+    [DllImport("user32.dll")]
+    private static extern bool GetWindowRect(IntPtr hWnd, out WindowRect rect);
     private struct CpuClockSnapshot
     {
         public int CurrentMhz;
@@ -300,6 +335,36 @@ internal static class SmartBackgroundNap
         if (HasArg(args, "--core-service-status"))
         {
             Environment.ExitCode = WriteCoreServiceStatusToConsole().ExitCode;
+            return;
+        }
+        if (HasArg(args, "--core-pipe-request"))
+        {
+            Environment.ExitCode = WriteCorePipeRequestToConsole(args).ExitCode;
+            return;
+        }
+        if (HasArg(args, "--session-agent-once"))
+        {
+            Environment.ExitCode = WriteSessionAgentOnceToConsole(args).ExitCode;
+            return;
+        }
+        if (HasArg(args, "--install-session-agent"))
+        {
+            Environment.ExitCode = InstallSessionAgent().ExitCode;
+            return;
+        }
+        if (HasArg(args, "--uninstall-session-agent"))
+        {
+            Environment.ExitCode = UninstallSessionAgent().ExitCode;
+            return;
+        }
+        if (HasArg(args, "--session-agent-status"))
+        {
+            Environment.ExitCode = WriteSessionAgentStatusToConsole().ExitCode;
+            return;
+        }
+        if (HasArg(args, "--session-agent"))
+        {
+            Environment.ExitCode = RunSessionAgentHost(args).ExitCode;
             return;
         }
 
@@ -500,6 +565,7 @@ internal static class SmartBackgroundNap
         appPolicyPath = Path.Combine(outputsPath, "background-nap-app-policies.json");
         radarPath = Path.Combine(outputsPath, "background-nap-radar-latest.json");
         coreServiceStatePath = Path.Combine(outputsPath, "smart-snap-core-service-latest.json");
+        sessionAgentStatePath = Path.Combine(outputsPath, "smart-snap-session-agent-latest.json");
         safetyReportPath = Path.Combine(outputsPath, "SmartBackgroundNap-SafetyReport.txt");
         MigrateConfigForCurrentRuntime();
         if (!usingLooseRuntime)
@@ -1748,7 +1814,7 @@ internal static class SmartBackgroundNap
             : InstallComplete(false);
         EnsureSmartLearningDefaultEnabled();
         SaveAutoUpdateChecks(true);
-        string summary = "install=" + install.ExitCode.ToString(CultureInfo.InvariantCulture) + "; auto=" + IsAutomaticEngineEnabled().ToString(CultureInfo.InvariantCulture) + "; startup=" + IsStartupInstalled().ToString(CultureInfo.InvariantCulture) + "; coreService=" + IsCoreServiceInstalled().ToString(CultureInfo.InvariantCulture) + "; adminSetup=" + IsAdminSetupCurrentForVersion().ToString(CultureInfo.InvariantCulture);
+        string summary = "install=" + install.ExitCode.ToString(CultureInfo.InvariantCulture) + "; auto=" + IsAutomaticEngineEnabled().ToString(CultureInfo.InvariantCulture) + "; startup=" + IsStartupInstalled().ToString(CultureInfo.InvariantCulture) + "; sessionAgent=" + IsTaskInstalled(SessionAgentTaskName).ToString(CultureInfo.InvariantCulture) + "; coreService=" + IsCoreServiceInstalled().ToString(CultureInfo.InvariantCulture) + "; adminSetup=" + IsAdminSetupCurrentForVersion().ToString(CultureInfo.InvariantCulture);
         MarkInitialDefaultsApplied(summary);
         AppendOperationalLog("action=first-run-defaults " + summary);
     }
@@ -1761,7 +1827,7 @@ internal static class SmartBackgroundNap
 
             bool wantsAuto = IsAutomaticEngineEnabled();
             bool wantsStartup = IsStartupInstalled();
-            bool needsRepair = (wantsAuto && !IsTaskInstalled(AutoTaskName)) || (wantsStartup && !IsTaskInstalled(TrayTaskName)) || !IsTaskInstalled(DashboardTaskName) || !IsCoreServiceInstalled() || !IsCoreServiceRunning();
+            bool needsRepair = (wantsAuto && !IsTaskInstalled(AutoTaskName)) || (wantsStartup && !IsTaskInstalled(TrayTaskName)) || !IsTaskInstalled(DashboardTaskName) || !IsTaskInstalled(SessionAgentTaskName) || !IsCoreServiceInstalled() || !IsCoreServiceRunning();
             if (!needsRepair) { return; }
             if (WasAdminSetupPromptedForCurrentVersion() && !WasAdminSetupCompletedForCurrentVersion()) { return; }
             if (!ShouldAttemptElevatedSetupRepair()) { return; }
@@ -1804,7 +1870,7 @@ internal static class SmartBackgroundNap
 
     private static bool IsAdminSetupCurrentForVersion()
     {
-        return WasAdminSetupCompletedForCurrentVersion() && ArePrimaryScheduledTasksInstalled() && IsCoreServiceInstalled();
+        return WasAdminSetupCompletedForCurrentVersion() && ArePrimaryScheduledTasksInstalled() && IsCoreServiceInstalled() && IsCoreServiceRunning();
     }
 
     private static bool ShouldRequestAdminSetupForCurrentVersion()
@@ -1837,7 +1903,7 @@ internal static class SmartBackgroundNap
             settings["AdminSetupPromptedVersion"] = AppVersion;
             settings["AdminSetupCompletedVersion"] = AppVersion;
             settings["AdminSetupCompletedAt"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
-            settings["AdminSetupRunLevel"] = "HighestAvailable+CoreService";
+            settings["AdminSetupRunLevel"] = "HighestAvailable+CoreService+SessionAgent";
             settings["AdminSetupSource"] = source ?? "setup";
             SaveUiSettings(settings);
             SaveLocalAutoEngine(false);
@@ -1857,6 +1923,7 @@ internal static class SmartBackgroundNap
             if (result != null && result.ExitCode != 0) { return; }
             if (!ArePrimaryScheduledTasksInstalled()) { return; }
             if (!IsCoreServiceInstalled()) { return; }
+            if (!IsCoreServiceRunning()) { return; }
             MarkAdminSetupCompletedForCurrentVersion(source);
         }
         catch (Exception ex)
@@ -2810,7 +2877,7 @@ internal static class SmartBackgroundNap
 
     private static bool ArePrimaryScheduledTasksInstalled()
     {
-        return IsTaskInstalled(AutoTaskName) && IsTaskInstalled(TrayTaskName) && IsTaskInstalled(DashboardTaskName);
+        return IsTaskInstalled(AutoTaskName) && IsTaskInstalled(TrayTaskName) && IsTaskInstalled(DashboardTaskName) && IsTaskInstalled(SessionAgentTaskName);
     }
 
     private static bool TryDelegateInteractiveLaunchToElevatedTask()
@@ -2835,7 +2902,7 @@ internal static class SmartBackgroundNap
     }
     private static RunResult RunElevatedSetupIfNeeded()
     {
-        if (ArePrimaryScheduledTasksInstalled())
+        if (ArePrimaryScheduledTasksInstalled() && IsCoreServiceInstalled() && IsCoreServiceRunning())
         {
             SaveLocalAutoEngine(false);
             RemoveStartupRegistry();
@@ -3010,6 +3077,64 @@ internal static class SmartBackgroundNap
 </Task>";
     }
 
+    private static string BuildSessionAgentTaskXml()
+    {
+        string sid = WindowsIdentity.GetCurrent().User.Value;
+        string author = Environment.UserDomainName + "\\" + Environment.UserName;
+        string command = GetLaunchExecutablePath();
+        string workDir = Path.GetDirectoryName(command);
+        if (String.IsNullOrWhiteSpace(workDir)) { workDir = appRoot; }
+        return @"<?xml version=""1.0"" encoding=""UTF-16""?>
+<Task version=""1.4"" xmlns=""http://schemas.microsoft.com/windows/2004/02/mit/task"">
+  <RegistrationInfo>
+    <Author>" + XmlText(author) + @"</Author>
+    <Description>Smart Nap interactive Session Agent. Observes foreground, fullscreen, idle, game, and streaming context for the Core Service.</Description>
+  </RegistrationInfo>
+  <Triggers>
+    <LogonTrigger>
+      <Enabled>true</Enabled>
+      <UserId>" + XmlText(sid) + @"</UserId>
+      <Delay>PT15S</Delay>
+    </LogonTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id=""Author"">
+      <UserId>" + XmlText(sid) + @"</UserId>
+      <LogonType>InteractiveToken</LogonType>
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>false</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <Enabled>true</Enabled>
+    <Hidden>true</Hidden>
+    <RunOnlyIfIdle>false</RunOnlyIfIdle>
+    <DisallowStartOnRemoteAppSession>false</DisallowStartOnRemoteAppSession>
+    <UseUnifiedSchedulingEngine>true</UseUnifiedSchedulingEngine>
+    <WakeToRun>false</WakeToRun>
+    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+    <Priority>7</Priority>
+  </Settings>
+  <Actions Context=""Author"">
+    <Exec>
+      <Command>" + XmlText(command) + @"</Command>
+      <Arguments>--session-agent</Arguments>
+      <WorkingDirectory>" + XmlText(workDir) + @"</WorkingDirectory>
+    </Exec>
+  </Actions>
+</Task>";
+    }
+
     private static string XmlText(string value)
     {
         return System.Security.SecurityElement.Escape(value ?? "") ?? "";
@@ -3066,6 +3191,82 @@ internal static class SmartBackgroundNap
             return new RunResult(result.ExitCode == 0 ? 1 : result.ExitCode, "Nao consegui remover a tarefa elevada do launcher. Aceite a permissao de administrador para concluir.");
         }
         return result.ExitCode == 0 ? new RunResult(0, "Elevated launcher task removed.") : result;
+    }
+
+    private static RunResult InstallSessionAgent()
+    {
+        return InstallSessionAgent(true);
+    }
+
+    private static RunResult InstallSessionAgent(bool allowElevatedRepair)
+    {
+        string xml = BuildSessionAgentTaskXml();
+        RunResult result = RegisterXmlScheduledTask(SessionAgentTaskName, xml);
+        if (result.ExitCode != 0 && allowElevatedRepair && !IsCurrentProcessElevated() && LooksLikeAccessDenied(result.Output))
+        {
+            result = RunElevatedSelfCommand("--install-session-agent", "install-session-agent", 120000);
+        }
+
+        if (!IsTaskInstalled(SessionAgentTaskName))
+        {
+            SaveUiFlag("SessionAgentEnabled", false);
+            AppendOperationalLog("action=session-agent-install status=FAIL detail=" + ShortTaskError(result.Output));
+            return result.ExitCode == 0
+                ? new RunResult(1, "Session Agent task was not registered.")
+                : result;
+        }
+
+        SaveUiFlag("SessionAgentEnabled", true);
+        RunResult start = RunHidden("schtasks.exe", "/Run /TN " + Quote(SessionAgentTaskName), 10000);
+        AppendOperationalLog("action=session-agent-install status=OK startExitCode=" + start.ExitCode.ToString(CultureInfo.InvariantCulture) + " detail=" + ShortTaskError(start.Output));
+        return new RunResult(0, "Session Agent installed for user logon.");
+    }
+
+    private static RunResult UninstallSessionAgent()
+    {
+        return UninstallSessionAgent(true);
+    }
+
+    private static RunResult UninstallSessionAgent(bool allowElevatedRepair)
+    {
+        if (!IsTaskInstalled(SessionAgentTaskName))
+        {
+            SaveUiFlag("SessionAgentEnabled", false);
+            return new RunResult(0, "Session Agent task was already off.");
+        }
+
+        RunHidden("schtasks.exe", "/End /TN " + Quote(SessionAgentTaskName), 10000);
+        RunResult result = RunHidden("schtasks.exe", "/Delete /TN " + Quote(SessionAgentTaskName) + " /F", 10000);
+        if (result.ExitCode != 0 && allowElevatedRepair && !IsCurrentProcessElevated() && LooksLikeAccessDenied(result.Output))
+        {
+            result = RunElevatedSelfCommand("--uninstall-session-agent", "uninstall-session-agent", 120000);
+        }
+
+        SaveUiFlag("SessionAgentEnabled", IsTaskInstalled(SessionAgentTaskName));
+        if (IsTaskInstalled(SessionAgentTaskName))
+        {
+            AppendOperationalLog("action=session-agent-uninstall status=FAIL detail=" + ShortTaskError(result.Output));
+            return new RunResult(result.ExitCode == 0 ? 1 : result.ExitCode, "Nao consegui remover a tarefa do Session Agent.");
+        }
+
+        AppendOperationalLog("action=session-agent-uninstall status=OK");
+        return result.ExitCode == 0 ? new RunResult(0, "Session Agent removed.") : result;
+    }
+
+    private static RunResult WriteSessionAgentStatusToConsole()
+    {
+        SessionAgentSnapshot snapshot = LoadSessionAgentSnapshot();
+        Dictionary<string, object> status = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        status["Version"] = AppVersion;
+        status["TaskName"] = SessionAgentTaskName;
+        status["TaskInstalled"] = IsTaskInstalled(SessionAgentTaskName);
+        status["TaskEnabled"] = ReadUiFlag("SessionAgentEnabled");
+        status["Snapshot"] = BuildSessionAgentPayload(snapshot);
+        status["Context"] = BuildSessionContextPayload(snapshot);
+        status["Foreground"] = BuildSessionForegroundPayload(snapshot);
+        status["StatePath"] = sessionAgentStatePath;
+        Console.WriteLine(JsonCompat.SerializeObject(status));
+        return new RunResult(0, JsonCompat.SerializeObject(status));
     }
 
     private static void RunCoreServiceHost(string[] args)
@@ -3171,16 +3372,42 @@ internal static class SmartBackgroundNap
         bool installed = TryGetCoreServiceStatus(out serviceStatus) || query.ExitCode == 0;
         bool running = installed && serviceStatus == ServiceControllerStatus.Running;
         int scoreAgeSeconds = GetFileAgeSeconds(scorePath);
+        bool telemetryStale = scoreAgeSeconds < 0 || scoreAgeSeconds > CoreServiceStalePassSeconds;
+        string health = ClassifyCoreServiceHealth(installed ? (running ? "Running" : "Installed") : "NotInstalled", "Status", query.ExitCode, installed, running, IsTaskInstalled(AutoTaskName), telemetryStale, false);
         IDictionary<string, object> state = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
         state["AppVersion"] = AppVersion;
         state["ServiceName"] = CoreServiceName;
         state["DisplayName"] = CoreServiceDisplayName;
+        state["ProtocolVersion"] = CoreProtocolVersion;
+        state["MinimumSupportedProtocolVersion"] = CoreMinimumSupportedProtocolVersion;
+        state["PipeName"] = CorePipeName;
+        state["ContextProvider"] = "SessionAgentV1+" + CoreContextProviderLegacyBridge;
+        state["Capabilities"] = BuildCoreServiceCapabilities();
+        IDictionary<string, object> ipcStatus = BuildCorePipeStatePayload();
+        state["Ipc"] = ipcStatus;
+        state["IpcListening"] = ReadMapBool(ipcStatus, "Listening");
+        state["IpcSecureAcl"] = ReadMapBool(ipcStatus, "SecureAcl");
+        state["IpcHeartbeatAt"] = ReadMapString(ipcStatus, "HeartbeatAt");
+        state["IpcLastClientAt"] = ReadMapString(ipcStatus, "LastClientAt");
+        state["IpcLastCommand"] = ReadMapString(ipcStatus, "LastCommand");
+        state["IpcLastError"] = ReadMapString(ipcStatus, "LastError");
         state["Installed"] = installed;
         state["Running"] = running;
         state["Status"] = installed ? GetCoreServiceStatusText() : "not installed";
+        state["Health"] = health;
+        state["Summary"] = BuildCoreServiceSummary(health, "Status", IsTaskInstalled(AutoTaskName), telemetryStale, false, scoreAgeSeconds);
+        state["NeedsAttention"] = IsCoreServiceAttentionHealth(health);
         state["AutoTaskInstalled"] = IsTaskInstalled(AutoTaskName);
+        state["SessionAgentTaskInstalled"] = IsTaskInstalled(SessionAgentTaskName);
+        state["TelemetryFresh"] = !telemetryStale;
+        state["TelemetryStale"] = telemetryStale;
         state["ScoreAgeSeconds"] = scoreAgeSeconds;
+        SessionAgentSnapshot sessionAgent = LoadSessionAgentSnapshot();
+        state["SessionAgent"] = BuildSessionAgentPayload(sessionAgent);
+        state["SessionContext"] = BuildSessionContextPayload(sessionAgent);
+        state["SessionForeground"] = BuildSessionForegroundPayload(sessionAgent);
         state["StatePath"] = coreServiceStatePath;
+        state["SessionAgentStatePath"] = sessionAgentStatePath;
         state["CheckedAt"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
         if (!String.IsNullOrWhiteSpace(query.Output))
         {
@@ -3367,25 +3594,1469 @@ internal static class SmartBackgroundNap
         }
     }
 
-    private static void WriteCoreServiceState(string status, string action, RunResult result, bool autoTaskInstalled, bool kicked, int scoreAgeSeconds, int staleThresholdSeconds)
+    private static bool WaitForFileWriteAfter(string path, DateTime cutoffUtc, int timeoutMs)
+    {
+        DateTime deadline = DateTime.UtcNow.AddMilliseconds(Math.Max(1000, timeoutMs));
+        do
+        {
+            try
+            {
+                if (!String.IsNullOrWhiteSpace(path) && File.Exists(path) && File.GetLastWriteTimeUtc(path) >= cutoffUtc)
+                {
+                    return true;
+                }
+            }
+            catch
+            {
+            }
+            Thread.Sleep(350);
+        }
+        while (DateTime.UtcNow < deadline);
+
+        try
+        {
+            return !String.IsNullOrWhiteSpace(path) && File.Exists(path) && File.GetLastWriteTimeUtc(path) >= cutoffUtc;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private sealed class CoreServiceSnapshot
+    {
+        public bool Available;
+        public bool Installed;
+        public bool Running;
+        public int ProtocolVersion;
+        public int MinimumSupportedProtocolVersion;
+        public string PipeName;
+        public string ContextProvider;
+        public string Status;
+        public string Action;
+        public string Health;
+        public string Summary;
+        public string Detail;
+        public bool AutoTaskInstalled;
+        public bool AutoTaskKicked;
+        public bool TelemetryFresh;
+        public bool TelemetryStale;
+        public bool NeedsAttention;
+        public int ScoreAgeSeconds;
+        public int StaleThresholdSeconds;
+        public int LoopSeconds;
+        public int ExitCode;
+        public int StateAgeSeconds;
+        public string UpdatedAt;
+        public bool IpcListening;
+        public bool IpcSecureAcl;
+        public string IpcHeartbeatAt;
+        public string IpcLastClientAt;
+        public string IpcLastCommand;
+        public string IpcLastError;
+    }
+
+    private sealed class SessionAgentSnapshot
+    {
+        public bool Available;
+        public int ProtocolVersion;
+        public string AgentVersion;
+        public string State;
+        public string Health;
+        public string Source;
+        public int SessionId;
+        public string UserSid;
+        public string UserName;
+        public string UpdatedAt;
+        public int StateAgeSeconds;
+        public int IdleSeconds;
+        public string Context;
+        public int Confidence;
+        public List<string> Evidence;
+        public int ForegroundPid;
+        public string ForegroundProcessName;
+        public string ForegroundStartTime;
+        public string ForegroundPath;
+        public bool ForegroundHasWindow;
+        public bool ForegroundIsGame;
+        public bool ForegroundIsStreaming;
+        public bool ForegroundIsProtected;
+        public bool ForegroundFullscreen;
+        public bool StreamingObserved;
+        public int StreamingProcessCount;
+        public string LastError;
+        public string CorePublishedAt;
+        public string CorePublishStatus;
+    }
+
+    private static string ReadMapString(IDictionary<string, object> map, string key)
+    {
+        object value;
+        if (map == null || !map.TryGetValue(key, out value) || value == null) { return ""; }
+        return Convert.ToString(value, CultureInfo.InvariantCulture);
+    }
+
+    private static int ReadMapInt(IDictionary<string, object> map, string key)
+    {
+        object value;
+        if (map == null || !map.TryGetValue(key, out value) || value == null) { return 0; }
+        try { return Convert.ToInt32(value, CultureInfo.InvariantCulture); }
+        catch
+        {
+            int parsed;
+            return Int32.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), NumberStyles.Integer, CultureInfo.InvariantCulture, out parsed) ? parsed : 0;
+        }
+    }
+
+    private static bool ReadMapBool(IDictionary<string, object> map, string key)
+    {
+        object value;
+        if (map == null || !map.TryGetValue(key, out value) || value == null) { return false; }
+        try { return Convert.ToBoolean(value, CultureInfo.InvariantCulture); }
+        catch
+        {
+            bool parsed;
+            return Boolean.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), out parsed) && parsed;
+        }
+    }
+
+    private static IDictionary<string, object> ReadMapObject(IDictionary<string, object> map, string key)
+    {
+        object value;
+        if (map == null || !map.TryGetValue(key, out value) || value == null) { return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase); }
+        IDictionary<string, object> typed = value as IDictionary<string, object>;
+        return typed ?? new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static List<string> ReadMapStringList(IDictionary<string, object> map, string key)
+    {
+        List<string> result = new List<string>();
+        object value;
+        if (map == null || !map.TryGetValue(key, out value) || value == null) { return result; }
+        string text = value as string;
+        if (text != null)
+        {
+            if (!String.IsNullOrWhiteSpace(text)) { result.Add(text); }
+            return result;
+        }
+        System.Collections.IEnumerable items = value as System.Collections.IEnumerable;
+        if (items == null) { return result; }
+        foreach (object item in items)
+        {
+            string itemText = Convert.ToString(item, CultureInfo.InvariantCulture);
+            if (!String.IsNullOrWhiteSpace(itemText)) { result.Add(itemText); }
+        }
+        return result;
+    }
+
+    private static int GetIsoAgeSeconds(string timestamp)
+    {
+        try
+        {
+            if (String.IsNullOrWhiteSpace(timestamp)) { return -1; }
+            DateTime parsed;
+            if (!DateTime.TryParse(timestamp, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out parsed)) { return -1; }
+            double age = (DateTime.UtcNow - parsed.ToUniversalTime()).TotalSeconds;
+            if (Double.IsNaN(age) || Double.IsInfinity(age)) { return -1; }
+            return Math.Max(0, (int)Math.Round(age));
+        }
+        catch
+        {
+            return -1;
+        }
+    }
+
+    private static string ClassifyCoreServiceHealth(string status, string action, int exitCode, bool installed, bool running, bool autoTaskInstalled, bool telemetryStale, bool kicked)
+    {
+        string normalizedStatus = (status ?? "").Trim();
+        string normalizedAction = (action ?? "").Trim();
+        if (normalizedStatus.Equals("Starting", StringComparison.OrdinalIgnoreCase) || normalizedStatus.Equals("StartPending", StringComparison.OrdinalIgnoreCase)) { return "Starting"; }
+        if (normalizedStatus.Equals("InstallFailed", StringComparison.OrdinalIgnoreCase) || normalizedStatus.Equals("Error", StringComparison.OrdinalIgnoreCase)) { return "Attention"; }
+        if (!installed || normalizedStatus.Equals("NotInstalled", StringComparison.OrdinalIgnoreCase) || normalizedStatus.Equals("Removed", StringComparison.OrdinalIgnoreCase)) { return "NotInstalled"; }
+        if (!running || normalizedStatus.Equals("Stopped", StringComparison.OrdinalIgnoreCase) || normalizedStatus.Equals("StopPending", StringComparison.OrdinalIgnoreCase)) { return "Stopped"; }
+        if (exitCode != 0) { return "Attention"; }
+        if (!autoTaskInstalled || normalizedAction.Equals("NoAutoTask", StringComparison.OrdinalIgnoreCase)) { return "Attention"; }
+        if (normalizedAction.Equals("KickAutoTask", StringComparison.OrdinalIgnoreCase) && kicked) { return "Recovering"; }
+        if (telemetryStale) { return "Stale"; }
+        return "Healthy";
+    }
+
+    private static bool IsCoreServiceAttentionHealth(string health)
+    {
+        return String.Equals(health, "Attention", StringComparison.OrdinalIgnoreCase) ||
+            String.Equals(health, "NotInstalled", StringComparison.OrdinalIgnoreCase) ||
+            String.Equals(health, "Stopped", StringComparison.OrdinalIgnoreCase) ||
+            String.Equals(health, "Stale", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string BuildCoreServiceSummary(string health, string action, bool autoTaskInstalled, bool telemetryStale, bool kicked, int scoreAgeSeconds)
+    {
+        if (String.Equals(health, "Healthy", StringComparison.OrdinalIgnoreCase)) { return "Core service is watching fresh engine telemetry."; }
+        if (String.Equals(health, "Recovering", StringComparison.OrdinalIgnoreCase)) { return "Telemetry was stale; service kicked the user-session engine task."; }
+        if (String.Equals(health, "Starting", StringComparison.OrdinalIgnoreCase)) { return "Core service is starting."; }
+        if (String.Equals(health, "Stopped", StringComparison.OrdinalIgnoreCase)) { return "Core service is installed but stopped."; }
+        if (String.Equals(health, "NotInstalled", StringComparison.OrdinalIgnoreCase)) { return "Core service is not installed."; }
+        if (!autoTaskInstalled) { return "Automatic engine task is not installed."; }
+        if (telemetryStale) { return scoreAgeSeconds < 0 ? "Engine telemetry has not been written yet." : "Engine telemetry is stale."; }
+        if (kicked || String.Equals(action, "KickAutoTask", StringComparison.OrdinalIgnoreCase)) { return "Service requested a fresh engine pass."; }
+        return "Core service needs attention.";
+    }
+
+    private static List<string> BuildCoreServiceCapabilities()
+    {
+        return new List<string>
+        {
+            "hello",
+            "getCapabilities",
+            "getSnapshot",
+            "subscribe",
+            "getState",
+            "getEvents",
+            "getDiagnostics",
+            "ping",
+            "corePipe.v1",
+            "sessionAgent.v1",
+            "publishSessionContext",
+            "getSessionContext",
+            "watchdog",
+            "scheduledTaskBridge"
+        };
+    }
+
+    private static string ToCoreIso(DateTime value)
+    {
+        if (value <= DateTime.MinValue.AddYears(1)) { return ""; }
+        return value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture);
+    }
+
+    private static string GetCurrentUserSid()
+    {
+        try
+        {
+            using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
+            {
+                return identity != null && identity.User != null ? identity.User.Value : "";
+            }
+        }
+        catch
+        {
+            return "";
+        }
+    }
+
+    private static string GetCurrentUserName()
+    {
+        try
+        {
+            return (Environment.UserDomainName + "\\" + Environment.UserName).Trim('\\');
+        }
+        catch
+        {
+            return "";
+        }
+    }
+
+    private static bool StringEqualsAny(string value, string[] candidates)
+    {
+        if (String.IsNullOrWhiteSpace(value) || candidates == null) { return false; }
+        string normalized = value.Trim();
+        if (normalized.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) { normalized = normalized.Substring(0, normalized.Length - 4); }
+        for (int i = 0; i < candidates.Length; i++)
+        {
+            if (String.Equals(normalized, candidates[i], StringComparison.OrdinalIgnoreCase)) { return true; }
+        }
+        return false;
+    }
+
+    private static bool ContainsAnyFragment(string value, string[] fragments)
+    {
+        if (String.IsNullOrWhiteSpace(value) || fragments == null) { return false; }
+        for (int i = 0; i < fragments.Length; i++)
+        {
+            string fragment = fragments[i];
+            if (!String.IsNullOrWhiteSpace(fragment) && value.IndexOf(fragment, StringComparison.OrdinalIgnoreCase) >= 0) { return true; }
+        }
+        return false;
+    }
+
+    private static bool IsSessionAgentGameProcessName(string processName)
+    {
+        if (String.IsNullOrWhiteSpace(processName)) { return false; }
+        string name = processName.Trim();
+        if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) { name = name.Substring(0, name.Length - 4); }
+        if (StringEqualsAny(name, new string[] { "bf6", "bf2042", "bfv", "bf1", "bf4", "bf3", "fc26", "fc25", "fc24", "fifa23", "fifa22", "cs2", "valorant", "valorant-win64-shipping", "r5apex", "apex", "fortniteclient-win64-shipping", "rocketleague", "rainbowsix", "rainbowsix_be", "cod", "cod22", "cod23", "cod24", "modernwarfare", "warzone", "league of legends", "dota2", "overwatch", "destiny2", "thefinals", "pubg", "tslgame", "escape from tarkov", "eldenring", "helldivers2", "gta5", "rdr2" })) { return true; }
+        string lower = name.ToLowerInvariant();
+        return (lower.StartsWith("bf", StringComparison.Ordinal) && lower.Length <= 7 && lower.Any(Char.IsDigit)) || lower.EndsWith("-win64-shipping", StringComparison.Ordinal);
+    }
+
+    private static bool IsSessionAgentGamePath(string path)
+    {
+        return ContainsAnyFragment(path, new string[] { "\\steamapps\\common\\", "\\XboxGames\\", "\\Epic Games\\", "\\Riot Games\\", "\\Battle.net\\", "\\GOG Galaxy\\Games\\", "\\EA Games\\", "\\Electronic Arts\\Games\\", "\\Electronic Arts\\Battlefield", "\\Electronic Arts\\Apex", "\\Electronic Arts\\FC", "\\Electronic Arts\\EA SPORTS FC", "\\Battlefield 6\\", "\\EA SPORTS FC 26\\" });
+    }
+
+    private static bool IsSessionAgentStreamingProcessName(string processName)
+    {
+        return StringEqualsAny(processName, new string[] { "obs64", "obs32", "Streamlabs Desktop", "Streamlabs", "TikTok LIVE Studio", "TikTokLiveStudio", "TikTokStudio", "PRISMLiveStudio", "XSplit.Core", "XSplitBroadcaster", "vMix64", "vMix", "TwitchStudio", "NVIDIA Broadcast", "ElgatoCameraHub" });
+    }
+
+    private static bool IsSessionAgentMediaOrCallProcessName(string processName)
+    {
+        return StringEqualsAny(processName, new string[] { "Discord", "Teams", "Slack", "Zoom", "Telegram", "WhatsApp", "Spotify", "vlc", "mpv", "chrome", "msedge", "firefox", "zen", "brave", "opera", "vivaldi", "msedgewebview2" });
+    }
+
+    private static bool IsSessionAgentWorkProcessName(string processName)
+    {
+        return StringEqualsAny(processName, new string[] { "Photoshop", "Illustrator", "AfterFX", "Adobe Premiere Pro", "Adobe Media Encoder", "Lightroom", "Resolve", "Fusion", "blender", "UnrealEditor", "Unity", "devenv", "Code", "Code - Insiders", "cursor", "windsurf", "rider64", "idea64", "pycharm64", "webstorm64", "clion64", "datagrip64", "goland64", "phpstorm64", "rustrover64", "sublime_text", "notepad++", "zed", "codex" });
+    }
+
+    private static bool IsWindowFullscreenOnMonitor(IntPtr hwnd)
+    {
+        try
+        {
+            if (hwnd == IntPtr.Zero) { return false; }
+            WindowRect rect;
+            if (!GetWindowRect(hwnd, out rect)) { return false; }
+            Rectangle window = Rectangle.FromLTRB(rect.Left, rect.Top, rect.Right, rect.Bottom);
+            if (window.Width <= 0 || window.Height <= 0) { return false; }
+            Screen screen = Screen.FromHandle(hwnd);
+            Rectangle bounds = screen.Bounds;
+            int tolerance = 8;
+            return Math.Abs(window.Left - bounds.Left) <= tolerance &&
+                Math.Abs(window.Top - bounds.Top) <= tolerance &&
+                Math.Abs(window.Right - bounds.Right) <= tolerance &&
+                Math.Abs(window.Bottom - bounds.Bottom) <= tolerance;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static int CountSessionStreamingProcesses(int sessionId)
+    {
+        int count = 0;
+        foreach (Process process in Process.GetProcesses())
+        {
+            try
+            {
+                if (sessionId >= 0 && process.SessionId != sessionId) { continue; }
+                if (IsSessionAgentStreamingProcessName(process.ProcessName)) { count++; }
+            }
+            catch
+            {
+            }
+            finally
+            {
+                try { process.Dispose(); } catch { }
+            }
+        }
+        return count;
+    }
+
+    private static string DetermineSessionAgentContext(bool foregroundIsGame, bool foregroundFullscreen, bool foregroundIsStreaming, bool mediaOrCallForeground, bool workForeground, bool streamingObserved, int idleSeconds, List<string> evidence, out int confidence)
+    {
+        if (evidence == null) { evidence = new List<string>(); }
+        if (streamingObserved || foregroundIsStreaming)
+        {
+            confidence = foregroundIsStreaming ? 88 : 76;
+            evidence.Add(foregroundIsStreaming ? "streaming-foreground" : "streaming-process-observed");
+            if (foregroundIsGame) { evidence.Add("game-also-observed"); }
+            return "Live";
+        }
+        if (foregroundIsGame)
+        {
+            confidence = foregroundFullscreen ? 90 : 78;
+            evidence.Add(foregroundFullscreen ? "game-fullscreen-foreground" : "game-foreground");
+            return "Game";
+        }
+        if (mediaOrCallForeground)
+        {
+            confidence = 70;
+            evidence.Add("media-or-call-foreground");
+            return "MediaOrCall";
+        }
+        if (workForeground)
+        {
+            confidence = 68;
+            evidence.Add("workload-foreground");
+            return "Work";
+        }
+        if (idleSeconds >= 600)
+        {
+            confidence = 58;
+            evidence.Add("input-idle");
+            return "Idle";
+        }
+        confidence = 45;
+        evidence.Add("foreground-observed");
+        return "CommonUse";
+    }
+
+    private static IDictionary<string, object> BuildSessionAgentObservation()
+    {
+        IDictionary<string, object> root = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        List<string> evidence = new List<string>();
+        int currentSessionId;
+        try { currentSessionId = Process.GetCurrentProcess().SessionId; }
+        catch { currentSessionId = -1; }
+
+        int foregroundPid = 0;
+        string foregroundName = "";
+        string foregroundPath = "";
+        string foregroundStart = "";
+        bool foregroundHasWindow = false;
+        bool foregroundIsGame = false;
+        bool foregroundIsStreaming = false;
+        bool foregroundIsProtected = false;
+        string foregroundProtectionReason = "";
+        bool foregroundFullscreen = false;
+        string lastError = "";
+
+        try
+        {
+            IntPtr hwnd = GetForegroundWindow();
+            uint pidValue;
+            if (hwnd != IntPtr.Zero)
+            {
+                GetWindowThreadProcessId(hwnd, out pidValue);
+                foregroundPid = (int)pidValue;
+                foregroundFullscreen = IsWindowFullscreenOnMonitor(hwnd);
+                using (Process process = foregroundPid > 0 ? Process.GetProcessById(foregroundPid) : null)
+                {
+                    if (process != null)
+                    {
+                        foregroundName = process.ProcessName ?? "";
+                        try { foregroundHasWindow = process.MainWindowHandle != IntPtr.Zero; } catch { foregroundHasWindow = hwnd != IntPtr.Zero; }
+                        foregroundPath = TryGetProcessPath(process);
+                        try { foregroundStart = process.StartTime.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture); } catch { }
+                        foregroundIsGame = IsSessionAgentGameProcessName(foregroundName) || IsSessionAgentGamePath(foregroundPath);
+                        foregroundIsStreaming = IsSessionAgentStreamingProcessName(foregroundName);
+                        foregroundIsProtected = IsProtectedForegroundProcess(foregroundName);
+                        if (foregroundIsProtected) { foregroundProtectionReason = "StaticGuard"; }
+                        string runtimeProtectionReason;
+                        if (IsSessionForegroundProtectedByRuntime(foregroundPid, foregroundName, foregroundPath, out runtimeProtectionReason))
+                        {
+                            foregroundIsProtected = true;
+                            foregroundProtectionReason = runtimeProtectionReason;
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            lastError = ShortTaskError(ex.Message);
+        }
+
+        TimeSpan idle = GetSystemIdleTime();
+        int idleSeconds = Math.Max(0, (int)Math.Round(idle.TotalSeconds));
+        int streamingCount = CountSessionStreamingProcesses(currentSessionId);
+        bool streamingObserved = streamingCount > 0;
+        bool mediaOrCallForeground = IsSessionAgentMediaOrCallProcessName(foregroundName);
+        bool workForeground = IsSessionAgentWorkProcessName(foregroundName);
+        if (foregroundFullscreen) { evidence.Add("fullscreen-window"); }
+        if (foregroundIsProtected) { evidence.Add("protected-foreground"); }
+        if (!String.IsNullOrWhiteSpace(foregroundProtectionReason)) { evidence.Add("protection-" + SanitizeEvidenceToken(foregroundProtectionReason)); }
+
+        int confidence;
+        string context = DetermineSessionAgentContext(foregroundIsGame, foregroundFullscreen, foregroundIsStreaming, mediaOrCallForeground, workForeground, streamingObserved, idleSeconds, evidence, out confidence);
+
+        IDictionary<string, object> foreground = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        foreground["ProcessId"] = foregroundPid;
+        foreground["ProcessName"] = foregroundName;
+        foreground["ProcessStartTime"] = foregroundStart;
+        foreground["Path"] = foregroundPath;
+        foreground["HasWindow"] = foregroundHasWindow;
+        foreground["Fullscreen"] = foregroundFullscreen;
+        foreground["LikelyGame"] = foregroundIsGame;
+        foreground["StreamingProcess"] = foregroundIsStreaming;
+        foreground["Protected"] = foregroundIsProtected;
+        foreground["ProtectionReason"] = foregroundProtectionReason;
+
+        root["ProtocolVersion"] = CoreProtocolVersion;
+        root["AgentVersion"] = AppVersion;
+        root["AgentName"] = "Smart Nap Session Agent";
+        root["State"] = "Observing";
+        root["Health"] = String.IsNullOrWhiteSpace(lastError) ? "Healthy" : "Degraded";
+        root["Source"] = "SessionAgent";
+        root["SessionId"] = currentSessionId;
+        root["UserSid"] = GetCurrentUserSid();
+        root["UserName"] = GetCurrentUserName();
+        root["UpdatedAt"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+        root["IdleSeconds"] = idleSeconds;
+        root["Context"] = context;
+        root["Confidence"] = confidence;
+        root["Evidence"] = evidence;
+        root["Foreground"] = foreground;
+        root["ForegroundPid"] = foregroundPid;
+        root["ForegroundProcessName"] = foregroundName;
+        root["ForegroundStartTime"] = foregroundStart;
+        root["ForegroundPath"] = foregroundPath;
+        root["ForegroundHasWindow"] = foregroundHasWindow;
+        root["ForegroundIsGame"] = foregroundIsGame;
+        root["ForegroundIsStreaming"] = foregroundIsStreaming;
+        root["ForegroundIsProtected"] = foregroundIsProtected;
+        root["ForegroundProtectionReason"] = foregroundProtectionReason;
+        root["ForegroundFullscreen"] = foregroundFullscreen;
+        root["StreamingObserved"] = streamingObserved;
+        root["StreamingProcessCount"] = streamingCount;
+        root["LastError"] = lastError;
+        return root;
+    }
+
+    private static void WriteSessionAgentState(IDictionary<string, object> observation)
     {
         try
         {
             Directory.CreateDirectory(outputsPath);
+            AtomicWriteJsonMap(sessionAgentStatePath, observation ?? new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase));
+        }
+        catch (Exception ex)
+        {
+            AppendOperationalLog("action=session-agent status=state-write-failed detail=" + ShortTaskError(ex.Message));
+        }
+    }
+
+    private static SessionAgentSnapshot LoadSessionAgentSnapshot()
+    {
+        SessionAgentSnapshot snapshot = new SessionAgentSnapshot();
+        snapshot.State = "Unavailable";
+        snapshot.Health = "Missing";
+        snapshot.Source = "SessionAgent";
+        snapshot.Evidence = new List<string>();
+        snapshot.StateAgeSeconds = -1;
+        try
+        {
+            if (!File.Exists(sessionAgentStatePath)) { return snapshot; }
+            IDictionary<string, object> root = LoadJsonMapWithRecovery(sessionAgentStatePath);
+            if (root == null || root.Count == 0) { return snapshot; }
+            IDictionary<string, object> foreground = ReadMapObject(root, "Foreground");
+            snapshot.Available = true;
+            snapshot.ProtocolVersion = ReadMapInt(root, "ProtocolVersion");
+            snapshot.AgentVersion = ReadMapString(root, "AgentVersion");
+            snapshot.State = ReadMapString(root, "State");
+            snapshot.Health = ReadMapString(root, "Health");
+            snapshot.Source = ReadMapString(root, "Source");
+            snapshot.SessionId = ReadMapInt(root, "SessionId");
+            snapshot.UserSid = ReadMapString(root, "UserSid");
+            snapshot.UserName = ReadMapString(root, "UserName");
+            snapshot.UpdatedAt = ReadMapString(root, "UpdatedAt");
+            snapshot.StateAgeSeconds = GetIsoAgeSeconds(snapshot.UpdatedAt);
+            snapshot.IdleSeconds = ReadMapInt(root, "IdleSeconds");
+            snapshot.Context = ReadMapString(root, "Context");
+            snapshot.Confidence = ReadMapInt(root, "Confidence");
+            snapshot.Evidence = ReadMapStringList(root, "Evidence");
+            snapshot.ForegroundPid = ReadMapInt(root, "ForegroundPid");
+            snapshot.ForegroundProcessName = ReadMapString(root, "ForegroundProcessName");
+            snapshot.ForegroundStartTime = ReadMapString(root, "ForegroundStartTime");
+            snapshot.ForegroundPath = ReadMapString(root, "ForegroundPath");
+            snapshot.ForegroundHasWindow = ReadMapBool(root, "ForegroundHasWindow");
+            snapshot.ForegroundIsGame = ReadMapBool(root, "ForegroundIsGame");
+            snapshot.ForegroundIsStreaming = ReadMapBool(root, "ForegroundIsStreaming");
+            snapshot.ForegroundIsProtected = ReadMapBool(root, "ForegroundIsProtected");
+            snapshot.ForegroundFullscreen = ReadMapBool(root, "ForegroundFullscreen");
+            if (snapshot.ForegroundPid <= 0) { snapshot.ForegroundPid = ReadMapInt(foreground, "ProcessId"); }
+            if (String.IsNullOrWhiteSpace(snapshot.ForegroundProcessName)) { snapshot.ForegroundProcessName = ReadMapString(foreground, "ProcessName"); }
+            if (String.IsNullOrWhiteSpace(snapshot.ForegroundStartTime)) { snapshot.ForegroundStartTime = ReadMapString(foreground, "ProcessStartTime"); }
+            if (String.IsNullOrWhiteSpace(snapshot.ForegroundPath)) { snapshot.ForegroundPath = ReadMapString(foreground, "Path"); }
+            snapshot.StreamingObserved = ReadMapBool(root, "StreamingObserved");
+            snapshot.StreamingProcessCount = ReadMapInt(root, "StreamingProcessCount");
+            snapshot.LastError = ReadMapString(root, "LastError");
+            snapshot.CorePublishedAt = ReadMapString(root, "CorePublishedAt");
+            snapshot.CorePublishStatus = ReadMapString(root, "CorePublishStatus");
+            if (snapshot.ProtocolVersion <= 0) { snapshot.ProtocolVersion = CoreProtocolVersion; }
+            if (String.IsNullOrWhiteSpace(snapshot.AgentVersion)) { snapshot.AgentVersion = AppVersion; }
+            if (String.IsNullOrWhiteSpace(snapshot.Health)) { snapshot.Health = "Healthy"; }
+            if (snapshot.StateAgeSeconds > SessionAgentStateMaxAgeSeconds && String.Equals(snapshot.Health, "Healthy", StringComparison.OrdinalIgnoreCase))
+            {
+                snapshot.Health = "Stale";
+                snapshot.State = "Stale";
+            }
+        }
+        catch
+        {
+        }
+        return snapshot;
+    }
+
+    private static IDictionary<string, object> BuildSessionAgentPayload(SessionAgentSnapshot snapshot)
+    {
+        SessionAgentSnapshot agent = snapshot ?? LoadSessionAgentSnapshot();
+        IDictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        payload["Available"] = agent.Available;
+        payload["ProtocolVersion"] = agent.ProtocolVersion <= 0 ? CoreProtocolVersion : agent.ProtocolVersion;
+        payload["AgentVersion"] = String.IsNullOrWhiteSpace(agent.AgentVersion) ? AppVersion : agent.AgentVersion;
+        payload["State"] = agent.State ?? "";
+        payload["Health"] = agent.Health ?? "";
+        payload["Source"] = agent.Source ?? "";
+        payload["SessionId"] = agent.SessionId;
+        payload["UserSid"] = agent.UserSid ?? "";
+        payload["UserName"] = agent.UserName ?? "";
+        payload["UpdatedAt"] = agent.UpdatedAt ?? "";
+        payload["StateAgeSeconds"] = agent.StateAgeSeconds;
+        payload["CorePublishedAt"] = agent.CorePublishedAt ?? "";
+        payload["CorePublishStatus"] = agent.CorePublishStatus ?? "";
+        payload["LastError"] = agent.LastError ?? "";
+        payload["StatePath"] = sessionAgentStatePath;
+        return payload;
+    }
+
+    private static IDictionary<string, object> BuildSessionContextPayload(SessionAgentSnapshot snapshot)
+    {
+        SessionAgentSnapshot agent = snapshot ?? LoadSessionAgentSnapshot();
+        IDictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        payload["Context"] = agent.Context ?? "";
+        payload["Confidence"] = agent.Confidence;
+        payload["Evidence"] = agent.Evidence ?? new List<string>();
+        payload["IdleSeconds"] = agent.IdleSeconds;
+        payload["StreamingObserved"] = agent.StreamingObserved;
+        payload["StreamingProcessCount"] = agent.StreamingProcessCount;
+        payload["UpdatedAt"] = agent.UpdatedAt ?? "";
+        payload["StateAgeSeconds"] = agent.StateAgeSeconds;
+        return payload;
+    }
+
+    private static IDictionary<string, object> BuildSessionForegroundPayload(SessionAgentSnapshot snapshot)
+    {
+        SessionAgentSnapshot agent = snapshot ?? LoadSessionAgentSnapshot();
+        IDictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        payload["ProcessId"] = agent.ForegroundPid;
+        payload["ProcessName"] = agent.ForegroundProcessName ?? "";
+        payload["ProcessStartTime"] = agent.ForegroundStartTime ?? "";
+        payload["Path"] = agent.ForegroundPath ?? "";
+        payload["HasWindow"] = agent.ForegroundHasWindow;
+        payload["Fullscreen"] = agent.ForegroundFullscreen;
+        payload["LikelyGame"] = agent.ForegroundIsGame;
+        payload["StreamingProcess"] = agent.ForegroundIsStreaming;
+        payload["Protected"] = agent.ForegroundIsProtected;
+        return payload;
+    }
+
+    private static void MarkCorePipeListening(bool listening, string error)
+    {
+        lock (corePipeStateLock)
+        {
+            corePipeListening = listening;
+            corePipeHeartbeatUtc = DateTime.UtcNow;
+            corePipeLastError = error ?? "";
+        }
+    }
+
+    private static void MarkCorePipeHeartbeat()
+    {
+        lock (corePipeStateLock)
+        {
+            corePipeHeartbeatUtc = DateTime.UtcNow;
+        }
+    }
+
+    private static void MarkCorePipeClient(string command, string clientUser, string error)
+    {
+        lock (corePipeStateLock)
+        {
+            corePipeLastClientUtc = DateTime.UtcNow;
+            corePipeLastCommand = command ?? "";
+            corePipeLastClientUser = clientUser ?? "";
+            corePipeLastError = error ?? "";
+        }
+        Interlocked.Increment(ref corePipeRequestCount);
+    }
+
+    private static IDictionary<string, object> BuildCorePipeStatePayload()
+    {
+        bool listening;
+        DateTime heartbeat;
+        DateTime clientAt;
+        string command;
+        string clientUser;
+        string error;
+        lock (corePipeStateLock)
+        {
+            listening = corePipeListening;
+            heartbeat = corePipeHeartbeatUtc;
+            clientAt = corePipeLastClientUtc;
+            command = corePipeLastCommand;
+            clientUser = corePipeLastClientUser;
+            error = corePipeLastError;
+        }
+
+        IDictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        payload["Listening"] = listening;
+        payload["Transport"] = "NamedPipe";
+        payload["PipeName"] = CorePipeName;
+        payload["SecureAcl"] = true;
+        payload["HeartbeatAt"] = ToCoreIso(heartbeat);
+        payload["LastClientAt"] = ToCoreIso(clientAt);
+        payload["LastClientUser"] = clientUser ?? "";
+        payload["LastCommand"] = command ?? "";
+        payload["LastError"] = error ?? "";
+        payload["RequestCount"] = Interlocked.Read(ref corePipeRequestCount);
+        payload["EventSequence"] = Interlocked.Read(ref corePipeEventSequence);
+        payload["MaxMessageBytes"] = CorePipeMaxMessageBytes;
+        payload["SubscribeHeartbeatSeconds"] = CorePipeSubscribeHeartbeatSeconds;
+        return payload;
+    }
+
+    private static IDictionary<string, object> BuildCoreServicePayload(CoreServiceSnapshot snapshot)
+    {
+        CoreServiceSnapshot service = snapshot ?? LoadCoreServiceSnapshot();
+        IDictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        payload["AppVersion"] = AppVersion;
+        payload["ServiceName"] = CoreServiceName;
+        payload["DisplayName"] = CoreServiceDisplayName;
+        payload["Installed"] = service.Installed;
+        payload["Running"] = service.Running;
+        payload["Status"] = service.Status ?? "";
+        payload["Action"] = service.Action ?? "";
+        payload["Health"] = service.Health ?? "";
+        payload["Summary"] = service.Summary ?? "";
+        payload["Detail"] = service.Detail ?? "";
+        payload["NeedsAttention"] = service.NeedsAttention;
+        payload["UpdatedAt"] = service.UpdatedAt ?? "";
+        payload["StateAgeSeconds"] = service.StateAgeSeconds;
+        return payload;
+    }
+
+    private static IDictionary<string, object> BuildCoreEngineBridgePayload(CoreServiceSnapshot snapshot)
+    {
+        CoreServiceSnapshot service = snapshot ?? LoadCoreServiceSnapshot();
+        IDictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        payload["ContextProvider"] = CoreContextProviderLegacyBridge;
+        payload["AutoTaskInstalled"] = service.AutoTaskInstalled;
+        payload["AutoTaskKicked"] = service.AutoTaskKicked;
+        payload["TelemetryFresh"] = service.TelemetryFresh;
+        payload["TelemetryStale"] = service.TelemetryStale;
+        payload["ScorePath"] = scorePath;
+        payload["ScoreAgeSeconds"] = service.ScoreAgeSeconds;
+        payload["StaleThresholdSeconds"] = service.StaleThresholdSeconds;
+        payload["LoopSeconds"] = service.LoopSeconds;
+        payload["LastApplyLine"] = ReadLastApplyLogLine();
+        return payload;
+    }
+
+    private static IDictionary<string, object> BuildCoreCapabilitiesPayload()
+    {
+        IDictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        payload["ProtocolVersion"] = CoreProtocolVersion;
+        payload["MinimumSupportedProtocolVersion"] = CoreMinimumSupportedProtocolVersion;
+        payload["PipeName"] = CorePipeName;
+        payload["Capabilities"] = BuildCoreServiceCapabilities();
+        payload["Transport"] = "NamedPipe";
+        payload["SecureAcl"] = true;
+        payload["MaxMessageBytes"] = CorePipeMaxMessageBytes;
+        payload["ContextProvider"] = "SessionAgentV1+" + CoreContextProviderLegacyBridge;
+        return payload;
+    }
+
+    private static IDictionary<string, object> BuildCoreSnapshotPayload()
+    {
+        CoreServiceSnapshot service = LoadCoreServiceSnapshot();
+        SessionAgentSnapshot sessionAgent = LoadSessionAgentSnapshot();
+        IDictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        payload["SnapshotVersion"] = 1;
+        payload["GeneratedAt"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+        payload["Protocol"] = BuildCoreCapabilitiesPayload();
+        payload["Service"] = BuildCoreServicePayload(service);
+        payload["Ipc"] = BuildCorePipeStatePayload();
+        payload["Engine"] = BuildCoreEngineBridgePayload(service);
+        payload["Session"] = BuildSessionAgentPayload(sessionAgent);
+        payload["Context"] = BuildSessionContextPayload(sessionAgent);
+        payload["Foreground"] = BuildSessionForegroundPayload(sessionAgent);
+        payload["Events"] = BuildCoreEventsPayload(20);
+        return payload;
+    }
+
+    private static IDictionary<string, object> BuildCoreEventsPayload(int maxLines)
+    {
+        int limit = Math.Max(1, Math.Min(100, maxLines <= 0 ? 20 : maxLines));
+        List<string> lines = ReadCoreLogLines(logPath, limit);
+        List<object> events = new List<object>();
+        long baseSequence = Interlocked.Read(ref corePipeEventSequence);
+        for (int i = 0; i < lines.Count; i++)
+        {
+            IDictionary<string, object> entry = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            entry["Sequence"] = Math.Max(0, baseSequence - lines.Count + i + 1);
+            entry["Text"] = lines[i];
+            events.Add(entry);
+        }
+
+        IDictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        payload["Cursor"] = File.Exists(logPath) ? File.GetLastWriteTimeUtc(logPath).Ticks.ToString(CultureInfo.InvariantCulture) : "0";
+        payload["Count"] = events.Count;
+        payload["Events"] = events;
+        return payload;
+    }
+
+    private static List<string> ReadCoreLogLines(string path, int maxLines)
+    {
+        List<string> result = new List<string>();
+        try
+        {
+            if (!File.Exists(path)) { return result; }
+            string[] lines = File.ReadAllLines(path, Encoding.UTF8);
+            int start = Math.Max(0, lines.Length - Math.Max(1, maxLines));
+            for (int i = start; i < lines.Length; i++)
+            {
+                if (!String.IsNullOrWhiteSpace(lines[i])) { result.Add(lines[i]); }
+            }
+        }
+        catch
+        {
+        }
+        return result;
+    }
+
+    private static IDictionary<string, object> BuildCoreDiagnosticsPayload()
+    {
+        IDictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        payload["Service"] = BuildCoreServicePayload(null);
+        payload["Ipc"] = BuildCorePipeStatePayload();
+        payload["Capabilities"] = BuildCoreCapabilitiesPayload();
+        payload["Session"] = BuildSessionAgentPayload(null);
+        payload["Context"] = BuildSessionContextPayload(null);
+        payload["Foreground"] = BuildSessionForegroundPayload(null);
+        IDictionary<string, object> tasks = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        tasks["Auto"] = BuildTaskStatusLine(AutoTaskName);
+        tasks["Tray"] = BuildTaskStatusLine(TrayTaskName);
+        tasks["Dashboard"] = BuildTaskStatusLine(DashboardTaskName);
+        tasks["SessionAgent"] = BuildTaskStatusLine(SessionAgentTaskName);
+        payload["Tasks"] = tasks;
+        IDictionary<string, object> paths = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        paths["AppRoot"] = appRoot;
+        paths["Outputs"] = outputsPath;
+        paths["Log"] = logPath;
+        paths["Score"] = scorePath;
+        paths["CoreState"] = coreServiceStatePath;
+        paths["SessionAgentState"] = sessionAgentStatePath;
+        payload["Paths"] = paths;
+        return payload;
+    }
+
+    private static PipeSecurity CreateCorePipeSecurity()
+    {
+        PipeSecurity security = new PipeSecurity();
+        security.SetAccessRuleProtection(true, false);
+        AddCorePipeAccessRule(security, WellKnownSidType.LocalSystemSid, PipeAccessRights.FullControl);
+        AddCorePipeAccessRule(security, WellKnownSidType.BuiltinAdministratorsSid, PipeAccessRights.FullControl);
+        AddCorePipeAccessRule(security, WellKnownSidType.InteractiveSid, PipeAccessRights.ReadWrite);
+        AddCorePipeAccessRule(security, WellKnownSidType.AuthenticatedUserSid, PipeAccessRights.ReadWrite);
+        return security;
+    }
+
+    private static void AddCorePipeAccessRule(PipeSecurity security, WellKnownSidType sidType, PipeAccessRights rights)
+    {
+        SecurityIdentifier sid = new SecurityIdentifier(sidType, null);
+        security.AddAccessRule(new PipeAccessRule(sid, rights, AccessControlType.Allow));
+    }
+
+    private static NamedPipeServerStream CreateCorePipeServerStream()
+    {
+        return NamedPipeServerStreamAcl.Create(
+            CorePipeName,
+            PipeDirection.InOut,
+            NamedPipeServerStream.MaxAllowedServerInstances,
+            PipeTransmissionMode.Message,
+            PipeOptions.Asynchronous,
+            CorePipeMaxMessageBytes,
+            CorePipeMaxMessageBytes,
+            CreateCorePipeSecurity());
+    }
+
+    private static string TryGetCorePipeClientUser(NamedPipeServerStream pipe)
+    {
+        try { return pipe == null ? "" : pipe.GetImpersonationUserName(); }
+        catch { return ""; }
+    }
+
+    private static string ReadCorePipeMessage(PipeStream pipe)
+    {
+        if (pipe == null || !pipe.IsConnected) { return ""; }
+        byte[] buffer = new byte[4096];
+        using (MemoryStream output = new MemoryStream())
+        {
+            do
+            {
+                int read = pipe.Read(buffer, 0, buffer.Length);
+                if (read <= 0) { break; }
+                if (output.Length + read > CorePipeMaxMessageBytes)
+                {
+                    throw new InvalidOperationException("Core pipe message exceeded " + CorePipeMaxMessageBytes.ToString(CultureInfo.InvariantCulture) + " bytes.");
+                }
+                output.Write(buffer, 0, read);
+            }
+            while (!pipe.IsMessageComplete);
+
+            return Encoding.UTF8.GetString(output.ToArray()).Trim();
+        }
+    }
+
+    private static void WriteCorePipeMessage(PipeStream pipe, object message)
+    {
+        if (pipe == null || !pipe.IsConnected) { return; }
+        string json = JsonCompat.SerializeObject(message);
+        byte[] payload = Encoding.UTF8.GetBytes(json);
+        if (payload.Length > CorePipeMaxMessageBytes)
+        {
+            throw new InvalidOperationException("Core pipe response exceeded " + CorePipeMaxMessageBytes.ToString(CultureInfo.InvariantCulture) + " bytes.");
+        }
+        pipe.Write(payload, 0, payload.Length);
+        pipe.Flush();
+    }
+
+    private static IDictionary<string, object> AcceptSessionAgentObservation(IDictionary<string, object> request, IDictionary<string, object> observation, string clientUser)
+    {
+        IDictionary<string, object> accepted = observation == null
+            ? new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+            : new Dictionary<string, object>(observation, StringComparer.OrdinalIgnoreCase);
+
+        int requestSessionId = ReadMapInt(request, "sessionId");
+        if (ReadMapInt(accepted, "SessionId") <= 0 && requestSessionId > 0) { accepted["SessionId"] = requestSessionId; }
+        if (String.IsNullOrWhiteSpace(ReadMapString(accepted, "AgentVersion"))) { accepted["AgentVersion"] = ReadMapString(request, "clientVersion"); }
+        if (String.IsNullOrWhiteSpace(ReadMapString(accepted, "UserSid"))) { accepted["UserSid"] = ReadMapString(request, "userSid"); }
+        accepted["ProtocolVersion"] = CoreProtocolVersion;
+        accepted["Source"] = "SessionAgent";
+        accepted["CorePublishedAt"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+        accepted["CorePublishStatus"] = "accepted";
+        accepted["PipeClientUser"] = clientUser ?? "";
+
+        WriteSessionAgentState(accepted);
+        SessionAgentSnapshot snapshot = LoadSessionAgentSnapshot();
+        IDictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        payload["accepted"] = true;
+        payload["session"] = BuildSessionAgentPayload(snapshot);
+        payload["context"] = BuildSessionContextPayload(snapshot);
+        payload["foreground"] = BuildSessionForegroundPayload(snapshot);
+        return payload;
+    }
+
+    private static string NormalizeCorePipeCommand(string command)
+    {
+        string value = String.IsNullOrWhiteSpace(command) ? "hello" : command.Trim();
+        string lower = value.Replace("-", "").Replace("_", "").ToLowerInvariant();
+        if (lower == "capabilities" || lower == "getcapabilities") { return "getCapabilities"; }
+        if (lower == "snapshot" || lower == "getsnapshot") { return "getSnapshot"; }
+        if (lower == "state" || lower == "getstate") { return "getState"; }
+        if (lower == "events" || lower == "getevents") { return "getEvents"; }
+        if (lower == "diagnostics" || lower == "getdiagnostics" || lower == "doctor") { return "getDiagnostics"; }
+        if (lower == "sessioncontext" || lower == "getsessioncontext") { return "getSessionContext"; }
+        if (lower == "publishsessioncontext" || lower == "sessionsnapshot" || lower == "publishsessionagent") { return "publishSessionContext"; }
+        if (lower == "subscribe") { return "subscribe"; }
+        if (lower == "ping") { return "ping"; }
+        if (lower == "hello") { return "hello"; }
+        return value;
+    }
+
+    private static IDictionary<string, object> BuildCorePipeResponse(IDictionary<string, object> request, string clientUser)
+    {
+        IDictionary<string, object> payloadMap = ReadMapObject(request, "payload");
+        string command = NormalizeCorePipeCommand(ReadMapString(request, "command"));
+        string requestMessageId = ReadMapString(request, "messageId");
+        string correlationId = ReadMapString(request, "correlationId");
+        if (String.IsNullOrWhiteSpace(correlationId)) { correlationId = requestMessageId; }
+        if (String.IsNullOrWhiteSpace(correlationId)) { correlationId = Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture); }
+
+        int protocolVersion = ReadMapInt(request, "protocolVersion");
+        bool protocolOk = protocolVersion >= CoreMinimumSupportedProtocolVersion && protocolVersion <= CoreProtocolVersion;
+        IDictionary<string, object> response = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        response["protocolVersion"] = CoreProtocolVersion;
+        response["messageId"] = Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture);
+        response["correlationId"] = correlationId;
+        response["command"] = command;
+        response["serviceVersion"] = AppVersion;
+        response["serviceTime"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+        response["sequence"] = Interlocked.Increment(ref corePipeEventSequence);
+
+        if (!protocolOk)
+        {
+            response["accepted"] = false;
+            response["status"] = "rejected";
+            response["errorCode"] = "protocol_unsupported";
+            response["errorMessage"] = "Unsupported protocol version.";
+            response["payload"] = BuildCoreCapabilitiesPayload();
+            return response;
+        }
+
+        IDictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        response["accepted"] = true;
+        response["status"] = "ok";
+        response["errorCode"] = "";
+        response["errorMessage"] = "";
+
+        if (String.Equals(command, "hello", StringComparison.OrdinalIgnoreCase))
+        {
+            payload["service"] = BuildCoreServicePayload(null);
+            payload["capabilities"] = BuildCoreCapabilitiesPayload();
+            payload["ipc"] = BuildCorePipeStatePayload();
+            IDictionary<string, object> client = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            client["clientType"] = ReadMapString(request, "clientType");
+            client["clientVersion"] = ReadMapString(request, "clientVersion");
+            client["sessionId"] = ReadMapInt(request, "sessionId");
+            client["user"] = clientUser ?? "";
+            payload["client"] = client;
+        }
+        else if (String.Equals(command, "getCapabilities", StringComparison.OrdinalIgnoreCase))
+        {
+            payload = BuildCoreCapabilitiesPayload();
+        }
+        else if (String.Equals(command, "getSnapshot", StringComparison.OrdinalIgnoreCase))
+        {
+            payload = BuildCoreSnapshotPayload();
+        }
+        else if (String.Equals(command, "getState", StringComparison.OrdinalIgnoreCase))
+        {
+            payload["service"] = BuildCoreServicePayload(null);
+            payload["engine"] = BuildCoreEngineBridgePayload(null);
+            payload["ipc"] = BuildCorePipeStatePayload();
+        }
+        else if (String.Equals(command, "getEvents", StringComparison.OrdinalIgnoreCase))
+        {
+            int maxEvents = ReadMapInt(request, "maxEvents");
+            if (maxEvents <= 0) { maxEvents = ReadMapInt(payloadMap, "maxEvents"); }
+            payload = BuildCoreEventsPayload(maxEvents <= 0 ? 50 : maxEvents);
+        }
+        else if (String.Equals(command, "getDiagnostics", StringComparison.OrdinalIgnoreCase))
+        {
+            payload = BuildCoreDiagnosticsPayload();
+        }
+        else if (String.Equals(command, "getSessionContext", StringComparison.OrdinalIgnoreCase))
+        {
+            SessionAgentSnapshot agent = LoadSessionAgentSnapshot();
+            payload["session"] = BuildSessionAgentPayload(agent);
+            payload["context"] = BuildSessionContextPayload(agent);
+            payload["foreground"] = BuildSessionForegroundPayload(agent);
+        }
+        else if (String.Equals(command, "publishSessionContext", StringComparison.OrdinalIgnoreCase))
+        {
+            string clientType = ReadMapString(request, "clientType");
+            if (!String.Equals(clientType, SessionAgentClientType, StringComparison.OrdinalIgnoreCase))
+            {
+                response["accepted"] = false;
+                response["status"] = "rejected";
+                response["errorCode"] = "client_type_not_allowed";
+                response["errorMessage"] = "Only the Smart Nap Session Agent can publish session context.";
+            }
+            else
+            {
+                payload = AcceptSessionAgentObservation(request, payloadMap, clientUser);
+            }
+        }
+        else if (String.Equals(command, "subscribe", StringComparison.OrdinalIgnoreCase))
+        {
+            payload = BuildCoreSnapshotPayload();
+            payload["SubscriptionMode"] = "heartbeat-stream";
+            payload["HeartbeatSeconds"] = CorePipeSubscribeHeartbeatSeconds;
+        }
+        else if (String.Equals(command, "ping", StringComparison.OrdinalIgnoreCase))
+        {
+            payload["pong"] = true;
+            payload["ipc"] = BuildCorePipeStatePayload();
+        }
+        else
+        {
+            response["accepted"] = false;
+            response["status"] = "rejected";
+            response["errorCode"] = "command_unsupported";
+            response["errorMessage"] = "Unsupported Core Service v1 command.";
+            payload["capabilities"] = BuildCoreServiceCapabilities();
+        }
+
+        response["payload"] = payload;
+        return response;
+    }
+
+    private static bool IsAcceptedCorePipeResponse(IDictionary<string, object> response)
+    {
+        return response != null && ReadMapBool(response, "accepted");
+    }
+
+    private static void RunCorePipeSubscription(PipeStream pipe, ManualResetEvent stopSignal, string correlationId)
+    {
+        while (pipe != null && pipe.IsConnected && !stopSignal.WaitOne(TimeSpan.FromSeconds(CorePipeSubscribeHeartbeatSeconds)))
+        {
+            MarkCorePipeHeartbeat();
+            IDictionary<string, object> heartbeat = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            heartbeat["protocolVersion"] = CoreProtocolVersion;
+            heartbeat["messageId"] = Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture);
+            heartbeat["correlationId"] = correlationId ?? "";
+            heartbeat["eventType"] = "core.heartbeat";
+            heartbeat["sequence"] = Interlocked.Increment(ref corePipeEventSequence);
+            heartbeat["serviceVersion"] = AppVersion;
+            heartbeat["timestamp"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+            heartbeat["payload"] = BuildCorePipeStatePayload();
+            WriteCorePipeMessage(pipe, heartbeat);
+        }
+    }
+
+    private static void HandleCorePipeConnection(NamedPipeServerStream pipe, ManualResetEvent stopSignal)
+    {
+        string command = "unknown";
+        string clientUser = TryGetCorePipeClientUser(pipe);
+        try
+        {
+            string text = ReadCorePipeMessage(pipe);
+            if (String.IsNullOrWhiteSpace(text)) { return; }
+            IDictionary<string, object> request = JsonCompat.DeserializeObject(text);
+            if (request == null) { throw new InvalidDataException("Invalid JSON envelope."); }
+            command = NormalizeCorePipeCommand(ReadMapString(request, "command"));
+            MarkCorePipeClient(command, clientUser, "");
+            IDictionary<string, object> response = BuildCorePipeResponse(request, clientUser);
+            WriteCorePipeMessage(pipe, response);
+            if (IsAcceptedCorePipeResponse(response) && String.Equals(command, "subscribe", StringComparison.OrdinalIgnoreCase))
+            {
+                RunCorePipeSubscription(pipe, stopSignal, ReadMapString(response, "correlationId"));
+            }
+        }
+        catch (Exception ex)
+        {
+            MarkCorePipeClient(command, clientUser, ex.Message);
+            try
+            {
+                IDictionary<string, object> response = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                response["protocolVersion"] = CoreProtocolVersion;
+                response["messageId"] = Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture);
+                response["correlationId"] = "";
+                response["accepted"] = false;
+                response["status"] = "failed";
+                response["errorCode"] = "ipc_error";
+                response["errorMessage"] = ShortTaskError(ex.Message);
+                response["serviceVersion"] = AppVersion;
+                response["serviceTime"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+                WriteCorePipeMessage(pipe, response);
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    private static void RunCorePipeServerLoop(ManualResetEvent stopSignal)
+    {
+        MarkCorePipeListening(true, "");
+        AppendOperationalLog("action=core-ipc status=listening pipe=" + CorePipeName);
+        try
+        {
+            while (!stopSignal.WaitOne(0))
+            {
+                MarkCorePipeHeartbeat();
+                try
+                {
+                    using (NamedPipeServerStream pipe = CreateCorePipeServerStream())
+                    {
+                        System.Threading.Tasks.Task wait = pipe.WaitForConnectionAsync();
+                        while (!wait.Wait(CorePipeConnectPollMilliseconds))
+                        {
+                            if (stopSignal.WaitOne(0)) { return; }
+                            MarkCorePipeHeartbeat();
+                        }
+                        if (wait.IsFaulted && wait.Exception != null) { throw wait.Exception; }
+                        if (!pipe.IsConnected) { continue; }
+                        HandleCorePipeConnection(pipe, stopSignal);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MarkCorePipeListening(true, ex.Message);
+                    AppendOperationalLog("action=core-ipc status=failed detail=" + ShortTaskError(ex.Message));
+                    stopSignal.WaitOne(TimeSpan.FromSeconds(2));
+                }
+            }
+        }
+        finally
+        {
+            MarkCorePipeListening(false, "");
+            AppendOperationalLog("action=core-ipc status=stopped pipe=" + CorePipeName);
+        }
+    }
+
+    private static RunResult WriteCorePipeRequestToConsole(string[] args)
+    {
+        string requestText = GetArgValue(args, "--core-pipe-request");
+        if (String.IsNullOrWhiteSpace(requestText) || !requestText.TrimStart().StartsWith("{", StringComparison.Ordinal))
+        {
+            string command = String.IsNullOrWhiteSpace(requestText) ? "hello" : NormalizeCorePipeCommand(requestText);
+            IDictionary<string, object> request = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            request["protocolVersion"] = CoreProtocolVersion;
+            request["messageId"] = Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture);
+            request["correlationId"] = Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture);
+            request["clientType"] = "diagnostic";
+            request["clientVersion"] = AppVersion;
+            request["sessionId"] = Process.GetCurrentProcess().SessionId;
+            request["command"] = command;
+            request["createdAt"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+            requestText = JsonCompat.SerializeObject(request);
+        }
+
+        try
+        {
+            using (NamedPipeClientStream pipe = new NamedPipeClientStream(".", CorePipeName, PipeDirection.InOut, PipeOptions.None, TokenImpersonationLevel.Impersonation))
+            {
+                pipe.Connect(5000);
+                pipe.ReadMode = PipeTransmissionMode.Message;
+                byte[] payload = Encoding.UTF8.GetBytes(requestText);
+                if (payload.Length > CorePipeMaxMessageBytes) { return new RunResult(1, "Request is too large."); }
+                pipe.Write(payload, 0, payload.Length);
+                pipe.Flush();
+                string response = ReadCorePipeMessage(pipe);
+                Console.WriteLine(response);
+                return new RunResult(0, response);
+            }
+        }
+        catch (Exception ex)
+        {
+            string message = "Core pipe request failed: " + ShortTaskError(ex.Message);
+            Console.WriteLine(message);
+            return new RunResult(1, message);
+        }
+    }
+
+    private static RunResult PublishSessionAgentObservationToCore(IDictionary<string, object> observation)
+    {
+        if (observation == null) { return new RunResult(1, "No session observation to publish."); }
+
+        IDictionary<string, object> request = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        request["protocolVersion"] = CoreProtocolVersion;
+        request["messageId"] = Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture);
+        request["correlationId"] = Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture);
+        request["clientType"] = SessionAgentClientType;
+        request["clientVersion"] = AppVersion;
+        request["sessionId"] = ReadMapInt(observation, "SessionId");
+        request["userSid"] = ReadMapString(observation, "UserSid");
+        request["command"] = "publishSessionContext";
+        request["payload"] = observation;
+        request["createdAt"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+
+        try
+        {
+            using (NamedPipeClientStream pipe = new NamedPipeClientStream(".", CorePipeName, PipeDirection.InOut, PipeOptions.None, TokenImpersonationLevel.Impersonation))
+            {
+                pipe.Connect(1500);
+                pipe.ReadMode = PipeTransmissionMode.Message;
+                string requestText = JsonCompat.SerializeObject(request);
+                byte[] payload = Encoding.UTF8.GetBytes(requestText);
+                if (payload.Length > CorePipeMaxMessageBytes) { return new RunResult(1, "Session observation is too large."); }
+                pipe.Write(payload, 0, payload.Length);
+                pipe.Flush();
+                string responseText = ReadCorePipeMessage(pipe);
+                IDictionary<string, object> response = JsonCompat.DeserializeObject(responseText);
+                bool accepted = response != null && ReadMapBool(response, "accepted");
+                return accepted ? new RunResult(0, responseText) : new RunResult(1, String.IsNullOrWhiteSpace(responseText) ? "Session observation was rejected." : responseText);
+            }
+        }
+        catch (Exception ex)
+        {
+            return new RunResult(2, "Core pipe unavailable for Session Agent: " + ShortTaskError(ex.Message));
+        }
+    }
+
+    private static void MarkSessionAgentPublishStatus(IDictionary<string, object> observation, RunResult publish)
+    {
+        if (observation == null) { return; }
+        bool ok = publish != null && publish.ExitCode == 0;
+        observation["CorePublishStatus"] = ok ? "published" : "local-only";
+        observation["CorePublishedAt"] = ok ? DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture) : "";
+        observation["CorePublishDetail"] = publish == null ? "" : ShortTaskError(publish.Output);
+    }
+
+    private static RunResult WriteSessionAgentOnceToConsole(string[] args)
+    {
+        IDictionary<string, object> observation = BuildSessionAgentObservation();
+        RunResult publish = PublishSessionAgentObservationToCore(observation);
+        MarkSessionAgentPublishStatus(observation, publish);
+        WriteSessionAgentState(observation);
+        Console.WriteLine(JsonCompat.SerializeObject(observation));
+        return new RunResult(0, JsonCompat.SerializeObject(observation));
+    }
+
+    private static RunResult RunSessionAgentHost(string[] args)
+    {
+        ManualResetEvent stopSignal = new ManualResetEvent(false);
+        ConsoleCancelEventHandler cancelHandler = delegate(object sender, ConsoleCancelEventArgs e)
+        {
+            e.Cancel = true;
+            stopSignal.Set();
+        };
+
+        try { Console.CancelKeyPress += cancelHandler; } catch { }
+        string lastSignature = "";
+        try
+        {
+            AppendOperationalLog("action=session-agent event=started session=" + Process.GetCurrentProcess().SessionId.ToString(CultureInfo.InvariantCulture));
+            while (!stopSignal.WaitOne(0))
+            {
+                IDictionary<string, object> observation = BuildSessionAgentObservation();
+                RunResult publish = PublishSessionAgentObservationToCore(observation);
+                MarkSessionAgentPublishStatus(observation, publish);
+                WriteSessionAgentState(observation);
+
+                string signature = ReadMapString(observation, "Context") + "|" +
+                    ReadMapInt(observation, "ForegroundPid").ToString(CultureInfo.InvariantCulture) + "|" +
+                    ReadMapBool(observation, "ForegroundFullscreen").ToString(CultureInfo.InvariantCulture) + "|" +
+                    ReadMapBool(observation, "StreamingObserved").ToString(CultureInfo.InvariantCulture);
+                if (!String.Equals(signature, lastSignature, StringComparison.OrdinalIgnoreCase))
+                {
+                    lastSignature = signature;
+                    AppendOperationalLog("action=session-agent context=" + SanitizeLogToken(ReadMapString(observation, "Context")) +
+                        " confidence=" + ReadMapInt(observation, "Confidence").ToString(CultureInfo.InvariantCulture) +
+                        " foreground=" + SanitizeLogToken(ReadMapString(observation, "ForegroundProcessName")) +
+                        " pid=" + ReadMapInt(observation, "ForegroundPid").ToString(CultureInfo.InvariantCulture) +
+                        " fullscreen=" + ReadMapBool(observation, "ForegroundFullscreen").ToString().ToLowerInvariant() +
+                        " core=" + SanitizeLogToken(ReadMapString(observation, "CorePublishStatus")));
+                }
+
+                stopSignal.WaitOne(SessionAgentLoopMilliseconds);
+            }
+            AppendOperationalLog("action=session-agent event=stopped");
+            return new RunResult(0, "Session Agent stopped.");
+        }
+        catch (Exception ex)
+        {
+            AppendOperationalLog("action=session-agent status=failed detail=" + ShortTaskError(ex.Message));
+            WriteCrash(ex);
+            return new RunResult(1, "Session Agent failed: " + ex.Message);
+        }
+        finally
+        {
+            try { Console.CancelKeyPress -= cancelHandler; } catch { }
+            try { stopSignal.Dispose(); } catch { }
+        }
+    }
+
+    private static CoreServiceSnapshot LoadCoreServiceSnapshot()
+    {
+        CoreServiceSnapshot snapshot = new CoreServiceSnapshot();
+        snapshot.Status = "unknown";
+        snapshot.Action = "Unknown";
+        snapshot.Health = "Unknown";
+        snapshot.Summary = "";
+        snapshot.Detail = "";
+        snapshot.ScoreAgeSeconds = GetFileAgeSeconds(scorePath);
+        snapshot.StaleThresholdSeconds = CoreServiceStalePassSeconds;
+        snapshot.LoopSeconds = CoreServiceLoopSeconds;
+        snapshot.ProtocolVersion = CoreProtocolVersion;
+        snapshot.MinimumSupportedProtocolVersion = CoreMinimumSupportedProtocolVersion;
+        snapshot.PipeName = CorePipeName;
+        snapshot.ContextProvider = "SessionAgentV1+" + CoreContextProviderLegacyBridge;
+        snapshot.StateAgeSeconds = -1;
+
+        try
+        {
+            if (!File.Exists(coreServiceStatePath)) { return snapshot; }
+            string json = File.ReadAllText(coreServiceStatePath, Encoding.UTF8);
+            if (String.IsNullOrWhiteSpace(json)) { return snapshot; }
+            IDictionary<string, object> root = JsonCompat.DeserializeObject(json);
+            if (root == null) { return snapshot; }
+
+            snapshot.Available = true;
+            snapshot.Installed = ReadMapBool(root, "Installed");
+            snapshot.Running = ReadMapBool(root, "Running");
+            snapshot.ProtocolVersion = ReadMapInt(root, "ProtocolVersion");
+            snapshot.MinimumSupportedProtocolVersion = ReadMapInt(root, "MinimumSupportedProtocolVersion");
+            snapshot.PipeName = ReadMapString(root, "PipeName");
+            snapshot.ContextProvider = ReadMapString(root, "ContextProvider");
+            snapshot.Status = ReadMapString(root, "Status");
+            snapshot.Action = ReadMapString(root, "Action");
+            snapshot.Health = ReadMapString(root, "Health");
+            snapshot.Summary = ReadMapString(root, "Summary");
+            snapshot.Detail = ReadMapString(root, "Detail");
+            snapshot.AutoTaskInstalled = ReadMapBool(root, "AutoTaskInstalled");
+            snapshot.AutoTaskKicked = ReadMapBool(root, "AutoTaskKicked");
+            snapshot.TelemetryFresh = ReadMapBool(root, "TelemetryFresh");
+            snapshot.TelemetryStale = ReadMapBool(root, "TelemetryStale");
+            snapshot.ScoreAgeSeconds = ReadMapInt(root, "ScoreAgeSeconds");
+            snapshot.StaleThresholdSeconds = ReadMapInt(root, "StaleThresholdSeconds");
+            snapshot.LoopSeconds = ReadMapInt(root, "LoopSeconds");
+            snapshot.ExitCode = ReadMapInt(root, "ExitCode");
+            snapshot.UpdatedAt = ReadMapString(root, "UpdatedAt");
+            snapshot.IpcListening = ReadMapBool(root, "IpcListening");
+            snapshot.IpcSecureAcl = ReadMapBool(root, "IpcSecureAcl");
+            snapshot.IpcHeartbeatAt = ReadMapString(root, "IpcHeartbeatAt");
+            snapshot.IpcLastClientAt = ReadMapString(root, "IpcLastClientAt");
+            snapshot.IpcLastCommand = ReadMapString(root, "IpcLastCommand");
+            snapshot.IpcLastError = ReadMapString(root, "IpcLastError");
+            snapshot.StateAgeSeconds = GetIsoAgeSeconds(snapshot.UpdatedAt);
+            if (snapshot.LoopSeconds <= 0) { snapshot.LoopSeconds = CoreServiceLoopSeconds; }
+            if (snapshot.ProtocolVersion <= 0) { snapshot.ProtocolVersion = CoreProtocolVersion; }
+            if (snapshot.MinimumSupportedProtocolVersion <= 0) { snapshot.MinimumSupportedProtocolVersion = CoreMinimumSupportedProtocolVersion; }
+            if (String.IsNullOrWhiteSpace(snapshot.PipeName)) { snapshot.PipeName = CorePipeName; }
+            if (String.IsNullOrWhiteSpace(snapshot.ContextProvider)) { snapshot.ContextProvider = "SessionAgentV1+" + CoreContextProviderLegacyBridge; }
+            if (snapshot.StaleThresholdSeconds <= 0) { snapshot.StaleThresholdSeconds = CoreServiceStalePassSeconds; }
+            if (String.IsNullOrWhiteSpace(snapshot.Health))
+            {
+                snapshot.Health = ClassifyCoreServiceHealth(snapshot.Status, snapshot.Action, snapshot.ExitCode, snapshot.Installed, snapshot.Running, snapshot.AutoTaskInstalled, snapshot.TelemetryStale, snapshot.AutoTaskKicked);
+            }
+            if (snapshot.StateAgeSeconds > Math.Max(90, snapshot.LoopSeconds * 4) && String.Equals(snapshot.Health, "Healthy", StringComparison.OrdinalIgnoreCase))
+            {
+                snapshot.Health = "Stale";
+                snapshot.Summary = "Core service state has not refreshed recently.";
+            }
+            if (String.IsNullOrWhiteSpace(snapshot.Summary))
+            {
+                snapshot.Summary = BuildCoreServiceSummary(snapshot.Health, snapshot.Action, snapshot.AutoTaskInstalled, snapshot.TelemetryStale, snapshot.AutoTaskKicked, snapshot.ScoreAgeSeconds);
+            }
+            snapshot.NeedsAttention = ReadMapBool(root, "NeedsAttention") || IsCoreServiceAttentionHealth(snapshot.Health);
+        }
+        catch
+        {
+        }
+
+        return snapshot;
+    }
+
+    private static void WriteCoreServiceState(string status, string action, RunResult result, bool autoTaskInstalled, bool kicked, int scoreAgeSeconds, int staleThresholdSeconds)
+    {
+        WriteCoreServiceState(status, action, result, autoTaskInstalled, kicked, scoreAgeSeconds, staleThresholdSeconds, "");
+    }
+
+    private static void WriteCoreServiceState(string status, string action, RunResult result, bool autoTaskInstalled, bool kicked, int scoreAgeSeconds, int staleThresholdSeconds, string source)
+    {
+        try
+        {
+            Directory.CreateDirectory(outputsPath);
+            bool installed = IsCoreServiceInstalled();
+            bool running = installed && IsCoreServiceRunning();
+            int exitCode = result == null ? 0 : result.ExitCode;
+            bool telemetryStale = scoreAgeSeconds < 0 || scoreAgeSeconds > staleThresholdSeconds;
+            string health = ClassifyCoreServiceHealth(status, action, exitCode, installed, running, autoTaskInstalled, telemetryStale, kicked);
             IDictionary<string, object> state = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             state["AppVersion"] = AppVersion;
             state["ServiceName"] = CoreServiceName;
             state["DisplayName"] = CoreServiceDisplayName;
+            state["ProtocolVersion"] = CoreProtocolVersion;
+            state["MinimumSupportedProtocolVersion"] = CoreMinimumSupportedProtocolVersion;
+            state["PipeName"] = CorePipeName;
+            state["ContextProvider"] = "SessionAgentV1+" + CoreContextProviderLegacyBridge;
+            state["Capabilities"] = BuildCoreServiceCapabilities();
+            IDictionary<string, object> ipcState = BuildCorePipeStatePayload();
+            state["Ipc"] = ipcState;
+            state["IpcListening"] = ReadMapBool(ipcState, "Listening");
+            state["IpcSecureAcl"] = ReadMapBool(ipcState, "SecureAcl");
+            state["IpcHeartbeatAt"] = ReadMapString(ipcState, "HeartbeatAt");
+            state["IpcLastClientAt"] = ReadMapString(ipcState, "LastClientAt");
+            state["IpcLastCommand"] = ReadMapString(ipcState, "LastCommand");
+            state["IpcLastError"] = ReadMapString(ipcState, "LastError");
+            state["Installed"] = installed;
+            state["Running"] = running;
             state["Status"] = status ?? "Unknown";
             state["Action"] = action ?? "Observe";
+            state["Health"] = health;
+            state["Summary"] = BuildCoreServiceSummary(health, action, autoTaskInstalled, telemetryStale, kicked, scoreAgeSeconds);
+            state["NeedsAttention"] = IsCoreServiceAttentionHealth(health);
             state["AutoTaskInstalled"] = autoTaskInstalled;
+            state["SessionAgentTaskInstalled"] = IsTaskInstalled(SessionAgentTaskName);
             state["AutoTaskKicked"] = kicked;
+            state["TelemetryFresh"] = !telemetryStale;
+            state["TelemetryStale"] = telemetryStale;
             state["ScorePath"] = scorePath;
             state["ScoreAgeSeconds"] = scoreAgeSeconds;
             state["StaleThresholdSeconds"] = staleThresholdSeconds;
             state["LoopSeconds"] = CoreServiceLoopSeconds;
-            state["ExitCode"] = result == null ? 0 : result.ExitCode;
+            state["ExitCode"] = exitCode;
             state["Detail"] = result == null ? "" : ShortTaskError(result.Output);
+            if (!String.IsNullOrWhiteSpace(source)) { state["Source"] = source; }
+            SessionAgentSnapshot sessionAgent = LoadSessionAgentSnapshot();
+            state["SessionAgent"] = BuildSessionAgentPayload(sessionAgent);
+            state["SessionContext"] = BuildSessionContextPayload(sessionAgent);
+            state["SessionForeground"] = BuildSessionForegroundPayload(sessionAgent);
             state["UpdatedAt"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
             AtomicWriteJsonMap(coreServiceStatePath, state);
         }
@@ -3419,7 +5090,7 @@ internal static class SmartBackgroundNap
             AppendOperationalLog("action=core-service-watchdog source=" + SanitizeLogToken(source) + " status=" + (kicked ? "kicked" : "failed") + " scoreAgeSeconds=" + scoreAgeSeconds.ToString(CultureInfo.InvariantCulture) + " detail=" + ShortTaskError(result.Output));
         }
 
-        WriteCoreServiceState("Running", action, result, autoTaskInstalled, kicked, scoreAgeSeconds, staleThresholdSeconds);
+        WriteCoreServiceState("Running", action, result, autoTaskInstalled, kicked, scoreAgeSeconds, staleThresholdSeconds, source);
         return result.ExitCode == 0 ? new RunResult(0, action) : result;
     }
 
@@ -3644,6 +5315,7 @@ internal static class SmartBackgroundNap
         RunResult dashboard = InstallDashboardTask();
         RunResult auto = InstallAutomatic(false);
         RunResult startup = InstallStartup(false);
+        RunResult sessionAgent = InstallSessionAgent(false);
         RunResult coreService = InstallCoreService(false);
         if (coreService.ExitCode != 0)
         {
@@ -3661,10 +5333,92 @@ internal static class SmartBackgroundNap
         {
             AppendOperationalLog("action=install-start-menu-shortcut status=deferred detail=" + ShortTaskError(shortcuts.Output));
         }
-        return RunResult.Combine(RunResult.Combine(RunResult.Combine(dashboard, auto), startup), coreService);
+        RunResult verify = EnsureInstalledRuntimeReady(false);
+        return RunResult.Combine(RunResult.Combine(RunResult.Combine(RunResult.Combine(RunResult.Combine(dashboard, auto), startup), sessionAgent), coreService), verify);
     }
+
+    private static RunResult RestartAutomaticEngineTaskForInstallVerify(DateTime cutoffUtc)
+    {
+        if (!IsTaskInstalled(AutoTaskName))
+        {
+            return new RunResult(1, "Automatic engine task is not installed.");
+        }
+
+        RunResult end = RunHidden("schtasks.exe", "/End /TN " + Quote(AutoTaskName), 10000);
+        Thread.Sleep(750);
+        RunResult start = RunHidden("schtasks.exe", "/Run /TN " + Quote(AutoTaskName), 15000);
+        bool freshScore = WaitForFileWriteAfter(scorePath, cutoffUtc, 45000);
+        string detail = "end=" + end.ExitCode.ToString(CultureInfo.InvariantCulture) +
+            "; start=" + start.ExitCode.ToString(CultureInfo.InvariantCulture) +
+            "; freshScore=" + freshScore.ToString(CultureInfo.InvariantCulture);
+        AppendOperationalLog("action=install-verify-auto-task-refresh " + SanitizeLogToken(detail));
+
+        if (start.ExitCode != 0)
+        {
+            return new RunResult(start.ExitCode, "Automatic engine task did not start after setup. " + ShortTaskError(start.Output));
+        }
+        if (!freshScore)
+        {
+            return new RunResult(1, "Automatic engine did not publish fresh telemetry after setup.");
+        }
+        return new RunResult(0, "Automatic engine refreshed after setup.");
+    }
+
+    private static RunResult EnsureInstalledRuntimeReady(bool allowElevatedRepair)
+    {
+        if (!IsCurrentProcessElevated())
+        {
+            if (allowElevatedRepair)
+            {
+                return RunElevatedSelfCommand("--repair-install", "install-runtime-ready", 120000);
+            }
+            return new RunResult(5, "Administrator permission is required to verify and start Smart Nap services.");
+        }
+
+        bool tasksReady = ArePrimaryScheduledTasksInstalled();
+        bool sessionAgentReady = IsTaskInstalled(SessionAgentTaskName);
+        bool serviceInstalled = IsCoreServiceInstalled();
+        if (!tasksReady || !sessionAgentReady || !serviceInstalled)
+        {
+            string detail = "tasks=" + tasksReady.ToString(CultureInfo.InvariantCulture) +
+                "; sessionAgent=" + sessionAgentReady.ToString(CultureInfo.InvariantCulture) +
+                "; coreService=" + serviceInstalled.ToString(CultureInfo.InvariantCulture);
+            AppendOperationalLog("action=install-verify status=FAIL detail=" + SanitizeLogToken(detail));
+            WriteCoreServiceState("InstallIncomplete", "InstallVerify", new RunResult(1, detail), IsTaskInstalled(AutoTaskName), false, GetFileAgeSeconds(scorePath), CoreServiceStalePassSeconds, "install-verify");
+            return new RunResult(1, "Setup incomplete: " + detail);
+        }
+
+        DateTime verifyStartedUtc = DateTime.UtcNow.AddSeconds(-1);
+        RunResult lastStart = new RunResult(0, "Core service already running.");
+        for (int attempt = 0; attempt < 3 && !IsCoreServiceRunning(); attempt++)
+        {
+            lastStart = StartCoreService(false);
+            if (WaitForCoreServiceRunningState(true, 15000)) { break; }
+            Thread.Sleep(750);
+        }
+
+        RunResult agentStart = RunHidden("schtasks.exe", "/Run /TN " + Quote(SessionAgentTaskName), 10000);
+        RunResult engineRefresh = RestartAutomaticEngineTaskForInstallVerify(verifyStartedUtc);
+        bool running = IsCoreServiceRunning();
+        if (running && engineRefresh.ExitCode == 0)
+        {
+            try { RunCoreServicePass("post-install-verify"); } catch { }
+            WriteCoreServiceState("Running", "InstallVerify", new RunResult(0, "Setup verified."), IsTaskInstalled(AutoTaskName), false, GetFileAgeSeconds(scorePath), CoreServiceStalePassSeconds, "install-verify");
+            AppendOperationalLog("action=install-verify status=OK sessionAgentStart=" + agentStart.ExitCode.ToString(CultureInfo.InvariantCulture));
+            return new RunResult(0, "Smart Nap services are installed and running.");
+        }
+
+        string output = running
+            ? ("Automatic engine did not refresh after setup. " + ShortTaskError(engineRefresh.Output))
+            : ("Core service did not reach Running after setup. " + ShortTaskError(lastStart.Output));
+        WriteCoreServiceState("StartFailed", "InstallVerify", new RunResult(1, output), IsTaskInstalled(AutoTaskName), false, GetFileAgeSeconds(scorePath), CoreServiceStalePassSeconds, "install-verify");
+        AppendOperationalLog("action=install-verify status=FAIL detail=" + ShortTaskError(output));
+        return new RunResult(1, output);
+    }
+
     private static RunResult UninstallComplete()
     {
+        RunResult sessionAgent = UninstallSessionAgent();
         RunResult startup = UninstallStartup();
         RunResult auto = UninstallAutomatic();
         RunResult dashboard = UninstallDashboardTask();
@@ -3674,7 +5428,7 @@ internal static class SmartBackgroundNap
         {
             AppendOperationalLog("action=uninstall-start-menu-shortcut status=deferred detail=" + ShortTaskError(shortcuts.Output));
         }
-        return RunResult.Combine(RunResult.Combine(RunResult.Combine(startup, auto), dashboard), coreService);
+        return RunResult.Combine(RunResult.Combine(RunResult.Combine(RunResult.Combine(sessionAgent, startup), auto), dashboard), coreService);
     }
 
     private static bool IsTaskInstalled(string taskName)
@@ -4443,6 +6197,11 @@ internal static class SmartBackgroundNap
             string current = Application.ExecutablePath;
             if (!String.Equals(Path.GetFullPath(current), Path.GetFullPath(target), StringComparison.OrdinalIgnoreCase))
             {
+                if (FilesAlreadyMatch(current, target))
+                {
+                    return target;
+                }
+
                 bool restartCoreService = IsCoreServiceRunning();
                 if (restartCoreService)
                 {
@@ -4493,6 +6252,34 @@ internal static class SmartBackgroundNap
         return IsCoreServiceRunning() == running;
     }
 
+    private static bool FilesAlreadyMatch(string left, string right)
+    {
+        try
+        {
+            if (String.IsNullOrWhiteSpace(left) || String.IsNullOrWhiteSpace(right)) { return false; }
+            FileInfo leftInfo = new FileInfo(left);
+            FileInfo rightInfo = new FileInfo(right);
+            if (!leftInfo.Exists || !rightInfo.Exists) { return false; }
+            if (leftInfo.Length != rightInfo.Length) { return false; }
+            using (FileStream leftStream = File.Open(left, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+            using (FileStream rightStream = File.Open(right, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+            using (SHA256 sha = SHA256.Create())
+            {
+                byte[] leftHash = sha.ComputeHash(leftStream);
+                byte[] rightHash = sha.ComputeHash(rightStream);
+                if (leftHash.Length != rightHash.Length) { return false; }
+                for (int i = 0; i < leftHash.Length; i++)
+                {
+                    if (leftHash[i] != rightHash[i]) { return false; }
+                }
+                return true;
+            }
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
     private static string GetAssemblyVersionText()
     {
@@ -4577,9 +6364,11 @@ internal static class SmartBackgroundNap
         report.AppendLine(BuildTaskStatusLine(AutoTaskName));
         report.AppendLine(BuildTaskStatusLine(TrayTaskName));
         report.AppendLine(BuildTaskStatusLine(DashboardTaskName));
-        report.AppendLine("Startup method: per-user scheduled tasks with HighestAvailable after user-approved setup; HKCU Run fallback if Task Scheduler is blocked.");
+        report.AppendLine(BuildTaskStatusLine(SessionAgentTaskName));
+        report.AppendLine("Startup method: per-user scheduled tasks after user-approved setup; Session Agent uses InteractiveToken + LeastPrivilege; HKCU Run fallback is used only if tray startup task setup is blocked.");
         report.AppendLine("Core service: " + GetCoreServiceStatusText() + ".");
         report.AppendLine("Core service state file: " + coreServiceStatePath);
+        report.AppendLine("Session Agent state file: " + sessionAgentStatePath);
         report.AppendLine("Driver installed: no.");
         report.AppendLine("Startup registry key: no.");
         report.AppendLine();
@@ -4974,6 +6763,7 @@ internal static class SmartBackgroundNap
             {
                 if (process.Id == currentPid) { continue; }
                 string processPath = SafeFullPath(TryGetProcessPath(process));
+                if (!String.IsNullOrWhiteSpace(target) && String.IsNullOrWhiteSpace(processPath)) { continue; }
                 if (!String.IsNullOrWhiteSpace(target) && !String.IsNullOrWhiteSpace(processPath) && !String.Equals(target, processPath, StringComparison.OrdinalIgnoreCase)) { continue; }
                 process.CloseMainWindow();
                 if (!process.WaitForExit(2500)) { process.Kill(); }
@@ -5078,12 +6868,6 @@ internal static class SmartBackgroundNap
             }
         }
         return "";
-    }
-
-    private static string ReadMapString(IDictionary<string, object> map, string key)
-    {
-        object value;
-        return map != null && map.TryGetValue(key, out value) ? Convert.ToString(value, CultureInfo.InvariantCulture) : "";
     }
 
     private static string FirstNonEmpty(string first, string fallback)
@@ -6830,6 +8614,149 @@ internal static class SmartBackgroundNap
             }
         }
         return false;
+    }
+
+    private static bool IsSessionForegroundProtectedByRuntime(int pid, string processName, string path, out string reason)
+    {
+        reason = "";
+        if (pid <= 0 && String.IsNullOrWhiteSpace(processName) && String.IsNullOrWhiteSpace(path)) { return false; }
+        if (IsForegroundProtectedByScoreSnapshot(pid, processName, out reason)) { return true; }
+        if (IsForegroundProtectedByTemporaryMap(processName, path, out reason)) { return true; }
+        return false;
+    }
+
+    private static bool IsForegroundProtectedByScoreSnapshot(int pid, string processName, out string reason)
+    {
+        reason = "";
+        try
+        {
+            if (String.IsNullOrWhiteSpace(scorePath) || !File.Exists(scorePath)) { return false; }
+            IDictionary<string, object> root = LoadJsonMapWithRecovery(scorePath);
+            if (root == null || root.Count == 0) { return false; }
+
+            bool udpActive = ReadMapBool(root, "NetworkUdpGuardActive");
+            int protectedCount = ReadMapInt(root, "NetworkUdpGuardProtectedCount");
+            int udpGamePid = ReadMapInt(root, "NetworkUdpGuardGamePid");
+            string udpGame = ReadMapString(root, "NetworkUdpGuardGame");
+            if (udpActive && protectedCount > 0)
+            {
+                if (pid > 0 && udpGamePid == pid)
+                {
+                    reason = "NetcodeShield";
+                    return true;
+                }
+                if (NamesMatchForProtection(udpGame, processName))
+                {
+                    reason = "NetcodeShield";
+                    return true;
+                }
+            }
+
+            bool cpuBoundActive = ReadMapBool(root, "CpuBoundAssistActive");
+            int cpuBoundPid = ReadMapInt(root, "CpuBoundAssistGamePid");
+            string cpuBoundGame = ReadMapString(root, "CpuBoundAssistGame");
+            if (cpuBoundActive)
+            {
+                if (pid > 0 && cpuBoundPid == pid)
+                {
+                    reason = "CpuBoundAssist";
+                    return true;
+                }
+                if (NamesMatchForProtection(cpuBoundGame, processName))
+                {
+                    reason = "CpuBoundAssist";
+                    return true;
+                }
+            }
+        }
+        catch
+        {
+        }
+        reason = "";
+        return false;
+    }
+
+    private static bool IsForegroundProtectedByTemporaryMap(string processName, string path, out string reason)
+    {
+        reason = "";
+        try
+        {
+            string protectPath = Path.Combine(outputsPath, "background-nap-protect-latest.json");
+            if (String.IsNullOrWhiteSpace(protectPath) || !File.Exists(protectPath)) { return false; }
+            IDictionary<string, object> root = LoadJsonMapWithRecovery(protectPath);
+            object itemsObject;
+            if (root == null || !root.TryGetValue("Items", out itemsObject) || itemsObject == null) { return false; }
+            System.Collections.IEnumerable items = itemsObject as System.Collections.IEnumerable;
+            if (items == null || itemsObject is string) { return false; }
+
+            string normalizedName = NormalizeProtectionToken(processName);
+            string normalizedPath = NormalizeProtectionPath(path);
+            foreach (object item in items)
+            {
+                IDictionary<string, object> map = item as IDictionary<string, object>;
+                if (map == null) { continue; }
+                if (IsProtectionEntryExpired(ReadMapString(map, "ExpiresAt"))) { continue; }
+
+                string key = NormalizeProtectionKey(ReadMapString(map, "Key"));
+                string itemName = NormalizeProtectionToken(ReadMapString(map, "ProcessName"));
+                string itemPath = NormalizeProtectionPath(ReadMapString(map, "Path"));
+                if (!String.IsNullOrWhiteSpace(normalizedName) && (String.Equals(key, "name:" + normalizedName, StringComparison.OrdinalIgnoreCase) || String.Equals(itemName, normalizedName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    reason = FirstNonEmpty(ReadMapString(map, "Reason"), "TemporaryProtection");
+                    return true;
+                }
+                if (!String.IsNullOrWhiteSpace(normalizedPath) && (String.Equals(key, "path:" + normalizedPath, StringComparison.OrdinalIgnoreCase) || String.Equals(itemPath, normalizedPath, StringComparison.OrdinalIgnoreCase)))
+                {
+                    reason = FirstNonEmpty(ReadMapString(map, "Reason"), "TemporaryProtection");
+                    return true;
+                }
+            }
+        }
+        catch
+        {
+        }
+        reason = "";
+        return false;
+    }
+
+    private static bool IsProtectionEntryExpired(string expiresAt)
+    {
+        if (String.IsNullOrWhiteSpace(expiresAt)) { return false; }
+        DateTime parsed;
+        if (!DateTime.TryParse(expiresAt, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal | DateTimeStyles.AdjustToUniversal, out parsed)) { return false; }
+        return parsed.ToUniversalTime() < DateTime.UtcNow;
+    }
+
+    private static bool NamesMatchForProtection(string left, string right)
+    {
+        return !String.IsNullOrWhiteSpace(left) &&
+               !String.IsNullOrWhiteSpace(right) &&
+               String.Equals(NormalizeProtectionToken(left), NormalizeProtectionToken(right), StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizeProtectionToken(string value)
+    {
+        if (String.IsNullOrWhiteSpace(value)) { return ""; }
+        string text = value.Trim();
+        if (text.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) { text = text.Substring(0, text.Length - 4); }
+        return text.ToLowerInvariant();
+    }
+
+    private static string NormalizeProtectionPath(string value)
+    {
+        return String.IsNullOrWhiteSpace(value) ? "" : value.Trim().ToLowerInvariant();
+    }
+
+    private static string NormalizeProtectionKey(string value)
+    {
+        return String.IsNullOrWhiteSpace(value) ? "" : value.Trim().ToLowerInvariant();
+    }
+
+    private static string SanitizeEvidenceToken(string value)
+    {
+        if (String.IsNullOrWhiteSpace(value)) { return "runtime"; }
+        string cleaned = Regex.Replace(value.Trim(), "[^A-Za-z0-9]+", "-").Trim('-').ToLowerInvariant();
+        return String.IsNullOrWhiteSpace(cleaned) ? "runtime" : cleaned;
     }
 
     private static bool TrySetMemoryPriority(int pid, uint memoryPriority)
@@ -9083,6 +11010,8 @@ internal static class SmartBackgroundNap
             bool networkUdpGuardEnabled = IsNetworkUdpGuardEnabled();
             List<WebManagerRow> rows = LoadManagerRows();
             ScoreMeta scoreMeta = LoadScoreMeta();
+            CoreServiceSnapshot coreService = LoadCoreServiceSnapshot();
+            SessionAgentSnapshot sessionAgent = LoadSessionAgentSnapshot();
             ReconcileNetworkUdpGuardMeta(scoreMeta, rows, networkUdpGuardEnabled);
             string line = ReadLastApplyLogLine();
             string targets = line == "No log yet." ? "" : ExtractLogValue(line, "targets");
@@ -9193,6 +11122,45 @@ internal static class SmartBackgroundNap
             state.CpuBoundAssistReason = scoreMeta.CpuBoundAssistReason;
             state.EngineHealthStatus = scoreMeta.EngineHealthStatus;
             state.EngineHealthSummary = scoreMeta.EngineHealthSummary;
+            state.CoreProtocolVersion = coreService.ProtocolVersion;
+            state.CoreMinimumSupportedProtocolVersion = coreService.MinimumSupportedProtocolVersion;
+            state.CorePipeName = coreService.PipeName;
+            state.CoreContextProvider = coreService.ContextProvider;
+            state.CoreServiceAvailable = coreService.Available;
+            state.CoreServiceInstalled = coreService.Installed;
+            state.CoreServiceRunning = coreService.Running;
+            state.CoreServiceStatus = coreService.Status;
+            state.CoreServiceAction = coreService.Action;
+            state.CoreServiceHealth = coreService.Health;
+            state.CoreServiceSummary = coreService.Summary;
+            state.CoreServiceDetail = coreService.Detail;
+            state.CoreServiceAutoTaskInstalled = coreService.AutoTaskInstalled;
+            state.CoreServiceAutoTaskKicked = coreService.AutoTaskKicked;
+            state.CoreServiceTelemetryFresh = coreService.TelemetryFresh;
+            state.CoreServiceTelemetryStale = coreService.TelemetryStale;
+            state.CoreServiceNeedsAttention = coreService.NeedsAttention;
+            state.CoreServiceScoreAgeSeconds = coreService.ScoreAgeSeconds;
+            state.CoreServiceStaleThresholdSeconds = coreService.StaleThresholdSeconds;
+            state.CoreServiceLoopSeconds = coreService.LoopSeconds;
+            state.CoreServiceStateAgeSeconds = coreService.StateAgeSeconds;
+            state.CoreServiceUpdatedAt = coreService.UpdatedAt;
+            state.CoreIpcListening = coreService.IpcListening;
+            state.CoreIpcSecureAcl = coreService.IpcSecureAcl;
+            state.CoreIpcHeartbeatAt = coreService.IpcHeartbeatAt;
+            state.CoreIpcLastClientAt = coreService.IpcLastClientAt;
+            state.CoreIpcLastCommand = coreService.IpcLastCommand;
+            state.CoreIpcLastError = coreService.IpcLastError;
+            state.SessionAgentAvailable = sessionAgent.Available;
+            state.SessionAgentHealth = sessionAgent.Health;
+            state.SessionAgentState = sessionAgent.State;
+            state.SessionAgentUpdatedAt = sessionAgent.UpdatedAt;
+            state.SessionAgentStateAgeSeconds = sessionAgent.StateAgeSeconds;
+            state.SessionAgentContext = sessionAgent.Context;
+            state.SessionAgentConfidence = sessionAgent.Confidence;
+            state.SessionAgentForegroundPid = sessionAgent.ForegroundPid;
+            state.SessionAgentForegroundProcessName = sessionAgent.ForegroundProcessName;
+            state.SessionAgentForegroundFullscreen = sessionAgent.ForegroundFullscreen;
+            state.SessionAgentStreamingObserved = sessionAgent.StreamingObserved;
             state.RollbackAuditEnabled = scoreMeta.RollbackAuditEnabled;
             int manualPolicyCount = CountManualPolicies();
             state.PolicyCount = manualPolicyCount;
@@ -9262,7 +11230,7 @@ internal static class SmartBackgroundNap
             state.HardwareCpuMaxMhz = hardware.CpuClockMaxMhz;
             state.AppTimelines = BuildAppTimelines(rows);
             state.Rows = rows;
-            state.Events = BuildEvents(autoInstalled, heartbeat, lastEventAge, nextPass);
+            state.Events = BuildEvents(autoInstalled, heartbeat, lastEventAge, nextPass, coreService);
             try
             {
                 state.GamePresets = BuildGamePresetsForUi();
@@ -9750,7 +11718,7 @@ internal static class SmartBackgroundNap
             return line.Length > 32 ? line.Substring(0, 32) + "..." : line;
         }
 
-        private List<string> BuildEvents(bool autoInstalled, string heartbeat, string lastEventAge, string nextPass)
+        private List<string> BuildEvents(bool autoInstalled, string heartbeat, string lastEventAge, string nextPass, CoreServiceSnapshot coreService)
         {
             List<string> events = new List<string>();
             if (!String.IsNullOrWhiteSpace(activeUiEventLine))
@@ -9758,6 +11726,14 @@ internal static class SmartBackgroundNap
                 events.Add(activeUiEventLine);
             }
             events.Add("LIVE " + heartbeat + "  event " + lastEventAge + "  next " + nextPass);
+            if (coreService != null && (coreService.NeedsAttention || coreService.AutoTaskKicked || String.Equals(coreService.Health, "Recovering", StringComparison.OrdinalIgnoreCase)))
+            {
+                events.Add(DateTime.Now.ToString("HH:mm:ss", CultureInfo.CurrentCulture) +
+                    " action=core-service health=" + SanitizeLogToken(coreService.Health) +
+                    " status=" + SanitizeLogToken(coreService.Status) +
+                    " operation=" + SanitizeLogToken(coreService.Action) +
+                    " scoreAgeSeconds=" + coreService.ScoreAgeSeconds.ToString(CultureInfo.InvariantCulture));
+            }
             if (autoInstalled)
             {
                 events.Add("WATCH motor automatico ativo; ciclos e foco protegidos");
@@ -10557,6 +12533,45 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public string CpuBoundAssistReason { get; set; }
             public string EngineHealthStatus { get; set; }
             public string EngineHealthSummary { get; set; }
+            public int CoreProtocolVersion { get; set; }
+            public int CoreMinimumSupportedProtocolVersion { get; set; }
+            public string CorePipeName { get; set; }
+            public string CoreContextProvider { get; set; }
+            public bool CoreServiceAvailable { get; set; }
+            public bool CoreServiceInstalled { get; set; }
+            public bool CoreServiceRunning { get; set; }
+            public string CoreServiceStatus { get; set; }
+            public string CoreServiceAction { get; set; }
+            public string CoreServiceHealth { get; set; }
+            public string CoreServiceSummary { get; set; }
+            public string CoreServiceDetail { get; set; }
+            public bool CoreServiceAutoTaskInstalled { get; set; }
+            public bool CoreServiceAutoTaskKicked { get; set; }
+            public bool CoreServiceTelemetryFresh { get; set; }
+            public bool CoreServiceTelemetryStale { get; set; }
+            public bool CoreServiceNeedsAttention { get; set; }
+            public int CoreServiceScoreAgeSeconds { get; set; }
+            public int CoreServiceStaleThresholdSeconds { get; set; }
+            public int CoreServiceLoopSeconds { get; set; }
+            public int CoreServiceStateAgeSeconds { get; set; }
+            public string CoreServiceUpdatedAt { get; set; }
+            public bool CoreIpcListening { get; set; }
+            public bool CoreIpcSecureAcl { get; set; }
+            public string CoreIpcHeartbeatAt { get; set; }
+            public string CoreIpcLastClientAt { get; set; }
+            public string CoreIpcLastCommand { get; set; }
+            public string CoreIpcLastError { get; set; }
+            public bool SessionAgentAvailable { get; set; }
+            public string SessionAgentHealth { get; set; }
+            public string SessionAgentState { get; set; }
+            public string SessionAgentUpdatedAt { get; set; }
+            public int SessionAgentStateAgeSeconds { get; set; }
+            public string SessionAgentContext { get; set; }
+            public int SessionAgentConfidence { get; set; }
+            public int SessionAgentForegroundPid { get; set; }
+            public string SessionAgentForegroundProcessName { get; set; }
+            public bool SessionAgentForegroundFullscreen { get; set; }
+            public bool SessionAgentStreamingObserved { get; set; }
             public bool RollbackAuditEnabled { get; set; }
             public bool StreamGuardActive { get; set; }
             public int StreamHelperCount { get; set; }
@@ -15734,6 +17749,7 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
     {
         private readonly ManualResetEvent stopSignal = new ManualResetEvent(false);
         private Thread worker;
+        private Thread pipeWorker;
 
         public SmartSnapCoreService()
         {
@@ -15751,6 +17767,10 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             worker.IsBackground = true;
             worker.Name = "Smart SNAP Core Service";
             worker.Start();
+            pipeWorker = new Thread(PipeLoop);
+            pipeWorker.IsBackground = true;
+            pipeWorker.Name = "Smart SNAP Core Pipe";
+            pipeWorker.Start();
         }
 
         protected override void OnStop()
@@ -15760,6 +17780,10 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             if (worker != null && worker.IsAlive)
             {
                 try { worker.Join(TimeSpan.FromSeconds(8)); } catch { }
+            }
+            if (pipeWorker != null && pipeWorker.IsAlive)
+            {
+                try { pipeWorker.Join(TimeSpan.FromSeconds(8)); } catch { }
             }
             WriteCoreServiceState("Stopped", "Stop", new RunResult(0, "Stopped."), IsTaskInstalled(AutoTaskName), false, GetFileAgeSeconds(scorePath), CoreServiceStalePassSeconds);
         }
@@ -15809,6 +17833,11 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             }
 
             AppendOperationalLog("action=core-service event=stopped");
+        }
+
+        private void PipeLoop()
+        {
+            RunCorePipeServerLoop(stopSignal);
         }
 
         private void TryRequestExtraTime(int milliseconds)

@@ -61,6 +61,7 @@ $intentStatePath = Join-Path $outDir "background-nap-intent-latest.json"
 $foregroundSwitchStatePath = Join-Path $outDir "background-nap-foreground-switch-latest.json"
 $gameProfileStatePath = Join-Path $outDir "background-nap-game-profiles-latest.json"
 $gamePathUserStatePath = Join-Path $outDir "game-paths.user.json"
+$gamePathLearnedStatePath = Join-Path $outDir "game-paths.learned.json"
 $behaviorStatePath = Join-Path $outDir "background-nap-behavior-latest.json"
 $appPolicyStatePath = Join-Path $outDir "background-nap-app-policies.json"
 $radarStatePath = Join-Path $outDir "background-nap-radar-latest.json"
@@ -674,6 +675,9 @@ $script:behaviorMap = @{}
 $script:appPolicyMap = @{}
 $script:udpEndpointCountByPid = @{}
 $script:processPathFallbackByPid = @{}
+$script:processPathFallbackMissAtByPid = @{}
+$script:resolvedGameExecutablePathCache = @{}
+$script:learnedGamePathMap = $null
 $script:currentUdpGuard = $null
 $script:currentGpuPressure = $null
 $script:currentCpuBoundAssist = $null
@@ -1200,6 +1204,60 @@ function Get-ProcessPriorityText {
     try { return [string]$Process.PriorityClass } catch { return $null }
 }
 
+function Get-ExecutablePathFromCommandLineText {
+    param([string]$CommandLine)
+    if ([string]::IsNullOrWhiteSpace($CommandLine)) { return "" }
+    $text = ([string]$CommandLine).Trim()
+    $candidates = New-Object System.Collections.ArrayList
+    if ($text.StartsWith('"')) {
+        $endQuote = $text.IndexOf('"', 1)
+        if ($endQuote -gt 1) { [void]$candidates.Add($text.Substring(1, $endQuote - 1)) }
+    }
+    try {
+        $match = [regex]::Match($text, '(?i)([a-z]:\\[^"]+?\.exe)')
+        if ($match.Success) { [void]$candidates.Add([string]$match.Groups[1].Value) }
+    } catch {
+    }
+    foreach ($candidate in @($candidates | Select-Object -Unique)) {
+        $path = ([string]$candidate).Trim().Trim('"')
+        if ([string]::IsNullOrWhiteSpace($path)) { continue }
+        try {
+            if (Test-Path -LiteralPath $path -PathType Leaf) { return $path }
+        } catch {
+        }
+    }
+    return ""
+}
+
+function Get-ProcessCimExecutablePathById {
+    param([int]$ProcessId)
+    if ($ProcessId -le 0) { return "" }
+    try {
+        $procInfo = Get-CimInstance -ClassName Win32_Process -Filter ("ProcessId=" + $ProcessId.ToString()) -ErrorAction Stop
+        if ($procInfo -and -not [string]::IsNullOrWhiteSpace([string]$procInfo.ExecutablePath)) {
+            $path = [string]$procInfo.ExecutablePath
+            if (Test-Path -LiteralPath $path -PathType Leaf) { return $path }
+        }
+        if ($procInfo -and -not [string]::IsNullOrWhiteSpace([string]$procInfo.CommandLine)) {
+            $path = Get-ExecutablePathFromCommandLineText -CommandLine ([string]$procInfo.CommandLine)
+            if (-not [string]::IsNullOrWhiteSpace($path)) { return $path }
+        }
+    } catch {
+    }
+    return ""
+}
+
+function Get-ProcessMainModuleExecutablePath {
+    param([System.Diagnostics.Process]$Process)
+    if (-not $Process) { return "" }
+    try {
+        $path = [string]$Process.MainModule.FileName
+        if (-not [string]::IsNullOrWhiteSpace($path) -and (Test-Path -LiteralPath $path -PathType Leaf)) { return $path }
+    } catch {
+    }
+    return ""
+}
+
 function Get-ProcessPathText {
     param([System.Diagnostics.Process]$Process)
     if (-not $Process) { return $null }
@@ -1212,17 +1270,31 @@ function Get-ProcessPathText {
     $pidValue = 0
     try { $pidValue = [int]$Process.Id } catch { $pidValue = 0 }
     if ($pidValue -le 0) { return $null }
-    if ($script:processPathFallbackByPid.ContainsKey($pidValue)) { return [string]$script:processPathFallbackByPid[$pidValue] }
+    if ($script:processPathFallbackByPid.ContainsKey($pidValue)) {
+        $cached = [string]$script:processPathFallbackByPid[$pidValue]
+        if (-not [string]::IsNullOrWhiteSpace($cached) -and (Test-Path -LiteralPath $cached -PathType Leaf)) { return $cached }
+    }
+    if ($script:processPathFallbackMissAtByPid.ContainsKey($pidValue)) {
+        try {
+            $ageSeconds = ((Get-Date) - ([datetime]$script:processPathFallbackMissAtByPid[$pidValue])).TotalSeconds
+            if ($ageSeconds -lt 8) { return $null }
+        } catch {
+        }
+    }
 
     $fallback = $null
-    try {
-        $procInfo = Get-CimInstance -ClassName Win32_Process -Filter ("ProcessId=" + $pidValue.ToString()) -ErrorAction Stop
-        if ($procInfo -and -not [string]::IsNullOrWhiteSpace([string]$procInfo.ExecutablePath)) {
-            $fallback = [string]$procInfo.ExecutablePath
+    foreach ($candidate in @((Get-ProcessMainModuleExecutablePath -Process $Process), (Get-ProcessCimExecutablePathById -ProcessId $pidValue))) {
+        if (-not [string]::IsNullOrWhiteSpace([string]$candidate) -and (Test-Path -LiteralPath ([string]$candidate) -PathType Leaf)) {
+            $fallback = [string]$candidate
+            break
         }
-    } catch {
     }
-    $script:processPathFallbackByPid[$pidValue] = if ($fallback) { $fallback } else { "" }
+    if (-not [string]::IsNullOrWhiteSpace($fallback)) {
+        $script:processPathFallbackByPid[$pidValue] = $fallback
+        if ($script:processPathFallbackMissAtByPid.ContainsKey($pidValue)) { $script:processPathFallbackMissAtByPid.Remove($pidValue) }
+        return $fallback
+    }
+    $script:processPathFallbackMissAtByPid[$pidValue] = Get-Date
     return $fallback
 }
 
@@ -1560,6 +1632,212 @@ function Read-UserGamePathMap {
     return $map
 }
 
+function Get-GameExecutableResolveKeys {
+    param(
+        [string]$ProcessName,
+        [string]$GameName
+    )
+    $keys = New-Object System.Collections.ArrayList
+    foreach ($text in @($ProcessName, $GameName)) {
+        $key = Normalize-GamePathLookupText -Text ([string]$text)
+        if (-not [string]::IsNullOrWhiteSpace($key) -and -not $keys.Contains($key)) { [void]$keys.Add($key) }
+    }
+    return @($keys)
+}
+
+function Test-GameResolveTextMatch {
+    param(
+        [string[]]$Keys,
+        [string]$ProcessName,
+        [string]$GameName,
+        [string[]]$Texts
+    )
+
+    $needles = New-Object System.Collections.ArrayList
+    foreach ($key in @($Keys)) {
+        if (-not [string]::IsNullOrWhiteSpace([string]$key) -and -not $needles.Contains([string]$key)) { [void]$needles.Add([string]$key) }
+    }
+    foreach ($alias in @(Get-GameFolderAliasesForResolve -ProcessName $ProcessName -GameName $GameName)) {
+        $key = Normalize-GamePathLookupText -Text ([string]$alias)
+        if (-not [string]::IsNullOrWhiteSpace($key) -and -not $needles.Contains($key)) { [void]$needles.Add($key) }
+    }
+    foreach ($text in @($Texts)) {
+        $candidate = Normalize-GamePathLookupText -Text ([string]$text)
+        if ([string]::IsNullOrWhiteSpace($candidate)) { continue }
+        foreach ($needle in @($needles)) {
+            $n = [string]$needle
+            if ([string]::IsNullOrWhiteSpace($n)) { continue }
+            if ($candidate.Equals($n, [System.StringComparison]::OrdinalIgnoreCase)) { return $true }
+            if ($n.Length -ge 4 -and $candidate.Contains($n)) { return $true }
+            if ($candidate.Length -ge 4 -and $n.Contains($candidate)) { return $true }
+        }
+    }
+    return $false
+}
+
+function Get-CachedResolvedGameExecutablePath {
+    param([string[]]$Keys)
+    foreach ($key in @($Keys)) {
+        if ([string]::IsNullOrWhiteSpace([string]$key)) { continue }
+        if (-not $script:resolvedGameExecutablePathCache.ContainsKey([string]$key)) { continue }
+        $path = [string]$script:resolvedGameExecutablePathCache[[string]$key]
+        if (-not [string]::IsNullOrWhiteSpace($path) -and (Test-Path -LiteralPath $path -PathType Leaf)) { return $path }
+        $script:resolvedGameExecutablePathCache.Remove([string]$key)
+    }
+    return ""
+}
+
+function Set-CachedResolvedGameExecutablePath {
+    param(
+        [string[]]$Keys,
+        [string]$Path
+    )
+    if ([string]::IsNullOrWhiteSpace($Path)) { return }
+    try {
+        if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return }
+        foreach ($key in @($Keys)) {
+            if ([string]::IsNullOrWhiteSpace([string]$key)) { continue }
+            $script:resolvedGameExecutablePathCache[[string]$key] = [string]$Path
+        }
+    } catch {
+    }
+}
+
+function Read-LearnedGamePathMap {
+    if ($script:learnedGamePathMap -ne $null) { return $script:learnedGamePathMap }
+    $map = @{}
+    foreach ($item in @(Read-StateArray -Path $gamePathLearnedStatePath)) {
+        $path = [string]$item.Path
+        if ([string]::IsNullOrWhiteSpace($path)) { continue }
+        try {
+            if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { continue }
+        } catch {
+            continue
+        }
+        if (-not (Test-ResolvedGameExecutablePathPersistable -ProcessName ([string]$item.ProcessName) -Path $path -Source ([string]$item.Source)) -and -not (Test-ResolvedGameExecutablePathPersistable -ProcessName ([string]$item.GameName) -Path $path -Source ([string]$item.Source))) { continue }
+        foreach ($keyText in @([string]$item.Key, [string]$item.ProcessName, [string]$item.GameName)) {
+            $key = Normalize-GamePathLookupText -Text $keyText
+            if (-not [string]::IsNullOrWhiteSpace($key)) { $map[$key] = $path }
+        }
+    }
+    $script:learnedGamePathMap = $map
+    return $map
+}
+
+function Resolve-LearnedGamePathForProcess {
+    param(
+        [string]$ProcessName,
+        [string]$GameName
+    )
+    $map = Read-LearnedGamePathMap
+    if (-not $map -or $map.Count -eq 0) { return "" }
+    $keys = Get-GameExecutableResolveKeys -ProcessName $ProcessName -GameName $GameName
+    foreach ($key in @($keys)) {
+        if ($map.ContainsKey([string]$key)) {
+            $path = [string]$map[[string]$key]
+            if (-not [string]::IsNullOrWhiteSpace($path) -and (Test-Path -LiteralPath $path -PathType Leaf)) { return $path }
+        }
+    }
+    foreach ($entryKey in @($map.Keys)) {
+        foreach ($key in @($keys)) {
+            if ([string]::IsNullOrWhiteSpace([string]$key) -or [string]::IsNullOrWhiteSpace([string]$entryKey)) { continue }
+            if ((([string]$key).Length -ge 4 -and ([string]$entryKey).Contains([string]$key)) -or (([string]$entryKey).Length -ge 4 -and ([string]$key).Contains([string]$entryKey))) {
+                $path = [string]$map[$entryKey]
+                if (-not [string]::IsNullOrWhiteSpace($path) -and (Test-Path -LiteralPath $path -PathType Leaf)) { return $path }
+            }
+        }
+    }
+    return ""
+}
+
+function Save-LearnedGameExecutablePath {
+    param(
+        [string[]]$Keys,
+        [string]$ProcessName,
+        [string]$GameName,
+        [string]$Path,
+        [string]$Source
+    )
+    if ([string]::IsNullOrWhiteSpace($Path)) { return }
+    if (-not (Test-ResolvedGameExecutablePathPersistable -ProcessName $ProcessName -Path $Path -Source $Source)) { return }
+    try {
+        if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return }
+        $now = (Get-Date).ToString("o")
+        $existing = @{}
+        $items = New-Object System.Collections.ArrayList
+        foreach ($item in @(Read-StateArray -Path $gamePathLearnedStatePath)) {
+            $key = Normalize-GamePathLookupText -Text ([string]$item.Key)
+            if ([string]::IsNullOrWhiteSpace($key)) { continue }
+            if ($existing.ContainsKey($key)) { continue }
+            [void]$items.Add($item)
+            $existing[$key] = $true
+        }
+        foreach ($key in @($Keys)) {
+            $cleanKey = Normalize-GamePathLookupText -Text ([string]$key)
+            if ([string]::IsNullOrWhiteSpace($cleanKey)) { continue }
+            $record = [pscustomobject]@{
+                Key = $cleanKey
+                ProcessName = [string]$ProcessName
+                GameName = [string]$GameName
+                Path = [string]$Path
+                Source = [string]$Source
+                LastSeenAt = $now
+            }
+            if ($existing.ContainsKey($cleanKey)) {
+                for ($i = 0; $i -lt $items.Count; $i++) {
+                    if ((Normalize-GamePathLookupText -Text ([string]$items[$i].Key)) -eq $cleanKey) {
+                        $items[$i] = $record
+                        break
+                    }
+                }
+            } else {
+                [void]$items.Add($record)
+                $existing[$cleanKey] = $true
+            }
+            if ($script:learnedGamePathMap -ne $null) { $script:learnedGamePathMap[$cleanKey] = [string]$Path }
+        }
+        $itemsToWrite = @($items | Sort-Object @{Expression = "LastSeenAt"; Descending = $true} | Select-Object -First 180)
+        Write-StateArray -Path $gamePathLearnedStatePath -Items $itemsToWrite
+    } catch {
+    }
+}
+
+function Test-ResolvedGameExecutablePathPersistable {
+    param(
+        [string]$ProcessName,
+        [string]$Path,
+        [string]$Source
+    )
+    if ([string]::IsNullOrWhiteSpace($Path)) { return $false }
+    if (Test-KnownGameExecutableName -ProcessName $ProcessName) { return $true }
+    if (Test-PathContainsFragment -Path $Path -Fragments $knownGamePathFragments) { return $true }
+    if ([string]::Equals($Source, "SteamManifest", [System.StringComparison]::OrdinalIgnoreCase)) { return $true }
+    if ([string]::Equals($Source, "EpicManifest", [System.StringComparison]::OrdinalIgnoreCase)) { return $true }
+    if ([string]::Equals($Source, "AliasedRoot", [System.StringComparison]::OrdinalIgnoreCase)) { return $true }
+    if ([string]::Equals($Source, "InstalledGameScan", [System.StringComparison]::OrdinalIgnoreCase)) { return $true }
+    return $false
+}
+
+function Confirm-ResolvedGameExecutablePath {
+    param(
+        [string[]]$Keys,
+        [string]$ProcessName,
+        [string]$GameName,
+        [string]$Path,
+        [string]$Source
+    )
+    if ([string]::IsNullOrWhiteSpace($Path)) { return "" }
+    try {
+        if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return "" }
+        Set-CachedResolvedGameExecutablePath -Keys $Keys -Path $Path
+        if ([string]::IsNullOrWhiteSpace($Source)) { $Source = "Resolved" }
+        Save-LearnedGameExecutablePath -Keys $Keys -ProcessName $ProcessName -GameName $GameName -Path $Path -Source $Source
+        return [string]$Path
+    } catch {
+    }
+    return ""
+}
+
 function Find-ExecutableBelowPathLimited {
     param(
         [string]$Root,
@@ -1668,6 +1946,169 @@ function Get-GameFolderAliases {
     return @($aliases | Where-Object { $_ } | Select-Object -Unique)
 }
 
+function Get-GameFolderAliasesForResolve {
+    param(
+        [string]$ProcessName,
+        [string]$GameName
+    )
+    $aliases = New-Object System.Collections.ArrayList
+    foreach ($value in @($ProcessName, $GameName)) {
+        if (-not [string]::IsNullOrWhiteSpace([string]$value) -and -not $aliases.Contains([string]$value)) { [void]$aliases.Add([string]$value) }
+        foreach ($alias in @(Get-GameFolderAliases -ProcessName ([string]$value))) {
+            if (-not [string]::IsNullOrWhiteSpace([string]$alias) -and -not $aliases.Contains([string]$alias)) { [void]$aliases.Add([string]$alias) }
+        }
+    }
+    return @($aliases)
+}
+
+function Find-ExecutableInAliasedGameFolders {
+    param(
+        [string]$Root,
+        [string]$ExeName,
+        [string]$ProcessName,
+        [string]$GameName
+    )
+    if ([string]::IsNullOrWhiteSpace($Root) -or [string]::IsNullOrWhiteSpace($ExeName)) { return "" }
+    try {
+        if (-not (Test-Path -LiteralPath $Root -PathType Container)) { return "" }
+    } catch {
+        return ""
+    }
+    foreach ($alias in @(Get-GameFolderAliasesForResolve -ProcessName $ProcessName -GameName $GameName)) {
+        if ([string]::IsNullOrWhiteSpace([string]$alias)) { continue }
+        try {
+            $candidateRoot = Join-Path $Root ([string]$alias)
+            if (-not (Test-Path -LiteralPath $candidateRoot -PathType Container)) { continue }
+            $direct = Join-Path $candidateRoot $ExeName
+            if (Test-Path -LiteralPath $direct -PathType Leaf) { return $direct }
+            $found = Find-ExecutableBelowPathLimited -Root $candidateRoot -ExeName $ExeName -MaxDepth 3 -MaxDirectories 90
+            if (-not [string]::IsNullOrWhiteSpace($found)) { return $found }
+        } catch {
+        }
+    }
+    return ""
+}
+
+function Get-SteamAppsRootsForGameResolve {
+    param([array]$Roots)
+    $steamAppsRoots = New-Object System.Collections.ArrayList
+    foreach ($root in @($Roots)) {
+        $text = [string]$root
+        if ([string]::IsNullOrWhiteSpace($text)) { continue }
+        try {
+            $full = [System.IO.Path]::GetFullPath($text).TrimEnd('\', '/')
+            $leaf = Split-Path -Leaf $full
+            if ([string]::Equals($leaf, "common", [System.StringComparison]::OrdinalIgnoreCase)) {
+                Add-UniquePathHint -Hints $steamAppsRoots -Path (Split-Path -Parent $full)
+            } elseif ([string]::Equals($leaf, "steamapps", [System.StringComparison]::OrdinalIgnoreCase)) {
+                Add-UniquePathHint -Hints $steamAppsRoots -Path $full
+            } elseif (Test-Path -LiteralPath (Join-Path $full "steamapps") -PathType Container) {
+                Add-UniquePathHint -Hints $steamAppsRoots -Path (Join-Path $full "steamapps")
+            }
+        } catch {
+        }
+    }
+    foreach ($programRoot in @(${env:ProgramFiles(x86)}, $env:ProgramFiles)) {
+        if ([string]::IsNullOrWhiteSpace($programRoot)) { continue }
+        Add-UniquePathHint -Hints $steamAppsRoots -Path (Join-Path $programRoot "Steam\steamapps")
+    }
+    try {
+        foreach ($disk in @(Get-CimInstance -ClassName Win32_LogicalDisk -Filter "DriveType=3" -ErrorAction Stop)) {
+            if ([string]::IsNullOrWhiteSpace([string]$disk.DeviceID)) { continue }
+            Add-UniquePathHint -Hints $steamAppsRoots -Path (([string]$disk.DeviceID) + "\SteamLibrary\steamapps")
+        }
+    } catch {
+    }
+    return @($steamAppsRoots)
+}
+
+function Read-SteamAppManifestValue {
+    param(
+        [string]$Content,
+        [string]$Key
+    )
+    if ([string]::IsNullOrWhiteSpace($Content) -or [string]::IsNullOrWhiteSpace($Key)) { return "" }
+    try {
+        $match = [regex]::Match($Content, '(?im)^\s*"' + [regex]::Escape($Key) + '"\s+"([^"]+)"')
+        if ($match.Success) { return [string]$match.Groups[1].Value }
+    } catch {
+    }
+    return ""
+}
+
+function Resolve-GameExecutablePathFromSteamManifests {
+    param(
+        [string[]]$Keys,
+        [string]$ProcessName,
+        [string]$GameName,
+        [string]$ExeName,
+        [array]$Roots
+    )
+    foreach ($steamAppsRoot in @(Get-SteamAppsRootsForGameResolve -Roots $Roots)) {
+        try {
+            $commonRoot = Join-Path ([string]$steamAppsRoot) "common"
+            if (-not (Test-Path -LiteralPath $commonRoot -PathType Container)) { continue }
+            foreach ($manifest in @(Get-ChildItem -LiteralPath ([string]$steamAppsRoot) -Filter "appmanifest_*.acf" -File -ErrorAction SilentlyContinue)) {
+                $content = Get-Content -LiteralPath ([string]$manifest.FullName) -Raw -ErrorAction SilentlyContinue
+                if ([string]::IsNullOrWhiteSpace($content)) { continue }
+                $appName = Read-SteamAppManifestValue -Content $content -Key "name"
+                $installDir = Read-SteamAppManifestValue -Content $content -Key "installdir"
+                if ([string]::IsNullOrWhiteSpace($installDir)) { continue }
+                $installRoot = Join-Path $commonRoot $installDir
+                if (-not (Test-Path -LiteralPath $installRoot -PathType Container)) { continue }
+                $direct = Join-Path $installRoot $ExeName
+                if (Test-Path -LiteralPath $direct -PathType Leaf) { return $direct }
+                if (-not (Test-GameResolveTextMatch -Keys $Keys -ProcessName $ProcessName -GameName $GameName -Texts @($appName, $installDir))) { continue }
+                $found = Find-ExecutableBelowPathLimited -Root $installRoot -ExeName $ExeName -MaxDepth 4 -MaxDirectories 160
+                if (-not [string]::IsNullOrWhiteSpace($found)) { return $found }
+            }
+        } catch {
+        }
+    }
+    return ""
+}
+
+function Resolve-GameExecutablePathFromEpicManifests {
+    param(
+        [string[]]$Keys,
+        [string]$ProcessName,
+        [string]$GameName,
+        [string]$ExeName
+    )
+    $manifestRoots = New-Object System.Collections.ArrayList
+    foreach ($root in @("C:\ProgramData\Epic\EpicGamesLauncher\Data\Manifests", (Join-Path $env:ProgramData "Epic\EpicGamesLauncher\Data\Manifests"))) {
+        Add-UniquePathHint -Hints $manifestRoots -Path ([string]$root)
+    }
+    foreach ($manifestRoot in @($manifestRoots)) {
+        try {
+            foreach ($manifest in @(Get-ChildItem -LiteralPath ([string]$manifestRoot) -Filter "*.item" -File -ErrorAction SilentlyContinue)) {
+                $json = Get-Content -LiteralPath ([string]$manifest.FullName) -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json
+                if (-not $json) { continue }
+                $installLocation = [string]$json.InstallLocation
+                $launchExecutable = [string]$json.LaunchExecutable
+                if ([string]::IsNullOrWhiteSpace($installLocation) -or -not (Test-Path -LiteralPath $installLocation -PathType Container)) { continue }
+                $installLeaf = Split-Path -Leaf $installLocation
+                $launchLeaf = if ([string]::IsNullOrWhiteSpace($launchExecutable)) { "" } else { [System.IO.Path]::GetFileNameWithoutExtension($launchExecutable) }
+                if (-not [string]::IsNullOrWhiteSpace($launchExecutable)) {
+                    $candidate = Join-Path $installLocation $launchExecutable
+                    if ((Test-Path -LiteralPath $candidate -PathType Leaf) -and ([System.IO.Path]::GetFileName($candidate)).Equals($ExeName, [System.StringComparison]::OrdinalIgnoreCase)) { return $candidate }
+                }
+                $direct = Join-Path $installLocation $ExeName
+                if (Test-Path -LiteralPath $direct -PathType Leaf) { return $direct }
+                if (-not (Test-GameResolveTextMatch -Keys $Keys -ProcessName $ProcessName -GameName $GameName -Texts @([string]$json.DisplayName, [string]$json.AppName, $installLeaf, $launchLeaf))) { continue }
+                if (-not [string]::IsNullOrWhiteSpace($launchExecutable)) {
+                    $candidate = Join-Path $installLocation $launchExecutable
+                    if (Test-Path -LiteralPath $candidate -PathType Leaf) { return $candidate }
+                }
+                $found = Find-ExecutableBelowPathLimited -Root $installLocation -ExeName $ExeName -MaxDepth 5 -MaxDirectories 220
+                if (-not [string]::IsNullOrWhiteSpace($found)) { return $found }
+            }
+        } catch {
+        }
+    }
+    return ""
+}
+
 function Test-GameRootHintPath {
     param([string]$Path)
     if ([string]::IsNullOrWhiteSpace($Path)) { return $false }
@@ -1681,7 +2122,7 @@ function Add-UniquePathHint {
         [System.Collections.ArrayList]$Hints,
         [string]$Path
     )
-    if (-not $Hints -or [string]::IsNullOrWhiteSpace($Path)) { return }
+    if ($null -eq $Hints -or [string]::IsNullOrWhiteSpace($Path)) { return }
     $candidate = $Path.Trim().Trim('"')
     try {
         if (Test-Path -LiteralPath $candidate -PathType Leaf) { $candidate = Split-Path -Parent $candidate }
@@ -1756,25 +2197,128 @@ function Resolve-GameExecutablePath {
     )
 
     if (-not [string]::IsNullOrWhiteSpace($KnownPath) -and (Test-Path -LiteralPath $KnownPath -PathType Leaf)) { return $KnownPath }
+    $cacheKeys = Get-GameExecutableResolveKeys -ProcessName $ProcessName -GameName $GameName
+    $cachedPath = Get-CachedResolvedGameExecutablePath -Keys $cacheKeys
+    if (-not [string]::IsNullOrWhiteSpace($cachedPath)) { return $cachedPath }
+
     $userPath = Resolve-UserGamePathForProcess -ProcessName $ProcessName -GameName $GameName
-    if (-not [string]::IsNullOrWhiteSpace($userPath)) { return $userPath }
+    if (-not [string]::IsNullOrWhiteSpace($userPath)) {
+        return (Confirm-ResolvedGameExecutablePath -Keys $cacheKeys -ProcessName $ProcessName -GameName $GameName -Path $userPath -Source "UserMap")
+    }
+
+    $learnedPath = Resolve-LearnedGamePathForProcess -ProcessName $ProcessName -GameName $GameName
+    if (-not [string]::IsNullOrWhiteSpace($learnedPath)) {
+        Set-CachedResolvedGameExecutablePath -Keys $cacheKeys -Path $learnedPath
+        return $learnedPath
+    }
 
     $exeName = if ([string]::IsNullOrWhiteSpace($ProcessName)) { "" } elseif ($ProcessName.EndsWith(".exe", [System.StringComparison]::OrdinalIgnoreCase)) { $ProcessName } else { $ProcessName + ".exe" }
     if ([string]::IsNullOrWhiteSpace($exeName)) { return "" }
+
+    foreach ($processLike in @($Processes)) {
+        if (-not $processLike) { continue }
+        $name = ""
+        try { $name = [string]$processLike.ProcessName } catch { $name = "" }
+        if (-not [string]::Equals($name, [System.IO.Path]::GetFileNameWithoutExtension($exeName), [System.StringComparison]::OrdinalIgnoreCase)) { continue }
+        $processPath = Get-ProcessPathTextFromObject -ProcessLike $processLike
+        if (-not [string]::IsNullOrWhiteSpace($processPath) -and (Test-Path -LiteralPath $processPath -PathType Leaf)) {
+            return (Confirm-ResolvedGameExecutablePath -Keys $cacheKeys -ProcessName $ProcessName -GameName $GameName -Path $processPath -Source "Process")
+        }
+    }
 
     $roots = New-Object System.Collections.ArrayList
     foreach ($hint in @(Get-ProcessGameRootHints -ProcessName $ProcessName -Processes $Processes)) { Add-UniquePathHint -Hints $roots -Path $hint }
     foreach ($hint in @(Get-CommonGameSearchRoots -ProcessName $ProcessName)) { Add-UniquePathHint -Hints $roots -Path $hint }
 
+    $steamPath = Resolve-GameExecutablePathFromSteamManifests -Keys $cacheKeys -ProcessName $ProcessName -GameName $GameName -ExeName $exeName -Roots @($roots)
+    if (-not [string]::IsNullOrWhiteSpace($steamPath)) {
+        return (Confirm-ResolvedGameExecutablePath -Keys $cacheKeys -ProcessName $ProcessName -GameName $GameName -Path $steamPath -Source "SteamManifest")
+    }
+
+    $epicPath = Resolve-GameExecutablePathFromEpicManifests -Keys $cacheKeys -ProcessName $ProcessName -GameName $GameName -ExeName $exeName
+    if (-not [string]::IsNullOrWhiteSpace($epicPath)) {
+        return (Confirm-ResolvedGameExecutablePath -Keys $cacheKeys -ProcessName $ProcessName -GameName $GameName -Path $epicPath -Source "EpicManifest")
+    }
+
+    foreach ($root in @($roots)) {
+        try {
+            $direct = Join-Path ([string]$root) $exeName
+            if (Test-Path -LiteralPath $direct -PathType Leaf) {
+                return (Confirm-ResolvedGameExecutablePath -Keys $cacheKeys -ProcessName $ProcessName -GameName $GameName -Path $direct -Source "DirectRoot")
+            }
+            $aliased = Find-ExecutableInAliasedGameFolders -Root ([string]$root) -ExeName $exeName -ProcessName $ProcessName -GameName $GameName
+            if (-not [string]::IsNullOrWhiteSpace($aliased)) {
+                return (Confirm-ResolvedGameExecutablePath -Keys $cacheKeys -ProcessName $ProcessName -GameName $GameName -Path $aliased -Source "AliasedRoot")
+            }
+            $found = Find-ExecutableBelowPathLimited -Root ([string]$root) -ExeName $exeName -MaxDepth 5 -MaxDirectories 420
+            if (-not [string]::IsNullOrWhiteSpace($found)) {
+                return (Confirm-ResolvedGameExecutablePath -Keys $cacheKeys -ProcessName $ProcessName -GameName $GameName -Path $found -Source "RootScan")
+            }
+        } catch {
+        }
+    }
+    return ""
+}
+
+function Resolve-InstalledGameExecutablePathByName {
+    param(
+        [string]$ProcessName,
+        [string]$GameName
+    )
+
+    $exeName = if ([string]::IsNullOrWhiteSpace($ProcessName)) { "" } elseif ($ProcessName.EndsWith(".exe", [System.StringComparison]::OrdinalIgnoreCase)) { $ProcessName } else { $ProcessName + ".exe" }
+    if ([string]::IsNullOrWhiteSpace($exeName)) { return "" }
+
+    $roots = New-Object System.Collections.ArrayList
+    foreach ($hint in @(Get-CommonGameSearchRoots -ProcessName $ProcessName)) { Add-UniquePathHint -Hints $roots -Path $hint }
+    foreach ($steamAppsRoot in @(Get-SteamAppsRootsForGameResolve -Roots @($roots))) {
+        Add-UniquePathHint -Hints $roots -Path (Join-Path ([string]$steamAppsRoot) "common")
+    }
+
     foreach ($root in @($roots)) {
         try {
             $direct = Join-Path ([string]$root) $exeName
             if (Test-Path -LiteralPath $direct -PathType Leaf) { return $direct }
-            $found = Find-ExecutableBelowPathLimited -Root ([string]$root) -ExeName $exeName -MaxDepth 5 -MaxDirectories 420
-            if (-not [string]::IsNullOrWhiteSpace($found)) { return $found }
+
+            $aliased = Find-ExecutableInAliasedGameFolders -Root ([string]$root) -ExeName $exeName -ProcessName $ProcessName -GameName $GameName
+            if (-not [string]::IsNullOrWhiteSpace($aliased)) { return $aliased }
+
+            if (Test-KnownGameExecutableName -ProcessName $ProcessName) {
+                $found = Find-ExecutableBelowPathLimited -Root ([string]$root) -ExeName $exeName -MaxDepth 4 -MaxDirectories 900
+                if (-not [string]::IsNullOrWhiteSpace($found)) { return $found }
+            }
         } catch {
         }
     }
+    return ""
+}
+
+function Resolve-GameExecutablePathForActiveContext {
+    param(
+        [object]$ProcessLike,
+        [array]$Processes,
+        [string]$CandidatePath
+    )
+
+    $processName = ""
+    try { $processName = [string]$ProcessLike.ProcessName } catch { $processName = "" }
+    if ([string]::IsNullOrWhiteSpace($processName)) { return [string]$CandidatePath }
+
+    $path = [string]$CandidatePath
+    if ([string]::IsNullOrWhiteSpace($path)) {
+        $path = Get-ProcessPathTextFromObject -ProcessLike $ProcessLike
+    }
+    if ([string]::IsNullOrWhiteSpace($path)) {
+        $path = Resolve-GameExecutablePath -ProcessName $processName -GameName $processName -Processes $Processes
+    }
+    if ([string]::IsNullOrWhiteSpace($path)) {
+        $path = Resolve-InstalledGameExecutablePathByName -ProcessName $processName -GameName $processName
+        if (-not [string]::IsNullOrWhiteSpace($path)) {
+            $keys = Get-GameExecutableResolveKeys -ProcessName $processName -GameName $processName
+            $path = Confirm-ResolvedGameExecutablePath -Keys $keys -ProcessName $processName -GameName $processName -Path $path -Source "InstalledGameScan"
+        }
+    }
+    if (-not [string]::IsNullOrWhiteSpace($path) -and (Test-Path -LiteralPath $path -PathType Leaf)) { return [string]$path }
     return ""
 }
 
@@ -2206,7 +2750,7 @@ function Ensure-ZeroPingQosPolicy {
         if (-not $paths.Contains($p)) { [void]$paths.Add($p) }
         if ($paths.Count -ge 6) { break }
     }
-    if ($paths.Count -eq 0) { return "NoPath" }
+    if ($paths.Count -eq 0) { return "PathPending" }
 
     $prefix = Get-ZeroPingQosPolicyPrefix
     $targetNames = New-Object System.Collections.ArrayList
@@ -2427,7 +2971,7 @@ function Get-CpuBoundAssistContext {
         if ($anchor -and @($anchor).Count -gt 0) { $anchor = $anchor[0] }
         if ($anchor) {
             $anchorPath = [string]$UdpGuard.GamePath
-            if ([string]::IsNullOrWhiteSpace($anchorPath)) { $anchorPath = Get-ProcessPathTextFromObject -ProcessLike $anchor }
+            if ([string]::IsNullOrWhiteSpace($anchorPath)) { $anchorPath = Resolve-GameExecutablePathForActiveContext -ProcessLike $anchor -Processes $Processes -CandidatePath "" }
         }
     }
 
@@ -2438,7 +2982,7 @@ function Get-CpuBoundAssistContext {
     $gpu = 0.0
     if ($GpuSnapshot -and $GpuSnapshot.ProcessGpuPercentByPid -and $GpuSnapshot.ProcessGpuPercentByPid.ContainsKey($processIdValue)) { $gpu = [double]$GpuSnapshot.ProcessGpuPercentByPid[$processIdValue] }
     $path = $anchorPath
-    if ([string]::IsNullOrWhiteSpace($path)) { $path = Get-ProcessPathTextFromObject -ProcessLike $anchor }
+    if ([string]::IsNullOrWhiteSpace($path)) { $path = Resolve-GameExecutablePathForActiveContext -ProcessLike $anchor -Processes $Processes -CandidatePath "" }
     $role = Get-ProcessRole -ProcessName ([string]$anchor.ProcessName) -Path $path
     $looksGame = (Test-RealGameProcessCandidate -ProcessId $processIdValue -ProcessName ([string]$anchor.ProcessName) -Path $path -Role $role -Foreground $Foreground -CpuPercent $cpu -AllowKnownPathOnly) -or ($UdpGuard -and [bool]$UdpGuard.Active -and [int]$UdpGuard.GamePid -eq $processIdValue)
     $minimumCpu = $cpuBoundGameCpuPercent
@@ -3349,16 +3893,31 @@ function Get-UdpGuardContext {
         }
     }
     if (-not $best) { return $base }
-    $relatedSummary = if ($best.PSObject.Properties.Name -contains "Related") { $best.Related } else { Get-RelatedUdpEndpointSummary -Anchor $best.Process -AnchorPath ([string]$best.Path) -Processes $Processes -UdpMap $UdpMap }
+    $bestPath = [string]$best.Path
+    $bestRoot = [string]$best.Root
+    $bestSignals = @($best.Signals)
+    $resolvedBestPath = Resolve-GameExecutablePathForActiveContext -ProcessLike $best.Process -Processes $Processes -CandidatePath $bestPath
+    if (-not [string]::IsNullOrWhiteSpace($resolvedBestPath)) {
+        $bestPath = [string]$resolvedBestPath
+        $bestRoot = Get-GameSessionRootFromPath -Path $bestPath
+        if (-not (@($bestSignals) -contains "resolved-game-path")) { $bestSignals = @($bestSignals) + @("resolved-game-path") }
+    }
+    $relatedSummary = if ($best.PSObject.Properties.Name -contains "Related") { $best.Related } else { $null }
+    if ((-not $relatedSummary) -or ([string]::IsNullOrWhiteSpace([string]$relatedSummary.Root) -and -not [string]::IsNullOrWhiteSpace($bestPath))) {
+        $rebuiltRelatedSummary = Get-RelatedUdpEndpointSummary -Anchor $best.Process -AnchorPath $bestPath -Processes $Processes -UdpMap $UdpMap
+        if ($rebuiltRelatedSummary -and ((-not $relatedSummary) -or ([int]$rebuiltRelatedSummary.EndpointCount -ge [int]$relatedSummary.EndpointCount))) {
+            $relatedSummary = $rebuiltRelatedSummary
+        }
+    }
     $protectedPids = @([int]$best.Process.Id); $protectedPaths=@()
-    if ($best.Path) { $protectedPaths += [string]$best.Path }
+    if ($bestPath) { $protectedPaths += [string]$bestPath }
     if ($relatedSummary) { foreach($processIdValue in @($relatedSummary.Pids)){try{$protectedPids += [int]$processIdValue}catch{}}; foreach($p in @($relatedSummary.Paths)){ if($p){$protectedPaths += [string]$p} } }
     $protectedPids=@($protectedPids|Sort-Object -Unique); $protectedPaths=@($protectedPaths|Select-Object -Unique)
     $endpointCount=[int]$best.Udp; if($relatedSummary -and [int]$relatedSummary.EndpointCount -gt $endpointCount){$endpointCount=[int]$relatedSummary.EndpointCount}
-    $signals=@($best.Signals); if($relatedSummary){$signals += @($relatedSummary.Signals)}; $signals=@($signals|Where-Object{$_}|Select-Object -Unique)
+    $signals=@($bestSignals); if($relatedSummary){$signals += @($relatedSummary.Signals)}; $signals=@($signals|Where-Object{$_}|Select-Object -Unique)
     $confidence=[int]$best.Confidence; $active=$confidence -ge $networkUdpGuardConfidenceFloor
-    $contextRoot = if($relatedSummary -and -not [string]::IsNullOrWhiteSpace([string]$relatedSummary.Root)){[string]$relatedSummary.Root}else{[string]$best.Root}
-    $context=[pscustomobject]@{ Enabled=$true; Active=[bool]$active; Mode=if(-not $active){"Armed"}elseif(@($protectedPids).Count -gt 1){"NetcodeShieldAssociated"}else{"NetcodeShield"}; Game=[string]$best.Process.ProcessName; GamePid=[int]$best.Process.Id; GamePath=[string]$best.Path; GameRoot=$contextRoot; EndpointCount=$endpointCount; ProcessCount=$processCount; Confidence=$confidence; ConfidenceLabel=Get-UdpConfidenceLabel -Confidence $confidence; Reason=Get-UdpConfidenceReason -Signals $signals -Source ([string]$best.Source); Source=[string]$best.Source; ShieldMode=if($active){"LocalShield"}else{"Observe"}; ProtectedCount=@($protectedPids).Count; ProtectedPids=@($protectedPids); ProtectedPaths=@($protectedPaths); Signals=@($signals); QosStatus="Ready"; NoStackTweaks=[bool]$networkUdpGuardNoStackTweaks }
+    $contextRoot = if($relatedSummary -and -not [string]::IsNullOrWhiteSpace([string]$relatedSummary.Root)){[string]$relatedSummary.Root}else{$bestRoot}
+    $context=[pscustomobject]@{ Enabled=$true; Active=[bool]$active; Mode=if(-not $active){"Armed"}elseif(@($protectedPids).Count -gt 1){"NetcodeShieldAssociated"}else{"NetcodeShield"}; Game=[string]$best.Process.ProcessName; GamePid=[int]$best.Process.Id; GamePath=$bestPath; GameRoot=$contextRoot; EndpointCount=$endpointCount; ProcessCount=$processCount; Confidence=$confidence; ConfidenceLabel=Get-UdpConfidenceLabel -Confidence $confidence; Reason=Get-UdpConfidenceReason -Signals $signals -Source ([string]$best.Source); Source=[string]$best.Source; ShieldMode=if($active){"LocalShield"}else{"Observe"}; ProtectedCount=@($protectedPids).Count; ProtectedPids=@($protectedPids); ProtectedPaths=@($protectedPaths); Signals=@($signals); QosStatus="Ready"; NoStackTweaks=[bool]$networkUdpGuardNoStackTweaks }
     $context.QosStatus = Ensure-ZeroPingQosPolicy -Context $context
     Update-UdpSessionProfile -Map $profileMap -Context $context
     return $context
