@@ -33,7 +33,7 @@ using Microsoft.Web.WebView2.Wpf;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.7.2";
+    private const string AppVersion = "0.7.4";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
@@ -43,6 +43,7 @@ internal static class SmartBackgroundNap
     private const string CoreServiceDisplayName = "Smart SNAP Core Service";
     private const int CoreServiceLoopSeconds = 25;
     private const int CoreServiceStalePassSeconds = 150;
+    private const string MemoryStabilityGuardMode = "Shadow";
     private const int CoreProtocolVersion = 1;
     private const int CoreMinimumSupportedProtocolVersion = 1;
     private const string CorePipeName = "SmartNap.Core.v1";
@@ -50,6 +51,7 @@ internal static class SmartBackgroundNap
     private const int CorePipeMaxMessageBytes = 65536;
     private const int CorePipeConnectPollMilliseconds = 250;
     private const int CorePipeSubscribeHeartbeatSeconds = 10;
+    private const int CorePipeMaxConcurrentConnections = 4;
     private const int SessionAgentLoopMilliseconds = 2000;
     private const int SessionAgentStateMaxAgeSeconds = 12;
     private const string SessionAgentClientType = "sessionAgent";
@@ -104,6 +106,9 @@ internal static class SmartBackgroundNap
     private static string corePipeLastError = "";
     private static long corePipeRequestCount;
     private static long corePipeEventSequence;
+    private static int corePipeActiveConnections;
+    private static readonly object memoryStabilityLogLock = new object();
+    private static string memoryStabilityLastLogSignature = "";
     private static bool usingLooseRuntime;
     private static readonly object hardwareLock = new object();
     private static HardwareSnapshot hardwareSnapshotCache;
@@ -598,6 +603,15 @@ internal static class SmartBackgroundNap
     [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GlobalMemoryStatusEx([In, Out] MemoryStatusEx lpBuffer);
+
+    private const int LowMemoryResourceNotification = 0;
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr CreateMemoryResourceNotification(int notificationType);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool QueryMemoryResourceNotification(IntPtr resourceNotificationHandle, out bool resourceState);
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
@@ -3218,7 +3232,7 @@ internal static class SmartBackgroundNap
 
         SaveUiFlag("SessionAgentEnabled", true);
         RunResult start = RunHidden("schtasks.exe", "/Run /TN " + Quote(SessionAgentTaskName), 10000);
-        AppendOperationalLog("action=session-agent-install status=OK startExitCode=" + start.ExitCode.ToString(CultureInfo.InvariantCulture) + " detail=" + ShortTaskError(start.Output));
+        AppendOperationalLog("action=session-agent-install status=OK startExitCode=" + start.ExitCode.ToString(CultureInfo.InvariantCulture) + (start.ExitCode == 0 ? "" : " detail=" + ShortTaskError(start.Output)));
         return new RunResult(0, "Session Agent installed for user logon.");
     }
 
@@ -3371,19 +3385,31 @@ internal static class SmartBackgroundNap
         ServiceControllerStatus serviceStatus;
         bool installed = TryGetCoreServiceStatus(out serviceStatus) || query.ExitCode == 0;
         bool running = installed && serviceStatus == ServiceControllerStatus.Running;
-        int scoreAgeSeconds = GetFileAgeSeconds(scorePath);
-        bool telemetryStale = scoreAgeSeconds < 0 || scoreAgeSeconds > CoreServiceStalePassSeconds;
-        string health = ClassifyCoreServiceHealth(installed ? (running ? "Running" : "Installed") : "NotInstalled", "Status", query.ExitCode, installed, running, IsTaskInstalled(AutoTaskName), telemetryStale, false);
+        CoreServiceSnapshot snapshot = LoadCoreServiceSnapshot();
+        int scoreAgeSeconds = snapshot.Available ? snapshot.ScoreAgeSeconds : GetFileAgeSeconds(scorePath);
+        bool telemetryStale = snapshot.Available ? snapshot.TelemetryStale : (scoreAgeSeconds < 0 || scoreAgeSeconds > CoreServiceStalePassSeconds);
+        string health = snapshot.Available && !String.IsNullOrWhiteSpace(snapshot.Health)
+            ? snapshot.Health
+            : ClassifyCoreServiceHealth(installed ? (running ? "Running" : "Installed") : "NotInstalled", "Status", query.ExitCode, installed, running, IsTaskInstalled(AutoTaskName), telemetryStale, false);
         IDictionary<string, object> state = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
         state["AppVersion"] = AppVersion;
         state["ServiceName"] = CoreServiceName;
         state["DisplayName"] = CoreServiceDisplayName;
-        state["ProtocolVersion"] = CoreProtocolVersion;
-        state["MinimumSupportedProtocolVersion"] = CoreMinimumSupportedProtocolVersion;
-        state["PipeName"] = CorePipeName;
-        state["ContextProvider"] = "SessionAgentV1+" + CoreContextProviderLegacyBridge;
+        state["ProtocolVersion"] = snapshot.ProtocolVersion <= 0 ? CoreProtocolVersion : snapshot.ProtocolVersion;
+        state["MinimumSupportedProtocolVersion"] = snapshot.MinimumSupportedProtocolVersion <= 0 ? CoreMinimumSupportedProtocolVersion : snapshot.MinimumSupportedProtocolVersion;
+        state["PipeName"] = String.IsNullOrWhiteSpace(snapshot.PipeName) ? CorePipeName : snapshot.PipeName;
+        state["ContextProvider"] = String.IsNullOrWhiteSpace(snapshot.ContextProvider) ? "SessionAgentV1+" + CoreContextProviderLegacyBridge : snapshot.ContextProvider;
         state["Capabilities"] = BuildCoreServiceCapabilities();
         IDictionary<string, object> ipcStatus = BuildCorePipeStatePayload();
+        if (snapshot.Available)
+        {
+            ipcStatus["Listening"] = snapshot.IpcListening;
+            ipcStatus["SecureAcl"] = snapshot.IpcSecureAcl;
+            ipcStatus["HeartbeatAt"] = snapshot.IpcHeartbeatAt ?? "";
+            ipcStatus["LastClientAt"] = snapshot.IpcLastClientAt ?? "";
+            ipcStatus["LastCommand"] = snapshot.IpcLastCommand ?? "";
+            ipcStatus["LastError"] = snapshot.IpcLastError ?? "";
+        }
         state["Ipc"] = ipcStatus;
         state["IpcListening"] = ReadMapBool(ipcStatus, "Listening");
         state["IpcSecureAcl"] = ReadMapBool(ipcStatus, "SecureAcl");
@@ -3391,17 +3417,22 @@ internal static class SmartBackgroundNap
         state["IpcLastClientAt"] = ReadMapString(ipcStatus, "LastClientAt");
         state["IpcLastCommand"] = ReadMapString(ipcStatus, "LastCommand");
         state["IpcLastError"] = ReadMapString(ipcStatus, "LastError");
-        state["Installed"] = installed;
-        state["Running"] = running;
-        state["Status"] = installed ? GetCoreServiceStatusText() : "not installed";
+        state["Installed"] = installed || snapshot.Installed;
+        state["Running"] = running || snapshot.Running;
+        state["Status"] = snapshot.Available && !String.IsNullOrWhiteSpace(snapshot.Status) ? snapshot.Status : (installed ? GetCoreServiceStatusText() : "not installed");
+        state["Action"] = snapshot.Action ?? "Status";
         state["Health"] = health;
-        state["Summary"] = BuildCoreServiceSummary(health, "Status", IsTaskInstalled(AutoTaskName), telemetryStale, false, scoreAgeSeconds);
-        state["NeedsAttention"] = IsCoreServiceAttentionHealth(health);
-        state["AutoTaskInstalled"] = IsTaskInstalled(AutoTaskName);
+        state["Summary"] = snapshot.Available && !String.IsNullOrWhiteSpace(snapshot.Summary) ? snapshot.Summary : BuildCoreServiceSummary(health, "Status", IsTaskInstalled(AutoTaskName), telemetryStale, false, scoreAgeSeconds);
+        state["Detail"] = snapshot.Detail ?? "";
+        state["NeedsAttention"] = snapshot.Available ? snapshot.NeedsAttention : IsCoreServiceAttentionHealth(health);
+        state["AutoTaskInstalled"] = snapshot.Available ? snapshot.AutoTaskInstalled : IsTaskInstalled(AutoTaskName);
         state["SessionAgentTaskInstalled"] = IsTaskInstalled(SessionAgentTaskName);
-        state["TelemetryFresh"] = !telemetryStale;
+        state["TelemetryFresh"] = snapshot.Available ? snapshot.TelemetryFresh : !telemetryStale;
         state["TelemetryStale"] = telemetryStale;
         state["ScoreAgeSeconds"] = scoreAgeSeconds;
+        state["StateAgeSeconds"] = snapshot.StateAgeSeconds;
+        state["UpdatedAt"] = snapshot.UpdatedAt ?? "";
+        state["MemoryStability"] = BuildMemoryStabilityPayload(snapshot);
         SessionAgentSnapshot sessionAgent = LoadSessionAgentSnapshot();
         state["SessionAgent"] = BuildSessionAgentPayload(sessionAgent);
         state["SessionContext"] = BuildSessionContextPayload(sessionAgent);
@@ -3409,11 +3440,11 @@ internal static class SmartBackgroundNap
         state["StatePath"] = coreServiceStatePath;
         state["SessionAgentStatePath"] = sessionAgentStatePath;
         state["CheckedAt"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
-        if (!String.IsNullOrWhiteSpace(query.Output))
+        state["ServiceQueryExitCode"] = query.ExitCode;
+        if (query.ExitCode != 0 && !String.IsNullOrWhiteSpace(query.Output))
         {
-            state["RawStatus"] = ShortTaskError(query.Output);
+            state["ServiceQueryDetail"] = ShortTaskError(query.Output);
         }
-        WriteCoreServiceState(installed ? (running ? "Running" : "Installed") : "NotInstalled", "Status", query, IsTaskInstalled(AutoTaskName), false, scoreAgeSeconds, CoreServiceStalePassSeconds);
         Console.WriteLine(JsonCompat.SerializeObject(state));
         return new RunResult(0, JsonCompat.SerializeObject(state));
     }
@@ -3462,7 +3493,6 @@ internal static class SmartBackgroundNap
             RunResult start = StartCoreService(false);
             SaveUiFlag("CoreServiceEnabled", true);
             bool running = IsCoreServiceRunning();
-            WriteCoreServiceState(running ? "Running" : "Installed", "Install", start, IsTaskInstalled(AutoTaskName), false, GetFileAgeSeconds(scorePath), CoreServiceStalePassSeconds);
             AppendOperationalLog("action=core-service-install status=OK running=" + running.ToString().ToLowerInvariant());
             return start.ExitCode == 0 || running
                 ? new RunResult(0, "Core service installed.")
@@ -3544,8 +3574,12 @@ internal static class SmartBackgroundNap
 
         RunResult result = RunHidden("sc.exe", "start " + CoreServiceName, 30000);
         bool running = IsCoreServiceRunning();
-        WriteCoreServiceState(running ? "Running" : "StartPending", "Start", result, IsTaskInstalled(AutoTaskName), false, GetFileAgeSeconds(scorePath), CoreServiceStalePassSeconds);
-        return result.ExitCode == 0 || running ? new RunResult(0, "Core service started.") : result;
+        if (result.ExitCode != 0 && !running)
+        {
+            WriteCoreServiceState("StartPending", "Start", result, IsTaskInstalled(AutoTaskName), false, GetFileAgeSeconds(scorePath), CoreServiceStalePassSeconds);
+            return result;
+        }
+        return new RunResult(0, "Core service started.");
     }
 
     private static RunResult StopCoreService()
@@ -3654,6 +3688,33 @@ internal static class SmartBackgroundNap
         public string IpcLastClientAt;
         public string IpcLastCommand;
         public string IpcLastError;
+        public bool MemoryStabilityAvailable;
+        public bool MemoryStabilityRelevant;
+        public string MemoryStabilityMode;
+        public string MemoryStabilityState;
+        public string MemoryStabilitySummary;
+        public string MemoryStabilityDetail;
+        public int MemoryStabilityMemoryLoad;
+        public double MemoryStabilityAvailablePhysicalMB;
+        public double MemoryStabilityTotalPhysicalMB;
+        public double MemoryStabilityCommitUsedMB;
+        public double MemoryStabilityCommitLimitMB;
+        public double MemoryStabilityCommitHeadroomMB;
+        public int MemoryStabilityCommitHeadroomPercent;
+        public string MemoryStabilityPagefileStatus;
+        public bool MemoryStabilityPagefileLimited;
+        public bool MemoryStabilityLowMemorySignal;
+        public bool MemoryStabilityBrowserBurstRecommended;
+        public string MemoryStabilityTopProcess;
+        public int MemoryStabilityTopProcessPid;
+        public double MemoryStabilityTopProcessPrivateMB;
+        public double MemoryStabilityTopProcessWorkingSetMB;
+        public int MemoryStabilityBrowserProcessCount;
+        public double MemoryStabilityBrowserPrivateMB;
+        public double MemoryStabilityBrowserWorkingSetMB;
+        public string MemoryStabilityBrowserBurstState;
+        public int MemoryStabilityHeavyRecentProcessCount;
+        public List<string> MemoryStabilitySignals;
     }
 
     private sealed class SessionAgentSnapshot
@@ -3689,6 +3750,49 @@ internal static class SmartBackgroundNap
         public string CorePublishStatus;
     }
 
+    private sealed class MemoryStabilityProcessSample
+    {
+        public string Name;
+        public int Pid;
+        public double WorkingSetMB;
+        public double PrivateBytesMB;
+        public int AgeSeconds;
+        public bool Browser;
+        public bool Foreground;
+    }
+
+    private sealed class MemoryStabilitySnapshot
+    {
+        public bool Available;
+        public bool Relevant;
+        public string Mode;
+        public string State;
+        public string Summary;
+        public string Detail;
+        public int MemoryLoad;
+        public double AvailablePhysicalMB;
+        public double TotalPhysicalMB;
+        public double CommitUsedMB;
+        public double CommitLimitMB;
+        public double CommitHeadroomMB;
+        public int CommitHeadroomPercent;
+        public string PagefileStatus;
+        public bool PagefileLimited;
+        public bool LowMemorySignal;
+        public bool BrowserBurstRecommended;
+        public string TopProcess;
+        public int TopProcessPid;
+        public double TopProcessPrivateMB;
+        public double TopProcessWorkingSetMB;
+        public int BrowserProcessCount;
+        public double BrowserPrivateMB;
+        public double BrowserWorkingSetMB;
+        public string BrowserBurstState;
+        public int HeavyRecentProcessCount;
+        public List<string> Signals = new List<string>();
+        public List<MemoryStabilityProcessSample> TopConsumers = new List<MemoryStabilityProcessSample>();
+    }
+
     private static string ReadMapString(IDictionary<string, object> map, string key)
     {
         object value;
@@ -3705,6 +3809,18 @@ internal static class SmartBackgroundNap
         {
             int parsed;
             return Int32.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), NumberStyles.Integer, CultureInfo.InvariantCulture, out parsed) ? parsed : 0;
+        }
+    }
+
+    private static double ReadMapDouble(IDictionary<string, object> map, string key)
+    {
+        object value;
+        if (map == null || !map.TryGetValue(key, out value) || value == null) { return 0; }
+        try { return Convert.ToDouble(value, CultureInfo.InvariantCulture); }
+        catch
+        {
+            double parsed;
+            return Double.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), NumberStyles.Float, CultureInfo.InvariantCulture, out parsed) ? parsed : 0;
         }
     }
 
@@ -3802,6 +3918,422 @@ internal static class SmartBackgroundNap
         return "Core service needs attention.";
     }
 
+    private static double MemoryStabilityBytesToMb(ulong bytes)
+    {
+        return bytes == 0 ? 0 : Math.Round(bytes / 1048576.0, 1);
+    }
+
+    private static double MemoryStabilityBytesToMb(long bytes)
+    {
+        return bytes <= 0 ? 0 : Math.Round(bytes / 1048576.0, 1);
+    }
+
+    private static int MemoryStabilityPercent(double part, double total)
+    {
+        if (total <= 0 || Double.IsNaN(total) || Double.IsInfinity(total)) { return 0; }
+        double value = (part / total) * 100.0;
+        if (Double.IsNaN(value) || Double.IsInfinity(value)) { return 0; }
+        return Math.Max(0, Math.Min(100, (int)Math.Round(value)));
+    }
+
+    private static bool TryQueryLowMemoryNotification(out bool lowMemory)
+    {
+        lowMemory = false;
+        IntPtr handle = IntPtr.Zero;
+        try
+        {
+            handle = CreateMemoryResourceNotification(LowMemoryResourceNotification);
+            if (handle == IntPtr.Zero || handle == new IntPtr(-1)) { return false; }
+            bool resourceState;
+            if (!QueryMemoryResourceNotification(handle, out resourceState)) { return false; }
+            lowMemory = resourceState;
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            if (handle != IntPtr.Zero && handle != new IntPtr(-1))
+            {
+                try { CloseHandle(handle); } catch { }
+            }
+        }
+    }
+
+    private static string CleanMemoryStabilityProcessName(string value)
+    {
+        string name = (value ?? "").Trim();
+        if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) { name = name.Substring(0, name.Length - 4); }
+        return name;
+    }
+
+    private static bool IsMemoryStabilitySmartNapProcessName(string processName)
+    {
+        string name = CleanMemoryStabilityProcessName(processName);
+        return StringEqualsAny(name, new string[] { "SmartBackgroundNap", "SmartBackgroundNapTray", "SmartBackgroundNapDashboard", "SmartSNAPCoreService" }) ||
+            name.IndexOf("SmartBackgroundNap", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            name.IndexOf("Smart SNAP", StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static bool IsMemoryStabilityBrowserProcess(string processName)
+    {
+        return StringEqualsAny(processName, new string[] { "chrome", "msedge", "firefox", "zen", "brave", "opera", "vivaldi", "librewolf", "waterfox", "floorp", "arc", "tor", "msedgewebview2" });
+    }
+
+    private static bool IsMemoryStabilityGamingContext(SessionAgentSnapshot sessionAgent)
+    {
+        if (sessionAgent == null) { return false; }
+        if (sessionAgent.ForegroundIsGame) { return true; }
+        string context = (sessionAgent.Context ?? "").Trim();
+        return context.Equals("Gaming", StringComparison.OrdinalIgnoreCase) ||
+            context.Equals("Competitive", StringComparison.OrdinalIgnoreCase) ||
+            context.Equals("Game", StringComparison.OrdinalIgnoreCase) ||
+            context.Equals("Jogos", StringComparison.OrdinalIgnoreCase) ||
+            context.Equals("Jogo", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static List<MemoryStabilityProcessSample> SampleMemoryStabilityProcesses(SessionAgentSnapshot sessionAgent)
+    {
+        List<MemoryStabilityProcessSample> samples = new List<MemoryStabilityProcessSample>();
+        int currentPid = 0;
+        try { currentPid = Process.GetCurrentProcess().Id; } catch { }
+
+        Process[] processes;
+        try { processes = Process.GetProcesses(); }
+        catch { return samples; }
+
+        foreach (Process process in processes)
+        {
+            try
+            {
+                int pid = 0;
+                try { pid = process.Id; } catch { }
+                if (pid <= 0 || pid == currentPid) { continue; }
+                string name = CleanMemoryStabilityProcessName(process.ProcessName);
+                if (String.IsNullOrWhiteSpace(name) || IsMemoryStabilitySmartNapProcessName(name)) { continue; }
+
+                long workingSetBytes = 0;
+                long privateBytes = 0;
+                try { workingSetBytes = process.WorkingSet64; } catch { }
+                try { privateBytes = process.PrivateMemorySize64; } catch { }
+                double workingSetMB = MemoryStabilityBytesToMb(workingSetBytes);
+                double privateMB = MemoryStabilityBytesToMb(privateBytes);
+                bool browser = IsMemoryStabilityBrowserProcess(name);
+                bool foreground = sessionAgent != null && pid == sessionAgent.ForegroundPid;
+                double observedMB = Math.Max(workingSetMB, privateMB);
+                if (observedMB < 96 && !browser && !foreground) { continue; }
+
+                int ageSeconds = -1;
+                try
+                {
+                    DateTime started = process.StartTime;
+                    double age = (DateTime.Now - started).TotalSeconds;
+                    if (!Double.IsNaN(age) && !Double.IsInfinity(age)) { ageSeconds = Math.Max(0, (int)Math.Round(age)); }
+                }
+                catch
+                {
+                }
+
+                samples.Add(new MemoryStabilityProcessSample
+                {
+                    Name = name,
+                    Pid = pid,
+                    WorkingSetMB = workingSetMB,
+                    PrivateBytesMB = privateMB,
+                    AgeSeconds = ageSeconds,
+                    Browser = browser,
+                    Foreground = foreground
+                });
+            }
+            catch
+            {
+            }
+            finally
+            {
+                try { process.Dispose(); } catch { }
+            }
+        }
+
+        return samples
+            .OrderByDescending(item => Math.Max(item.PrivateBytesMB, item.WorkingSetMB))
+            .Take(8)
+            .ToList();
+    }
+
+    private static MemoryStabilitySnapshot BuildMemoryStabilitySnapshot(SessionAgentSnapshot sessionAgent, string source)
+    {
+        MemoryStabilitySnapshot snapshot = new MemoryStabilitySnapshot();
+        snapshot.Available = true;
+        snapshot.Mode = MemoryStabilityGuardMode;
+        snapshot.State = "Normal";
+        snapshot.Summary = "Memória estável";
+        snapshot.Detail = "Modo shadow: diagnóstico ativo; sem trim global, sem alteração de pagefile.";
+        snapshot.PagefileStatus = "Indisponível";
+        snapshot.BrowserBurstState = "Normal";
+
+        try
+        {
+            MemorySnapshot memory = GetMemorySnapshot();
+            snapshot.TotalPhysicalMB = MemoryStabilityBytesToMb(memory.TotalPhysical);
+            snapshot.AvailablePhysicalMB = MemoryStabilityBytesToMb(memory.AvailablePhysical);
+            snapshot.CommitLimitMB = MemoryStabilityBytesToMb(memory.TotalPageFile);
+            snapshot.CommitHeadroomMB = MemoryStabilityBytesToMb(memory.AvailablePageFile);
+            snapshot.CommitUsedMB = Math.Max(0, Math.Round(snapshot.CommitLimitMB - snapshot.CommitHeadroomMB, 1));
+            snapshot.CommitHeadroomPercent = MemoryStabilityPercent(snapshot.CommitHeadroomMB, snapshot.CommitLimitMB);
+            snapshot.MemoryLoad = memory.MemoryLoad;
+
+            if (memory.TotalPhysical <= 0 || memory.TotalPageFile <= 0)
+            {
+                snapshot.Available = false;
+                snapshot.Relevant = false;
+                snapshot.State = "DiagnosticRequired";
+                snapshot.Summary = "Memória não analisada";
+                snapshot.Detail = "O Windows não retornou um snapshot completo de memória para o guard.";
+                snapshot.Signals.Add("Snapshot de memória indisponível.");
+                return snapshot;
+            }
+
+            bool lowMemory;
+            snapshot.LowMemorySignal = TryQueryLowMemoryNotification(out lowMemory) && lowMemory;
+
+            double configuredPagefileMB = Math.Max(0, snapshot.CommitLimitMB - snapshot.TotalPhysicalMB);
+            if (configuredPagefileMB <= 0)
+            {
+                snapshot.PagefileStatus = "Não identificado";
+            }
+            else if (configuredPagefileMB < Math.Min(1024, snapshot.TotalPhysicalMB * 0.10))
+            {
+                snapshot.PagefileStatus = "Limitado";
+                snapshot.PagefileLimited = true;
+            }
+            else if (snapshot.CommitHeadroomPercent > 0 && snapshot.CommitHeadroomPercent <= 12)
+            {
+                snapshot.PagefileStatus = "Baixo headroom";
+            }
+            else
+            {
+                snapshot.PagefileStatus = "Saudável";
+            }
+
+            snapshot.TopConsumers = SampleMemoryStabilityProcesses(sessionAgent);
+            MemoryStabilityProcessSample top = snapshot.TopConsumers.Count > 0 ? snapshot.TopConsumers[0] : null;
+            if (top != null)
+            {
+                snapshot.TopProcess = top.Name;
+                snapshot.TopProcessPid = top.Pid;
+                snapshot.TopProcessPrivateMB = top.PrivateBytesMB;
+                snapshot.TopProcessWorkingSetMB = top.WorkingSetMB;
+            }
+
+            List<MemoryStabilityProcessSample> browsers = snapshot.TopConsumers.Where(item => item.Browser).ToList();
+            snapshot.BrowserProcessCount = browsers.Count;
+            snapshot.BrowserPrivateMB = Math.Round(browsers.Sum(item => item.PrivateBytesMB), 1);
+            snapshot.BrowserWorkingSetMB = Math.Round(browsers.Sum(item => item.WorkingSetMB), 1);
+            snapshot.HeavyRecentProcessCount = snapshot.TopConsumers.Count(item => item.AgeSeconds >= 0 && item.AgeSeconds <= 90 && Math.Max(item.PrivateBytesMB, item.WorkingSetMB) >= 384);
+
+            bool gamingContext = IsMemoryStabilityGamingContext(sessionAgent);
+            bool browserPressure = snapshot.BrowserProcessCount >= 2 && Math.Max(snapshot.BrowserPrivateMB, snapshot.BrowserWorkingSetMB) >= 1024;
+            bool pressureSignal = snapshot.MemoryLoad >= 70 || snapshot.CommitHeadroomPercent <= 20 || snapshot.AvailablePhysicalMB <= 2048;
+            snapshot.BrowserBurstRecommended = gamingContext && browserPressure && pressureSignal;
+            if (snapshot.BrowserBurstRecommended)
+            {
+                snapshot.BrowserBurstState = "Browser burst em observação";
+            }
+            else if (browserPressure)
+            {
+                snapshot.BrowserBurstState = "Navegador pesado observado";
+            }
+
+            int ramHeadroomPercent = MemoryStabilityPercent(snapshot.AvailablePhysicalMB, snapshot.TotalPhysicalMB);
+            bool critical = snapshot.LowMemorySignal || snapshot.MemoryLoad >= 92 || ramHeadroomPercent <= 6 || snapshot.CommitHeadroomPercent <= 6 || (snapshot.PagefileLimited && snapshot.CommitHeadroomPercent <= 15);
+            bool high = snapshot.MemoryLoad >= 84 || ramHeadroomPercent <= 12 || snapshot.CommitHeadroomPercent <= 12;
+            bool observing = snapshot.MemoryLoad >= 72 || ramHeadroomPercent <= 20 || snapshot.CommitHeadroomPercent <= 20 || snapshot.BrowserBurstRecommended || snapshot.HeavyRecentProcessCount >= 3;
+
+            if (critical)
+            {
+                snapshot.State = "CriticalPressure";
+                snapshot.Summary = "Pressão crítica de memória";
+            }
+            else if (high)
+            {
+                snapshot.State = "HighPressure";
+                snapshot.Summary = "Pressão de memória elevada";
+            }
+            else if (observing)
+            {
+                snapshot.State = "Observing";
+                snapshot.Summary = "Observando pressão de memória";
+            }
+
+            snapshot.Relevant = !String.Equals(snapshot.State, "Normal", StringComparison.OrdinalIgnoreCase) || snapshot.BrowserBurstRecommended || snapshot.PagefileLimited || snapshot.LowMemorySignal;
+            snapshot.Signals.Add("RAM disponível " + snapshot.AvailablePhysicalMB.ToString("0.#", CultureInfo.InvariantCulture) + " MB de " + snapshot.TotalPhysicalMB.ToString("0.#", CultureInfo.InvariantCulture) + " MB.");
+            snapshot.Signals.Add("Commit livre " + snapshot.CommitHeadroomMB.ToString("0.#", CultureInfo.InvariantCulture) + " MB (" + snapshot.CommitHeadroomPercent.ToString(CultureInfo.InvariantCulture) + "%).");
+            snapshot.Signals.Add("Pagefile: " + snapshot.PagefileStatus + ".");
+            if (snapshot.LowMemorySignal) { snapshot.Signals.Add("Windows sinalizou baixa memória física."); }
+            if (snapshot.BrowserBurstRecommended) { snapshot.Signals.Add("Browser Burst Shield recomendado em modo shadow."); }
+            if (top != null) { snapshot.Signals.Add("Maior consumidor observado: " + top.Name + " (" + top.Pid.ToString(CultureInfo.InvariantCulture) + ")."); }
+        }
+        catch (Exception ex)
+        {
+            snapshot.Available = false;
+            snapshot.Relevant = false;
+            snapshot.State = "DiagnosticRequired";
+            snapshot.Summary = "Memória não analisada";
+            snapshot.Detail = "Falha ao montar diagnóstico de memória: " + ShortTaskError(ex.Message);
+            snapshot.Signals.Add("Falha no Memory Stability Guard: " + ShortTaskError(ex.Message));
+        }
+
+        MaybeLogMemoryStability(snapshot);
+        return snapshot;
+    }
+
+    private static List<object> BuildMemoryStabilityProcessPayload(List<MemoryStabilityProcessSample> samples)
+    {
+        List<object> result = new List<object>();
+        if (samples == null) { return result; }
+        foreach (MemoryStabilityProcessSample sample in samples.Take(5))
+        {
+            IDictionary<string, object> item = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            item["Name"] = sample.Name ?? "";
+            item["Pid"] = sample.Pid;
+            item["WorkingSetMB"] = sample.WorkingSetMB;
+            item["PrivateBytesMB"] = sample.PrivateBytesMB;
+            item["AgeSeconds"] = sample.AgeSeconds;
+            item["Browser"] = sample.Browser;
+            item["Foreground"] = sample.Foreground;
+            result.Add(item);
+        }
+        return result;
+    }
+
+    private static IDictionary<string, object> BuildMemoryStabilityPayload(MemoryStabilitySnapshot snapshot)
+    {
+        MemoryStabilitySnapshot value = snapshot ?? new MemoryStabilitySnapshot { Mode = MemoryStabilityGuardMode, State = "DiagnosticRequired", Summary = "Memória não analisada", Detail = "Snapshot indisponível." };
+        IDictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        payload["Available"] = value.Available;
+        payload["Relevant"] = value.Relevant;
+        payload["Mode"] = value.Mode ?? MemoryStabilityGuardMode;
+        payload["State"] = value.State ?? "DiagnosticRequired";
+        payload["Summary"] = value.Summary ?? "";
+        payload["Detail"] = value.Detail ?? "";
+        payload["MemoryLoad"] = value.MemoryLoad;
+        payload["AvailablePhysicalMB"] = value.AvailablePhysicalMB;
+        payload["TotalPhysicalMB"] = value.TotalPhysicalMB;
+        payload["CommitUsedMB"] = value.CommitUsedMB;
+        payload["CommitLimitMB"] = value.CommitLimitMB;
+        payload["CommitHeadroomMB"] = value.CommitHeadroomMB;
+        payload["CommitHeadroomPercent"] = value.CommitHeadroomPercent;
+        payload["PagefileStatus"] = value.PagefileStatus ?? "";
+        payload["PagefileLimited"] = value.PagefileLimited;
+        payload["LowMemorySignal"] = value.LowMemorySignal;
+        payload["BrowserBurstRecommended"] = value.BrowserBurstRecommended;
+        payload["TopProcess"] = value.TopProcess ?? "";
+        payload["TopProcessPid"] = value.TopProcessPid;
+        payload["TopProcessPrivateMB"] = value.TopProcessPrivateMB;
+        payload["TopProcessWorkingSetMB"] = value.TopProcessWorkingSetMB;
+        payload["BrowserProcessCount"] = value.BrowserProcessCount;
+        payload["BrowserPrivateMB"] = value.BrowserPrivateMB;
+        payload["BrowserWorkingSetMB"] = value.BrowserWorkingSetMB;
+        payload["BrowserBurstState"] = value.BrowserBurstState ?? "";
+        payload["HeavyRecentProcessCount"] = value.HeavyRecentProcessCount;
+        payload["Signals"] = value.Signals ?? new List<string>();
+        payload["TopConsumers"] = BuildMemoryStabilityProcessPayload(value.TopConsumers);
+        return payload;
+    }
+
+    private static IDictionary<string, object> BuildMemoryStabilityPayload(CoreServiceSnapshot snapshot)
+    {
+        CoreServiceSnapshot value = snapshot ?? new CoreServiceSnapshot();
+        IDictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        payload["Available"] = value.MemoryStabilityAvailable;
+        payload["Relevant"] = value.MemoryStabilityRelevant;
+        payload["Mode"] = String.IsNullOrWhiteSpace(value.MemoryStabilityMode) ? MemoryStabilityGuardMode : value.MemoryStabilityMode;
+        payload["State"] = value.MemoryStabilityState ?? "";
+        payload["Summary"] = value.MemoryStabilitySummary ?? "";
+        payload["Detail"] = value.MemoryStabilityDetail ?? "";
+        payload["MemoryLoad"] = value.MemoryStabilityMemoryLoad;
+        payload["AvailablePhysicalMB"] = value.MemoryStabilityAvailablePhysicalMB;
+        payload["TotalPhysicalMB"] = value.MemoryStabilityTotalPhysicalMB;
+        payload["CommitUsedMB"] = value.MemoryStabilityCommitUsedMB;
+        payload["CommitLimitMB"] = value.MemoryStabilityCommitLimitMB;
+        payload["CommitHeadroomMB"] = value.MemoryStabilityCommitHeadroomMB;
+        payload["CommitHeadroomPercent"] = value.MemoryStabilityCommitHeadroomPercent;
+        payload["PagefileStatus"] = value.MemoryStabilityPagefileStatus ?? "";
+        payload["PagefileLimited"] = value.MemoryStabilityPagefileLimited;
+        payload["LowMemorySignal"] = value.MemoryStabilityLowMemorySignal;
+        payload["BrowserBurstRecommended"] = value.MemoryStabilityBrowserBurstRecommended;
+        payload["TopProcess"] = value.MemoryStabilityTopProcess ?? "";
+        payload["TopProcessPid"] = value.MemoryStabilityTopProcessPid;
+        payload["TopProcessPrivateMB"] = value.MemoryStabilityTopProcessPrivateMB;
+        payload["TopProcessWorkingSetMB"] = value.MemoryStabilityTopProcessWorkingSetMB;
+        payload["BrowserProcessCount"] = value.MemoryStabilityBrowserProcessCount;
+        payload["BrowserPrivateMB"] = value.MemoryStabilityBrowserPrivateMB;
+        payload["BrowserWorkingSetMB"] = value.MemoryStabilityBrowserWorkingSetMB;
+        payload["BrowserBurstState"] = value.MemoryStabilityBrowserBurstState ?? "";
+        payload["HeavyRecentProcessCount"] = value.MemoryStabilityHeavyRecentProcessCount;
+        payload["Signals"] = value.MemoryStabilitySignals ?? new List<string>();
+        return payload;
+    }
+
+    private static void ApplyMemoryStabilitySnapshot(IDictionary<string, object> target, MemoryStabilitySnapshot snapshot)
+    {
+        if (target == null || snapshot == null) { return; }
+        target["MemoryStability"] = BuildMemoryStabilityPayload(snapshot);
+        target["MemoryStabilityAvailable"] = snapshot.Available;
+        target["MemoryStabilityRelevant"] = snapshot.Relevant;
+        target["MemoryStabilityMode"] = snapshot.Mode ?? MemoryStabilityGuardMode;
+        target["MemoryStabilityState"] = snapshot.State ?? "";
+        target["MemoryStabilitySummary"] = snapshot.Summary ?? "";
+        target["MemoryStabilityDetail"] = snapshot.Detail ?? "";
+        target["MemoryStabilityMemoryLoad"] = snapshot.MemoryLoad;
+        target["MemoryStabilityAvailablePhysicalMB"] = snapshot.AvailablePhysicalMB;
+        target["MemoryStabilityTotalPhysicalMB"] = snapshot.TotalPhysicalMB;
+        target["MemoryStabilityCommitUsedMB"] = snapshot.CommitUsedMB;
+        target["MemoryStabilityCommitLimitMB"] = snapshot.CommitLimitMB;
+        target["MemoryStabilityCommitHeadroomMB"] = snapshot.CommitHeadroomMB;
+        target["MemoryStabilityCommitHeadroomPercent"] = snapshot.CommitHeadroomPercent;
+        target["MemoryStabilityPagefileStatus"] = snapshot.PagefileStatus ?? "";
+        target["MemoryStabilityPagefileLimited"] = snapshot.PagefileLimited;
+        target["MemoryStabilityLowMemorySignal"] = snapshot.LowMemorySignal;
+        target["MemoryStabilityBrowserBurstRecommended"] = snapshot.BrowserBurstRecommended;
+        target["MemoryStabilityTopProcess"] = snapshot.TopProcess ?? "";
+        target["MemoryStabilityTopProcessPid"] = snapshot.TopProcessPid;
+        target["MemoryStabilityTopProcessPrivateMB"] = snapshot.TopProcessPrivateMB;
+        target["MemoryStabilityTopProcessWorkingSetMB"] = snapshot.TopProcessWorkingSetMB;
+        target["MemoryStabilityBrowserProcessCount"] = snapshot.BrowserProcessCount;
+        target["MemoryStabilityBrowserPrivateMB"] = snapshot.BrowserPrivateMB;
+        target["MemoryStabilityBrowserWorkingSetMB"] = snapshot.BrowserWorkingSetMB;
+        target["MemoryStabilityBrowserBurstState"] = snapshot.BrowserBurstState ?? "";
+        target["MemoryStabilityHeavyRecentProcessCount"] = snapshot.HeavyRecentProcessCount;
+        target["MemoryStabilitySignals"] = snapshot.Signals ?? new List<string>();
+    }
+
+    private static void MaybeLogMemoryStability(MemoryStabilitySnapshot snapshot)
+    {
+        if (snapshot == null || !snapshot.Relevant) { return; }
+        string signature = String.Join("|", new string[]
+        {
+            snapshot.State ?? "",
+            snapshot.CommitHeadroomPercent.ToString(CultureInfo.InvariantCulture),
+            snapshot.PagefileStatus ?? "",
+            snapshot.BrowserBurstRecommended ? "browser" : "",
+            snapshot.TopProcess ?? ""
+        });
+        lock (memoryStabilityLogLock)
+        {
+            if (String.Equals(signature, memoryStabilityLastLogSignature, StringComparison.Ordinal)) { return; }
+            memoryStabilityLastLogSignature = signature;
+        }
+        AppendOperationalLog("action=memory-stability-guard mode=" + SanitizeLogToken(snapshot.Mode) +
+            " state=" + SanitizeLogToken(snapshot.State) +
+            " ramLoad=" + snapshot.MemoryLoad.ToString(CultureInfo.InvariantCulture) +
+            " commitHeadroomPercent=" + snapshot.CommitHeadroomPercent.ToString(CultureInfo.InvariantCulture) +
+            " pagefile=" + SanitizeLogToken(snapshot.PagefileStatus) +
+            " top=" + SanitizeLogToken(snapshot.TopProcess) +
+            " browserPrivateMB=" + snapshot.BrowserPrivateMB.ToString("0.#", CultureInfo.InvariantCulture));
+    }
     private static List<string> BuildCoreServiceCapabilities()
     {
         return new List<string>
@@ -3819,7 +4351,10 @@ internal static class SmartBackgroundNap
             "publishSessionContext",
             "getSessionContext",
             "watchdog",
-            "scheduledTaskBridge"
+            "scheduledTaskBridge",
+            "memoryStabilityGuard.shadow",
+            "commitHeadroomGuard.v1",
+            "browserBurstShield.shadow"
         };
     }
 
@@ -4314,6 +4849,7 @@ internal static class SmartBackgroundNap
         payload["NeedsAttention"] = service.NeedsAttention;
         payload["UpdatedAt"] = service.UpdatedAt ?? "";
         payload["StateAgeSeconds"] = service.StateAgeSeconds;
+        payload["MemoryStability"] = BuildMemoryStabilityPayload(service);
         return payload;
     }
 
@@ -4362,6 +4898,7 @@ internal static class SmartBackgroundNap
         payload["Session"] = BuildSessionAgentPayload(sessionAgent);
         payload["Context"] = BuildSessionContextPayload(sessionAgent);
         payload["Foreground"] = BuildSessionForegroundPayload(sessionAgent);
+        payload["MemoryStability"] = BuildMemoryStabilityPayload(service);
         payload["Events"] = BuildCoreEventsPayload(20);
         return payload;
     }
@@ -4439,7 +4976,6 @@ internal static class SmartBackgroundNap
         AddCorePipeAccessRule(security, WellKnownSidType.LocalSystemSid, PipeAccessRights.FullControl);
         AddCorePipeAccessRule(security, WellKnownSidType.BuiltinAdministratorsSid, PipeAccessRights.FullControl);
         AddCorePipeAccessRule(security, WellKnownSidType.InteractiveSid, PipeAccessRights.ReadWrite);
-        AddCorePipeAccessRule(security, WellKnownSidType.AuthenticatedUserSid, PipeAccessRights.ReadWrite);
         return security;
     }
 
@@ -4738,26 +5274,63 @@ internal static class SmartBackgroundNap
             while (!stopSignal.WaitOne(0))
             {
                 MarkCorePipeHeartbeat();
+                NamedPipeServerStream pipe = null;
                 try
                 {
-                    using (NamedPipeServerStream pipe = CreateCorePipeServerStream())
+                    pipe = CreateCorePipeServerStream();
+                    System.Threading.Tasks.Task wait = pipe.WaitForConnectionAsync();
+                    while (!wait.Wait(CorePipeConnectPollMilliseconds))
                     {
-                        System.Threading.Tasks.Task wait = pipe.WaitForConnectionAsync();
-                        while (!wait.Wait(CorePipeConnectPollMilliseconds))
-                        {
-                            if (stopSignal.WaitOne(0)) { return; }
-                            MarkCorePipeHeartbeat();
-                        }
-                        if (wait.IsFaulted && wait.Exception != null) { throw wait.Exception; }
-                        if (!pipe.IsConnected) { continue; }
-                        HandleCorePipeConnection(pipe, stopSignal);
+                        if (stopSignal.WaitOne(0)) { return; }
+                        MarkCorePipeHeartbeat();
                     }
+                    if (wait.IsFaulted && wait.Exception != null) { throw wait.Exception; }
+                    if (!pipe.IsConnected) { pipe.Dispose(); pipe = null; continue; }
+                    if (Volatile.Read(ref corePipeActiveConnections) >= CorePipeMaxConcurrentConnections)
+                    {
+                        IDictionary<string, object> busy = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                        busy["accepted"] = false;
+                        busy["protocolVersion"] = CoreProtocolVersion;
+                        busy["errorCode"] = "ipc_busy";
+                        busy["errorMessage"] = "Core IPC is busy. Try again.";
+                        try { WriteCorePipeMessage(pipe, busy); } catch { }
+                        pipe.Dispose();
+                        pipe = null;
+                        continue;
+                    }
+
+                    NamedPipeServerStream connectedPipe = pipe;
+                    pipe = null;
+                    Interlocked.Increment(ref corePipeActiveConnections);
+                    ThreadPool.QueueUserWorkItem(delegate
+                    {
+                        try
+                        {
+                            using (connectedPipe)
+                            {
+                                HandleCorePipeConnection(connectedPipe, stopSignal);
+                            }
+                        }
+                        catch (Exception workerEx)
+                        {
+                            MarkCorePipeListening(true, workerEx.Message);
+                            AppendOperationalLog("action=core-ipc-connection status=failed detail=" + ShortTaskError(workerEx.Message));
+                        }
+                        finally
+                        {
+                            Interlocked.Decrement(ref corePipeActiveConnections);
+                        }
+                    });
                 }
                 catch (Exception ex)
                 {
                     MarkCorePipeListening(true, ex.Message);
                     AppendOperationalLog("action=core-ipc status=failed detail=" + ShortTaskError(ex.Message));
                     stopSignal.WaitOne(TimeSpan.FromSeconds(2));
+                }
+                finally
+                {
+                    if (pipe != null) { try { pipe.Dispose(); } catch { } }
                 }
             }
         }
@@ -4973,6 +5546,57 @@ internal static class SmartBackgroundNap
             snapshot.IpcLastClientAt = ReadMapString(root, "IpcLastClientAt");
             snapshot.IpcLastCommand = ReadMapString(root, "IpcLastCommand");
             snapshot.IpcLastError = ReadMapString(root, "IpcLastError");
+            IDictionary<string, object> memoryStability = ReadMapObject(root, "MemoryStability");
+            snapshot.MemoryStabilityAvailable = ReadMapBool(memoryStability, "Available") || ReadMapBool(root, "MemoryStabilityAvailable");
+            snapshot.MemoryStabilityRelevant = ReadMapBool(memoryStability, "Relevant") || ReadMapBool(root, "MemoryStabilityRelevant");
+            snapshot.MemoryStabilityMode = ReadMapString(memoryStability, "Mode");
+            if (String.IsNullOrWhiteSpace(snapshot.MemoryStabilityMode)) { snapshot.MemoryStabilityMode = ReadMapString(root, "MemoryStabilityMode"); }
+            if (String.IsNullOrWhiteSpace(snapshot.MemoryStabilityMode)) { snapshot.MemoryStabilityMode = MemoryStabilityGuardMode; }
+            snapshot.MemoryStabilityState = ReadMapString(memoryStability, "State");
+            if (String.IsNullOrWhiteSpace(snapshot.MemoryStabilityState)) { snapshot.MemoryStabilityState = ReadMapString(root, "MemoryStabilityState"); }
+            snapshot.MemoryStabilitySummary = ReadMapString(memoryStability, "Summary");
+            if (String.IsNullOrWhiteSpace(snapshot.MemoryStabilitySummary)) { snapshot.MemoryStabilitySummary = ReadMapString(root, "MemoryStabilitySummary"); }
+            snapshot.MemoryStabilityDetail = ReadMapString(memoryStability, "Detail");
+            if (String.IsNullOrWhiteSpace(snapshot.MemoryStabilityDetail)) { snapshot.MemoryStabilityDetail = ReadMapString(root, "MemoryStabilityDetail"); }
+            snapshot.MemoryStabilityMemoryLoad = ReadMapInt(memoryStability, "MemoryLoad");
+            if (snapshot.MemoryStabilityMemoryLoad <= 0) { snapshot.MemoryStabilityMemoryLoad = ReadMapInt(root, "MemoryStabilityMemoryLoad"); }
+            snapshot.MemoryStabilityAvailablePhysicalMB = ReadMapDouble(memoryStability, "AvailablePhysicalMB");
+            if (snapshot.MemoryStabilityAvailablePhysicalMB <= 0) { snapshot.MemoryStabilityAvailablePhysicalMB = ReadMapDouble(root, "MemoryStabilityAvailablePhysicalMB"); }
+            snapshot.MemoryStabilityTotalPhysicalMB = ReadMapDouble(memoryStability, "TotalPhysicalMB");
+            if (snapshot.MemoryStabilityTotalPhysicalMB <= 0) { snapshot.MemoryStabilityTotalPhysicalMB = ReadMapDouble(root, "MemoryStabilityTotalPhysicalMB"); }
+            snapshot.MemoryStabilityCommitUsedMB = ReadMapDouble(memoryStability, "CommitUsedMB");
+            if (snapshot.MemoryStabilityCommitUsedMB <= 0) { snapshot.MemoryStabilityCommitUsedMB = ReadMapDouble(root, "MemoryStabilityCommitUsedMB"); }
+            snapshot.MemoryStabilityCommitLimitMB = ReadMapDouble(memoryStability, "CommitLimitMB");
+            if (snapshot.MemoryStabilityCommitLimitMB <= 0) { snapshot.MemoryStabilityCommitLimitMB = ReadMapDouble(root, "MemoryStabilityCommitLimitMB"); }
+            snapshot.MemoryStabilityCommitHeadroomMB = ReadMapDouble(memoryStability, "CommitHeadroomMB");
+            if (snapshot.MemoryStabilityCommitHeadroomMB <= 0) { snapshot.MemoryStabilityCommitHeadroomMB = ReadMapDouble(root, "MemoryStabilityCommitHeadroomMB"); }
+            snapshot.MemoryStabilityCommitHeadroomPercent = ReadMapInt(memoryStability, "CommitHeadroomPercent");
+            if (snapshot.MemoryStabilityCommitHeadroomPercent <= 0) { snapshot.MemoryStabilityCommitHeadroomPercent = ReadMapInt(root, "MemoryStabilityCommitHeadroomPercent"); }
+            snapshot.MemoryStabilityPagefileStatus = ReadMapString(memoryStability, "PagefileStatus");
+            if (String.IsNullOrWhiteSpace(snapshot.MemoryStabilityPagefileStatus)) { snapshot.MemoryStabilityPagefileStatus = ReadMapString(root, "MemoryStabilityPagefileStatus"); }
+            snapshot.MemoryStabilityPagefileLimited = ReadMapBool(memoryStability, "PagefileLimited") || ReadMapBool(root, "MemoryStabilityPagefileLimited");
+            snapshot.MemoryStabilityLowMemorySignal = ReadMapBool(memoryStability, "LowMemorySignal") || ReadMapBool(root, "MemoryStabilityLowMemorySignal");
+            snapshot.MemoryStabilityBrowserBurstRecommended = ReadMapBool(memoryStability, "BrowserBurstRecommended") || ReadMapBool(root, "MemoryStabilityBrowserBurstRecommended");
+            snapshot.MemoryStabilityTopProcess = ReadMapString(memoryStability, "TopProcess");
+            if (String.IsNullOrWhiteSpace(snapshot.MemoryStabilityTopProcess)) { snapshot.MemoryStabilityTopProcess = ReadMapString(root, "MemoryStabilityTopProcess"); }
+            snapshot.MemoryStabilityTopProcessPid = ReadMapInt(memoryStability, "TopProcessPid");
+            if (snapshot.MemoryStabilityTopProcessPid <= 0) { snapshot.MemoryStabilityTopProcessPid = ReadMapInt(root, "MemoryStabilityTopProcessPid"); }
+            snapshot.MemoryStabilityTopProcessPrivateMB = ReadMapDouble(memoryStability, "TopProcessPrivateMB");
+            if (snapshot.MemoryStabilityTopProcessPrivateMB <= 0) { snapshot.MemoryStabilityTopProcessPrivateMB = ReadMapDouble(root, "MemoryStabilityTopProcessPrivateMB"); }
+            snapshot.MemoryStabilityTopProcessWorkingSetMB = ReadMapDouble(memoryStability, "TopProcessWorkingSetMB");
+            if (snapshot.MemoryStabilityTopProcessWorkingSetMB <= 0) { snapshot.MemoryStabilityTopProcessWorkingSetMB = ReadMapDouble(root, "MemoryStabilityTopProcessWorkingSetMB"); }
+            snapshot.MemoryStabilityBrowserProcessCount = ReadMapInt(memoryStability, "BrowserProcessCount");
+            if (snapshot.MemoryStabilityBrowserProcessCount <= 0) { snapshot.MemoryStabilityBrowserProcessCount = ReadMapInt(root, "MemoryStabilityBrowserProcessCount"); }
+            snapshot.MemoryStabilityBrowserPrivateMB = ReadMapDouble(memoryStability, "BrowserPrivateMB");
+            if (snapshot.MemoryStabilityBrowserPrivateMB <= 0) { snapshot.MemoryStabilityBrowserPrivateMB = ReadMapDouble(root, "MemoryStabilityBrowserPrivateMB"); }
+            snapshot.MemoryStabilityBrowserWorkingSetMB = ReadMapDouble(memoryStability, "BrowserWorkingSetMB");
+            if (snapshot.MemoryStabilityBrowserWorkingSetMB <= 0) { snapshot.MemoryStabilityBrowserWorkingSetMB = ReadMapDouble(root, "MemoryStabilityBrowserWorkingSetMB"); }
+            snapshot.MemoryStabilityBrowserBurstState = ReadMapString(memoryStability, "BrowserBurstState");
+            if (String.IsNullOrWhiteSpace(snapshot.MemoryStabilityBrowserBurstState)) { snapshot.MemoryStabilityBrowserBurstState = ReadMapString(root, "MemoryStabilityBrowserBurstState"); }
+            snapshot.MemoryStabilityHeavyRecentProcessCount = ReadMapInt(memoryStability, "HeavyRecentProcessCount");
+            if (snapshot.MemoryStabilityHeavyRecentProcessCount <= 0) { snapshot.MemoryStabilityHeavyRecentProcessCount = ReadMapInt(root, "MemoryStabilityHeavyRecentProcessCount"); }
+            snapshot.MemoryStabilitySignals = ReadMapStringList(memoryStability, "Signals");
+            if (snapshot.MemoryStabilitySignals.Count <= 0) { snapshot.MemoryStabilitySignals = ReadMapStringList(root, "MemoryStabilitySignals"); }
             snapshot.StateAgeSeconds = GetIsoAgeSeconds(snapshot.UpdatedAt);
             if (snapshot.LoopSeconds <= 0) { snapshot.LoopSeconds = CoreServiceLoopSeconds; }
             if (snapshot.ProtocolVersion <= 0) { snapshot.ProtocolVersion = CoreProtocolVersion; }
@@ -5054,6 +5678,8 @@ internal static class SmartBackgroundNap
             state["Detail"] = result == null ? "" : ShortTaskError(result.Output);
             if (!String.IsNullOrWhiteSpace(source)) { state["Source"] = source; }
             SessionAgentSnapshot sessionAgent = LoadSessionAgentSnapshot();
+            MemoryStabilitySnapshot memoryStability = BuildMemoryStabilitySnapshot(sessionAgent, source);
+            ApplyMemoryStabilitySnapshot(state, memoryStability);
             state["SessionAgent"] = BuildSessionAgentPayload(sessionAgent);
             state["SessionContext"] = BuildSessionContextPayload(sessionAgent);
             state["SessionForeground"] = BuildSessionForegroundPayload(sessionAgent);
@@ -5402,8 +6028,6 @@ internal static class SmartBackgroundNap
         bool running = IsCoreServiceRunning();
         if (running && engineRefresh.ExitCode == 0)
         {
-            try { RunCoreServicePass("post-install-verify"); } catch { }
-            WriteCoreServiceState("Running", "InstallVerify", new RunResult(0, "Setup verified."), IsTaskInstalled(AutoTaskName), false, GetFileAgeSeconds(scorePath), CoreServiceStalePassSeconds, "install-verify");
             AppendOperationalLog("action=install-verify status=OK sessionAgentStart=" + agentStart.ExitCode.ToString(CultureInfo.InvariantCulture));
             return new RunResult(0, "Smart Nap services are installed and running.");
         }
@@ -11190,6 +11814,33 @@ internal static class SmartBackgroundNap
             state.CoreIpcLastClientAt = coreService.IpcLastClientAt;
             state.CoreIpcLastCommand = coreService.IpcLastCommand;
             state.CoreIpcLastError = coreService.IpcLastError;
+            state.MemoryStabilityAvailable = coreService.MemoryStabilityAvailable;
+            state.MemoryStabilityRelevant = coreService.MemoryStabilityRelevant;
+            state.MemoryStabilityMode = coreService.MemoryStabilityMode;
+            state.MemoryStabilityState = coreService.MemoryStabilityState;
+            state.MemoryStabilitySummary = coreService.MemoryStabilitySummary;
+            state.MemoryStabilityDetail = coreService.MemoryStabilityDetail;
+            state.MemoryStabilityMemoryLoad = coreService.MemoryStabilityMemoryLoad;
+            state.MemoryStabilityAvailablePhysicalMB = coreService.MemoryStabilityAvailablePhysicalMB;
+            state.MemoryStabilityTotalPhysicalMB = coreService.MemoryStabilityTotalPhysicalMB;
+            state.MemoryStabilityCommitUsedMB = coreService.MemoryStabilityCommitUsedMB;
+            state.MemoryStabilityCommitLimitMB = coreService.MemoryStabilityCommitLimitMB;
+            state.MemoryStabilityCommitHeadroomMB = coreService.MemoryStabilityCommitHeadroomMB;
+            state.MemoryStabilityCommitHeadroomPercent = coreService.MemoryStabilityCommitHeadroomPercent;
+            state.MemoryStabilityPagefileStatus = coreService.MemoryStabilityPagefileStatus;
+            state.MemoryStabilityPagefileLimited = coreService.MemoryStabilityPagefileLimited;
+            state.MemoryStabilityLowMemorySignal = coreService.MemoryStabilityLowMemorySignal;
+            state.MemoryStabilityBrowserBurstRecommended = coreService.MemoryStabilityBrowserBurstRecommended;
+            state.MemoryStabilityTopProcess = coreService.MemoryStabilityTopProcess;
+            state.MemoryStabilityTopProcessPid = coreService.MemoryStabilityTopProcessPid;
+            state.MemoryStabilityTopProcessPrivateMB = coreService.MemoryStabilityTopProcessPrivateMB;
+            state.MemoryStabilityTopProcessWorkingSetMB = coreService.MemoryStabilityTopProcessWorkingSetMB;
+            state.MemoryStabilityBrowserProcessCount = coreService.MemoryStabilityBrowserProcessCount;
+            state.MemoryStabilityBrowserPrivateMB = coreService.MemoryStabilityBrowserPrivateMB;
+            state.MemoryStabilityBrowserWorkingSetMB = coreService.MemoryStabilityBrowserWorkingSetMB;
+            state.MemoryStabilityBrowserBurstState = coreService.MemoryStabilityBrowserBurstState;
+            state.MemoryStabilityHeavyRecentProcessCount = coreService.MemoryStabilityHeavyRecentProcessCount;
+            state.MemoryStabilitySignals = coreService.MemoryStabilitySignals ?? new List<string>();
             state.SessionAgentAvailable = sessionAgent.Available;
             state.SessionAgentHealth = sessionAgent.Health;
             state.SessionAgentState = sessionAgent.State;
@@ -12601,6 +13252,33 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public string CoreIpcLastClientAt { get; set; }
             public string CoreIpcLastCommand { get; set; }
             public string CoreIpcLastError { get; set; }
+            public bool MemoryStabilityAvailable { get; set; }
+            public bool MemoryStabilityRelevant { get; set; }
+            public string MemoryStabilityMode { get; set; }
+            public string MemoryStabilityState { get; set; }
+            public string MemoryStabilitySummary { get; set; }
+            public string MemoryStabilityDetail { get; set; }
+            public int MemoryStabilityMemoryLoad { get; set; }
+            public double MemoryStabilityAvailablePhysicalMB { get; set; }
+            public double MemoryStabilityTotalPhysicalMB { get; set; }
+            public double MemoryStabilityCommitUsedMB { get; set; }
+            public double MemoryStabilityCommitLimitMB { get; set; }
+            public double MemoryStabilityCommitHeadroomMB { get; set; }
+            public int MemoryStabilityCommitHeadroomPercent { get; set; }
+            public string MemoryStabilityPagefileStatus { get; set; }
+            public bool MemoryStabilityPagefileLimited { get; set; }
+            public bool MemoryStabilityLowMemorySignal { get; set; }
+            public bool MemoryStabilityBrowserBurstRecommended { get; set; }
+            public string MemoryStabilityTopProcess { get; set; }
+            public int MemoryStabilityTopProcessPid { get; set; }
+            public double MemoryStabilityTopProcessPrivateMB { get; set; }
+            public double MemoryStabilityTopProcessWorkingSetMB { get; set; }
+            public int MemoryStabilityBrowserProcessCount { get; set; }
+            public double MemoryStabilityBrowserPrivateMB { get; set; }
+            public double MemoryStabilityBrowserWorkingSetMB { get; set; }
+            public string MemoryStabilityBrowserBurstState { get; set; }
+            public int MemoryStabilityHeavyRecentProcessCount { get; set; }
+            public List<string> MemoryStabilitySignals { get; set; }
             public bool SessionAgentAvailable { get; set; }
             public string SessionAgentHealth { get; set; }
             public string SessionAgentState { get; set; }

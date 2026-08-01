@@ -52,7 +52,16 @@ function Assert-DashboardContains {
     }
 }
 
-Assert-Contains 'private const string AppVersion = "0.7.2"' "Launcher version was not bumped to 0.7.2."
+Assert-Contains 'private const string AppVersion = "0.7.4"' "Launcher version was not bumped to 0.7.4."
+Assert-Contains 'private const string MemoryStabilityGuardMode = "Shadow"' "Memory Stability Guard must start in shadow mode."
+Assert-Contains "CreateMemoryResourceNotification" "Memory Stability Guard must include Windows low-memory notification support."
+Assert-Contains "QueryMemoryResourceNotification" "Memory Stability Guard must query Windows low-memory notifications."
+Assert-Contains "BuildMemoryStabilitySnapshot" "Memory Stability Guard snapshot builder is missing."
+Assert-Contains "BuildMemoryStabilityPayload" "Memory Stability Guard payload builder is missing."
+Assert-Contains "MemoryStabilityCommitHeadroomPercent" "Commit Headroom Guard metric is missing."
+Assert-Contains "memoryStabilityGuard.shadow" "Core service capability for Memory Stability Guard is missing."
+Assert-Contains "commitHeadroomGuard.v1" "Core service capability for Commit Headroom Guard is missing."
+Assert-Contains "browserBurstShield.shadow" "Core service capability for Browser Burst Shield is missing."
 Assert-Contains "SmartSNAPCoreService" "Core service name is missing."
 Assert-Contains "ServiceBase.Run" "Core service host is missing."
 Assert-Contains "ServiceController.GetServices" "Core service status must not depend on localized sc.exe text."
@@ -140,6 +149,13 @@ Assert-RuntimeContains "Resolve-InstalledGameExecutablePathByName" "Runtime game
 Assert-RuntimeContains "Resolve-GameExecutablePathForActiveContext" "Runtime active game contexts must repair missing executable paths before module handoff."
 Assert-RuntimeContains "InstalledGameScan" "Runtime learned game path cache must persist installed-library discoveries."
 Assert-RuntimeContains "resolved-game-path" "Zero Ping must mark contexts repaired by executable path discovery."
+Assert-DashboardContains 'data-activity-card="stability"' "Memory Stability Guard activity insight card is missing."
+Assert-DashboardContains "formatMemoryStabilityState" "Memory Stability Guard dashboard formatter is missing."
+Assert-DashboardContains "hasMemoryStabilityContext" "Memory Stability Guard dashboard relevance gate is missing."
+Assert-DashboardContains "formatMemoryStabilityActivityDetails" "Memory Stability Guard dashboard details are missing."
+Assert-DashboardContains "gameLibraryRenderSignature" "Games library must cache render signatures to avoid hover-reset remounts."
+Assert-DashboardContains "currentGamesRenderSignature" "Games library render signature builder is missing."
+Assert-DashboardContains "v0.7.4 games hover stability" "Games hover CSS stability layer is missing."
 Assert-DashboardContains "v0.7.2 games optimization library" "Games optimization library CSS layer is missing."
 Assert-DashboardContains "v0.7.2 games library controller" "Games optimization library controller is missing."
 Assert-DashboardContains "gamesToolbar" "Games library search/filter toolbar is missing."
@@ -155,8 +171,15 @@ Assert-DashboardContains "gameLibraryFilterLabel" "Games filters must render loc
 Assert-DashboardContains "renderGameEmptyState" "Games filters must show a contextual empty state."
 Assert-DashboardContains "gamePresetTabs" "Guided game preset tabs are missing."
 Assert-DashboardContains "gamePresetTechnicalToggle" "Game preset technical details toggle is missing."
+Assert-DashboardContains "gamePresetCompactInfo" "Game preset narrow modal must have a compact game-information disclosure."
+Assert-DashboardContains "gamePresetCompactPreview" "Game preset narrow disclosure must preview real install/preset/backup state."
+Assert-DashboardContains "gamePresetFooter" "Game preset footer must be a dedicated non-scroll decision region."
+Assert-DashboardContains "gamePresetUsesCompactLayout" "Game preset modal must choose its narrow layout from real viewport/container constraints."
 Assert-DashboardContains "previousScroll" "Game preset technical details toggle must preserve the review scroll position."
 Assert-DashboardContains "gamePresetApplyButton" "Game preset primary CTA must have a stable id for dynamic state."
+Assert-DashboardContains "gamePresetCancelButton" "Game preset cancel/close action must be addressable for compact applied-state copy."
+Assert-DashboardContains "gamePresetAppliedNote" "Game preset compact layout must replace a dead applied CTA with an informative state."
+Assert-DashboardContains "appliedClean" "Game preset panel must expose applied-without-pending-changes state to layout rules."
 Assert-DashboardContains "gamePresetSelectionChanged" "Game preset CTA must compare current selection against the applied state."
 Assert-DashboardContains "updateGamePresetActionState" "Game preset primary CTA must be driven by real operation state."
 Assert-DashboardContains "formatGamePresetHardwareSummary" "Game preset hardware summary must be structured from real PC state."
@@ -181,6 +204,21 @@ foreach ($forbidden in @("RunApplyNow", "RunPowerShellScript(backgroundScriptPat
         throw "Core service watchdog must not apply foreground/session optimizations directly: $forbidden"
     }
 }
+$memoryGuardIndex = $source.IndexOf("private static MemoryStabilitySnapshot BuildMemoryStabilitySnapshot", [StringComparison]::Ordinal)
+if ($memoryGuardIndex -lt 0) {
+    throw "Memory Stability Guard snapshot builder is missing."
+}
+$memoryGuardEndIndex = $source.IndexOf("private static List<object> BuildMemoryStabilityProcessPayload", $memoryGuardIndex, [StringComparison]::Ordinal)
+if ($memoryGuardEndIndex -lt 0) {
+    throw "Could not isolate Memory Stability Guard snapshot builder."
+}
+$memoryGuardBlock = $source.Substring($memoryGuardIndex, $memoryGuardEndIndex - $memoryGuardIndex)
+foreach ($forbidden in @("RunApplyNow", "RunRestore", "SetProcessWorkingSetSize", "EmptyWorkingSet", "PagingFiles", "powercfg", "TrySetMemoryPriority", "TrySetIoPriority", "NtSetInformationProcess", "SetProcessInformation")) {
+    if ($memoryGuardBlock -like "*$forbidden*") {
+        throw "Memory Stability Guard must stay diagnostic/shadow in 0.7.4: $forbidden"
+    }
+}
+
 
 $pipeResponseIndex = $source.IndexOf("private static IDictionary<string, object> BuildCorePipeResponse", [StringComparison]::Ordinal)
 if ($pipeResponseIndex -lt 0) {

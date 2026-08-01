@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.7.4 - 2026-08-01
+
+- Added Memory Stability Guard in shadow mode through the Core Service snapshot, tracking physical RAM, commit headroom, pagefile headroom, Windows low-memory notification, top process consumers, and browser-burst signals without changing pagefile, trimming globally, or acting like a RAM cleaner.
+- Added Commit Headroom Guard and Browser Burst Shield diagnostics so heavy game plus browser scenarios can be classified as memory-pressure risk before any future containment action is enabled.
+- Exposed Memory Stability Guard as a contextual engine-activity insight only when relevant, keeping stable sessions quiet and showing honest diagnostic states instead of invented fixes.
+- Hardened Core Service status reporting so read-only status checks, install verification, service install, and service start no longer overwrite the live service snapshot with process-local IPC state.
+- Improved Core Service IPC resilience with concurrent subscribe handling, a bounded connection cap, and backpressure for busy pipe states.
+- Tightened the Core Service named-pipe ACL by removing broad authenticated-user write access while keeping local administrators, LocalSystem, and the interactive user path functional.
+- Added restore identity checks based on process start time so stale restore snapshots do not target a reused PID.
+- Cleaned successful Session Agent install logging so localized Windows command output does not leak mojibake into normal operational logs.
+- Stabilized Games library hover rendering so polling does not remount unchanged cards and hover remains CSS-only with pointer-safe poster overlays.
+
+## 0.7.3 - 2026-08-01
+
+- Refined the guided game preset modal responsiveness so wide layouts keep two columns with discreet internal sidebar scrolling, while vertical and narrow layouts switch to a compact game summary above the configuration flow.
+- Separated the preset modal footer into summary, technical-details toggle, and action areas so the toggle stays compact, the primary action keeps hierarchy on vertical screens, and the adjustment list remains the only main scroll region.
+- Polished the vertical preset modal with compact adjustment cards, one-column technical detail stacks, a real install/preset/backup preview in the game-info disclosure, and an applied-without-changes footer state that avoids a dominant disabled CTA.
+- Added responsive guards for technical-details modal states across horizontal and vertical viewports to prevent footer clipping, oversized toggles, and squeezed two-column portrait layouts.
+
 ## 0.7.2 - 2026-07-30
 
 - Evolved the Games tab into a professional optimization library with a compact functional header, real summary counts, search, supported filters, sorting, and persisted grid/list view preference.

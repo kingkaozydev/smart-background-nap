@@ -3948,17 +3948,18 @@ body.view-dashboard .activityPanel .metric-intent{
 .activityPanel .metric-top{order:2}
 .activityPanel .activityResultsLabel{order:3;margin-top:6px!important}
 .activityPanel .metric-memory{order:4}
-.activityPanel .metric-profiles{order:5}
-.activityPanel .metric-learning{order:6}
-.activityPanel .metric-radar{order:7}
-.activityPanel .metric-gpu{order:8}
-.activityPanel .activityResourcesLabel{order:9;margin-top:6px!important}
-.activityPanel .metric-zero{order:10}
-.activityPanel .metric-shader{order:11}
-.activityPanel .metric-cpu{order:12}
-.activityPanel .metric-live{order:13}
-.activityPanel .activityRecentLabel{order:14;margin-top:6px!important}
-.activityPanel .metric-intent{order:15}
+.activityPanel .metric-stability{order:5}
+.activityPanel .metric-profiles{order:6}
+.activityPanel .metric-learning{order:7}
+.activityPanel .metric-radar{order:8}
+.activityPanel .metric-gpu{order:9}
+.activityPanel .activityResourcesLabel{order:10;margin-top:6px!important}
+.activityPanel .metric-zero{order:11}
+.activityPanel .metric-shader{order:12}
+.activityPanel .metric-cpu{order:13}
+.activityPanel .metric-live{order:14}
+.activityPanel .activityRecentLabel{order:15;margin-top:6px!important}
+.activityPanel .metric-intent{order:16}
 .activityPanel .focusLine{
   min-height:58px!important;
   padding:10px 12px!important;
@@ -4134,6 +4135,11 @@ body.view-dashboard .activityPanel .metric-intent{
 .activityPanel .metric-memory{
   --metric-accent:#35e89a!important;
 }
+.activityPanel .metric-stability{
+  grid-column:1/-1!important;
+  --metric-accent:#38d9ff!important;
+  background:radial-gradient(circle at 96% 10%,rgba(56,217,255,.10),transparent 42%),linear-gradient(145deg,rgba(8,20,34,.86),rgba(6,12,22,.82))!important;
+}
 .activityPanel .metric-profiles{
   --metric-accent:#a78bfa!important;
 }
@@ -4146,6 +4152,7 @@ body.view-dashboard .activityPanel .metric-intent{
   grid-column:auto!important;
 }
 .activityPanel .metric-memory,
+.activityPanel .metric-stability,
 .activityPanel .metric-profiles,
 .activityPanel .metric-learning,
 .activityPanel .metric-radar,
@@ -4157,6 +4164,7 @@ body.view-dashboard .activityPanel .metric-intent{
   height:100%!important;
 }
 .activityPanel .metric-memory:not(.expanded),
+.activityPanel .metric-stability:not(.expanded),
 .activityPanel .metric-profiles:not(.expanded),
 .activityPanel .metric-learning:not(.expanded),
 .activityPanel .metric-radar:not(.expanded),
@@ -5081,9 +5089,10 @@ body.view-dashboard .commandMainFlow{
 #gamePresetOverlay .gamePresetShell{display:grid!important;grid-template-columns:minmax(248px,300px) minmax(0,1fr)!important;height:100%!important;min-height:0!important;max-height:none!important;overflow:hidden!important}
 #gamePresetOverlay .gamePresetLead{height:100%!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;align-self:stretch!important}
 #gamePresetOverlay .gamePresetMeta{margin-top:0!important;align-content:start!important}
-#gamePresetOverlay .gamePresetMain{display:grid!important;grid-template-rows:auto auto minmax(0,1fr) auto auto!important;height:100%!important;min-height:0!important;overflow:hidden!important}
+#gamePresetOverlay .gamePresetMain{display:grid!important;grid-template-rows:auto auto minmax(0,1fr) auto!important;height:100%!important;min-height:0!important;overflow:hidden!important}
 #gamePresetOverlay .gamePresetReview{min-height:0!important;overflow:auto!important;overflow-x:hidden!important;padding-right:6px!important;overscroll-behavior:contain!important}
-#gamePresetOverlay .gamePresetFootSummary{position:sticky!important;bottom:0!important;z-index:3!important;margin-top:0!important;padding:12px 0!important;background:linear-gradient(180deg,rgba(10,18,31,.92),rgba(8,14,24,.98))!important}
+#gamePresetOverlay .gamePresetFooter{display:grid!important;gap:12px!important;min-width:0!important;flex:0 0 auto!important}
+#gamePresetOverlay .gamePresetFootSummary{position:static!important;bottom:auto!important;z-index:3!important;margin-top:0!important;padding:12px 0!important;background:linear-gradient(180deg,rgba(10,18,31,.92),rgba(8,14,24,.98))!important}
 #gamePresetOverlay .gameActions{margin-top:0!important;flex:0 0 auto!important}
 #gamePresetOverlay .gamePresetTechnical{position:relative!important;display:inline-flex!important;align-items:center!important;gap:9px!important;border:1px solid rgba(148,166,195,.16)!important;border-radius:999px!important;background:rgba(9,17,30,.58)!important;padding:6px 8px 6px 12px!important;cursor:pointer!important;user-select:none!important}
 #gamePresetOverlay .gamePresetTechnical input{position:absolute!important;opacity:0!important;width:1px!important;height:1px!important;pointer-events:none!important}
@@ -5108,6 +5117,100 @@ body.view-dashboard .commandMainFlow{
   #gamePresetOverlay .gamePresetLead{height:auto!important;max-height:28dvh!important;overflow-y:auto!important;overflow-x:hidden!important;border-right:0!important;border-bottom:1px solid rgba(148,166,195,.12)!important}
   #gamePresetOverlay .gamePresetMain{height:100%!important;min-height:0!important;overflow:hidden!important;display:grid!important}
   #gamePresetOverlay .gamePresetReview{min-height:0!important;overflow:auto!important;overflow-x:hidden!important}
+}
+/* v0.7.3 game preset modal responsive refinement: discreet sidebar scroll, compact portrait summary and stable footer controls */
+#gamePresetOverlay .gamePresetLead{scrollbar-gutter:stable!important;padding-right:calc(var(--sbn-space-6,24px) + 12px)!important}
+#gamePresetOverlay .gamePresetLead::-webkit-scrollbar,#gamePresetOverlay .gamePresetReview::-webkit-scrollbar{width:6px!important;height:6px!important}
+#gamePresetOverlay .gamePresetLead::-webkit-scrollbar-track,#gamePresetOverlay .gamePresetReview::-webkit-scrollbar-track{background:transparent!important}
+#gamePresetOverlay .gamePresetLead::-webkit-scrollbar-thumb,#gamePresetOverlay .gamePresetReview::-webkit-scrollbar-thumb{background:rgba(148,166,195,.15)!important;border-radius:999px!important;border:2px solid transparent!important;background-clip:content-box!important}
+#gamePresetOverlay .gamePresetLead:hover::-webkit-scrollbar-thumb,#gamePresetOverlay .gamePresetReview:hover::-webkit-scrollbar-thumb{background-color:rgba(148,166,195,.34)!important}
+#gamePresetOverlay .gamePresetLead,#gamePresetOverlay .gamePresetReview{scrollbar-width:thin!important;scrollbar-color:rgba(148,166,195,.15) transparent!important}
+#gamePresetOverlay .gamePresetLeadHero{display:grid!important;gap:14px!important;min-width:0!important}
+#gamePresetOverlay .gamePresetCompactInfo{display:grid!important;gap:10px!important;min-width:0!important}
+#gamePresetOverlay .gamePresetCompactInfo>summary{display:none!important}
+#gamePresetOverlay .gamePresetMeta{display:grid!important;gap:10px!important;width:100%!important}
+#gamePresetOverlay .gamePresetMeta span{max-width:100%!important;overflow-wrap:anywhere!important}
+#gamePresetOverlay .gamePresetFootSummary{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;gap:12px!important}
+#gamePresetOverlay .gamePresetTechnical{width:auto!important;max-width:max-content!important;flex:0 0 auto!important;justify-self:end!important;white-space:nowrap!important}
+#gamePresetOverlay .gameActions .gameRestoreBtnNeutral{grid-area:restore!important}
+#gamePresetOverlay .gameActions .btn:not(.primary):not(.gameRestoreBtnNeutral):not(.danger){grid-area:cancel!important}
+#gamePresetOverlay .gameOptionDetails{min-width:0!important}
+@media(max-width:900px),(max-aspect-ratio:4/5){
+  #gamePresetOverlay .gamePresetPanel{width:min(720px,calc(100vw - 20px))!important;height:calc(100dvh - 20px)!important;max-height:calc(100dvh - 20px)!important}
+  #gamePresetOverlay .gamePresetShell{grid-template-columns:1fr!important;grid-template-rows:auto minmax(0,1fr)!important;height:100%!important;min-height:0!important;overflow:hidden!important}
+  #gamePresetOverlay .gamePresetLead{height:auto!important;max-height:30dvh!important;display:grid!important;gap:12px!important;padding:18px 20px!important;border-right:0!important;border-bottom:1px solid rgba(148,166,195,.12)!important;scrollbar-gutter:auto!important}
+  #gamePresetOverlay .gamePresetLeadHero{grid-template-columns:auto minmax(0,1fr)!important;align-items:center!important;gap:10px 12px!important;padding-right:54px!important}
+  #gamePresetOverlay .gamePresetLeadHero .gamePresetBadge{grid-column:1!important;grid-row:1 / span 2!important;margin:0!important;align-self:start!important}
+  #gamePresetOverlay .gamePresetLeadHero h2{font-size:25px!important;line-height:1.05!important}
+  #gamePresetOverlay .gamePresetLeadHero p{display:none!important}
+  #gamePresetOverlay .gamePresetChip{grid-column:1 / -1!important;width:100%!important;max-width:100%!important}
+  #gamePresetOverlay .gamePresetCompactInfo>summary{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;list-style:none!important;cursor:pointer!important;color:#c9d7e9!important;font-size:12px!important;font-weight:900!important;border:1px solid rgba(148,166,195,.14)!important;border-radius:12px!important;background:rgba(9,17,30,.58)!important;padding:10px 12px!important}
+  #gamePresetOverlay .gamePresetCompactInfo>summary::-webkit-details-marker{display:none!important}
+  #gamePresetOverlay .gamePresetCompactInfo>summary:after{content:"⌄"!important;color:#8294ad!important;font-size:14px!important;line-height:1!important;transition:transform .18s ease!important}
+  #gamePresetOverlay .gamePresetCompactInfo[open]>summary:after{transform:rotate(180deg)!important}
+  #gamePresetOverlay .gamePresetCompactInfo:not([open]) .gamePresetMeta{display:none!important}
+  #gamePresetOverlay .gamePresetMain{padding:18px 20px!important;display:grid!important;grid-template-rows:auto auto minmax(0,1fr) auto!important;min-height:0!important;overflow:hidden!important}
+  #gamePresetOverlay .gamePresetTop{padding-right:48px!important}
+  #gamePresetOverlay .gamePresetTabs{flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;padding-bottom:2px!important;scrollbar-width:none!important}
+  #gamePresetOverlay .gamePresetTabs::-webkit-scrollbar{display:none!important}
+  #gamePresetOverlay .gamePresetTabs button{flex:0 0 auto!important}
+  #gamePresetOverlay .gameOptionDetails{grid-template-columns:1fr!important}
+  #gamePresetOverlay .gamePresetFooter{gap:10px!important}
+  #gamePresetOverlay .gamePresetFootSummary{grid-template-columns:1fr!important;align-items:start!important;gap:8px!important;padding:10px 0!important}
+  #gamePresetOverlay .gamePresetTechnical{justify-self:start!important;width:auto!important;max-width:max-content!important;flex:0 0 auto!important}
+  #gamePresetOverlay .gameActions{grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-areas:"primary primary" "cancel restore"!important;gap:10px!important;padding-top:10px!important}
+  #gamePresetOverlay .gameActions .btn.primary{grid-area:primary!important}
+}
+@media(max-width:520px){
+  #gamePresetOverlay .gameActions{grid-template-columns:1fr!important;grid-template-areas:"primary" "cancel" "restore"!important}
+}
+/* v0.7.3 game preset portrait polish: compact cards, useful disclosure and smarter footer hierarchy */
+#gamePresetOverlay .gamePresetReview{align-content:start!important;align-items:start!important;grid-auto-rows:max-content!important}
+#gamePresetOverlay .gamePresetGroup{align-content:start!important;align-items:start!important;grid-auto-rows:max-content!important}
+#gamePresetOverlay .gameOptionCard{align-self:start!important;min-height:0!important;height:auto!important}
+#gamePresetOverlay .gamePresetAppliedNote{display:none!important;gap:2px!important;border-top:1px solid rgba(148,166,195,.12)!important;padding-top:10px!important;color:#aebbd0!important;font-size:12px!important}
+#gamePresetOverlay .gamePresetAppliedNote[hidden]{display:none!important}
+#gamePresetOverlay .gamePresetAppliedNote b{color:#eef6ff!important;font-size:13px!important}
+#gamePresetOverlay .gamePresetAppliedNote span{color:#8fa1b8!important;font-weight:800!important}
+#gamePresetOverlay .gamePresetCompactPreview{display:none!important;color:#7f91aa!important;font-size:10px!important;font-weight:800!important;line-height:1.25!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+@media(max-width:900px),(max-aspect-ratio:4/5){
+  #gamePresetOverlay .gamePresetLead{max-height:24dvh!important;gap:9px!important;padding:14px 18px!important}
+  #gamePresetOverlay .gamePresetLeadHero{gap:7px 10px!important;padding-right:50px!important}
+  #gamePresetOverlay .gamePresetLeadHero h2{font-size:23px!important}
+  #gamePresetOverlay .gamePresetBadge{min-height:31px!important}
+  #gamePresetOverlay .gamePresetChip{min-height:28px!important;padding:5px 10px!important}
+  #gamePresetOverlay .gamePresetCompactInfo{gap:7px!important}
+  #gamePresetOverlay .gamePresetCompactInfo>summary{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;min-height:34px!important;padding:8px 10px!important}
+  #gamePresetOverlay .gamePresetCompactInfo>summary b{display:block!important;color:#d6e3f5!important;font-size:12px!important}
+  #gamePresetOverlay .gamePresetCompactPreview{display:block!important;margin-top:2px!important}
+  #gamePresetOverlay .gamePresetTop{position:static!important;padding-right:46px!important}
+  #gamePresetOverlay .gamePresetTop h3{font-size:16px!important;line-height:1.1!important}
+  #gamePresetOverlay .gamePresetTop p{font-size:11px!important;line-height:1.35!important}
+  #gamePresetOverlay .gamePresetTabs{margin-bottom:9px!important;gap:6px!important}
+  #gamePresetOverlay .gamePresetTabs button{height:30px!important;padding:0 10px!important;font-size:10px!important}
+  #gamePresetOverlay .gamePresetReview{gap:10px!important;padding-right:10px!important;scrollbar-gutter:stable!important}
+  #gamePresetOverlay .gamePresetGroup{gap:8px!important}
+  #gamePresetOverlay .gamePresetGroup h4{font-size:11px!important}
+  #gamePresetOverlay .gameOptionCard{grid-template-columns:20px minmax(0,1fr)!important;gap:8px!important;padding:10px 12px!important;min-height:0!important;height:auto!important}
+  #gamePresetOverlay .gameOptionCard input{width:15px!important;height:15px!important;margin-top:1px!important}
+  #gamePresetOverlay .gameOptionMain{gap:5px!important}
+  #gamePresetOverlay .gameOptionMain b{font-size:12px!important;line-height:1.22!important}
+  #gamePresetOverlay .gameOptionMain>span:not(.gameOptionMeta):not(.gameOptionDetails){font-size:14px!important;line-height:1.32!important}
+  #gamePresetOverlay .gameOptionMeta{gap:5px!important;row-gap:5px!important}
+  #gamePresetOverlay .gameOptionMeta span{min-height:19px!important;padding:0 7px!important;font-size:9px!important}
+  #gamePresetOverlay .gameOptionDetails{grid-template-columns:1fr!important;gap:7px!important;margin-top:4px!important}
+  #gamePresetOverlay .gameOptionDetails span{gap:1px!important}
+  #gamePresetOverlay .gameOptionDetails small{font-size:9px!important;line-height:1!important}
+  #gamePresetOverlay .gamePresetFooter{gap:11px!important;padding-top:12px!important;border-top:1px solid rgba(148,166,195,.14)!important;background:linear-gradient(180deg,rgba(10,18,31,.94),rgba(8,14,24,.99))!important}
+  #gamePresetOverlay .gamePresetFootSummary{padding:0!important;border-top:0!important;background:transparent!important;grid-template-columns:1fr!important;gap:10px!important}
+  #gamePresetOverlay .gamePresetTechnical{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;justify-self:stretch!important;width:100%!important;max-width:none!important;border:0!important;background:transparent!important;border-radius:0!important;padding:0!important}
+  #gamePresetOverlay .gamePresetAppliedNote:not([hidden]){display:grid!important}
+  #gamePresetOverlay .gameActions{padding-top:0!important}
+  #gamePresetOverlay .gamePresetPanel[data-applied-clean="true"] .gameActions{grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-areas:"cancel restore"!important}
+  #gamePresetOverlay .gamePresetPanel[data-applied-clean="true"] .gameActions .btn.primary{display:none!important}
+}
+@media(max-width:520px),(max-aspect-ratio:3/4){
+  #gamePresetOverlay .gamePresetPanel[data-applied-clean="true"] .gameActions{grid-template-columns:1fr!important;grid-template-areas:"cancel" "restore"!important}
 }
 /* v0.7.2 games library density polish: stable grid columns, professional list rows and compact contextual actions */
 body.view-games .gamesToolbar{grid-template-columns:minmax(260px,.95fr) minmax(0,1.45fr) minmax(170px,.42fr) auto!important;gap:12px!important;padding:12px!important}
@@ -5158,6 +5261,22 @@ body.view-games .gamesEmpty .btn{width:max-content!important;min-width:150px!imp
 @media(max-width:1480px){body.view-games .gamesGrid[data-view="grid"]{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
 @media(max-width:1080px){body.view-games .gamesGrid[data-view="grid"]{grid-template-columns:repeat(2,minmax(0,1fr))!important}body.view-games .gamesToolbar{grid-template-columns:1fr!important}body.view-games .gameFilterGroup{overflow:auto!important;flex-wrap:nowrap!important}body.view-games .gamesViewToggle{justify-self:start!important}body.view-games .gamesContinue{grid-template-columns:40px minmax(0,1fr)!important}body.view-games .gamesContinueActions{grid-column:1/-1!important;justify-content:flex-start!important}}
 @media(max-width:720px){body.view-games .gamesGrid[data-view="grid"],body.view-games .gamesGrid[data-view="list"]{grid-template-columns:1fr!important}body.view-games .gamesGrid[data-view="list"] .gameCard{grid-template-columns:86px minmax(0,1fr)!important;min-height:118px!important}body.view-games .gamesGrid[data-view="list"] .gamePoster{width:86px!important;height:118px!important}body.view-games .gamesGrid[data-view="list"] .gameBody{grid-template-columns:1fr!important;gap:10px!important}body.view-games .gamesGrid[data-view="list"] .gameCardControls{grid-column:1!important;justify-content:flex-start!important}body.view-games .gameBetaHub{display:grid!important}}
+
+/* v0.7.4 games hover stability: CSS-only hover and pointer-safe poster overlays */
+body.view-games .gameCard{transition:border-color .18s ease,box-shadow .18s ease,filter .18s ease!important}
+body.view-games .gameCard:hover,
+body.view-games .gameCard:focus-visible{transform:none!important}
+body.view-games .gamePoster img{transition:transform .18s ease,filter .18s ease!important;transform:scale(1.01)!important}
+body.view-games .gameCard:hover .gamePoster img,
+body.view-games .gameCard:focus-visible .gamePoster img{transform:scale(1.018)!important}
+body.view-games .gamePoster:before,
+body.view-games .gamePoster:after,
+body.view-games .posterMark,
+body.view-games .posterBadge{pointer-events:none!important}
+body.view-games .gameCardControls,
+body.view-games .gameCardControls *,
+body.view-games .gameMore,
+body.view-games .gameMore *{pointer-events:auto!important}
 </style>
 </head>
 <body>
@@ -5398,6 +5517,7 @@ body.view-games .gamesEmpty .btn{width:max-content!important;min-width:150px!imp
               <div class="focusLine metric-top" data-activity-card="impact"><small data-i18n="topManaged">Top managed app</small><b id="engineTop">-</b><div class="activityDetails"></div></div>
               <small class="activityGroupLabel activityResultsLabel" data-i18n="activityResultsK">Session results</small>
               <div class="focusLine metric-memory" data-activity-card="memory"><small data-i18n="reclaimedMemory">Reclaimed memory</small><b id="reclaimedValue">0 MB</b><em class="activityInline" id="reclaimedInline" hidden></em><div class="activityDetails"></div></div>
+              <div class="focusLine metric-stability" data-activity-card="stability" hidden><small>Memory Stability Guard</small><b id="memoryStabilityState">-</b><em class="activityInline" id="memoryStabilityInline" hidden></em><div class="activityDetails"></div></div>
               <div class="focusLine metric-profiles" data-activity-card="profile"><small data-i18n="sessionProfileInsightK">Perfil dominante</small><b id="learnedProfiles">-</b><div class="activityDetails"></div></div>
               <div class="focusLine metric-learning" data-activity-card="adjustment"><small data-i18n="latestDecisionInsightK">Último passe</small><b id="behaviorState">-</b><div class="activityDetails"></div></div>
               <div class="focusLine metric-intent" data-activity-card="context"><small data-i18n="sessionChangeInsightK">Mudança de contexto</small><b id="intentState">-</b><div class="activityDetails"></div></div>
@@ -6015,7 +6135,7 @@ Object.assign(LANGS["fr-FR"],{engineProcessingK:"Traitement de session",engineRh
 Object.assign(LANGS["de-DE"],{engineProcessingK:"Sitzungsverarbeitung",engineRhythmK:"Engine-Puls",ringProtectedShort:"geschützt",lastInterventionK:"Letzter Eingriff",sessionTimeK:"Sitzungszeit",cycleStateK:"Zyklusstatus",returnProtectionK:"Rückkehrschutz"});
 Object.assign(LANGS["pt-BR"],{cardPassActionsK:"Última intervenção",cardBurstsK:"Picos recentes",cardUdpK:"Última detecção UDP",cardShaderK:"Saúde do cache gráfico",shaderTelemetryK:"ShaderBoost",cardPowerK:"Plano ativo",accessNeedsAdmin:"{count} bloqueios",noBursts:"Sem picos",burstSummary:"{bursts} picos / {apps} apps",actionSummaryShort:"CPU {cpu} • RAM {ram} / I/O {io} • EcoQoS {eco}",activityInsightsBadge:"Ver insights",activityImpactK:"Impacto atual",activityResultsK:"Resultados da sessão",activityResourcesK:"Recursos ativos",activityRecentK:"Atividade recente",panelNeedsSync:"Sincronização atrasada",sessionProfileInsightK:"Perfil dominante",latestDecisionInsightK:"Último passe",memoryEffectInsightK:"Último alívio",sessionChangeInsightK:"Mudança de contexto"});
 Object.assign(LANGS["en-US"],{cardPassActionsK:"Latest intervention",cardBurstsK:"Recent peaks",cardUdpK:"Last UDP detection",cardShaderK:"Graphics cache health",shaderTelemetryK:"ShaderBoost",cardPowerK:"Active power plan",accessNeedsAdmin:"{count} blocks",noBursts:"No peaks",burstSummary:"{bursts} peaks / {apps} apps",actionSummaryShort:"CPU {cpu} • RAM {ram} / I/O {io} • EcoQoS {eco}",activityInsightsBadge:"View insights",activityImpactK:"Current impact",activityResultsK:"Session results",activityResourcesK:"Active resources",activityRecentK:"Recent activity",panelNeedsSync:"Sync delayed",sessionProfileInsightK:"Dominant profile",latestDecisionInsightK:"Latest pass",memoryEffectInsightK:"Latest relief",sessionChangeInsightK:"Context change"});
-Object.assign(LANGS["pt-BR"],{coreServiceAttention:"Servico precisa de atencao",coreServiceRecovering:"Servico recuperando",coreServiceHealthy:"Servico saudavel"});
+Object.assign(LANGS["pt-BR"],{coreServiceAttention:"Serviço precisa de atenção",coreServiceRecovering:"Serviço recuperando",coreServiceHealthy:"Serviço saudável"});
 Object.assign(LANGS["en-US"],{coreServiceAttention:"Service needs attention",coreServiceRecovering:"Service recovering",coreServiceHealthy:"Service healthy"});
 Object.assign(LANGS["es-ES"],{cardPassActionsK:"Última intervención",cardBurstsK:"Picos recientes",cardUdpK:"Ultima deteccion UDP",cardShaderK:"Salud del cache grafico",shaderTelemetryK:"ShaderBoost",cardPowerK:"Plan activo",accessNeedsAdmin:"{count} bloqueos",noBursts:"Sin picos",burstSummary:"{bursts} picos / {apps} apps",actionSummaryShort:"CPU {cpu} • RAM {ram} / I/O {io} • EcoQoS {eco}"});
 Object.assign(LANGS["fr-FR"],{cardPassActionsK:"Dernière intervention",cardBurstsK:"Pics recents",cardUdpK:"Derniere detection UDP",cardShaderK:"Sante du cache graphique",shaderTelemetryK:"ShaderBoost",cardPowerK:"Mode actif",accessNeedsAdmin:"{count} blocages",noBursts:"Aucun pic",burstSummary:"{bursts} pics / {apps} apps",actionSummaryShort:"CPU {cpu} • RAM {ram} / I/O {io} • EcoQoS {eco}"});
@@ -6039,6 +6159,7 @@ let gameActionGameId = "";
 let gameActionStartedAt = 0;
 let gameLibraryFilter = "all";
 let gameLibraryView = "grid";
+let gameLibraryRenderSignature = "";
 let gameContinueDismissedId = "";
 let gamePresetActiveTab = "recommended";
 let gamePresetTechnical = false;
@@ -6062,7 +6183,7 @@ const MOTION_COMMAND_TARGETS = {
   runElevatedApply:"#adminConfirm"
 };
 const MOTION_TOAST_ACTIONS = new Set(["apply","toggleMotor","restore","toggleStartup","toggleLearning","toggleUdpGuard","setSessionMode","applyGamePreset","restoreGamePreset","runElevatedApply"]);
-const MOTION_VALUE_IDS = new Set(["state","engineSessionMain","engineRingCaption","engineRingDetail","engineCycleLine","engineProcessSummary","engineActionsSummary","engineAccessSummary","engineIntentSummary","engineFreeRamSummary","engineNext","engineEvent","engineWake","engineBeat","ringValue","actionsCard","burstsCard","udpCard","shaderBoostCard","engineTop","reclaimedValue","reclaimedInline","udpGuardState","udpGuardGame","udpGuardEndpoints","behaviorProfilesHero","intelPressure","intelLearning","learnedProfiles","behaviorState","intentState","radarState","udpTelemetry","udpTelemetryInline","shaderBoostState","shaderBoostInline","gpuPressureState","cpuBoundState","cpuBoundInline","streamTelemetry","streamTelemetryInline","enginePulseTitle","enginePulseStamp","pulseCpuValue","pulseRamValue","pulseIoValue","pulseEcoValue"]);
+const MOTION_VALUE_IDS = new Set(["state","engineSessionMain","engineRingCaption","engineRingDetail","engineCycleLine","engineProcessSummary","engineActionsSummary","engineAccessSummary","engineIntentSummary","engineFreeRamSummary","engineNext","engineEvent","engineWake","engineBeat","ringValue","actionsCard","burstsCard","udpCard","shaderBoostCard","engineTop","reclaimedValue","reclaimedInline","memoryStabilityState","memoryStabilityInline","udpGuardState","udpGuardGame","udpGuardEndpoints","behaviorProfilesHero","intelPressure","intelLearning","learnedProfiles","behaviorState","intentState","radarState","udpTelemetry","udpTelemetryInline","shaderBoostState","shaderBoostInline","gpuPressureState","cpuBoundState","cpuBoundInline","streamTelemetry","streamTelemetryInline","enginePulseTitle","enginePulseStamp","pulseCpuValue","pulseRamValue","pulseIoValue","pulseEcoValue"]);
 const motionPendingCommands = new Map();
 const motionValueCache = new Map();
 const motionValueTimers = new Map();
@@ -6087,7 +6208,7 @@ function commandLabel(action){
   if(action==="toggleStartup") return pt?"Inicializacao atualizada":"Startup updated";
   if(action==="toggleLearning") return "Smart Learning";
   if(action==="toggleUdpGuard") return "Zero Ping";
-  if(action==="setSessionMode") return pt?"Modo de sessao atualizado":"Session mode updated";
+  if(action==="setSessionMode") return pt?"Modo de sessão atualizado":"Session mode updated";
   if(action==="applyGamePreset") return pt?"Preset aplicado":"Preset applied";
   if(action==="runElevatedApply") return pt?"Pedido de permissao enviado":"Permission request sent";
   return pt?"Acao enviada":"Action sent";
@@ -6789,6 +6910,23 @@ function renderGameEmptyState(){
   const body=gameLibraryFilter==="configured"?"Os jogos com preset aplicado aparecerão aqui.":(gameLibraryFilter==="running"?"Quando um jogo for detectado em execução, ele aparece neste filtro.":"Ajuste a busca ou volte para a biblioteca completa.");
   return '<div class="gamesNote gamesEmpty"><b>'+esc(title)+'</b><span>'+esc(body)+'</span><button type="button" class="btn" onclick="setGameLibraryFilter(\'all\')">Ver todos os jogos</button></div>';
 }
+function gameRenderToken(g){
+  if(!g) return "";
+  const safeCount=(Array.isArray(g.SafeOptimizations)?g.SafeOptimizations:g.SafeOptions||[]).length;
+  const expCount=(Array.isArray(g.ExperimentalOptimizations)?g.ExperimentalOptimizations:g.ExperimentalOptions||[]).length;
+  return [
+    g.Id,g.Name,g.Running,g.DetectedPath,g.Path,g.InstallPath,g.PresetApplied,g.PresetStatus,
+    g.PresetVersion,g.AppliedRecipeVersion,g.RecipeVersion,g.LatestRecipeVersion,g.UpdateAvailable,
+    g.RecipeUpdateAvailable,g.PresetUpdateAvailable,g.BackupFiles,g.SelectedSafeCount,
+    g.SelectedExperimentalCount,safeCount,expCount,g.Accent,g.Tier,g.Genre
+  ].map(v=>String(v == null ? "" : v)).join("~");
+}
+function currentGamesRenderSignature(items,visible){
+  const source=Array.isArray(visible)?visible:[];
+  const query=String(($("gameSearch")&&$("gameSearch").value)||"").trim().toLowerCase();
+  const sort=($("gameSort")&&$("gameSort").value)||gameStorageGet("sbn.gameLibrary.sort","recommended");
+  return [currentLanguage,gameLibraryView,gameLibraryFilter,query,sort,gameActionPending,gameActionGameId,source.length,source.map(gameRenderToken).join("|")].join("::");
+}
 function renderGamePresets(s){
   const grid=$("gamesGrid"); if(!grid) return;
   ensureGameLibraryPrefs();
@@ -6797,6 +6935,10 @@ function renderGamePresets(s){
   const visible=filteredGamePresets(items);
   syncGameLibraryChrome(items,visible);
   grid.dataset.view=gameLibraryView;
+  const signature=currentGamesRenderSignature(items,visible);
+  if(gameLibraryRenderSignature===signature && grid.children.length){ return; }
+  gameLibraryRenderSignature=signature;
+  grid.dataset.renderSignature=signature;
   if(!items.length){ grid.innerHTML='<div class="gamesNote gamesEmpty"><b>Nenhum preset carregado ainda.</b><span>Escaneie bibliotecas ou aguarde o backend publicar os jogos disponíveis.</span></div>'; return; }
   if(!visible.length){ grid.innerHTML=renderGameEmptyState(); return; }
   grid.innerHTML=visible.map(renderGameCard).join('');
@@ -6881,6 +7023,13 @@ function updateGamePresetActionState(){
   const label=gamePresetApplyLabel();
   const pending=gameActionPending==="apply" && (!gameActionGameId || gameActionGameId===selectedGamePreset.Id);
   const alreadyApplied=label==="Preset aplicado";
+  const panel=document.querySelector("#gamePresetOverlay .gamePresetPanel");
+  const cleanApplied=alreadyApplied&&!pending;
+  if(panel) panel.dataset.appliedClean=cleanApplied?"true":"false";
+  const note=$("gamePresetAppliedNote");
+  if(note) note.hidden=!cleanApplied;
+  const cancel=$("gamePresetCancelButton");
+  if(cancel) cancel.textContent=cleanApplied?"Fechar":"Cancelar";
   btn.textContent=label;
   btn.disabled=!!(pending||alreadyApplied);
   btn.classList.toggle("is-applied",alreadyApplied);
@@ -6895,12 +7044,24 @@ function ensureGamePresetModernShell(){
   const main=document.querySelector("#gamePresetOverlay .gamePresetMain");
   if(lead && !lead.dataset.modern){
     lead.dataset.modern="true";
-    lead.innerHTML='<div class="gamePresetBadge"><i>&#9889;</i><span id="gamePresetKind">Jogo detectado</span></div><div><h2 id="gamePresetTitle">Preset de jogo</h2><p id="gamePresetSummary">Revise impacto, backup e risco antes de aplicar.</p></div><div class="gamePresetChip" id="gamePresetChip">Perfil recomendado</div><div class="gamePresetMeta"><span class="gamePresetSideRow">Instalação <b id="gamePresetInstall">-</b><em id="gamePresetPathState">-</em></span><span class="gamePresetSideRow">Hardware considerado <span id="gamePresetHardware" class="gamePresetHardwareList">PC atual</span><em>Dados reais do perfil do PC.</em></span><span class="gamePresetSideRow">Preset atual <b id="gamePresetPresetState">Ainda não aplicado</b><em id="gamePresetPresetHint">Versão da receita: Informação indisponível</em></span><span class="gamePresetSideRow">Backup <b id="gamePresetBackup">Nenhum backup encontrado</b><em id="gamePresetBackupHint">Nenhum arquivo é alterado sem revisão.</em></span><span>Seguro <b id="gameSafeCount">0 selecionadas</b></span><span>Avançado <b id="gameExperimentalCount">0 selecionadas</b></span><span>Status <b id="gamePresetStatus">Beta</b></span></div>';
+    lead.innerHTML='<div class="gamePresetLeadHero"><div class="gamePresetBadge"><i>&#9889;</i><span id="gamePresetKind">Jogo detectado</span></div><div><h2 id="gamePresetTitle">Preset de jogo</h2><p id="gamePresetSummary">Revise impacto, backup e risco antes de aplicar.</p></div><div class="gamePresetChip" id="gamePresetChip">Perfil recomendado</div></div><details class="gamePresetCompactInfo" id="gamePresetCompactInfo" open><summary><span><b>Ver informações do jogo</b><em class="gamePresetCompactPreview" id="gamePresetCompactPreview">Instalação e preset ainda não analisados</em></span></summary><div class="gamePresetMeta"><span class="gamePresetSideRow">Instalação <b id="gamePresetInstall">-</b><em id="gamePresetPathState">-</em></span><span class="gamePresetSideRow">Hardware considerado <span id="gamePresetHardware" class="gamePresetHardwareList">PC atual</span><em>Dados reais do perfil do PC.</em></span><span class="gamePresetSideRow">Preset atual <b id="gamePresetPresetState">Ainda não aplicado</b><em id="gamePresetPresetHint">Versão da receita: Informação indisponível</em></span><span class="gamePresetSideRow">Backup <b id="gamePresetBackup">Nenhum backup encontrado</b><em id="gamePresetBackupHint">Nenhum arquivo é alterado sem revisão.</em></span><span>Seguro <b id="gameSafeCount">0 selecionadas</b></span><span>Avançado <b id="gameExperimentalCount">0 selecionadas</b></span><span>Status <b id="gamePresetStatus">Beta</b></span></div></details>';
   }
   if(main && !main.dataset.modern){
     main.dataset.modern="true";
-    main.innerHTML="<div class=\"gamePresetTop\"><div><h3>Configuração guiada</h3><p>Escolha o que será aplicado. Detalhes técnicos ficam separados para não poluir a decisão.</p></div><button class=\"gamePresetClose\" onclick=\"closeGamePreset()\">&times;</button></div><div class=\"gamePresetTabs\" id=\"gamePresetTabs\"><button type=\"button\" data-tab=\"recommended\" onclick=\"setGamePresetTab('recommended')\">Recomendadas</button><button type=\"button\" data-tab=\"advanced\" onclick=\"setGamePresetTab('advanced')\">Avançadas</button><button type=\"button\" data-tab=\"backups\" onclick=\"setGamePresetTab('backups')\">Backups</button><button type=\"button\" data-tab=\"history\" onclick=\"setGamePresetTab('history')\">Histórico</button></div><div class=\"gamePresetReview\" id=\"gamePresetTabBody\"></div><div class=\"gamePresetFootSummary\"><div id=\"gamePresetFootSummary\">-</div><label class=\"gamePresetTechnical\"><span>Detalhes técnicos</span><input type=\"checkbox\" id=\"gamePresetTechnicalToggle\" onchange=\"setGamePresetTechnical(this.checked)\"><i aria-hidden=\"true\"></i></label></div><div class=\"gameActions\"><button class=\"btn gameRestoreBtnNeutral\" onclick=\"restoreSelectedGamePreset()\">Restaurar padrão</button><button class=\"btn\" onclick=\"closeGamePreset()\">Cancelar</button><button class=\"btn primary\" id=\"gamePresetApplyButton\" onclick=\"confirmGamePreset()\">Aplicar preset</button></div>";
+    main.innerHTML="<div class=\"gamePresetTop\"><div><h3>Configuração guiada</h3><p>Escolha o que será aplicado. Detalhes técnicos ficam separados para não poluir a decisão.</p></div><button class=\"gamePresetClose\" onclick=\"closeGamePreset()\">&times;</button></div><div class=\"gamePresetTabs\" id=\"gamePresetTabs\"><button type=\"button\" data-tab=\"recommended\" onclick=\"setGamePresetTab('recommended')\">Recomendadas</button><button type=\"button\" data-tab=\"advanced\" onclick=\"setGamePresetTab('advanced')\">Avançadas</button><button type=\"button\" data-tab=\"backups\" onclick=\"setGamePresetTab('backups')\">Backups</button><button type=\"button\" data-tab=\"history\" onclick=\"setGamePresetTab('history')\">Histórico</button></div><div class=\"gamePresetReview\" id=\"gamePresetTabBody\"></div><div class=\"gamePresetFooter\"><div class=\"gamePresetFootSummary\"><div id=\"gamePresetFootSummary\">-</div><label class=\"gamePresetTechnical\"><span>Detalhes técnicos</span><input type=\"checkbox\" id=\"gamePresetTechnicalToggle\" onchange=\"setGamePresetTechnical(this.checked)\"><i aria-hidden=\"true\"></i></label></div><div class=\"gamePresetAppliedNote\" id=\"gamePresetAppliedNote\" hidden><b>Preset já aplicado</b><span>Nenhuma alteração pendente</span></div><div class=\"gameActions\"><button class=\"btn gameRestoreBtnNeutral\" onclick=\"restoreSelectedGamePreset()\">Restaurar padrão</button><button class=\"btn\" id=\"gamePresetCancelButton\" onclick=\"closeGamePreset()\">Cancelar</button><button class=\"btn primary\" id=\"gamePresetApplyButton\" onclick=\"confirmGamePreset()\">Aplicar preset</button></div></div>";
   }
+}
+function gamePresetUsesCompactLayout(){
+  return !!(window.matchMedia&&window.matchMedia("(max-width: 900px), (max-aspect-ratio: 4/5)").matches);
+}
+function gamePresetCompactPreview(g){
+  if(!g) return "Instalação e preset ainda não analisados";
+  const parts=[];
+  parts.push((g.DetectedPath||g.Path)?"Instalação verificada":"Instalação não localizada");
+  parts.push(gamePresetApplied(g)?"preset aplicado":"preset ainda não aplicado");
+  const files=Number(g.BackupFiles||0);
+  parts.push(files>0?files+" backup(s)":"sem backup");
+  return parts.join(" • ");
 }
 function displayGameRecommendedProfile(g){
   const text=String((g&&g.Tier)||"").toLowerCase();
@@ -6918,10 +7079,12 @@ function openGamePreset(id){
   gamePresetActiveTab="recommended";
   gamePresetTechnical=false;
   const tech=$("gamePresetTechnicalToggle"); if(tech) tech.checked=false;
+  const compactInfo=$("gamePresetCompactInfo"); if(compactInfo) compactInfo.open=!gamePresetUsesCompactLayout();
   txt("gamePresetKind", g.Running ? "Jogo em execução" : "Jogo detectado");
   txt("gamePresetTitle",g.Name||"Preset de jogo");
   txt("gamePresetSummary",g.Summary||g.Description||"Revise os ajustes antes de aplicar.");
   txt("gamePresetChip","Perfil recomendado: "+displayGameRecommendedProfile(g));
+  txt("gamePresetCompactPreview",gamePresetCompactPreview(g));
   txt("gamePresetStatus",gamePresetApplied(g)?"Aplicado":(g.Running?"Rodando":"Instalado"));
   txt("gamePresetInstall",(gamePresetPlatform(g)||"Plataforma não identificada")+" • "+(g.Running?"jogo em execução":((g.DetectedPath||g.Path)?"jogo fechado":"não detectado")));
   txt("gamePresetPathState",(g.DetectedPath||g.Path)?"Caminho verificado":"Instalação não localizada");
@@ -6975,8 +7138,11 @@ function renderGameOptionCard(text,index,kind){
   const checked=bucket.has(index)?" checked":"";
   const risk=kind==="experimental"?"Experimental":"Recomendado";
   const backupText=Number(selectedGamePreset&&selectedGamePreset.BackupFiles||0)>0?"Backup disponível":"Backup será validado ao aplicar";
+  const title=optionTitle(text);
+  const summary=optionSummary(text);
+  const summaryHtml=summary&&summary!==title?'<span>'+esc(summary)+'</span>':'';
   const tech=gamePresetTechnical?'<div class="gameOptionDetails"><span><small>Categoria</small>'+esc(optionCategory(text))+'</span><span><small>Impacto</small>'+esc(optionImpact(text))+'</span><span><small>Configuração afetada</small>Informação indisponível</span><span><small>Valor atual</small>Valor atual ainda não analisado</span><span><small>Plano</small>Preparado pelo backend ao confirmar</span><span><small>Backup</small>'+esc(backupText)+'</span></div>':'';
-  return '<label class="gameOptionCard '+(kind==="experimental"?"experimental":"")+'"><input type="checkbox"'+checked+' onchange="toggleGameOption(\''+kind+'\','+index+')"><span class="gameOptionMain"><b>'+esc(optionTitle(text))+'</b><span>'+esc(optionSummary(text))+'</span><span class="gameOptionMeta"><span>'+risk+'</span><span>'+esc(optionCategory(text))+'</span><span>'+esc(optionImpact(text))+'</span></span>'+tech+'</span></label>';
+  return '<label class="gameOptionCard '+(kind==="experimental"?"experimental":"")+'"><input type="checkbox"'+checked+' onchange="toggleGameOption(\''+kind+'\','+index+')"><span class="gameOptionMain"><b>'+esc(title)+'</b>'+summaryHtml+'<span class="gameOptionMeta"><span>'+risk+'</span><span>'+esc(optionCategory(text))+'</span><span>'+esc(optionImpact(text))+'</span></span>'+tech+'</span></label>';
 }
 function renderOptionGroup(title,items,kind){
   const list=Array.isArray(items)?items:[];
@@ -7352,6 +7518,9 @@ function paintState(state){
   txt("behaviorState",safeFormat(()=>formatLatestDecisionInsight(s,actions),"-"));
   txt("reclaimedInline",safeFormat(()=>formatMemoryReliefDetail(s,actions),""));
   setInlineVisible("reclaimedInline",hasMemoryReliefDetail(actions));
+  txt("memoryStabilityState",safeFormat(()=>formatMemoryStabilityState(s),"-"));
+  txt("memoryStabilityInline",safeFormat(()=>formatMemoryStabilityInline(s),""));
+  setInlineVisible("memoryStabilityInline",hasMemoryStabilityContext(s));
   txt("intentState",safeFormat(()=>formatContextShiftInsight(s),"-"));
   txt("radarState",safeFormat(()=>formatRadar(s),"-"));
   txt("udpTelemetry",safeFormat(()=>formatUdpTelemetry(s),"-"));
@@ -8082,7 +8251,7 @@ function shaderBoostStatusLabel(state){
   const pt=isPt();
   const raw=String(state||"NotAnalyzed").trim();
   const normalized=raw.normalize ? raw.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[\s_-]+/g,"").toLowerCase() : raw.replace(/[\s_-]+/g,"").toLowerCase();
-  const map={disabled:pt?"Desativado":"Disabled",waitingforgame:pt?"Aguardando jogo":"Waiting for game",waiting:pt?"Aguardando jogo":"Waiting for game",notanalyzed:pt?"Nao analisado":"Not analyzed",cachecold:pt?"Cache frio":"Cold cache",cachebuilding:pt?"Cache em construcao":"Cache building",cachehealthy:pt?"Cache saudavel":"Healthy cache",cachesaudavel:pt?"Cache saudavel":"Healthy cache",cacheshealthy:pt?"Cache saudavel":"Healthy cache",cacheinsufficient:pt?"Cache insuficiente":"Cache insufficient",cacheoutdated:pt?"Cache desatualizado":"Cache outdated",shadercompilationdetected:pt?"Compilacao detectada":"Compilation detected",repairrecommended:pt?"Reparo recomendado":"Repair recommended",unsupported:pt?"Nao disponivel":"Unavailable",operational:pt?"Operacional":"Operational"};
+  const map={disabled:pt?"Desativado":"Disabled",waitingforgame:pt?"Aguardando jogo":"Waiting for game",waiting:pt?"Aguardando jogo":"Waiting for game",notanalyzed:pt?"Não analisado":"Not analyzed",cachecold:pt?"Cache frio":"Cold cache",cachebuilding:pt?"Cache em construção":"Cache building",cachehealthy:pt?"Cache saudável":"Healthy cache",cachesaudavel:pt?"Cache saudável":"Healthy cache",cacheshealthy:pt?"Cache saudável":"Healthy cache",cacheinsufficient:pt?"Cache insuficiente":"Cache insufficient",cacheoutdated:pt?"Cache desatualizado":"Cache outdated",shadercompilationdetected:pt?"Compilacao detectada":"Compilation detected",repairrecommended:pt?"Reparo recomendado":"Repair recommended",unsupported:pt?"Não disponível":"Unavailable",operational:pt?"Operacional":"Operational"};
   return map[normalized] || raw.replace(/([a-z])([A-Z])/g,"$1 $2");
 }
 function formatShaderBoostQuick(s){
@@ -8303,7 +8472,11 @@ function updatePulseStep(id,kind,value){
 }
 function setMetricLineVisible(id,visible){
   const el=$(id); const line=el&&el.closest?el.closest(".focusLine"):null;
-  if(line) line.style.display=visible?"":"none";
+  if(line){
+    line.hidden=!visible;
+    if(visible) line.style.removeProperty("display");
+    else{ line.style.setProperty("display","none","important"); line.classList.remove("expanded"); }
+  }
 }
 function setInlineVisible(id,visible){
   const el=$(id);
@@ -8554,8 +8727,56 @@ function formatGpuPressureActivityDetails(s){
   if(topMb) rows.push(activityDetailRow(isPt()?"Memória gráfica":"Graphics memory",topMb));
   return rows;
 }
-function syncActivityDetails(s,stats){
+function translateMemoryStabilityState(value){
+  const v=String(value||"").toLowerCase().replace(/\s+/g,"");
+  if(v==="criticalpressure") return isPt()?"Pressão crítica":"Critical pressure";
+  if(v==="highpressure") return isPt()?"Pressão elevada":"High pressure";
+  if(v==="observing") return isPt()?"Observando":"Observing";
+  if(v==="recovering") return isPt()?"Recuperando":"Recovering";
+  if(v==="diagnosticrequired") return isPt()?"Diagnóstico necessário":"Diagnostic required";
+  if(v==="normal") return isPt()?"Memória estável":"Memory stable";
+  return isPt()?"Memória não analisada":"Memory not analyzed";
+}
+function hasMemoryStabilityContext(s){
+  if(!s || !s.MemoryStabilityAvailable) return false;
+  const state=String(s.MemoryStabilityState||"").toLowerCase().replace(/\s+/g,"");
+  return !!(s.MemoryStabilityRelevant || s.MemoryStabilityPagefileLimited || s.MemoryStabilityLowMemorySignal || s.MemoryStabilityBrowserBurstRecommended || ["observing","highpressure","criticalpressure","recovering","diagnosticrequired"].includes(state));
+}
+function formatMemoryStabilityState(s){
+  if(!s || !s.MemoryStabilityAvailable) return isPt()?"Memória não analisada":"Memory not analyzed";
+  return String(s.MemoryStabilitySummary||"").trim() || translateMemoryStabilityState(s.MemoryStabilityState);
+}
+function formatMemoryStabilityInline(s){
+  const parts=[];
+  const commit=Number(s&&s.MemoryStabilityCommitHeadroomPercent||0);
+  if(commit>0) parts.push((isPt()?"Commit livre ":"Commit headroom ")+commit+"%");
+  const page=String(s&&s.MemoryStabilityPagefileStatus||"").trim();
+  if(page) parts.push("Pagefile "+page.toLowerCase());
+  const browser=String(s&&s.MemoryStabilityBrowserBurstState||"").trim();
+  if(browser && !/^normal$/i.test(browser)) parts.push(browser);
+  return parts.join(" • ");
+}
+function formatMemoryStabilityActivityDetails(s){
+  const rows=[];
+  rows.push(activityDetailRow(isPt()?"Modo":"Mode",String(s&&s.MemoryStabilityMode||"Shadow")));
+  if(Number(s&&s.MemoryStabilityMemoryLoad)>0) rows.push(activityDetailRow(isPt()?"Carga de RAM":"RAM load",Math.round(Number(s.MemoryStabilityMemoryLoad))+"%"));
+  if(Number(s&&s.MemoryStabilityAvailablePhysicalMB)>0) rows.push(activityDetailRow(isPt()?"RAM disponível":"Available RAM",formatMb(s.MemoryStabilityAvailablePhysicalMB)));
+  if(Number(s&&s.MemoryStabilityCommitHeadroomMB)>0) rows.push(activityDetailRow(isPt()?"Commit livre":"Commit headroom",formatMb(s.MemoryStabilityCommitHeadroomMB)+" • "+(s.MemoryStabilityCommitHeadroomPercent||0)+"%"));
+  if(Number(s&&s.MemoryStabilityCommitUsedMB)>0 && Number(s&&s.MemoryStabilityCommitLimitMB)>0) rows.push(activityDetailRow(isPt()?"Commit usado":"Commit used",formatMb(s.MemoryStabilityCommitUsedMB)+" de "+formatMb(s.MemoryStabilityCommitLimitMB)));
+  if(s&&s.MemoryStabilityPagefileStatus) rows.push(activityDetailRow("Pagefile",s.MemoryStabilityPagefileStatus));
+  if(s&&s.MemoryStabilityLowMemorySignal) rows.push(activityDetailText(isPt()?"Windows sinalizou baixa memória física.":"Windows reported low physical memory."));
+  if(s&&s.MemoryStabilityBrowserBurstRecommended) rows.push(activityDetailRow("Browser Burst Shield",isPt()?"Recomendado em shadow":"Recommended in shadow"));
+  const top=String(s&&s.MemoryStabilityTopProcess||"").trim();
+  if(top) rows.push(activityDetailRow(isPt()?"Maior consumidor":"Top consumer",top+(s.MemoryStabilityTopProcessPid?" ("+s.MemoryStabilityTopProcessPid+")":"")));
+  if(Number(s&&s.MemoryStabilityTopProcessPrivateMB)>0) rows.push(activityDetailRow("Private bytes",formatMb(s.MemoryStabilityTopProcessPrivateMB)));
+  if(Number(s&&s.MemoryStabilityBrowserPrivateMB)>0) rows.push(activityDetailRow(isPt()?"Navegadores":"Browsers",formatMb(s.MemoryStabilityBrowserPrivateMB)+" • "+(s.MemoryStabilityBrowserProcessCount||0)+" processos"));
+  rows.push(activityDetailText(isPt()?"Modo shadow: diagnóstico ativo; sem trim global e sem alteração de pagefile.":"Shadow mode: diagnostic only; no global trim and no pagefile changes."));
+  const signals=Array.isArray(s&&s.MemoryStabilitySignals)?s.MemoryStabilitySignals:[];
+  signals.slice(0,3).forEach(signal=>rows.push(activityDetailText(signal)));
+  return rows;
+}function syncActivityDetails(s,stats){
   setActivityDetails("memory",formatMemoryActivityDetails(s,stats));
+  setActivityDetails("stability",formatMemoryStabilityActivityDetails(s));
   setActivityDetails("profile",formatProfileActivityDetails(s));
   setActivityDetails("adjustment",formatPassActivityDetails(s,stats));
   setActivityDetails("pressure",formatPressureActivityDetails(s));
@@ -8587,6 +8808,7 @@ function updateEnginePulse(s){
   }
   setHtml("enginePulseDetails",canExpand?formatEnginePulseDetails(stats,grouped,processes,s):"");
   updateActivityResourceVisibility(s);
+  setMetricLineVisible("memoryStabilityState",hasMemoryStabilityContext(s));
   setMetricLineVisible("gpuPressureState",!!(s&&(s.GpuPressureAvailable||s.GpuOptimizationActive)));
 }
 function sessionHint(mode){
@@ -9038,7 +9260,7 @@ function describeEvent(item){
     const attention=health==="attention"||health==="stale"||health==="stopped"||health==="notinstalled";
     const scoreAge=kv.scoreAgeSeconds&&kv.scoreAgeSeconds!=="-1"?eventCopy("telemetria "+kv.scoreAgeSeconds+"s","telemetry "+kv.scoreAgeSeconds+"s"):"";
     const status=friendlyCoreHealth(health);
-    const title=recovering?eventCopy("Servico recuperando o motor","Service recovering engine"):(attention?eventCopy("Servico precisa de atencao","Service needs attention"):eventCopy("Servico saudavel","Service healthy"));
+    const title=recovering?eventCopy("Serviço recuperando o motor","Service recovering engine"):(attention?eventCopy("Serviço precisa de atenção","Service needs attention"):eventCopy("Serviço saudável","Service healthy"));
     return {time,kind:(recovering||attention)?"warn":"status",badge:eventCopy("Servico","Service"),title,detail:[status,scoreAge].filter(Boolean).join(" - ") || eventCopy("Estado do Core atualizado.","Core state updated."),raw};
   }
   if(action==="admin-setup"){
@@ -9111,8 +9333,8 @@ function friendlyCoreHealth(value){
   if(low==="recovering") return eventCopy("Recuperando telemetria","Recovering telemetry");
   if(low==="starting") return eventCopy("Iniciando","Starting");
   if(low==="stale") return eventCopy("Telemetria atrasada","Stale telemetry");
-  if(low==="stopped") return eventCopy("Servico parado","Service stopped");
-  if(low==="notinstalled") return eventCopy("Servico nao instalado","Service not installed");
+  if(low==="stopped") return eventCopy("Serviço parado","Service stopped");
+  if(low==="notinstalled") return eventCopy("Serviço não instalado","Service not installed");
   if(low==="attention") return eventCopy("Atencao necessaria","Attention needed");
   return value||"";
 }

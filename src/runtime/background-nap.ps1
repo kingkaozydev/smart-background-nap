@@ -5156,6 +5156,47 @@ function Test-TemporaryProtected {
     return $Map.ContainsKey($key)
 }
 
+function Get-ProcessStartTimeUtcText {
+    param([System.Diagnostics.Process]$Process)
+
+    if (-not $Process) { return "" }
+    try {
+        $started = $Process.StartTime
+        if (-not $started) { return "" }
+        return $started.ToUniversalTime().ToString("o")
+    } catch {
+        return ""
+    }
+}
+
+function Test-StateProcessIdentity {
+    param(
+        [object]$Item,
+        [System.Diagnostics.Process]$Process,
+        [string]$Path
+    )
+
+    if (-not $Item -or -not $Process) { return $true }
+    $savedPath = [string]$Item.Path
+    if (-not [string]::IsNullOrWhiteSpace($savedPath)) {
+        if ([string]::IsNullOrWhiteSpace($Path)) { return $false }
+        if (-not $savedPath.Equals($Path, [System.StringComparison]::OrdinalIgnoreCase)) { return $false }
+    }
+
+    $savedStart = [string]$Item.StartTimeUtc
+    if (-not [string]::IsNullOrWhiteSpace($savedStart)) {
+        try {
+            $expected = [DateTime]::Parse($savedStart, $null, [Globalization.DateTimeStyles]::RoundtripKind).ToUniversalTime()
+            $actual = $Process.StartTime.ToUniversalTime()
+            if ([math]::Abs(($actual - $expected).TotalSeconds) -gt 2.0) { return $false }
+        } catch {
+            return $false
+        }
+    }
+
+    return $true
+}
+
 function Get-ProcessStartAgeSeconds {
     param([System.Diagnostics.Process]$Process)
 
@@ -5861,11 +5902,10 @@ function Find-StateProcessItem {
 
     if (-not $State -or -not $State.Processes -or -not $Process) { return $null }
     $matches = @($State.Processes | Where-Object { [int]$_.Id -eq [int]$Process.Id })
-    if ($Path) {
-        $pathMatches = @($matches | Where-Object { $_.Path -and ([string]$_.Path).Equals($Path, [System.StringComparison]::OrdinalIgnoreCase) })
-        if ($pathMatches.Count -gt 0) { $matches = $pathMatches }
-    }
-    if ($matches.Count -gt 0) { return $matches[0] }
+    if ($matches.Count -le 0) { return $null }
+
+    $verified = @($matches | Where-Object { Test-StateProcessIdentity -Item $_ -Process $Process -Path $Path })
+    if ($verified.Count -gt 0) { return $verified[0] }
     return $null
 }
 
@@ -6148,6 +6188,7 @@ function Get-BackgroundProcessRows {
             SessionId = $p.SessionId
             Path = $path
             ProcessAgeSeconds = $processAgeSeconds
+            StartTimeUtc = Get-ProcessStartTimeUtcText -Process $p
             ForegroundTreeProtected = [bool]$foregroundTreeProtected
             NewProcessStabilizing = [bool]$newProcessStabilizing
             AppKey = if ($appPolicy) { [string]$appPolicy.Key } else { Get-AppIdentityKeyFromText -ProcessName $p.ProcessName -Path $path }
@@ -6238,6 +6279,7 @@ function New-StateSnapshot {
                 ProcessorAffinity = $_.ProcessorAffinity
                 WorkingSetMB = $_.WorkingSetMB
                 Path = $_.Path
+                StartTimeUtc = $_.StartTimeUtc
                 Role = $_.Role
                 AppPolicy = $_.AppPolicy
                 UdpGameProtected = [bool]$_.UdpGameProtected
@@ -6876,6 +6918,12 @@ function Invoke-Restore {
     $restoreResults = foreach ($item in @($state.Processes)) {
         $p = Get-Process -Id $item.Id -ErrorAction SilentlyContinue
         if (-not $p) {
+            continue
+        }
+
+        $path = Get-ProcessPathText -Process $p
+        if (-not (Test-StateProcessIdentity -Item $item -Process $p -Path $path)) {
+            [pscustomobject]@{ Id = $p.Id; ProcessName = $p.ProcessName; Status = "IdentityMismatch"; StatePath = $StatePath }
             continue
         }
 

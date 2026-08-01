@@ -128,8 +128,12 @@ const scenarios = [
   { name: "games-768x1024", width: 768, height: 1024, dpr: 1, view: "games" },
   { name: "games-scrolled-1366x768", width: 1366, height: 768, dpr: 1, view: "games", scrollTop: 96 },
   { name: "game-preset-modal-768x1024", width: 768, height: 1024, dpr: 1, view: "games", modal: "gamePreset" },
+  { name: "game-preset-modal-tech-1920x1080", width: 1920, height: 1080, dpr: 1, view: "games", modal: "gamePreset", technicalDetails: true },
   { name: "game-preset-modal-tech-1366x768", width: 1366, height: 768, dpr: 1, view: "games", modal: "gamePreset", technicalDetails: true },
+  { name: "game-preset-modal-tech-1080x1920", width: 1080, height: 1920, dpr: 1, view: "games", modal: "gamePreset", technicalDetails: true },
+  { name: "game-preset-modal-tech-768x1366", width: 768, height: 1366, dpr: 1, view: "games", modal: "gamePreset", technicalDetails: true },
   { name: "game-preset-modal-900x1440-dpi150", width: 900, height: 1440, dpr: 1.5, view: "games", modal: "gamePreset" },
+  { name: "game-preset-modal-applied-768x1366", width: 768, height: 1366, dpr: 1, view: "games", modal: "gamePreset", appliedPreset: true },
   { name: "game-preset-modal-1440x2560", width: 1440, height: 2560, dpr: 1, view: "games", modal: "gamePreset" },
   { name: "energy-mode-popup-1366x768", width: 1366, height: 768, dpr: 1, view: "dashboard", modal: "energyPrompt" },
   { name: "update-modal-1366x768", width: 1366, height: 768, dpr: 1, view: "dashboard", modal: "updateOverlay" }
@@ -420,6 +424,17 @@ async function runScenario(client, scenario) {
   const script = `
 (async () => {
   const state = Object.assign({}, ${JSON.stringify(mockState)}, ${JSON.stringify(scenario.statePatch || {})});
+  if (${JSON.stringify(!!scenario.appliedPreset)}) {
+    const applied = (state.GamePresets || []).find(game => game.Id === "longgame1");
+    if (applied) {
+      applied.PresetApplied = true;
+      applied.PresetStatus = "applied";
+      applied.SelectedSafeCount = Array.isArray(applied.SafeOptimizations) ? applied.SafeOptimizations.length : 0;
+      applied.SelectedExperimentalCount = 0;
+      applied.BackupFiles = 5;
+      applied.LastAppliedAt = new Date().toISOString();
+    }
+  }
   window.__scenarioName = ${JSON.stringify(scenario.name)};
   smartNapUpdate(state);
   showView(${JSON.stringify(scenario.view || "dashboard")});
@@ -944,6 +959,8 @@ window.validateResponsivePage = function(){
     if (rect.left < -2 || rect.right > vw + 2) errors.push("modal horizontal outside viewport left=" + Math.round(rect.left) + " right=" + Math.round(rect.right) + " vw=" + vw);
     if (rect.top < -2 || rect.bottom > vh + 2) errors.push("modal vertical outside viewport top=" + Math.round(rect.top) + " bottom=" + Math.round(rect.bottom) + " vh=" + vh + " height=" + Math.round(rect.height));
     if (modal.classList.contains("gamePresetPanel")) {
+      const isPortraitPreset = vh > vw && vw <= 1080;
+      const scenarioName = window.__scenarioName || "";
       const actions = modal.querySelector(".gameActions");
       if (!actions || !visible(actions)) {
         errors.push("game preset actions are not visible");
@@ -956,12 +973,50 @@ window.validateResponsivePage = function(){
       if (!footer || !visible(footer)) errors.push("game preset decision footer is not visible");
       const techToggle = modal.querySelector(".gamePresetTechnical");
       if (!techToggle || !visible(techToggle)) errors.push("game preset technical toggle is not visible");
+      if (techToggle && visible(techToggle)) {
+        const toggleRect = techToggle.getBoundingClientRect();
+        const toggleStyle = getComputedStyle(techToggle);
+        const portraitLineControl = isPortraitPreset && parseFloat(toggleStyle.borderTopWidth || "0") === 0 && /rgba?\(0,\s*0,\s*0,\s*0\)|transparent/i.test(toggleStyle.backgroundColor || "transparent");
+        if (!portraitLineControl && toggleRect.width > Math.min(260, rect.width * 0.45)) {
+          errors.push("game preset technical toggle is stretched width=" + Math.round(toggleRect.width));
+        }
+      }
       const review = modal.querySelector(".gamePresetReview");
       if (review && visible(review)) {
         const style = getComputedStyle(review);
         if (review.scrollHeight > review.clientHeight + 4 && !/(auto|scroll)/.test(style.overflowY)) {
           errors.push("game preset review does not own overflow when content grows");
         }
+        const firstCard = modal.querySelector(".gameOptionCard");
+        const techChecked = !!modal.querySelector("#gamePresetTechnicalToggle")?.checked;
+        if (isPortraitPreset && firstCard && visible(firstCard) && !techChecked) {
+          const cardHeight = firstCard.getBoundingClientRect().height;
+          if (cardHeight > 150) errors.push("game preset portrait compact card is too tall without technical details: " + Math.round(cardHeight) + "px");
+        }
+        const details = modal.querySelector(".gameOptionDetails");
+        if (isPortraitPreset && details && visible(details) && techChecked) {
+          const columns = getComputedStyle(details).gridTemplateColumns.split(" ").filter(Boolean).length;
+          if (columns > 1) errors.push("game preset portrait technical details still use cramped multi-column grid");
+        }
+      }
+      const lead = modal.querySelector(".gamePresetLead");
+      const main = modal.querySelector(".gamePresetMain");
+      if (lead && main && visible(lead) && visible(main) && isPortraitPreset) {
+        const leadRect = lead.getBoundingClientRect();
+        const mainRect = main.getBoundingClientRect();
+        if (Math.abs(mainRect.top - leadRect.top) < 48 && mainRect.left > leadRect.left + leadRect.width - 4) {
+          errors.push("game preset portrait layout still uses squeezed side-by-side columns");
+        }
+        const infoDisclosure = modal.querySelector(".gamePresetCompactInfo");
+        if (!infoDisclosure || !visible(infoDisclosure)) {
+          errors.push("game preset portrait layout is missing compact game info disclosure");
+        }
+      }
+      if (isPortraitPreset && scenarioName.includes("applied")) {
+        const primary = modal.querySelector("#gamePresetApplyButton");
+        const appliedNote = modal.querySelector("#gamePresetAppliedNote");
+        if (primary && visible(primary)) errors.push("game preset clean applied portrait state still shows a giant disabled primary CTA");
+        if (!appliedNote || !visible(appliedNote)) errors.push("game preset clean applied portrait state is missing the applied-state note");
       }
       const close = modal.querySelector(".gamePresetClose");
       if (close && visible(close)) {
