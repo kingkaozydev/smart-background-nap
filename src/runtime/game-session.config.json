@@ -230,7 +230,10 @@
                                                      "\\Electronic Arts\\EA SPORTS FC",
                                                      "\\Battlefield 6\\",
                                                      "\\Battlefield6\\",
-                                                     "\\EA SPORTS FC 26\\"
+                                                     "\\EA SPORTS FC 26\\",
+                                                     "\\THE FINALS\\",
+                                                     "\\The Finals\\",
+                                                     "\\Discovery\\"
                                                  ],
                       "NeverGameProcessNames":  [
                                                     "explorer",
@@ -442,7 +445,11 @@
                                                     "RainbowSix_Vulkan",
                                                     "cod",
                                                     "ModernWarfare",
-                                                    "Warzone"
+                                                    "Warzone",
+                                                    "Discovery",
+                                                    "Discovery-d",
+                                                    "TheFinals",
+                                                    "The Finals"
                                                 ]
                   },
     "ShaderBoost":  {

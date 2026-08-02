@@ -52,7 +52,7 @@ function Assert-DashboardContains {
     }
 }
 
-Assert-Contains 'private const string AppVersion = "0.7.4"' "Launcher version was not bumped to 0.7.4."
+Assert-Contains 'private const string AppVersion = "0.8.0"' "Launcher version was not bumped to 0.8.0."
 Assert-Contains 'private const string MemoryStabilityGuardMode = "Shadow"' "Memory Stability Guard must start in shadow mode."
 Assert-Contains "CreateMemoryResourceNotification" "Memory Stability Guard must include Windows low-memory notification support."
 Assert-Contains "QueryMemoryResourceNotification" "Memory Stability Guard must query Windows low-memory notifications."
@@ -60,6 +60,28 @@ Assert-Contains "BuildMemoryStabilitySnapshot" "Memory Stability Guard snapshot 
 Assert-Contains "BuildMemoryStabilityPayload" "Memory Stability Guard payload builder is missing."
 Assert-Contains "MemoryStabilityCommitHeadroomPercent" "Commit Headroom Guard metric is missing."
 Assert-Contains "memoryStabilityGuard.shadow" "Core service capability for Memory Stability Guard is missing."
+Assert-Contains 'private const string SystemIntegrityGuardMode = "Shadow"' "System Integrity Guard must start in shadow mode."
+Assert-Contains "BuildSystemIntegritySnapshot" "System Integrity snapshot builder is missing."
+Assert-Contains "BuildSystemIntegrityPayload" "System Integrity payload builder is missing."
+Assert-Contains "SystemIntegrityAvailable" "System Integrity state must be exposed to the launcher."
+Assert-Contains "systemIntegrityGuard.shadow" "Core service capability for System Integrity Guard is missing."
+Assert-Contains "mmcssIntegrityCheck.shadow" "MMCSS Integrity Check capability is missing."
+Assert-Contains "windowsTweakSanityScanner.shadow" "Windows Tweak Sanity Scanner capability is missing."
+Assert-Contains "hybridCpuSchedulerGuard.shadow" "Hybrid CPU Scheduler Guard capability is missing."
+Assert-Contains "lowImpactRuntime.v1" "Low Impact Runtime capability is missing."
+Assert-Contains "systemOptimizationRecommendations.v1" "System optimization recommendation capability is missing."
+Assert-Contains "SystemOptimizationRecommendation" "System optimization recommendation model is missing."
+Assert-Contains "SystemIntegrityRecommendations" "System optimization recommendations must be exposed to the launcher."
+Assert-Contains "SafetyGate" "System optimization recommendations must expose a safety gate."
+Assert-Contains "CanApply = false" "System optimization recommendations must stay blocked until service-backed snapshot, journal and rollback exist."
+Assert-DashboardContains "renderSystemOptimizationCenter" "System optimization guided center renderer is missing."
+Assert-DashboardContains "openSystemOptimizationSafetyGate" "System optimization UI must explain why unsafe direct application is blocked."
+Assert-DashboardContains "systemRecCard" "System optimization recommendations must render as selectable cards."
+Assert-Contains "SetCurrentProcessBackgroundMode" "Low Impact Runtime must use Windows process background mode."
+Assert-Contains "ProcessModeBackgroundBegin" "Low Impact Runtime must declare PROCESS_MODE_BACKGROUND_BEGIN."
+Assert-DashboardContains "systemIntegrityState" "System Integrity state must be visible in the activity panel."
+Assert-DashboardContains "formatSystemIntegrityActivityDetails" "System Integrity details must be formatted for the launcher."
+Assert-DashboardContains "LowImpactRuntimeActive" "Low Impact Runtime state must be visible to the launcher."
 Assert-Contains "commitHeadroomGuard.v1" "Core service capability for Commit Headroom Guard is missing."
 Assert-Contains "browserBurstShield.shadow" "Core service capability for Browser Burst Shield is missing."
 Assert-Contains "SmartSNAPCoreService" "Core service name is missing."
@@ -215,11 +237,30 @@ if ($memoryGuardEndIndex -lt 0) {
 $memoryGuardBlock = $source.Substring($memoryGuardIndex, $memoryGuardEndIndex - $memoryGuardIndex)
 foreach ($forbidden in @("RunApplyNow", "RunRestore", "SetProcessWorkingSetSize", "EmptyWorkingSet", "PagingFiles", "powercfg", "TrySetMemoryPriority", "TrySetIoPriority", "NtSetInformationProcess", "SetProcessInformation")) {
     if ($memoryGuardBlock -like "*$forbidden*") {
-        throw "Memory Stability Guard must stay diagnostic/shadow in 0.7.4: $forbidden"
+        throw "Memory Stability Guard must stay diagnostic/shadow in 0.8.0: $forbidden"
     }
 }
 
 
+$systemGuardIndex = $source.IndexOf("private static SystemIntegritySnapshot BuildSystemIntegritySnapshot", [StringComparison]::Ordinal)
+if ($systemGuardIndex -lt 0) {
+    throw "System Integrity snapshot builder is missing."
+}
+$systemGuardEndIndex = $source.IndexOf("private static IDictionary<string, object> BuildSystemIntegrityPayload", $systemGuardIndex, [StringComparison]::Ordinal)
+if ($systemGuardEndIndex -lt 0) {
+    throw "Could not isolate System Integrity snapshot builder."
+}
+$systemGuardBlock = $source.Substring($systemGuardIndex, $systemGuardEndIndex - $systemGuardIndex)
+foreach ($forbidden in @("CreateSubKey", ".SetValue(", "DeleteValue", "RunPowerShellScript", "Process.Start", "powercfg")) {
+    if ($systemGuardBlock -like "*$forbidden*") {
+        throw "System Integrity recommendations must diagnose only until service-backed backup/journal/rollback exist: $forbidden"
+    }
+}
+foreach ($needle in @("AddSystemOptimizationRecommendation", "SafetyGate", "CanApply = false", "BackupRequired = true")) {
+    if ($systemGuardBlock -notlike "*$needle*") {
+        throw "System Integrity recommendations are missing the safe recommendation contract: $needle"
+    }
+}
 $pipeResponseIndex = $source.IndexOf("private static IDictionary<string, object> BuildCorePipeResponse", [StringComparison]::Ordinal)
 if ($pipeResponseIndex -lt 0) {
     throw "Core pipe response builder is missing."

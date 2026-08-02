@@ -553,7 +553,7 @@ window.validateResponsivePage = function(){
     })
     .map(el => (el.textContent || el.className || "text").trim().slice(0, 60));
   if (clipped.length) errors.push("clipped text: " + clipped.slice(0, 5).join(", "));
-  const clippedTimelineText = Array.from(document.querySelectorAll(".eventLine .eventHead,.eventLine span,.eventLine i,.eventLine b,.eventLine em"))
+  const clippedTimelineText = Array.from(document.querySelectorAll(".logRegisterStable .logEventStableMeta,.logRegisterStable .logEventStableContent,.logRegisterStable .logEventStableTitle,.logRegisterStable .logEventStableSummary,.eventLine .eventHead,.eventLine span,.eventLine i,.eventLine b,.eventLine em"))
     .filter(visible)
     .filter(el => {
       const style = getComputedStyle(el);
@@ -563,7 +563,7 @@ window.validateResponsivePage = function(){
     })
     .map(el => (el.textContent || el.className || "timeline text").trim().slice(0, 60));
   if (clippedTimelineText.length) errors.push("timeline clipped text: " + clippedTimelineText.slice(0, 5).join(", "));
-  const timelineRows = Array.from(document.querySelectorAll(".timeline .eventLine")).filter(visible);
+  const timelineRows = Array.from(document.querySelectorAll(".timeline [data-log-row],.timeline .eventLine")).filter(visible);
   for (let i = 1; i < timelineRows.length; i++) {
     const previous = timelineRows[i - 1].getBoundingClientRect();
     const current = timelineRows[i].getBoundingClientRect();
@@ -575,7 +575,10 @@ window.validateResponsivePage = function(){
   const timelineChildOverflow = [];
   timelineRows.forEach(row => {
     const rowRect = row.getBoundingClientRect();
-    Array.from(row.querySelectorAll("time,i,b,em,span")).filter(visible).forEach(child => {
+    if (row.scrollHeight > row.clientHeight + 2) {
+      timelineChildOverflow.push((row.textContent || row.className || "timeline row").trim().slice(0, 60));
+    }
+    Array.from(row.querySelectorAll("time,i,b,em,span,strong,p,summary,dt,dd")).filter(visible).forEach(child => {
       const childRect = child.getBoundingClientRect();
       if (childRect.left < rowRect.left - 2 || childRect.right > rowRect.right + 2 || childRect.top < rowRect.top - 2 || childRect.bottom > rowRect.bottom + 2) {
         timelineChildOverflow.push((child.textContent || child.className || "timeline child").trim().slice(0, 60));

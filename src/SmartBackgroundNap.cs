@@ -33,7 +33,7 @@ using Microsoft.Web.WebView2.Wpf;
 internal static class SmartBackgroundNap
 {
     private const string AppName = "Smart Background Nap";
-    private const string AppVersion = "0.7.4";
+    private const string AppVersion = "0.8.0";
     private const string CreatorLine = "Criado por KaozyKing | GitHub: kingkaozydev";
     private const string AutoTaskName = "SmartBackgroundNap";
     private const string TrayTaskName = "SmartBackgroundNapTray";
@@ -44,6 +44,9 @@ internal static class SmartBackgroundNap
     private const int CoreServiceLoopSeconds = 25;
     private const int CoreServiceStalePassSeconds = 150;
     private const string MemoryStabilityGuardMode = "Shadow";
+    private const string SystemIntegrityGuardMode = "Shadow";
+    private const uint ProcessModeBackgroundBegin = 0x00100000;
+    private const uint ProcessModeBackgroundEnd = 0x00200000;
     private const int CoreProtocolVersion = 1;
     private const int CoreMinimumSupportedProtocolVersion = 1;
     private const string CorePipeName = "SmartNap.Core.v1";
@@ -109,6 +112,10 @@ internal static class SmartBackgroundNap
     private static int corePipeActiveConnections;
     private static readonly object memoryStabilityLogLock = new object();
     private static string memoryStabilityLastLogSignature = "";
+    private static readonly object systemIntegrityLogLock = new object();
+    private static string systemIntegrityLastLogSignature = "";
+    private static readonly object processBackgroundModeLock = new object();
+    private static bool processBackgroundModeEnabled;
     private static bool usingLooseRuntime;
     private static readonly object hardwareLock = new object();
     private static HardwareSnapshot hardwareSnapshotCache;
@@ -588,6 +595,11 @@ internal static class SmartBackgroundNap
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool SetDllDirectory(string lpPathName);
 
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr GetCurrentProcess();
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool SetPriorityClass(IntPtr hProcess, uint dwPriorityClass);
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern IntPtr OpenProcess(uint desiredAccess, bool inheritHandle, int processId);
 
@@ -1262,18 +1274,54 @@ internal static class SmartBackgroundNap
 
     private static int ReadRegistryInt(string keyPath, string valueName)
     {
+        int value;
+        return TryReadRegistryIntValue(keyPath, valueName, out value) ? value : 0;
+    }
+
+    private static bool TryReadRegistryIntValue(string keyPath, string valueName, out int value)
+    {
+        value = 0;
         try
         {
             using (RegistryKey key = Registry.LocalMachine.OpenSubKey(keyPath))
             {
-                object value = key == null ? null : key.GetValue(valueName);
-                if (value is int) { return (int)value; }
-                return ParseInt(Convert.ToString(value, CultureInfo.InvariantCulture), 0);
+                object raw = key == null ? null : key.GetValue(valueName);
+                if (raw == null) { return false; }
+                if (raw is int) { value = (int)raw; return true; }
+                if (raw is long) { value = unchecked((int)(long)raw); return true; }
+                if (raw is uint) { value = unchecked((int)(uint)raw); return true; }
+                if (raw is string)
+                {
+                    int parsed;
+                    if (Int32.TryParse((string)raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out parsed))
+                    {
+                        value = parsed;
+                        return true;
+                    }
+                }
+                value = ParseInt(Convert.ToString(raw, CultureInfo.InvariantCulture), 0);
+                return true;
             }
         }
         catch
         {
-            return 0;
+            value = 0;
+            return false;
+        }
+    }
+
+    private static bool RegistrySubKeyExists(string keyPath)
+    {
+        try
+        {
+            using (RegistryKey key = Registry.LocalMachine.OpenSubKey(keyPath))
+            {
+                return key != null;
+            }
+        }
+        catch
+        {
+            return false;
         }
     }
 
@@ -3433,6 +3481,7 @@ internal static class SmartBackgroundNap
         state["StateAgeSeconds"] = snapshot.StateAgeSeconds;
         state["UpdatedAt"] = snapshot.UpdatedAt ?? "";
         state["MemoryStability"] = BuildMemoryStabilityPayload(snapshot);
+        state["SystemIntegrity"] = BuildSystemIntegrityPayload(snapshot);
         SessionAgentSnapshot sessionAgent = LoadSessionAgentSnapshot();
         state["SessionAgent"] = BuildSessionAgentPayload(sessionAgent);
         state["SessionContext"] = BuildSessionContextPayload(sessionAgent);
@@ -3715,6 +3764,35 @@ internal static class SmartBackgroundNap
         public string MemoryStabilityBrowserBurstState;
         public int MemoryStabilityHeavyRecentProcessCount;
         public List<string> MemoryStabilitySignals;
+        public bool SystemIntegrityAvailable;
+        public bool SystemIntegrityRelevant;
+        public string SystemIntegrityMode;
+        public string SystemIntegrityState;
+        public string SystemIntegritySummary;
+        public string SystemIntegrityDetail;
+        public bool SystemIntegrityBackupAvailable;
+        public bool SystemIntegrityMmcssServiceRunning;
+        public string SystemIntegrityMmcssServiceStatus;
+        public int SystemIntegritySystemResponsiveness;
+        public string SystemIntegritySystemResponsivenessState;
+        public string SystemIntegritySystemResponsivenessDetail;
+        public bool SystemIntegrityHybridCpuDetected;
+        public int SystemIntegrityLogicalProcessorCount;
+        public string SystemIntegrityHybridSchedulerState;
+        public string SystemIntegrityHybridSchedulerDetail;
+        public bool SystemIntegritySelfThrottleEligible;
+        public string SystemIntegritySelfThrottleState;
+        public string SystemIntegritySelfThrottleDetail;
+        public int SystemIntegrityIssueCount;
+        public int SystemIntegrityRecommendationCount;
+        public int SystemIntegritySafeRecommendationCount;
+        public int SystemIntegrityOptionalRecommendationCount;
+        public int SystemIntegrityExperimentalRecommendationCount;
+        public int SystemIntegrityRestartRecommendationCount;
+        public int SystemIntegrityApplyBlockedRecommendationCount;
+        public List<Dictionary<string, object>> SystemIntegrityRecommendations;
+        public List<string> SystemIntegritySignals;
+        public List<string> SystemIntegrityIssues;
     }
 
     private sealed class SessionAgentSnapshot
@@ -3793,6 +3871,70 @@ internal static class SmartBackgroundNap
         public List<MemoryStabilityProcessSample> TopConsumers = new List<MemoryStabilityProcessSample>();
     }
 
+    private sealed class SystemIntegritySnapshot
+    {
+        public bool Available;
+        public bool Relevant;
+        public string Mode;
+        public string State;
+        public string Summary;
+        public string Detail;
+        public bool BackupAvailable;
+        public bool MmcssServiceRunning;
+        public string MmcssServiceStatus;
+        public int SystemResponsiveness = -1;
+        public string SystemResponsivenessState;
+        public string SystemResponsivenessDetail;
+        public bool HybridCpuDetected;
+        public int LogicalProcessorCount;
+        public string HybridSchedulerState;
+        public string HybridSchedulerDetail;
+        public bool SelfThrottleEligible;
+        public string SelfThrottleState;
+        public string SelfThrottleDetail;
+        public int IssueCount;
+        public int RecommendationCount;
+        public int SafeRecommendationCount;
+        public int OptionalRecommendationCount;
+        public int ExperimentalRecommendationCount;
+        public int RestartRecommendationCount;
+        public int ApplyBlockedRecommendationCount;
+        public List<string> Signals = new List<string>();
+        public List<string> Issues = new List<string>();
+        public List<SystemOptimizationRecommendation> Recommendations = new List<SystemOptimizationRecommendation>();
+    }
+
+    private sealed class SystemOptimizationRecommendation
+    {
+        public string Id;
+        public string Tier;
+        public string Title;
+        public string Summary;
+        public string Category;
+        public string Reason;
+        public string Compatibility;
+        public string Risk;
+        public string Impact;
+        public string Restart;
+        public string Backup;
+        public string CurrentValue;
+        public string RecommendedValue;
+        public string SafetyGate;
+        public string ActionKind = "";
+        public string Source;
+        public string Documentation;
+        public bool SelectedByDefault;
+        public bool CanApply;
+        public bool RequiresAdmin;
+        public bool RequiresRestart;
+        public bool RequiresSignOut = false;
+        public bool RequiresGameClosed = false;
+        public bool BackupRequired;
+        public bool Reversible;
+        public bool Experimental;
+        public List<string> Details = new List<string>();
+    }
+
     private static string ReadMapString(IDictionary<string, object> map, string key)
     {
         object value;
@@ -3861,6 +4003,27 @@ internal static class SmartBackgroundNap
         {
             string itemText = Convert.ToString(item, CultureInfo.InvariantCulture);
             if (!String.IsNullOrWhiteSpace(itemText)) { result.Add(itemText); }
+        }
+        return result;
+    }
+
+    private static List<Dictionary<string, object>> ReadMapDictionaryList(IDictionary<string, object> map, string key)
+    {
+        List<Dictionary<string, object>> result = new List<Dictionary<string, object>>();
+        object value;
+        if (map == null || !map.TryGetValue(key, out value) || value == null) { return result; }
+        System.Collections.IEnumerable items = value as System.Collections.IEnumerable;
+        if (items == null || value is string) { return result; }
+        foreach (object item in items)
+        {
+            IDictionary<string, object> typed = item as IDictionary<string, object>;
+            if (typed == null) { continue; }
+            Dictionary<string, object> copy = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            foreach (KeyValuePair<string, object> pair in typed)
+            {
+                copy[pair.Key] = pair.Value;
+            }
+            result.Add(copy);
         }
         return result;
     }
@@ -4334,6 +4497,747 @@ internal static class SmartBackgroundNap
             " top=" + SanitizeLogToken(snapshot.TopProcess) +
             " browserPrivateMB=" + snapshot.BrowserPrivateMB.ToString("0.#", CultureInfo.InvariantCulture));
     }
+
+    private static void AddSystemIntegrityIssue(SystemIntegritySnapshot snapshot, string issue)
+    {
+        if (snapshot == null || String.IsNullOrWhiteSpace(issue)) { return; }
+        if (!snapshot.Issues.Contains(issue)) { snapshot.Issues.Add(issue); }
+        snapshot.IssueCount = snapshot.Issues.Count;
+    }
+
+    private static void AddSystemOptimizationRecommendation(SystemIntegritySnapshot snapshot, SystemOptimizationRecommendation recommendation)
+    {
+        if (snapshot == null || recommendation == null || String.IsNullOrWhiteSpace(recommendation.Id) || String.IsNullOrWhiteSpace(recommendation.Title)) { return; }
+        if (snapshot.Recommendations.Any(item => String.Equals(item.Id, recommendation.Id, StringComparison.OrdinalIgnoreCase))) { return; }
+        if (String.IsNullOrWhiteSpace(recommendation.Tier)) { recommendation.Tier = "Optional"; }
+        if (String.IsNullOrWhiteSpace(recommendation.Risk)) { recommendation.Risk = "Revisao necessaria"; }
+        if (String.IsNullOrWhiteSpace(recommendation.Backup)) { recommendation.Backup = recommendation.BackupRequired ? "Snapshot obrigatorio antes de aplicar." : "Sem alteracao global do Windows."; }
+        if (String.IsNullOrWhiteSpace(recommendation.SafetyGate)) { recommendation.SafetyGate = recommendation.CanApply ? "Aplicavel apos confirmacao do usuario." : "Bloqueado ate snapshot, journal e rollback confirmados pelo servico."; }
+        recommendation.Experimental = recommendation.Experimental || String.Equals(recommendation.Tier, "Experimental", StringComparison.OrdinalIgnoreCase);
+        snapshot.Recommendations.Add(recommendation);
+    }
+
+    private static void RefreshSystemOptimizationRecommendationCounts(SystemIntegritySnapshot snapshot)
+    {
+        if (snapshot == null) { return; }
+        snapshot.RecommendationCount = snapshot.Recommendations == null ? 0 : snapshot.Recommendations.Count;
+        snapshot.SafeRecommendationCount = snapshot.Recommendations == null ? 0 : snapshot.Recommendations.Count(item => String.Equals(item.Tier, "Safe", StringComparison.OrdinalIgnoreCase));
+        snapshot.OptionalRecommendationCount = snapshot.Recommendations == null ? 0 : snapshot.Recommendations.Count(item => String.Equals(item.Tier, "Optional", StringComparison.OrdinalIgnoreCase));
+        snapshot.ExperimentalRecommendationCount = snapshot.Recommendations == null ? 0 : snapshot.Recommendations.Count(item => String.Equals(item.Tier, "Experimental", StringComparison.OrdinalIgnoreCase));
+        snapshot.RestartRecommendationCount = snapshot.Recommendations == null ? 0 : snapshot.Recommendations.Count(item => item.RequiresRestart || item.RequiresSignOut);
+        snapshot.ApplyBlockedRecommendationCount = snapshot.Recommendations == null ? 0 : snapshot.Recommendations.Count(item => !item.CanApply);
+    }
+
+    private static Dictionary<string, object> BuildSystemOptimizationRecommendationPayload(SystemOptimizationRecommendation recommendation)
+    {
+        SystemOptimizationRecommendation value = recommendation ?? new SystemOptimizationRecommendation();
+        Dictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        payload["Id"] = value.Id ?? "";
+        payload["Tier"] = value.Tier ?? "Optional";
+        payload["Title"] = value.Title ?? "";
+        payload["Summary"] = value.Summary ?? "";
+        payload["Category"] = value.Category ?? "";
+        payload["Reason"] = value.Reason ?? "";
+        payload["Compatibility"] = value.Compatibility ?? "";
+        payload["Risk"] = value.Risk ?? "";
+        payload["Impact"] = value.Impact ?? "";
+        payload["Restart"] = value.Restart ?? "";
+        payload["Backup"] = value.Backup ?? "";
+        payload["CurrentValue"] = value.CurrentValue ?? "";
+        payload["RecommendedValue"] = value.RecommendedValue ?? "";
+        payload["SafetyGate"] = value.SafetyGate ?? "";
+        payload["ActionKind"] = value.ActionKind ?? "";
+        payload["Source"] = value.Source ?? "Smart Nap";
+        payload["Documentation"] = value.Documentation ?? "";
+        payload["SelectedByDefault"] = value.SelectedByDefault;
+        payload["CanApply"] = value.CanApply;
+        payload["RequiresAdmin"] = value.RequiresAdmin;
+        payload["RequiresRestart"] = value.RequiresRestart;
+        payload["RequiresSignOut"] = value.RequiresSignOut;
+        payload["RequiresGameClosed"] = value.RequiresGameClosed;
+        payload["BackupRequired"] = value.BackupRequired;
+        payload["Reversible"] = value.Reversible;
+        payload["Experimental"] = value.Experimental;
+        payload["Details"] = value.Details ?? new List<string>();
+        return payload;
+    }
+
+    private static List<Dictionary<string, object>> BuildSystemOptimizationRecommendationPayloadList(List<SystemOptimizationRecommendation> recommendations)
+    {
+        List<Dictionary<string, object>> result = new List<Dictionary<string, object>>();
+        if (recommendations == null) { return result; }
+        foreach (SystemOptimizationRecommendation recommendation in recommendations)
+        {
+            result.Add(BuildSystemOptimizationRecommendationPayload(recommendation));
+        }
+        return result;
+    }
+
+    private static bool TryGetServiceStatusText(string serviceName, out string statusText, out bool running)
+    {
+        statusText = "Indisponivel";
+        running = false;
+        try
+        {
+            using (ServiceController controller = new ServiceController(serviceName))
+            {
+                ServiceControllerStatus status = controller.Status;
+                statusText = status.ToString();
+                running = status == ServiceControllerStatus.Running;
+                return true;
+            }
+        }
+        catch
+        {
+            statusText = "Nao encontrado";
+            running = false;
+            return false;
+        }
+    }
+
+    private static bool IsLikelyHybridCpu(HardwareSnapshot hardware)
+    {
+        string cpu = ((hardware == null ? "" : hardware.Cpu) + " " + (hardware == null ? "" : hardware.CpuDetail)).Trim();
+        if (String.IsNullOrWhiteSpace(cpu)) { return false; }
+        if (cpu.IndexOf("Core Ultra", StringComparison.OrdinalIgnoreCase) >= 0) { return true; }
+        if (cpu.IndexOf("Intel", StringComparison.OrdinalIgnoreCase) < 0) { return false; }
+        Match match = Regex.Match(cpu, @"\bi[3579][\s-]?(\d{5})", RegexOptions.IgnoreCase);
+        if (!match.Success) { return false; }
+        string model = match.Groups[1].Value;
+        int generation;
+        if (model.Length < 2 || !Int32.TryParse(model.Substring(0, 2), NumberStyles.Integer, CultureInfo.InvariantCulture, out generation)) { return false; }
+        return generation >= 12;
+    }
+
+    private static bool TryQueryDisableDeleteNotify(out int value, out string detail)
+    {
+        value = -1;
+        detail = "";
+        try
+        {
+            RunResult result = RunHidden("fsutil.exe", "behavior query DisableDeleteNotify", 7000);
+            string output = result == null ? "" : (result.Output ?? "");
+            if (result == null || result.ExitCode != 0 || String.IsNullOrWhiteSpace(output))
+            {
+                detail = "Consulta TRIM/UNMAP indisponivel.";
+                return false;
+            }
+            Match match = Regex.Match(output, @"NTFS\s+DisableDeleteNotify\s*=\s*(\d+)", RegexOptions.IgnoreCase);
+            if (!match.Success) { match = Regex.Match(output, @"DisableDeleteNotify\s*=\s*(\d+)", RegexOptions.IgnoreCase); }
+            if (!match.Success)
+            {
+                detail = ShortTaskError(output);
+                return false;
+            }
+            value = ParseInt(match.Groups[1].Value, -1);
+            detail = value == 0 ? "TRIM/UNMAP habilitado." : "TRIM/UNMAP pode estar desabilitado.";
+            return value >= 0;
+        }
+        catch (Exception ex)
+        {
+            detail = ShortTaskError(ex.Message);
+            return false;
+        }
+    }
+
+    private static SystemIntegritySnapshot BuildSystemIntegritySnapshot(SessionAgentSnapshot sessionAgent, string source)
+    {
+        SystemIntegritySnapshot snapshot = new SystemIntegritySnapshot();
+        snapshot.Available = true;
+        snapshot.Mode = SystemIntegrityGuardMode;
+        snapshot.State = "Healthy";
+        snapshot.Summary = "Windows sem alertas";
+        snapshot.Detail = "Modo shadow: diagnostico ativo; nenhuma chave global e nenhuma politica de scheduler sao alteradas automaticamente.";
+        snapshot.MmcssServiceStatus = "Indisponivel";
+        snapshot.SystemResponsivenessState = "Nao analisado";
+        snapshot.HybridSchedulerState = "Automático do Windows";
+        snapshot.HybridSchedulerDetail = "Sem afinidade rigida; preferencias P/E-core permanecem sob controle do Windows.";
+        snapshot.SelfThrottleState = "Normal";
+        snapshot.SelfThrottleDetail = "UI em cadencia normal.";
+        snapshot.BackupAvailable = false;
+        snapshot.LogicalProcessorCount = Environment.ProcessorCount;
+
+        try
+        {
+            string serviceStatus;
+            bool serviceRunning;
+            if (TryGetServiceStatusText("MMCSS", out serviceStatus, out serviceRunning))
+            {
+                snapshot.MmcssServiceStatus = serviceStatus;
+                snapshot.MmcssServiceRunning = serviceRunning;
+                if (serviceRunning) { snapshot.Signals.Add("MMCSS ativo."); }
+                else
+                {
+                    AddSystemIntegrityIssue(snapshot, "MMCSS nao esta em execucao.");
+                    AddSystemOptimizationRecommendation(snapshot, new SystemOptimizationRecommendation
+                    {
+                        Id = "mmcss-service-state",
+                        Tier = "Optional",
+                        Title = "Revisar servico MMCSS",
+                        Summary = "O agendador multimidia do Windows nao esta em execucao no snapshot atual.",
+                        Category = "Responsividade multimidia",
+                        Reason = "Status real retornado pelo Windows: " + serviceStatus + ".",
+                        Compatibility = "Windows retornou o servico MMCSS, mas ele nao esta ativo.",
+                        Risk = "Medio",
+                        Impact = "Pode afetar prioridades de audio, captura e jogos que dependem de classes multimidia.",
+                        Restart = "Pode exigir reinicio do servico ou do Windows.",
+                        Backup = "Sem alteracao automatica; exige diagnostico de servico antes de qualquer reparo.",
+                        CurrentValue = serviceStatus,
+                        RecommendedValue = "Running",
+                        SafetyGate = "Bloqueado: reparo de servico precisa de fluxo dedicado, permissao administrativa e rollback.",
+                        RequiresAdmin = true,
+                        Reversible = false,
+                        Source = "Windows ServiceController + Smart Nap"
+                    });
+                }
+            }
+            else
+            {
+                AddSystemIntegrityIssue(snapshot, "Servico MMCSS nao encontrado.");
+                AddSystemOptimizationRecommendation(snapshot, new SystemOptimizationRecommendation
+                {
+                    Id = "mmcss-service-missing",
+                    Tier = "Optional",
+                    Title = "Diagnosticar MMCSS ausente",
+                    Summary = "O Windows nao retornou o servico MMCSS para a consulta atual.",
+                    Category = "Responsividade multimidia",
+                    Reason = "A consulta local nao encontrou o servico Multimedia Class Scheduler.",
+                    Compatibility = "Informacao insuficiente para alterar o sistema com seguranca.",
+                    Risk = "Alto",
+                    Impact = "Sem MMCSS validado, jogos, audio e captura podem nao receber a politica multimidia esperada.",
+                    Restart = "Indefinido ate o diagnostico do Windows.",
+                    Backup = "Nenhuma alteracao automatica sera aplicada.",
+                    CurrentValue = "Nao encontrado",
+                    RecommendedValue = "Diagnostico manual assistido",
+                    SafetyGate = "Bloqueado: o Smart Nap nao recria servicos do Windows automaticamente.",
+                    RequiresAdmin = true,
+                    Reversible = false,
+                    Source = "Windows ServiceController + Smart Nap"
+                });
+            }
+
+            int responsiveness;
+            if (TryReadRegistryIntValue(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile", "SystemResponsiveness", out responsiveness))
+            {
+                snapshot.SystemResponsiveness = responsiveness;
+                if (responsiveness == 100)
+                {
+                    snapshot.SystemResponsivenessState = "MMCSS desativado";
+                    snapshot.SystemResponsivenessDetail = "Valor 100 desativa a reserva do MMCSS.";
+                    AddSystemIntegrityIssue(snapshot, "SystemResponsiveness = 100 pode desativar o MMCSS.");
+                    AddSystemOptimizationRecommendation(snapshot, new SystemOptimizationRecommendation
+                    {
+                        Id = "mmcss-systemresponsiveness-100",
+                        Tier = "Safe",
+                        Title = "Restaurar integridade do MMCSS",
+                        Summary = "SystemResponsiveness esta em 100, estado documentado que desativa a reserva do MMCSS.",
+                        Category = "Responsividade do sistema",
+                        Reason = "Valor atual lido em HKLM\\...\\Multimedia\\SystemProfile: 100.",
+                        Compatibility = "Windows compatível; MMCSS deve estar presente antes da aplicacao.",
+                        Risk = "Baixo com backup; bloqueado sem snapshot.",
+                        Impact = "Pode recuperar o comportamento esperado para tarefas multimidia e jogos responsivos.",
+                        Restart = "Reinicializacao ou nova sessao pode ser necessaria.",
+                        Backup = "Snapshot do Registro obrigatorio antes de alterar.",
+                        CurrentValue = "100",
+                        RecommendedValue = "Restaurar valor documentado pelo Windows ou valor anterior confiavel do backup.",
+                        SafetyGate = "Bloqueado: exige snapshot, journal de aplicacao e rollback por item.",
+                        SelectedByDefault = true,
+                        CanApply = false,
+                        RequiresAdmin = true,
+                        RequiresRestart = true,
+                        BackupRequired = true,
+                        Reversible = true,
+                        Source = "Microsoft MMCSS + Smart Nap Integrity Check",
+                        Documentation = "Multimedia Class Scheduler Service"
+                    });
+                }
+                else if (responsiveness < 0 || responsiveness > 100)
+                {
+                    snapshot.SystemResponsivenessState = "Fora da faixa";
+                    snapshot.SystemResponsivenessDetail = "Valor fora da faixa documentada.";
+                    AddSystemIntegrityIssue(snapshot, "SystemResponsiveness fora da faixa documentada.");
+                    AddSystemOptimizationRecommendation(snapshot, new SystemOptimizationRecommendation
+                    {
+                        Id = "mmcss-systemresponsiveness-range",
+                        Tier = "Safe",
+                        Title = "Corrigir valor fora da faixa do MMCSS",
+                        Summary = "SystemResponsiveness esta fora da faixa documentada para o Windows.",
+                        Category = "Responsividade do sistema",
+                        Reason = "Valor atual lido: " + responsiveness.ToString(CultureInfo.InvariantCulture) + ".",
+                        Compatibility = "Ajuste so deve ser aplicado apos confirmar MMCSS, chave e backup.",
+                        Risk = "Baixo com backup; bloqueado sem snapshot.",
+                        Impact = "Remove configuracao inconsistente herdada de tweak externo.",
+                        Restart = "Reinicializacao ou nova sessao pode ser necessaria.",
+                        Backup = "Snapshot do Registro obrigatorio antes de alterar.",
+                        CurrentValue = responsiveness.ToString(CultureInfo.InvariantCulture),
+                        RecommendedValue = "Restaurar valor documentado pelo Windows ou valor anterior confiavel do backup.",
+                        SafetyGate = "Bloqueado: exige snapshot, journal de aplicacao e rollback por item.",
+                        SelectedByDefault = true,
+                        CanApply = false,
+                        RequiresAdmin = true,
+                        RequiresRestart = true,
+                        BackupRequired = true,
+                        Reversible = true,
+                        Source = "Microsoft MMCSS + Smart Nap Integrity Check",
+                        Documentation = "Multimedia Class Scheduler Service"
+                    });
+                }
+                else if (responsiveness < 10)
+                {
+                    snapshot.SystemResponsivenessState = "Alterado por tweak";
+                    snapshot.SystemResponsivenessDetail = "O Windows trata valores abaixo de 10 como 20.";
+                    AddSystemIntegrityIssue(snapshot, "SystemResponsiveness abaixo de 10 exige revisao; o Windows interpreta como 20.");
+                    AddSystemOptimizationRecommendation(snapshot, new SystemOptimizationRecommendation
+                    {
+                        Id = "mmcss-systemresponsiveness-low",
+                        Tier = "Safe",
+                        Title = "Revisar SystemResponsiveness alterado",
+                        Summary = "O valor abaixo de 10 parece tweak externo; o Windows normaliza esse caso para 20.",
+                        Category = "Responsividade do sistema",
+                        Reason = "Valor atual lido: " + responsiveness.ToString(CultureInfo.InvariantCulture) + ". A documentacao do Windows trata valores abaixo de 10 como 20.",
+                        Compatibility = "Windows compatível; ajuste reversivel com snapshot do Registro.",
+                        Risk = "Baixo com backup; bloqueado sem snapshot.",
+                        Impact = "Remove uma configuracao enganosa que nao entrega o efeito anunciado por tweaks antigos.",
+                        Restart = "Reinicializacao ou nova sessao pode ser necessaria.",
+                        Backup = "Snapshot do Registro obrigatorio antes de alterar.",
+                        CurrentValue = responsiveness.ToString(CultureInfo.InvariantCulture),
+                        RecommendedValue = "Valor documentado/normalizado pelo Windows apos backup.",
+                        SafetyGate = "Bloqueado: exige snapshot, journal de aplicacao e rollback por item.",
+                        SelectedByDefault = true,
+                        CanApply = false,
+                        RequiresAdmin = true,
+                        RequiresRestart = true,
+                        BackupRequired = true,
+                        Reversible = true,
+                        Source = "Microsoft MMCSS + Smart Nap Integrity Check",
+                        Documentation = "Multimedia Class Scheduler Service"
+                    });
+                }
+                else
+                {
+                    snapshot.SystemResponsivenessState = "Dentro da faixa";
+                    snapshot.SystemResponsivenessDetail = "Valor documentado.";
+                    snapshot.Signals.Add("SystemResponsiveness = " + responsiveness.ToString(CultureInfo.InvariantCulture) + ".");
+                }
+            }
+            else
+            {
+                snapshot.SystemResponsivenessState = "Nao identificado";
+                snapshot.SystemResponsivenessDetail = "Chave MMCSS nao retornou valor.";
+                snapshot.Signals.Add("SystemResponsiveness nao identificado.");
+            }
+
+            string[] mmcssTasks = new string[] { "Games", "Audio", "Capture", "Playback" };
+            List<string> missingTasks = new List<string>();
+            foreach (string task in mmcssTasks)
+            {
+                if (!RegistrySubKeyExists(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\" + task))
+                {
+                    missingTasks.Add(task);
+                }
+            }
+            if (missingTasks.Count > 0)
+            {
+                string missingText = String.Join(", ", missingTasks.ToArray());
+                AddSystemIntegrityIssue(snapshot, "Tarefas MMCSS ausentes: " + missingText + ".");
+                AddSystemOptimizationRecommendation(snapshot, new SystemOptimizationRecommendation
+                {
+                    Id = "mmcss-tasks-missing",
+                    Tier = "Optional",
+                    Title = "Revisar tarefas multimidia ausentes",
+                    Summary = "Uma ou mais classes MMCSS esperadas nao foram encontradas no Registro.",
+                    Category = "Responsividade multimidia",
+                    Reason = "Tarefas ausentes: " + missingText + ".",
+                    Compatibility = "Aplicacao automatica bloqueada; reparar tarefas MMCSS sem fonte confiavel pode piorar o Windows.",
+                    Risk = "Alto",
+                    Impact = "Pode afetar Games, Audio, Capture ou Playback dependendo do app.",
+                    Restart = "Indefinido ate diagnostico de reparo.",
+                    Backup = "Nenhuma alteracao automatica sera aplicada.",
+                    CurrentValue = missingText,
+                    RecommendedValue = "Reparo validado pelo Windows ou restauracao por backup confiavel.",
+                    SafetyGate = "Bloqueado: o Smart Nap nao recria tarefas MMCSS sem origem assinada/validada.",
+                    RequiresAdmin = true,
+                    BackupRequired = true,
+                    Reversible = false,
+                    Source = "Microsoft MMCSS + Smart Nap Integrity Check"
+                });
+            }
+            else { snapshot.Signals.Add("Tarefas MMCSS principais presentes."); }
+
+            int ntfsMemory;
+            if (TryReadRegistryIntValue(@"SYSTEM\CurrentControlSet\Control\FileSystem", "NtfsMemoryUsage", out ntfsMemory))
+            {
+                if (ntfsMemory >= 2)
+                {
+                    AddSystemIntegrityIssue(snapshot, "NtfsMemoryUsage ampliado pode reduzir memoria disponivel para jogos.");
+                    AddSystemOptimizationRecommendation(snapshot, new SystemOptimizationRecommendation
+                    {
+                        Id = "ntfs-memory-usage-expanded",
+                        Tier = "Optional",
+                        Title = "Revisar cache ampliado do NTFS",
+                        Summary = "NtfsMemoryUsage esta ampliado e pode competir com RAM usada por jogos quando o sistema fica pressionado.",
+                        Category = "Memoria e armazenamento",
+                        Reason = "Valor atual lido em HKLM\\SYSTEM\\CurrentControlSet\\Control\\FileSystem: " + ntfsMemory.ToString(CultureInfo.InvariantCulture) + ".",
+                        Compatibility = "Windows compatível; recomendacao depende da pressao real de RAM e deve ser reversivel.",
+                        Risk = "Baixo com backup; opcional conforme uso.",
+                        Impact = "Pode devolver margem de RAM em PCs que ja chegam perto do limite durante jogos.",
+                        Restart = "Reinicializacao pode ser necessaria para efeito completo.",
+                        Backup = "Snapshot do Registro obrigatorio antes de alterar.",
+                        CurrentValue = ntfsMemory.ToString(CultureInfo.InvariantCulture),
+                        RecommendedValue = "Padrao do Windows ou valor anterior confiavel do backup.",
+                        SafetyGate = "Bloqueado: exige snapshot, journal de aplicacao e rollback por item.",
+                        SelectedByDefault = false,
+                        CanApply = false,
+                        RequiresAdmin = true,
+                        RequiresRestart = true,
+                        BackupRequired = true,
+                        Reversible = true,
+                        Source = "Microsoft fsutil/FileSystem + Smart Nap Sanity Scanner",
+                        Documentation = "fsutil behavior memoryusage"
+                    });
+                }
+                else { snapshot.Signals.Add("NtfsMemoryUsage dentro do esperado."); }
+            }
+
+            int mftZone;
+            if (TryReadRegistryIntValue(@"SYSTEM\CurrentControlSet\Control\FileSystem", "MftZoneReservation", out mftZone) && mftZone > 0)
+            {
+                snapshot.Signals.Add("MftZoneReservation alterado: " + mftZone.ToString(CultureInfo.InvariantCulture) + ".");
+            }
+
+            int lastAccess;
+            if (TryReadRegistryIntValue(@"SYSTEM\CurrentControlSet\Control\FileSystem", "NtfsDisableLastAccessUpdate", out lastAccess))
+            {
+                snapshot.Signals.Add("NtfsDisableLastAccessUpdate = " + lastAccess.ToString(CultureInfo.InvariantCulture) + ".");
+            }
+
+            int presenceQos;
+            if (TryReadRegistryIntValue(@"SYSTEM\CurrentControlSet\Control\Power", "DisableUserPresenceQos", out presenceQos) && presenceQos != 0)
+            {
+                AddSystemIntegrityIssue(snapshot, "DisableUserPresenceQos esta ativo; esse ajuste e indicado principalmente para benchmarks automatizados.");
+                AddSystemOptimizationRecommendation(snapshot, new SystemOptimizationRecommendation
+                {
+                    Id = "user-presence-qos-disabled",
+                    Tier = "Optional",
+                    Title = "Revisar User Presence QoS",
+                    Summary = "Uma heuristica de presenca do usuario esta desativada; isso costuma fazer sentido para benchmarks, nao como boost gamer universal.",
+                    Category = "Politicas de energia",
+                    Reason = "DisableUserPresenceQos esta ativo no snapshot atual.",
+                    Compatibility = "Ajuste sensivel; recomendacao depende do perfil de uso e precisa de backup.",
+                    Risk = "Medio",
+                    Impact = "Pode restaurar comportamento normal de responsividade/energia fora de benchmarks automatizados.",
+                    Restart = "Reinicializacao ou nova sessao pode ser necessaria.",
+                    Backup = "Snapshot do Registro obrigatorio antes de alterar.",
+                    CurrentValue = presenceQos.ToString(CultureInfo.InvariantCulture),
+                    RecommendedValue = "Padrao do Windows ou valor anterior confiavel do backup.",
+                    SafetyGate = "Bloqueado: exige snapshot, journal e confirmacao explicita do usuario.",
+                    SelectedByDefault = false,
+                    CanApply = false,
+                    RequiresAdmin = true,
+                    RequiresRestart = true,
+                    BackupRequired = true,
+                    Reversible = true,
+                    Source = "Windows power policy + Smart Nap Sanity Scanner"
+                });
+            }
+
+            int deleteNotify;
+            string trimDetail;
+            if (TryQueryDisableDeleteNotify(out deleteNotify, out trimDetail))
+            {
+                if (deleteNotify == 0) { snapshot.Signals.Add("TRIM/UNMAP habilitado."); }
+                else
+                {
+                    AddSystemIntegrityIssue(snapshot, "DisableDeleteNotify indica TRIM/UNMAP desabilitado.");
+                    AddSystemOptimizationRecommendation(snapshot, new SystemOptimizationRecommendation
+                    {
+                        Id = "storage-trim-disabled",
+                        Tier = "Safe",
+                        Title = "Validar TRIM/UNMAP do armazenamento",
+                        Summary = "O Windows informou DisableDeleteNotify diferente de zero no snapshot atual.",
+                        Category = "Armazenamento",
+                        Reason = "Consulta fsutil retornou: " + trimDetail + ".",
+                        Compatibility = "Aplicar somente se o volume e o dispositivo oferecerem suporte real a TRIM/UNMAP.",
+                        Risk = "Baixo quando suportado; bloqueado ate validacao do dispositivo.",
+                        Impact = "Pode preservar desempenho e limpeza interna em SSD/NVMe compatível.",
+                        Restart = "Normalmente nao exige reinicio, mas a validacao do volume e obrigatoria.",
+                        Backup = "Snapshot e verificacao de suporte obrigatorios antes de alterar.",
+                        CurrentValue = deleteNotify.ToString(CultureInfo.InvariantCulture),
+                        RecommendedValue = "0 somente em dispositivo com suporte confirmado.",
+                        SafetyGate = "Bloqueado: exige validacao do tipo de disco/volume e rollback.",
+                        SelectedByDefault = false,
+                        CanApply = false,
+                        RequiresAdmin = true,
+                        BackupRequired = true,
+                        Reversible = true,
+                        Source = "Microsoft fsutil + Smart Nap Sanity Scanner",
+                        Documentation = "fsutil behavior DisableDeleteNotify"
+                    });
+                }
+            }
+            else if (!String.IsNullOrWhiteSpace(trimDetail))
+            {
+                snapshot.Signals.Add(trimDetail);
+            }
+
+            HardwareSnapshot hardware = GetHardwareSnapshot();
+            snapshot.HybridCpuDetected = IsLikelyHybridCpu(hardware);
+            if (snapshot.HybridCpuDetected)
+            {
+                snapshot.HybridSchedulerState = "CPU hibrida detectada";
+                snapshot.HybridSchedulerDetail = "Guard em shadow: sem afinidade rigida; perfis futuros devem preferir P-cores/E-cores por politica validada.";
+                snapshot.Signals.Add("CPU hibrida provavel; scheduler mantido no automatico do Windows.");
+                AddSystemOptimizationRecommendation(snapshot, new SystemOptimizationRecommendation
+                {
+                    Id = "hybrid-cpu-scheduler-guard",
+                    Tier = "Experimental",
+                    Title = "Preparar perfil para CPU hibrida",
+                    Summary = "O PC parece usar P-cores/E-cores; o Smart Nap deve preferir politicas por contexto, sem afinidade rigida por padrao.",
+                    Category = "Agendamento de CPU",
+                    Reason = "CPU detectada: " + (hardware == null ? "Nao identificada" : FirstNonEmpty(hardware.Cpu, "Nao identificada")) + ".",
+                    Compatibility = "Somente shadow nesta versao; nenhuma politica global de scheduler sera alterada automaticamente.",
+                    Risk = "Experimental",
+                    Impact = "Base para favorecer desempenho no foreground e eficiencia no fundo sem travar processos em nucleos fixos.",
+                    Restart = "Nao aplicavel nesta versao shadow.",
+                    Backup = "Sem alteracao global do Windows.",
+                    CurrentValue = "Automatico do Windows",
+                    RecommendedValue = "Perfil contextual validado por CPU/familia em versao futura.",
+                    SafetyGate = "Bloqueado: SCHEDPOLICY/SHORTSCHEDPOLICY globais exigem validacao por familia de CPU e rollback.",
+                    SelectedByDefault = false,
+                    CanApply = false,
+                    BackupRequired = true,
+                    Reversible = true,
+                    Experimental = true,
+                    Source = "Windows heterogeneous scheduling + Smart Nap Hybrid Guard"
+                });
+            }
+            else
+            {
+                snapshot.Signals.Add("CPU hibrida nao detectada pelo perfil atual.");
+            }
+
+            bool gameOrFullscreen = sessionAgent != null && (sessionAgent.ForegroundIsGame || sessionAgent.ForegroundFullscreen || IsMemoryStabilityGamingContext(sessionAgent));
+            snapshot.SelfThrottleEligible = gameOrFullscreen;
+            if (gameOrFullscreen)
+            {
+                snapshot.SelfThrottleState = "Modo leve recomendado";
+                snapshot.SelfThrottleDetail = "Jogo/tela cheia em foco; o launcher pode reduzir cadencia visual e coleta nao essencial.";
+                snapshot.Signals.Add("Low Impact Runtime elegivel nesta sessao.");
+                AddSystemOptimizationRecommendation(snapshot, new SystemOptimizationRecommendation
+                {
+                    Id = "smart-nap-low-impact-runtime",
+                    Tier = "Safe",
+                    Title = "Manter Smart Nap em baixo impacto durante jogo",
+                    Summary = "Quando jogo ou tela cheia esta em foco, o launcher reduz cadencia visual e trabalho nao essencial.",
+                    Category = "Peso do proprio Smart Nap",
+                    Reason = "Sessao atual indica jogo/tela cheia ou contexto de jogo pelo Session Agent.",
+                    Compatibility = "Gerenciado pelo proprio processo; nao altera chaves globais do Windows.",
+                    Risk = "Baixo",
+                    Impact = "Reduz interferencia do launcher em CPU, I/O, memoria e atualizacoes visuais durante jogo.",
+                    Restart = "Nao exige reinicio.",
+                    Backup = "Nao modifica Registro nem plano de energia global.",
+                    CurrentValue = "Elegivel nesta sessao",
+                    RecommendedValue = "Ativar automaticamente quando o jogo estiver em foco ou a janela estiver minimizada.",
+                    SafetyGate = "Seguro: rotina interna reversivel e limitada ao processo do Smart Nap.",
+                    SelectedByDefault = true,
+                    CanApply = false,
+                    Reversible = true,
+                    Source = "PROCESS_MODE_BACKGROUND_BEGIN + Smart Nap Low Impact Runtime",
+                    Documentation = "SetPriorityClass background mode"
+                });
+            }
+            else
+            {
+                snapshot.SelfThrottleState = "Cadencia normal";
+                snapshot.SelfThrottleDetail = "Nenhum jogo ou tela cheia exige reducao extra agora.";
+            }
+
+            snapshot.IssueCount = snapshot.Issues.Count;
+            RefreshSystemOptimizationRecommendationCounts(snapshot);
+            if (snapshot.IssueCount > 0)
+            {
+                snapshot.State = "Attention";
+                snapshot.Summary = snapshot.RecommendationCount > 0
+                    ? (snapshot.RecommendationCount.ToString(CultureInfo.InvariantCulture) + " " + (snapshot.RecommendationCount == 1 ? "recomendação" : "recomendações") + " para revisar")
+                    : "Tweaks do Windows exigem revisão";
+                snapshot.Detail = snapshot.Issues[0];
+            }
+            else if (snapshot.HybridCpuDetected || snapshot.SelfThrottleEligible)
+            {
+                snapshot.State = "Observing";
+                snapshot.Summary = "Guardas de sistema em shadow";
+            }
+
+            RefreshSystemOptimizationRecommendationCounts(snapshot);
+            snapshot.Relevant = snapshot.IssueCount > 0 || snapshot.HybridCpuDetected || snapshot.SelfThrottleEligible || snapshot.RecommendationCount > 0;
+        }
+        catch (Exception ex)
+        {
+            snapshot.Available = false;
+            snapshot.Relevant = false;
+            snapshot.State = "DiagnosticRequired";
+            snapshot.Summary = "Windows nao analisado";
+            snapshot.Detail = "Falha ao montar diagnostico do sistema: " + ShortTaskError(ex.Message);
+            snapshot.Signals.Add("Falha no System Integrity Guard: " + ShortTaskError(ex.Message));
+        }
+
+        MaybeLogSystemIntegrity(snapshot);
+        return snapshot;
+    }
+
+    private static IDictionary<string, object> BuildSystemIntegrityPayload(SystemIntegritySnapshot snapshot)
+    {
+        SystemIntegritySnapshot value = snapshot ?? new SystemIntegritySnapshot { Mode = SystemIntegrityGuardMode, State = "DiagnosticRequired", Summary = "Windows nao analisado", Detail = "Snapshot indisponivel." };
+        IDictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        payload["Available"] = value.Available;
+        payload["Relevant"] = value.Relevant;
+        payload["Mode"] = value.Mode ?? SystemIntegrityGuardMode;
+        payload["State"] = value.State ?? "DiagnosticRequired";
+        payload["Summary"] = value.Summary ?? "";
+        payload["Detail"] = value.Detail ?? "";
+        payload["BackupAvailable"] = value.BackupAvailable;
+        payload["MmcssServiceRunning"] = value.MmcssServiceRunning;
+        payload["MmcssServiceStatus"] = value.MmcssServiceStatus ?? "";
+        payload["SystemResponsiveness"] = value.SystemResponsiveness;
+        payload["SystemResponsivenessState"] = value.SystemResponsivenessState ?? "";
+        payload["SystemResponsivenessDetail"] = value.SystemResponsivenessDetail ?? "";
+        payload["HybridCpuDetected"] = value.HybridCpuDetected;
+        payload["LogicalProcessorCount"] = value.LogicalProcessorCount;
+        payload["HybridSchedulerState"] = value.HybridSchedulerState ?? "";
+        payload["HybridSchedulerDetail"] = value.HybridSchedulerDetail ?? "";
+        payload["SelfThrottleEligible"] = value.SelfThrottleEligible;
+        payload["SelfThrottleState"] = value.SelfThrottleState ?? "";
+        RefreshSystemOptimizationRecommendationCounts(value);
+        payload["SelfThrottleDetail"] = value.SelfThrottleDetail ?? "";
+        payload["IssueCount"] = value.IssueCount;
+        payload["RecommendationCount"] = value.RecommendationCount;
+        payload["SafeRecommendationCount"] = value.SafeRecommendationCount;
+        payload["OptionalRecommendationCount"] = value.OptionalRecommendationCount;
+        payload["ExperimentalRecommendationCount"] = value.ExperimentalRecommendationCount;
+        payload["RestartRecommendationCount"] = value.RestartRecommendationCount;
+        payload["ApplyBlockedRecommendationCount"] = value.ApplyBlockedRecommendationCount;
+        payload["Recommendations"] = BuildSystemOptimizationRecommendationPayloadList(value.Recommendations);
+        payload["Signals"] = value.Signals ?? new List<string>();
+        payload["Issues"] = value.Issues ?? new List<string>();
+        return payload;
+    }
+
+    private static IDictionary<string, object> BuildSystemIntegrityPayload(CoreServiceSnapshot snapshot)
+    {
+        CoreServiceSnapshot value = snapshot ?? new CoreServiceSnapshot();
+        IDictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        payload["Available"] = value.SystemIntegrityAvailable;
+        payload["Relevant"] = value.SystemIntegrityRelevant;
+        payload["Mode"] = String.IsNullOrWhiteSpace(value.SystemIntegrityMode) ? SystemIntegrityGuardMode : value.SystemIntegrityMode;
+        payload["State"] = value.SystemIntegrityState ?? "";
+        payload["Summary"] = value.SystemIntegritySummary ?? "";
+        payload["Detail"] = value.SystemIntegrityDetail ?? "";
+        payload["BackupAvailable"] = value.SystemIntegrityBackupAvailable;
+        payload["MmcssServiceRunning"] = value.SystemIntegrityMmcssServiceRunning;
+        payload["MmcssServiceStatus"] = value.SystemIntegrityMmcssServiceStatus ?? "";
+        payload["SystemResponsiveness"] = value.SystemIntegritySystemResponsiveness;
+        payload["SystemResponsivenessState"] = value.SystemIntegritySystemResponsivenessState ?? "";
+        payload["SystemResponsivenessDetail"] = value.SystemIntegritySystemResponsivenessDetail ?? "";
+        payload["HybridCpuDetected"] = value.SystemIntegrityHybridCpuDetected;
+        payload["LogicalProcessorCount"] = value.SystemIntegrityLogicalProcessorCount;
+        payload["HybridSchedulerState"] = value.SystemIntegrityHybridSchedulerState ?? "";
+        payload["HybridSchedulerDetail"] = value.SystemIntegrityHybridSchedulerDetail ?? "";
+        payload["SelfThrottleEligible"] = value.SystemIntegritySelfThrottleEligible;
+        payload["SelfThrottleState"] = value.SystemIntegritySelfThrottleState ?? "";
+        payload["SelfThrottleDetail"] = value.SystemIntegritySelfThrottleDetail ?? "";
+        payload["IssueCount"] = value.SystemIntegrityIssueCount;
+        payload["RecommendationCount"] = value.SystemIntegrityRecommendationCount;
+        payload["SafeRecommendationCount"] = value.SystemIntegritySafeRecommendationCount;
+        payload["OptionalRecommendationCount"] = value.SystemIntegrityOptionalRecommendationCount;
+        payload["ExperimentalRecommendationCount"] = value.SystemIntegrityExperimentalRecommendationCount;
+        payload["RestartRecommendationCount"] = value.SystemIntegrityRestartRecommendationCount;
+        payload["ApplyBlockedRecommendationCount"] = value.SystemIntegrityApplyBlockedRecommendationCount;
+        payload["Recommendations"] = value.SystemIntegrityRecommendations ?? new List<Dictionary<string, object>>();
+        payload["Signals"] = value.SystemIntegritySignals ?? new List<string>();
+        payload["Issues"] = value.SystemIntegrityIssues ?? new List<string>();
+        return payload;
+    }
+
+    private static void ApplySystemIntegritySnapshot(IDictionary<string, object> target, SystemIntegritySnapshot snapshot)
+    {
+        if (target == null || snapshot == null) { return; }
+        target["SystemIntegrity"] = BuildSystemIntegrityPayload(snapshot);
+        target["SystemIntegrityAvailable"] = snapshot.Available;
+        target["SystemIntegrityRelevant"] = snapshot.Relevant;
+        target["SystemIntegrityMode"] = snapshot.Mode ?? SystemIntegrityGuardMode;
+        target["SystemIntegrityState"] = snapshot.State ?? "";
+        target["SystemIntegritySummary"] = snapshot.Summary ?? "";
+        target["SystemIntegrityDetail"] = snapshot.Detail ?? "";
+        target["SystemIntegrityBackupAvailable"] = snapshot.BackupAvailable;
+        target["SystemIntegrityMmcssServiceRunning"] = snapshot.MmcssServiceRunning;
+        target["SystemIntegrityMmcssServiceStatus"] = snapshot.MmcssServiceStatus ?? "";
+        target["SystemIntegritySystemResponsiveness"] = snapshot.SystemResponsiveness;
+        target["SystemIntegritySystemResponsivenessState"] = snapshot.SystemResponsivenessState ?? "";
+        target["SystemIntegritySystemResponsivenessDetail"] = snapshot.SystemResponsivenessDetail ?? "";
+        target["SystemIntegrityHybridCpuDetected"] = snapshot.HybridCpuDetected;
+        target["SystemIntegrityLogicalProcessorCount"] = snapshot.LogicalProcessorCount;
+        target["SystemIntegrityHybridSchedulerState"] = snapshot.HybridSchedulerState ?? "";
+        target["SystemIntegrityHybridSchedulerDetail"] = snapshot.HybridSchedulerDetail ?? "";
+        target["SystemIntegritySelfThrottleEligible"] = snapshot.SelfThrottleEligible;
+        target["SystemIntegritySelfThrottleState"] = snapshot.SelfThrottleState ?? "";
+        RefreshSystemOptimizationRecommendationCounts(snapshot);
+        target["SystemIntegritySelfThrottleDetail"] = snapshot.SelfThrottleDetail ?? "";
+        target["SystemIntegrityIssueCount"] = snapshot.IssueCount;
+        target["SystemIntegrityRecommendationCount"] = snapshot.RecommendationCount;
+        target["SystemIntegritySafeRecommendationCount"] = snapshot.SafeRecommendationCount;
+        target["SystemIntegrityOptionalRecommendationCount"] = snapshot.OptionalRecommendationCount;
+        target["SystemIntegrityExperimentalRecommendationCount"] = snapshot.ExperimentalRecommendationCount;
+        target["SystemIntegrityRestartRecommendationCount"] = snapshot.RestartRecommendationCount;
+        target["SystemIntegrityApplyBlockedRecommendationCount"] = snapshot.ApplyBlockedRecommendationCount;
+        target["SystemIntegrityRecommendations"] = BuildSystemOptimizationRecommendationPayloadList(snapshot.Recommendations);
+        target["SystemIntegritySignals"] = snapshot.Signals ?? new List<string>();
+        target["SystemIntegrityIssues"] = snapshot.Issues ?? new List<string>();
+    }
+
+    private static void MaybeLogSystemIntegrity(SystemIntegritySnapshot snapshot)
+    {
+        if (snapshot == null || !snapshot.Relevant) { return; }
+        string signature = String.Join("|", new string[]
+        {
+            snapshot.State ?? "",
+            snapshot.SystemResponsiveness.ToString(CultureInfo.InvariantCulture),
+            snapshot.MmcssServiceStatus ?? "",
+            snapshot.HybridCpuDetected ? "hybrid" : "",
+            snapshot.SelfThrottleEligible ? "self-throttle" : "",
+            snapshot.IssueCount.ToString(CultureInfo.InvariantCulture)
+        });
+        lock (systemIntegrityLogLock)
+        {
+            if (String.Equals(signature, systemIntegrityLastLogSignature, StringComparison.Ordinal)) { return; }
+            systemIntegrityLastLogSignature = signature;
+        }
+        AppendOperationalLog("action=system-integrity-guard mode=" + SanitizeLogToken(snapshot.Mode) +
+            " state=" + SanitizeLogToken(snapshot.State) +
+            " mmcss=" + SanitizeLogToken(snapshot.MmcssServiceStatus) +
+            " responsiveness=" + snapshot.SystemResponsiveness.ToString(CultureInfo.InvariantCulture) +
+            " hybrid=" + snapshot.HybridCpuDetected.ToString().ToLowerInvariant() +
+            " selfThrottle=" + snapshot.SelfThrottleEligible.ToString().ToLowerInvariant() +
+            " issues=" + snapshot.IssueCount.ToString(CultureInfo.InvariantCulture));
+    }
+
+    private static void SetCurrentProcessBackgroundMode(bool enabled, string reason)
+    {
+        lock (processBackgroundModeLock)
+        {
+            if (processBackgroundModeEnabled == enabled) { return; }
+            bool ok = SetPriorityClass(GetCurrentProcess(), enabled ? ProcessModeBackgroundBegin : ProcessModeBackgroundEnd);
+            if (ok)
+            {
+                processBackgroundModeEnabled = enabled;
+                AppendOperationalLog("action=low-impact-runtime state=" + (enabled ? "enabled" : "disabled") + " reason=" + SanitizeLogToken(reason));
+            }
+            else
+            {
+                AppendOperationalLog("action=low-impact-runtime status=failed state=" + (enabled ? "enabled" : "disabled") + " reason=" + SanitizeLogToken(reason) + " error=" + Marshal.GetLastWin32Error().ToString(CultureInfo.InvariantCulture));
+            }
+        }
+    }
+
     private static List<string> BuildCoreServiceCapabilities()
     {
         return new List<string>
@@ -4354,7 +5258,13 @@ internal static class SmartBackgroundNap
             "scheduledTaskBridge",
             "memoryStabilityGuard.shadow",
             "commitHeadroomGuard.v1",
-            "browserBurstShield.shadow"
+            "browserBurstShield.shadow",
+            "systemIntegrityGuard.shadow",
+            "mmcssIntegrityCheck.shadow",
+            "windowsTweakSanityScanner.shadow",
+            "systemOptimizationRecommendations.v1",
+            "hybridCpuSchedulerGuard.shadow",
+            "lowImpactRuntime.v1"
         };
     }
 
@@ -4850,6 +5760,7 @@ internal static class SmartBackgroundNap
         payload["UpdatedAt"] = service.UpdatedAt ?? "";
         payload["StateAgeSeconds"] = service.StateAgeSeconds;
         payload["MemoryStability"] = BuildMemoryStabilityPayload(service);
+        payload["SystemIntegrity"] = BuildSystemIntegrityPayload(service);
         return payload;
     }
 
@@ -4899,6 +5810,7 @@ internal static class SmartBackgroundNap
         payload["Context"] = BuildSessionContextPayload(sessionAgent);
         payload["Foreground"] = BuildSessionForegroundPayload(sessionAgent);
         payload["MemoryStability"] = BuildMemoryStabilityPayload(service);
+        payload["SystemIntegrity"] = BuildSystemIntegrityPayload(service);
         payload["Events"] = BuildCoreEventsPayload(20);
         return payload;
     }
@@ -5597,6 +6509,60 @@ internal static class SmartBackgroundNap
             if (snapshot.MemoryStabilityHeavyRecentProcessCount <= 0) { snapshot.MemoryStabilityHeavyRecentProcessCount = ReadMapInt(root, "MemoryStabilityHeavyRecentProcessCount"); }
             snapshot.MemoryStabilitySignals = ReadMapStringList(memoryStability, "Signals");
             if (snapshot.MemoryStabilitySignals.Count <= 0) { snapshot.MemoryStabilitySignals = ReadMapStringList(root, "MemoryStabilitySignals"); }
+            IDictionary<string, object> systemIntegrity = ReadMapObject(root, "SystemIntegrity");
+            snapshot.SystemIntegrityAvailable = ReadMapBool(systemIntegrity, "Available") || ReadMapBool(root, "SystemIntegrityAvailable");
+            snapshot.SystemIntegrityRelevant = ReadMapBool(systemIntegrity, "Relevant") || ReadMapBool(root, "SystemIntegrityRelevant");
+            snapshot.SystemIntegrityMode = ReadMapString(systemIntegrity, "Mode");
+            if (String.IsNullOrWhiteSpace(snapshot.SystemIntegrityMode)) { snapshot.SystemIntegrityMode = ReadMapString(root, "SystemIntegrityMode"); }
+            if (String.IsNullOrWhiteSpace(snapshot.SystemIntegrityMode)) { snapshot.SystemIntegrityMode = SystemIntegrityGuardMode; }
+            snapshot.SystemIntegrityState = ReadMapString(systemIntegrity, "State");
+            if (String.IsNullOrWhiteSpace(snapshot.SystemIntegrityState)) { snapshot.SystemIntegrityState = ReadMapString(root, "SystemIntegrityState"); }
+            snapshot.SystemIntegritySummary = ReadMapString(systemIntegrity, "Summary");
+            if (String.IsNullOrWhiteSpace(snapshot.SystemIntegritySummary)) { snapshot.SystemIntegritySummary = ReadMapString(root, "SystemIntegritySummary"); }
+            snapshot.SystemIntegrityDetail = ReadMapString(systemIntegrity, "Detail");
+            if (String.IsNullOrWhiteSpace(snapshot.SystemIntegrityDetail)) { snapshot.SystemIntegrityDetail = ReadMapString(root, "SystemIntegrityDetail"); }
+            snapshot.SystemIntegrityBackupAvailable = ReadMapBool(systemIntegrity, "BackupAvailable") || ReadMapBool(root, "SystemIntegrityBackupAvailable");
+            snapshot.SystemIntegrityMmcssServiceRunning = ReadMapBool(systemIntegrity, "MmcssServiceRunning") || ReadMapBool(root, "SystemIntegrityMmcssServiceRunning");
+            snapshot.SystemIntegrityMmcssServiceStatus = ReadMapString(systemIntegrity, "MmcssServiceStatus");
+            if (String.IsNullOrWhiteSpace(snapshot.SystemIntegrityMmcssServiceStatus)) { snapshot.SystemIntegrityMmcssServiceStatus = ReadMapString(root, "SystemIntegrityMmcssServiceStatus"); }
+            snapshot.SystemIntegritySystemResponsiveness = ReadMapInt(systemIntegrity, "SystemResponsiveness");
+            if (snapshot.SystemIntegritySystemResponsiveness == 0 && ReadMapInt(root, "SystemIntegritySystemResponsiveness") != 0) { snapshot.SystemIntegritySystemResponsiveness = ReadMapInt(root, "SystemIntegritySystemResponsiveness"); }
+            snapshot.SystemIntegritySystemResponsivenessState = ReadMapString(systemIntegrity, "SystemResponsivenessState");
+            if (String.IsNullOrWhiteSpace(snapshot.SystemIntegritySystemResponsivenessState)) { snapshot.SystemIntegritySystemResponsivenessState = ReadMapString(root, "SystemIntegritySystemResponsivenessState"); }
+            snapshot.SystemIntegritySystemResponsivenessDetail = ReadMapString(systemIntegrity, "SystemResponsivenessDetail");
+            if (String.IsNullOrWhiteSpace(snapshot.SystemIntegritySystemResponsivenessDetail)) { snapshot.SystemIntegritySystemResponsivenessDetail = ReadMapString(root, "SystemIntegritySystemResponsivenessDetail"); }
+            snapshot.SystemIntegrityHybridCpuDetected = ReadMapBool(systemIntegrity, "HybridCpuDetected") || ReadMapBool(root, "SystemIntegrityHybridCpuDetected");
+            snapshot.SystemIntegrityLogicalProcessorCount = ReadMapInt(systemIntegrity, "LogicalProcessorCount");
+            if (snapshot.SystemIntegrityLogicalProcessorCount <= 0) { snapshot.SystemIntegrityLogicalProcessorCount = ReadMapInt(root, "SystemIntegrityLogicalProcessorCount"); }
+            snapshot.SystemIntegrityHybridSchedulerState = ReadMapString(systemIntegrity, "HybridSchedulerState");
+            if (String.IsNullOrWhiteSpace(snapshot.SystemIntegrityHybridSchedulerState)) { snapshot.SystemIntegrityHybridSchedulerState = ReadMapString(root, "SystemIntegrityHybridSchedulerState"); }
+            snapshot.SystemIntegrityHybridSchedulerDetail = ReadMapString(systemIntegrity, "HybridSchedulerDetail");
+            if (String.IsNullOrWhiteSpace(snapshot.SystemIntegrityHybridSchedulerDetail)) { snapshot.SystemIntegrityHybridSchedulerDetail = ReadMapString(root, "SystemIntegrityHybridSchedulerDetail"); }
+            snapshot.SystemIntegritySelfThrottleEligible = ReadMapBool(systemIntegrity, "SelfThrottleEligible") || ReadMapBool(root, "SystemIntegritySelfThrottleEligible");
+            snapshot.SystemIntegritySelfThrottleState = ReadMapString(systemIntegrity, "SelfThrottleState");
+            if (String.IsNullOrWhiteSpace(snapshot.SystemIntegritySelfThrottleState)) { snapshot.SystemIntegritySelfThrottleState = ReadMapString(root, "SystemIntegritySelfThrottleState"); }
+            snapshot.SystemIntegritySelfThrottleDetail = ReadMapString(systemIntegrity, "SelfThrottleDetail");
+            if (String.IsNullOrWhiteSpace(snapshot.SystemIntegritySelfThrottleDetail)) { snapshot.SystemIntegritySelfThrottleDetail = ReadMapString(root, "SystemIntegritySelfThrottleDetail"); }
+            snapshot.SystemIntegrityIssueCount = ReadMapInt(systemIntegrity, "IssueCount");
+            if (snapshot.SystemIntegrityIssueCount <= 0) { snapshot.SystemIntegrityIssueCount = ReadMapInt(root, "SystemIntegrityIssueCount"); }
+            snapshot.SystemIntegrityRecommendationCount = ReadMapInt(systemIntegrity, "RecommendationCount");
+            if (snapshot.SystemIntegrityRecommendationCount <= 0) { snapshot.SystemIntegrityRecommendationCount = ReadMapInt(root, "SystemIntegrityRecommendationCount"); }
+            snapshot.SystemIntegritySafeRecommendationCount = ReadMapInt(systemIntegrity, "SafeRecommendationCount");
+            if (snapshot.SystemIntegritySafeRecommendationCount <= 0) { snapshot.SystemIntegritySafeRecommendationCount = ReadMapInt(root, "SystemIntegritySafeRecommendationCount"); }
+            snapshot.SystemIntegrityOptionalRecommendationCount = ReadMapInt(systemIntegrity, "OptionalRecommendationCount");
+            if (snapshot.SystemIntegrityOptionalRecommendationCount <= 0) { snapshot.SystemIntegrityOptionalRecommendationCount = ReadMapInt(root, "SystemIntegrityOptionalRecommendationCount"); }
+            snapshot.SystemIntegrityExperimentalRecommendationCount = ReadMapInt(systemIntegrity, "ExperimentalRecommendationCount");
+            if (snapshot.SystemIntegrityExperimentalRecommendationCount <= 0) { snapshot.SystemIntegrityExperimentalRecommendationCount = ReadMapInt(root, "SystemIntegrityExperimentalRecommendationCount"); }
+            snapshot.SystemIntegrityRestartRecommendationCount = ReadMapInt(systemIntegrity, "RestartRecommendationCount");
+            if (snapshot.SystemIntegrityRestartRecommendationCount <= 0) { snapshot.SystemIntegrityRestartRecommendationCount = ReadMapInt(root, "SystemIntegrityRestartRecommendationCount"); }
+            snapshot.SystemIntegrityApplyBlockedRecommendationCount = ReadMapInt(systemIntegrity, "ApplyBlockedRecommendationCount");
+            if (snapshot.SystemIntegrityApplyBlockedRecommendationCount <= 0) { snapshot.SystemIntegrityApplyBlockedRecommendationCount = ReadMapInt(root, "SystemIntegrityApplyBlockedRecommendationCount"); }
+            snapshot.SystemIntegrityRecommendations = ReadMapDictionaryList(systemIntegrity, "Recommendations");
+            if (snapshot.SystemIntegrityRecommendations.Count <= 0) { snapshot.SystemIntegrityRecommendations = ReadMapDictionaryList(root, "SystemIntegrityRecommendations"); }
+            snapshot.SystemIntegritySignals = ReadMapStringList(systemIntegrity, "Signals");
+            if (snapshot.SystemIntegritySignals.Count <= 0) { snapshot.SystemIntegritySignals = ReadMapStringList(root, "SystemIntegritySignals"); }
+            snapshot.SystemIntegrityIssues = ReadMapStringList(systemIntegrity, "Issues");
+            if (snapshot.SystemIntegrityIssues.Count <= 0) { snapshot.SystemIntegrityIssues = ReadMapStringList(root, "SystemIntegrityIssues"); }
             snapshot.StateAgeSeconds = GetIsoAgeSeconds(snapshot.UpdatedAt);
             if (snapshot.LoopSeconds <= 0) { snapshot.LoopSeconds = CoreServiceLoopSeconds; }
             if (snapshot.ProtocolVersion <= 0) { snapshot.ProtocolVersion = CoreProtocolVersion; }
@@ -5680,6 +6646,8 @@ internal static class SmartBackgroundNap
             SessionAgentSnapshot sessionAgent = LoadSessionAgentSnapshot();
             MemoryStabilitySnapshot memoryStability = BuildMemoryStabilitySnapshot(sessionAgent, source);
             ApplyMemoryStabilitySnapshot(state, memoryStability);
+            SystemIntegritySnapshot systemIntegrity = BuildSystemIntegritySnapshot(sessionAgent, source);
+            ApplySystemIntegritySnapshot(state, systemIntegrity);
             state["SessionAgent"] = BuildSessionAgentPayload(sessionAgent);
             state["SessionContext"] = BuildSessionContextPayload(sessionAgent);
             state["SessionForeground"] = BuildSessionForegroundPayload(sessionAgent);
@@ -9773,6 +10741,10 @@ internal static class SmartBackgroundNap
         private readonly System.Windows.Threading.DispatcherTimer refreshTimer;
         private readonly System.Windows.Threading.DispatcherTimer liveTimer;
         private readonly System.Windows.Threading.DispatcherTimer actionTimer;
+        private DateTime lastDashboardStateSentUtc = DateTime.MinValue;
+        private bool lowImpactRuntimeActive;
+        private string lowImpactRuntimeReason = "";
+        private int lowImpactRuntimeCadenceSeconds = 1;
         private RunControl activeRunControl;
         private bool webReady;
         private bool busy;
@@ -11634,6 +12606,7 @@ internal static class SmartBackgroundNap
 
         private void StartDashboardActivity()
         {
+            SetCurrentProcessBackgroundMode(false, "dashboard-visible");
             if (refreshTimer != null && !refreshTimer.IsEnabled) { refreshTimer.Start(); }
             if (liveTimer != null && !liveTimer.IsEnabled) { liveTimer.Start(); }
         }
@@ -11642,6 +12615,31 @@ internal static class SmartBackgroundNap
         {
             if (refreshTimer != null) { refreshTimer.Stop(); }
             if (liveTimer != null) { liveTimer.Stop(); }
+            SetCurrentProcessBackgroundMode(true, "dashboard-hidden");
+        }
+
+        private bool ShouldDeferLowImpactState()
+        {
+            bool hiddenOrMinimized = !IsVisible || WindowState == System.Windows.WindowState.Minimized;
+            bool interactive = IsVisible && WindowState != System.Windows.WindowState.Minimized && IsActive;
+            if (busy || interactive)
+            {
+                lowImpactRuntimeActive = false;
+                lowImpactRuntimeReason = interactive ? "dashboard-active" : "operation-active";
+                lowImpactRuntimeCadenceSeconds = 1;
+                SetCurrentProcessBackgroundMode(false, lowImpactRuntimeReason);
+                return false;
+            }
+
+            SessionAgentSnapshot agent = LoadSessionAgentSnapshot();
+            bool gameOrFullscreen = agent != null && agent.Available && (agent.ForegroundIsGame || agent.ForegroundFullscreen || IsMemoryStabilityGamingContext(agent));
+            bool active = hiddenOrMinimized || gameOrFullscreen;
+            lowImpactRuntimeActive = active;
+            lowImpactRuntimeReason = !active ? "normal" : (hiddenOrMinimized ? "dashboard-hidden" : "game-foreground");
+            lowImpactRuntimeCadenceSeconds = !active ? 1 : (hiddenOrMinimized ? 8 : 4);
+            SetCurrentProcessBackgroundMode(active, lowImpactRuntimeReason);
+            if (!active) { return false; }
+            return (DateTime.UtcNow - lastDashboardStateSentUtc).TotalSeconds < lowImpactRuntimeCadenceSeconds;
         }
 
         private void SendState()
@@ -11650,10 +12648,19 @@ internal static class SmartBackgroundNap
             {
                 return;
             }
+            if (ShouldDeferLowImpactState())
+            {
+                return;
+            }
 
             try
             {
                 WebDashboardState state = BuildState();
+                state.LowImpactRuntimeAvailable = true;
+                state.LowImpactRuntimeActive = lowImpactRuntimeActive;
+                state.LowImpactRuntimeReason = lowImpactRuntimeReason ?? "";
+                state.LowImpactRuntimeCadenceSeconds = lowImpactRuntimeCadenceSeconds;
+                lastDashboardStateSentUtc = DateTime.UtcNow;
                 string json = JsonSerializer.Serialize(state);
                 webView.CoreWebView2.PostWebMessageAsJson(json);
                 string script = "try{ if(window.smartNapUpdate){ window.smartNapUpdate(" + json + "); } }catch(e){ console.error('Smart Nap direct state failed', e); }";
@@ -11691,6 +12698,10 @@ internal static class SmartBackgroundNap
             state.Creator = CreatorLine;
             state.Language = String.IsNullOrWhiteSpace(uiLanguage) ? "" : uiLanguage;
             state.FirstRun = String.IsNullOrWhiteSpace(uiLanguage);
+            state.LowImpactRuntimeAvailable = true;
+            state.LowImpactRuntimeActive = lowImpactRuntimeActive;
+            state.LowImpactRuntimeReason = lowImpactRuntimeReason ?? "";
+            state.LowImpactRuntimeCadenceSeconds = lowImpactRuntimeCadenceSeconds;
             state.AutoMode = autoInstalled;
             state.Startup = startupInstalled;
             state.SessionMode = GetSessionMode();
@@ -11841,6 +12852,35 @@ internal static class SmartBackgroundNap
             state.MemoryStabilityBrowserBurstState = coreService.MemoryStabilityBrowserBurstState;
             state.MemoryStabilityHeavyRecentProcessCount = coreService.MemoryStabilityHeavyRecentProcessCount;
             state.MemoryStabilitySignals = coreService.MemoryStabilitySignals ?? new List<string>();
+            state.SystemIntegrityAvailable = coreService.SystemIntegrityAvailable;
+            state.SystemIntegrityRelevant = coreService.SystemIntegrityRelevant;
+            state.SystemIntegrityMode = coreService.SystemIntegrityMode;
+            state.SystemIntegrityState = coreService.SystemIntegrityState;
+            state.SystemIntegritySummary = coreService.SystemIntegritySummary;
+            state.SystemIntegrityDetail = coreService.SystemIntegrityDetail;
+            state.SystemIntegrityBackupAvailable = coreService.SystemIntegrityBackupAvailable;
+            state.SystemIntegrityMmcssServiceRunning = coreService.SystemIntegrityMmcssServiceRunning;
+            state.SystemIntegrityMmcssServiceStatus = coreService.SystemIntegrityMmcssServiceStatus;
+            state.SystemIntegritySystemResponsiveness = coreService.SystemIntegritySystemResponsiveness;
+            state.SystemIntegritySystemResponsivenessState = coreService.SystemIntegritySystemResponsivenessState;
+            state.SystemIntegritySystemResponsivenessDetail = coreService.SystemIntegritySystemResponsivenessDetail;
+            state.SystemIntegrityHybridCpuDetected = coreService.SystemIntegrityHybridCpuDetected;
+            state.SystemIntegrityLogicalProcessorCount = coreService.SystemIntegrityLogicalProcessorCount;
+            state.SystemIntegrityHybridSchedulerState = coreService.SystemIntegrityHybridSchedulerState;
+            state.SystemIntegrityHybridSchedulerDetail = coreService.SystemIntegrityHybridSchedulerDetail;
+            state.SystemIntegritySelfThrottleEligible = coreService.SystemIntegritySelfThrottleEligible;
+            state.SystemIntegritySelfThrottleState = coreService.SystemIntegritySelfThrottleState;
+            state.SystemIntegritySelfThrottleDetail = coreService.SystemIntegritySelfThrottleDetail;
+            state.SystemIntegrityIssueCount = coreService.SystemIntegrityIssueCount;
+            state.SystemIntegrityRecommendationCount = coreService.SystemIntegrityRecommendationCount;
+            state.SystemIntegritySafeRecommendationCount = coreService.SystemIntegritySafeRecommendationCount;
+            state.SystemIntegrityOptionalRecommendationCount = coreService.SystemIntegrityOptionalRecommendationCount;
+            state.SystemIntegrityExperimentalRecommendationCount = coreService.SystemIntegrityExperimentalRecommendationCount;
+            state.SystemIntegrityRestartRecommendationCount = coreService.SystemIntegrityRestartRecommendationCount;
+            state.SystemIntegrityApplyBlockedRecommendationCount = coreService.SystemIntegrityApplyBlockedRecommendationCount;
+            state.SystemIntegrityRecommendations = coreService.SystemIntegrityRecommendations ?? new List<Dictionary<string, object>>();
+            state.SystemIntegritySignals = coreService.SystemIntegritySignals ?? new List<string>();
+            state.SystemIntegrityIssues = coreService.SystemIntegrityIssues ?? new List<string>();
             state.SessionAgentAvailable = sessionAgent.Available;
             state.SessionAgentHealth = sessionAgent.Health;
             state.SessionAgentState = sessionAgent.State;
@@ -13279,6 +14319,39 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
             public string MemoryStabilityBrowserBurstState { get; set; }
             public int MemoryStabilityHeavyRecentProcessCount { get; set; }
             public List<string> MemoryStabilitySignals { get; set; }
+            public bool SystemIntegrityAvailable { get; set; }
+            public bool SystemIntegrityRelevant { get; set; }
+            public string SystemIntegrityMode { get; set; }
+            public string SystemIntegrityState { get; set; }
+            public string SystemIntegritySummary { get; set; }
+            public string SystemIntegrityDetail { get; set; }
+            public bool SystemIntegrityBackupAvailable { get; set; }
+            public bool SystemIntegrityMmcssServiceRunning { get; set; }
+            public string SystemIntegrityMmcssServiceStatus { get; set; }
+            public int SystemIntegritySystemResponsiveness { get; set; }
+            public string SystemIntegritySystemResponsivenessState { get; set; }
+            public string SystemIntegritySystemResponsivenessDetail { get; set; }
+            public bool SystemIntegrityHybridCpuDetected { get; set; }
+            public int SystemIntegrityLogicalProcessorCount { get; set; }
+            public string SystemIntegrityHybridSchedulerState { get; set; }
+            public string SystemIntegrityHybridSchedulerDetail { get; set; }
+            public bool SystemIntegritySelfThrottleEligible { get; set; }
+            public string SystemIntegritySelfThrottleState { get; set; }
+            public string SystemIntegritySelfThrottleDetail { get; set; }
+            public int SystemIntegrityIssueCount { get; set; }
+            public int SystemIntegrityRecommendationCount { get; set; }
+            public int SystemIntegritySafeRecommendationCount { get; set; }
+            public int SystemIntegrityOptionalRecommendationCount { get; set; }
+            public int SystemIntegrityExperimentalRecommendationCount { get; set; }
+            public int SystemIntegrityRestartRecommendationCount { get; set; }
+            public int SystemIntegrityApplyBlockedRecommendationCount { get; set; }
+            public List<Dictionary<string, object>> SystemIntegrityRecommendations { get; set; }
+            public List<string> SystemIntegritySignals { get; set; }
+            public List<string> SystemIntegrityIssues { get; set; }
+            public bool LowImpactRuntimeAvailable { get; set; }
+            public bool LowImpactRuntimeActive { get; set; }
+            public string LowImpactRuntimeReason { get; set; }
+            public int LowImpactRuntimeCadenceSeconds { get; set; }
             public bool SessionAgentAvailable { get; set; }
             public string SessionAgentHealth { get; set; }
             public string SessionAgentState { get; set; }
@@ -18706,7 +19779,6 @@ window.addEventListener('DOMContentLoaded',()=>send('ready'));
         }
     }
 }
-
 
 
 

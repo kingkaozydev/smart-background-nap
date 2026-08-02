@@ -237,7 +237,7 @@ $deepNapIoPriorityName = "VeryLow"
 $realtimeFriendlyDefaults = @("Discord", "Spotify", "WhatsApp", "Telegram", "Slack", "Teams", "steam")
 $realtimeFriendlyConfigured = $null
 $knownLauncherDefaults = @("steam", "steamwebhelper", "EpicGamesLauncher", "EpicWebHelper", "Battle.net", "EADesktop", "EABackgroundService", "EACefSubProcess", "EALocalHostSvc", "EALauncher", "EASteamLauncher", "EAConnect", "EAAntiCheat.GameService", "EAAntiCheat.GameServiceLauncher", "RiotClientServices", "RiotClientUx", "UbisoftConnect", "upc", "GalaxyClient", "GOG Galaxy", "XboxPcApp")
-$knownGameNameDefaults = @("FC26", "FC25", "FC24", "FIFA24", "FIFA23", "FIFA22", "bf6", "Battlefield6", "Battlefield", "bf2042", "bfv", "bf1", "bf4", "cs2", "csgo", "VALORANT-Win64-Shipping", "VALORANT", "FortniteClient-Win64-Shipping", "RocketLeague", "r5apex", "League of Legends", "RainbowSix", "RainbowSix_Vulkan", "cod", "ModernWarfare", "Warzone")
+$knownGameNameDefaults = @("FC26", "FC25", "FC24", "FIFA24", "FIFA23", "FIFA22", "bf6", "Battlefield6", "Battlefield", "bf2042", "bfv", "bf1", "bf4", "cs2", "csgo", "VALORANT-Win64-Shipping", "VALORANT", "FortniteClient-Win64-Shipping", "RocketLeague", "r5apex", "League of Legends", "RainbowSix", "RainbowSix_Vulkan", "cod", "ModernWarfare", "Warzone", "Discovery", "Discovery-d", "TheFinals", "The Finals")
 $knownCommunicationDefaults = @("Discord", "Teams", "Slack", "Zoom", "Telegram", "WhatsApp")
 $knownMediaDefaults = @("Spotify", "vlc", "mpv", "Lightshot", "ShareX", "Greenshot", "SnippingTool", "ScreenClippingHost", "GameBar", "GameBarFTServer", "XboxGameBar", "NVIDIA Share")
 $knownStreamingDefaults = @("obs64", "obs32", "Streamlabs Desktop", "Streamlabs", "TikTok LIVE Studio", "TikTokLiveStudio", "TikTokStudio", "PRISMLiveStudio", "XSplit.Core", "XSplitBroadcaster", "vMix64", "vMix", "TwitchStudio", "NVIDIA Broadcast", "ElgatoCameraHub")
@@ -245,7 +245,7 @@ $knownProfessionalDefaults = @("Photoshop", "Illustrator", "AfterFX", "Adobe Pre
 $knownDevelopmentDefaults = @("devenv", "Code", "Code - Insiders", "cursor", "windsurf", "rider64", "idea64", "pycharm64", "webstorm64", "clion64", "datagrip64", "goland64", "phpstorm64", "rustrover64", "sublime_text", "notepad++", "zed", "codex")
 $streamerBrowserHelperNameDefaults = @("obs-browser-page", "CefSharp.BrowserSubprocess", "QtWebEngineProcess", "msedgewebview2", "chrome", "msedge", "brave", "firefox")
 $streamerBrowserHelperPathDefaults = @("\obs-studio\", "\Streamlabs\", "\TikTok LIVE Studio\", "\TikTokLiveStudio\", "\TikTokStudio\", "\PRISMLiveStudio\", "\Twitch Studio\", "\XSplit\", "\vMix\")
-$knownGamePathDefaults = @("\steamapps\common\", "\XboxGames\", "\Epic Games\", "\Riot Games\", "\Battle.net\", "\GOG Galaxy\Games\", "\EA Games\", "\Electronic Arts\Games\", "\Electronic Arts\Battlefield", "\Electronic Arts\Apex", "\Electronic Arts\The Sims", "\Electronic Arts\FC", "\Electronic Arts\EA SPORTS FC", "\Battlefield 6\", "\Battlefield6\", "\EA SPORTS FC 26\")
+$knownGamePathDefaults = @("\steamapps\common\", "\XboxGames\", "\Epic Games\", "\Riot Games\", "\Battle.net\", "\GOG Galaxy\Games\", "\EA Games\", "\Electronic Arts\Games\", "\Electronic Arts\Battlefield", "\Electronic Arts\Apex", "\Electronic Arts\The Sims", "\Electronic Arts\FC", "\Electronic Arts\EA SPORTS FC", "\Battlefield 6\", "\Battlefield6\", "\EA SPORTS FC 26\", "\THE FINALS\", "\The Finals\", "\Discovery\")
 $neverGameProcessDefaults = @("explorer", "SmartBackgroundNap", "SmartBackgroundNapTray", "background-nap", "manage-background-nap-tray", "ApplicationFrameHost", "ShellExperienceHost", "StartMenuExperienceHost", "SearchHost", "SearchApp", "SearchIndexer", "RuntimeBroker", "TextInputHost", "ctfmon", "sihost", "taskhostw", "dwm", "SystemSettings", "SecurityHealthSystray", "chrome", "msedge", "firefox", "zen", "brave", "opera", "vivaldi", "librewolf", "waterfox", "floorp", "arc", "tor", "msedgewebview2", "Lightshot", "ShareX", "Greenshot", "SnippingTool", "ScreenClippingHost", "GameBar", "GameBarFTServer", "XboxGameBar", "NVIDIA Share", "Code", "codex", "powershell", "pwsh", "cmd", "conhost", "notepad", "taskmgr")
 $knownLauncherConfigured = $null
 $knownCommunicationConfigured = $null
@@ -1942,6 +1942,7 @@ function Get-GameFolderAliases {
         '^rocketleague$' { foreach ($value in @("rocketleague", "Rocket League")) { [void]$aliases.Add($value) } }
         '^rainbowsix|^rainbowsixvulkan$' { foreach ($value in @("Tom Clancy's Rainbow Six Siege", "Rainbow Six Siege", "RainbowSix")) { [void]$aliases.Add($value) } }
         '^cod|^modernwarfare|^warzone' { foreach ($value in @("Call of Duty", "Modern Warfare", "Warzone")) { [void]$aliases.Add($value) } }
+        '^discovery|^discoveryd$|^thefinals$' { foreach ($value in @("THE FINALS", "The Finals", "Discovery", "Discovery-d")) { [void]$aliases.Add($value) } }
     }
     return @($aliases | Where-Object { $_ } | Select-Object -Unique)
 }
@@ -2336,6 +2337,12 @@ function Test-SameGameSessionRoot {
     return $leftRoot.StartsWith($rightRoot + "\", [System.StringComparison]::OrdinalIgnoreCase) -or $rightRoot.StartsWith($leftRoot + "\", [System.StringComparison]::OrdinalIgnoreCase) -or $leftRoot.StartsWith($rightRoot + "/", [System.StringComparison]::OrdinalIgnoreCase) -or $rightRoot.StartsWith($leftRoot + "/", [System.StringComparison]::OrdinalIgnoreCase)
 }
 
+function Test-MultiplayerGameSessionActive {
+    if (-not $networkUdpGuardEnabled -or -not $script:currentUdpGuard -or -not [bool]$script:currentUdpGuard.Active) { return $false }
+    if ([int]$script:currentUdpGuard.EndpointCount -lt $networkUdpGuardMinEndpoints) { return $false }
+    return (@($script:currentUdpGuard.Signals) -contains "multiplayer-udp")
+}
+
 function Get-RelatedUdpEndpointSummary {
     param(
         [object]$Anchor,
@@ -2393,6 +2400,65 @@ function Get-RelatedUdpEndpointSummary {
     return [pscustomobject]$result
 }
 
+function Get-BestRelatedUdpGameProcess {
+    param(
+        [string]$AnchorRoot,
+        [array]$Processes,
+        [hashtable]$CpuMap,
+        [hashtable]$UdpMap,
+        [object]$Foreground
+    )
+
+    if ([string]::IsNullOrWhiteSpace($AnchorRoot) -or -not $Processes -or -not $UdpMap -or $UdpMap.Count -eq 0) { return $null }
+    $best = $null
+    $bestScore = -1.0
+    foreach ($p in @($Processes)) {
+        $processIdValue = 0
+        try { $processIdValue = [int]$p.Id } catch { $processIdValue = 0 }
+        if ($processIdValue -le 0 -or -not $UdpMap.ContainsKey($processIdValue)) { continue }
+        $udpCount = [int]$UdpMap[$processIdValue]
+        if ($udpCount -lt $networkUdpGuardMinEndpoints) { continue }
+
+        $processNameText = [string]$p.ProcessName
+        $path = Get-ProcessPathText -Process $p
+        if ([string]::IsNullOrWhiteSpace($path) -and (Test-KnownGameExecutableName -ProcessName $processNameText)) {
+            $path = Resolve-GameExecutablePath -ProcessName $processNameText -GameName $processNameText -Processes $Processes
+        }
+        if ([string]::IsNullOrWhiteSpace($path)) { continue }
+
+        $processRoot = Get-GameSessionRootFromPath -Path $path
+        if (-not (Test-SameGameSessionRoot -Left $AnchorRoot -Right $processRoot)) { continue }
+
+        $role = Get-ProcessRole -ProcessName $processNameText -Path $path
+        if (Test-NeverGameProcess -ProcessId $processIdValue -ProcessName $processNameText -Path $path -Role $role) { continue }
+
+        $cpu = if ($CpuMap -and $CpuMap.ContainsKey($processIdValue)) { [double]$CpuMap[$processIdValue] } else { 0.0 }
+        $knownName = Test-KnownGameExecutableName -ProcessName $processNameText
+        $knownPath = Test-PathContainsFragment -Path $path -Fragments $knownGamePathFragments
+        $isForeground = $Foreground -and [int]$Foreground.Id -eq $processIdValue
+        $looksGame = (Test-RealGameProcessCandidate -ProcessId $processIdValue -ProcessName $processNameText -Path $path -Role $role -AllowKnownPathOnly -Foreground $Foreground -CpuPercent $cpu -UdpEndpoints $udpCount) -or $knownPath
+        if (-not $looksGame) { continue }
+
+        $score = ([double]$udpCount * 24.0) + ([double]$cpu * 7.0)
+        if ($knownName) { $score += 260.0 }
+        if ($knownPath -or $role -eq "GameCandidate") { $score += 160.0 }
+        if ($isForeground) { $score += 80.0 }
+        if ($score -gt $bestScore) {
+            $bestScore = $score
+            $best = [pscustomobject]@{
+                Process = $p
+                Path = $path
+                Root = $processRoot
+                Role = $role
+                Cpu = $cpu
+                Udp = $udpCount
+                Score = $score
+            }
+        }
+    }
+    return $best
+}
+
 
 function Test-KnownGameExecutableName {
     param([string]$ProcessName)
@@ -2443,6 +2509,7 @@ function Test-GenericGameProcessCandidate {
     $isForeground = $Foreground -and [int]$Foreground.Id -eq $ProcessId
     $isFullscreen = $isForeground -and [bool]$Foreground.IsFullscreen
     if ($isFullscreen -and $hasExePath) { return $true }
+    if ($isFullscreen -and $UdpEndpoints -ge $networkUdpGuardMinEndpoints) { return $true }
     if ($isForeground -and $hasExePath -and $UdpEndpoints -ge $networkUdpGuardMinEndpoints) { return $true }
     if ($isForeground -and $hasExePath -and $CpuPercent -ge [math]::Max(1.0, $networkUdpGuardGameCpuFloor)) { return $true }
 
@@ -2528,8 +2595,6 @@ function Get-AssistiveUdpEndpointSummaryForGame {
 function Find-OpenGameForUdpGuard {
     param([object]$Foreground, [array]$Processes, [hashtable]$CpuMap, [hashtable]$UdpMap, [hashtable]$ProfileMap)
     if (-not $Processes) { return $null }
-    $launcherSummary = Get-LauncherUdpEndpointSummary -Processes $Processes -UdpMap $UdpMap
-    $assistiveSummary = Get-AssistiveUdpEndpointSummaryForGame -Processes $Processes -UdpMap $UdpMap
     $best = $null; $bestScore = -1.0
     foreach ($p in @($Processes)) {
         $processIdValue = 0; try { $processIdValue = [int]$p.Id } catch { $processIdValue = 0 }
@@ -2550,17 +2615,28 @@ function Find-OpenGameForUdpGuard {
         $relatedEndpointCount = if ($related) { [int]$related.EndpointCount } else { 0 }
         $effectiveRelated = $related
         $endpointCount = [math]::Max($directUdp, $relatedEndpointCount)
-        if ($endpointCount -lt $networkUdpGuardMinEndpoints -and $knownName -and $launcherSummary -and [int]$launcherSummary.EndpointCount -ge $networkUdpGuardMinEndpoints) {
-            $effectiveRelated = $launcherSummary
-            $endpointCount = [int]$launcherSummary.EndpointCount
-        }
-        if ($endpointCount -lt $networkUdpGuardMinEndpoints -and $knownName -and $assistiveSummary -and [int]$assistiveSummary.EndpointCount -ge $networkUdpGuardMinEndpoints) {
-            $effectiveRelated = $assistiveSummary
-            $endpointCount = [int]$assistiveSummary.EndpointCount
-        }
+
         if ($endpointCount -lt $networkUdpGuardMinEndpoints) { continue }
         $root = Get-GameSessionRootFromPath -Path $path
-        $signals = @('udp-session', 'open-game-lock', 'local-contention-only')
+        if ($directUdp -lt $networkUdpGuardMinEndpoints -and $relatedEndpointCount -ge $networkUdpGuardMinEndpoints -and -not [string]::IsNullOrWhiteSpace($root)) {
+            $relatedPrimary = Get-BestRelatedUdpGameProcess -AnchorRoot $root -Processes $Processes -CpuMap $CpuMap -UdpMap $UdpMap -Foreground $Foreground
+            if ($relatedPrimary -and [int]$relatedPrimary.Udp -ge $networkUdpGuardMinEndpoints) {
+                $p = $relatedPrimary.Process
+                $processIdValue = [int]$p.Id
+                $processNameText = [string]$p.ProcessName
+                $path = [string]$relatedPrimary.Path
+                $role = [string]$relatedPrimary.Role
+                $cpu = [double]$relatedPrimary.Cpu
+                $directUdp = [int]$relatedPrimary.Udp
+                $root = [string]$relatedPrimary.Root
+                $knownName = Test-KnownGameExecutableName -ProcessName $processNameText
+                $knownPath = Test-PathContainsFragment -Path $path -Fragments $knownGamePathFragments
+                $isForeground = $Foreground -and [int]$Foreground.Id -eq $processIdValue
+                $endpointCount = [math]::Max($directUdp, $relatedEndpointCount)
+            }
+        }
+        $signals = @('udp-session', 'open-game-lock', 'multiplayer-udp', 'local-contention-only')
+        if ($directUdp -ge $networkUdpGuardMinEndpoints -and $relatedEndpointCount -ge $networkUdpGuardMinEndpoints) { $signals += 'root-canonical-game-anchor' }
         if ($directUdp -ge $networkUdpGuardMinEndpoints) { $signals += 'direct-udp' }
         elseif ($effectiveRelated -and [int]$effectiveRelated.EndpointCount -gt 0) { $signals += @($effectiveRelated.Signals); $signals += 'foreground-associated' }
         if ($knownName) { $signals += 'known-game-executable' }
@@ -2661,6 +2737,7 @@ function Get-UdpConfidenceReason {
     $set = New-Object "System.Collections.Generic.HashSet[string]" ([System.StringComparer]::OrdinalIgnoreCase)
     foreach ($s in @($Signals)) { if ($s) { [void]$set.Add([string]$s) } }
     if ($set.Contains("direct-udp")) { return "UDP direto no jogo" }
+    if ($set.Contains("multiplayer-udp") -and $set.Contains("foreground-associated")) { return "Sessao UDP relacionada ao jogo" }
     if ($set.Contains("open-game-lock") -and $set.Contains("launcher-associated-helper")) { return "Jogo aberto com UDP em launcher/helper relacionado" }
     if ($set.Contains("open-game-lock")) { return "Jogo aberto protegido pelo Zero Ping" }
     if ($set.Contains("foreground-associated")) { return "UDP em helper relacionado ao jogo" }
@@ -3816,10 +3893,15 @@ function Test-UdpProtectedProcess {
     if (-not $networkUdpGuardEnabled -or -not $script:currentUdpGuard -or -not [bool]$script:currentUdpGuard.Active) { return $false }
     foreach ($processIdValue in @($script:currentUdpGuard.ProtectedPids)) { try { if ([int]$processIdValue -eq $ProcessId) { return $true } } catch { } }
     if ([int]$script:currentUdpGuard.GamePid -eq $ProcessId) { return $true }
+    $processRoot = ""
+    if (-not [string]::IsNullOrWhiteSpace($Path)) { $processRoot = Get-GameSessionRootFromPath -Path $Path }
+    $guardRoot = [string]$script:currentUdpGuard.GameRoot
+    if (-not [string]::IsNullOrWhiteSpace($processRoot) -and -not [string]::IsNullOrWhiteSpace($guardRoot) -and (Test-SameGameSessionRoot -Left $processRoot -Right $guardRoot)) { return $true }
     foreach ($guardPath in @($script:currentUdpGuard.ProtectedPaths)) {
         if (-not [string]::IsNullOrWhiteSpace($Path) -and -not [string]::IsNullOrWhiteSpace([string]$guardPath)) {
             if ($Path.Equals([string]$guardPath, [System.StringComparison]::OrdinalIgnoreCase)) { return $true }
-            if (Test-SameGameSessionRoot -Left $Path -Right ([string]$guardPath)) { return $true }
+            $protectedRoot = Get-GameSessionRootFromPath -Path ([string]$guardPath)
+            if (-not [string]::IsNullOrWhiteSpace($processRoot) -and -not [string]::IsNullOrWhiteSpace($protectedRoot) -and (Test-SameGameSessionRoot -Left $processRoot -Right $protectedRoot)) { return $true }
         }
     }
     return $false
@@ -3849,7 +3931,7 @@ function Get-UdpGuardContext {
         $role = Get-ProcessRole -ProcessName $processNameText -Path $path
         if (-not (Test-UdpGameCandidate -ProcessId $processIdValue -ProcessName $processNameText -Path $path -Role $role -Foreground $Foreground -CpuPercent $cpu -UdpEndpoints $udpCount)) { continue }
         $root = Get-GameSessionRootFromPath -Path $path
-        $signals = @("udp-session", "direct-udp", "local-contention-only")
+        $signals = @("udp-session", "direct-udp", "multiplayer-udp", "local-contention-only")
         if ($Foreground -and [int]$Foreground.Id -eq $processIdValue) { $signals += "foreground-udp" }
         if ($role -eq "GameCandidate") { $signals += "known-game-path" }
         if ($directKnownName) { $signals += "known-game-executable" }
@@ -3879,7 +3961,7 @@ function Get-UdpGuardContext {
             if ($anchorLooksLikeGame -and -not [string]::IsNullOrWhiteSpace($anchorRoot) -and ([bool]$Foreground.IsFullscreen -or $anchorRole -eq "GameCandidate" -or (Test-PathContainsFragment -Path $anchorPath -Fragments $knownGamePathFragments) -or $anchorCpu -ge $networkUdpGuardGameCpuFloor)) {
                 $related = Get-RelatedUdpEndpointSummary -Anchor $anchor -AnchorPath $anchorPath -Processes $Processes -UdpMap $UdpMap
                 if ([int]$related.EndpointCount -ge $networkUdpGuardMinEndpoints) {
-                    $signals = @("udp-session", "foreground-associated", "local-contention-only") + @($related.Signals)
+                    $signals = @("udp-session", "foreground-associated", "multiplayer-udp", "local-contention-only") + @($related.Signals)
                     if ([bool]$Foreground.IsFullscreen) { $signals += "fullscreen" }
                     if ($anchorRole -eq "GameCandidate" -or (Test-PathContainsFragment -Path $anchorPath -Fragments $knownGamePathFragments)) { $signals += "known-game-path" }
                     $confidence = 52 + [math]::Min(18, ([int]$related.EndpointCount * 6)) + [math]::Min(12, [int]($anchorCpu * 4.0))
@@ -4135,7 +4217,11 @@ function Get-GameProfileKey {
     param([object]$Intent)
 
     if (-not $Intent -or [string]::IsNullOrWhiteSpace([string]$Intent.Name)) { return "" }
-    if ($Intent.Path) { return "path:" + ([string]$Intent.Path).ToLowerInvariant() }
+    if ($Intent.Path) {
+        $root = Get-GameSessionRootFromPath -Path ([string]$Intent.Path)
+        if (-not [string]::IsNullOrWhiteSpace($root)) { return "root:" + $root.Trim().ToLowerInvariant() }
+        return "path:" + ([string]$Intent.Path).ToLowerInvariant()
+    }
     return "name:" + ([string]$Intent.Name).ToLowerInvariant()
 }
 
@@ -5503,7 +5589,7 @@ function Get-CandidateWeight {
             "Critical" { $weight *= 1.38 }
         }
     }
-    if ($perGameProfiles -and [int]$Row.GameAggressionBias -gt 0 -and [string]$script:currentIntent.Kind -eq "Gaming") {
+    if ($perGameProfiles -and [int]$Row.GameAggressionBias -gt 0 -and [string]$script:currentIntent.Kind -eq "Gaming" -and -not (Test-MultiplayerGameSessionActive)) {
         $weight *= (1.0 + ([int]$Row.GameAggressionBias * 0.12))
     }
     if ($networkUdpGuardEnabled -and $script:currentUdpGuard -and [bool]$script:currentUdpGuard.Active) {
@@ -5570,7 +5656,7 @@ function Get-NapPolicy {
             }
         }
     }
-    if ($perGameProfiles -and [int]$Row.GameAggressionBias -gt 0 -and [string]$script:currentIntent.Kind -eq "Gaming") {
+    if ($perGameProfiles -and [int]$Row.GameAggressionBias -gt 0 -and [string]$script:currentIntent.Kind -eq "Gaming" -and -not (Test-MultiplayerGameSessionActive)) {
         $deepMinimum = [math]::Min($deepMinimum, 110.0)
         $deepCpuLimit = [math]::Max($deepCpuLimit, 0.9)
     }
@@ -6128,6 +6214,15 @@ function Get-BackgroundProcessRows {
             $cpuPercent = [double]$cpuPercentByPid[[int]$p.Id]
         }
         $path = Get-ProcessPathText -Process $p
+        $gameSessionRoot = ""
+        if ($path) {
+            $candidateGameRoot = Get-GameSessionRootFromPath -Path $path
+            if (Test-PathContainsFragment -Path $path -Fragments $knownGamePathFragments) {
+                $gameSessionRoot = $candidateGameRoot
+            } elseif ($script:currentUdpGuard -and -not [string]::IsNullOrWhiteSpace([string]$script:currentUdpGuard.GameRoot) -and (Test-SameGameSessionRoot -Left $candidateGameRoot -Right ([string]$script:currentUdpGuard.GameRoot))) {
+                $gameSessionRoot = $candidateGameRoot
+            }
+        }
         $role = Get-ProcessRole -ProcessName $p.ProcessName -Path $path
         $processAgeSeconds = Get-ProcessStartAgeSeconds -Process $p
         $foregroundTreeProtected = ($foregroundTreePids -and $foregroundTreePids.Contains([int]$p.Id))
@@ -6187,6 +6282,7 @@ function Get-BackgroundProcessRows {
             EffectiveTrimMinimumMB = $effectiveTrimMinimumMB
             SessionId = $p.SessionId
             Path = $path
+            GameSessionRoot = $gameSessionRoot
             ProcessAgeSeconds = $processAgeSeconds
             StartTimeUtc = Get-ProcessStartTimeUtcText -Process $p
             ForegroundTreeProtected = [bool]$foregroundTreeProtected
@@ -6279,6 +6375,7 @@ function New-StateSnapshot {
                 ProcessorAffinity = $_.ProcessorAffinity
                 WorkingSetMB = $_.WorkingSetMB
                 Path = $_.Path
+                GameSessionRoot = $_.GameSessionRoot
                 StartTimeUtc = $_.StartTimeUtc
                 Role = $_.Role
                 AppPolicy = $_.AppPolicy
@@ -6527,6 +6624,7 @@ function Convert-NapResultGroupToScoreItem {
         GpuOptimizationStatus = $gpuOptimizationStatus
         GpuOptimizationReason = $gpuOptimizationReason
         Path = $p.Path
+        GameSessionRoot = $p.GameSessionRoot
     }
 }
 
@@ -6874,6 +6972,7 @@ function Invoke-ApplyOnce {
             TrimWorkingSet = $trimStatus
             WorkingSetBeforeMB = $row.WorkingSetMB
             WorkingSetAfterMB = $afterMB
+            GameSessionRoot = $row.GameSessionRoot
             PrivateMemoryMB = $row.PrivateMemoryMB
             HandleCount = $row.HandleCount
             ThreadCount = $row.ThreadCount

@@ -67,10 +67,12 @@ Assert-Contains "Test-RealGameProcessCandidate" "Real game candidate classifier 
 Assert-Contains "Smart(Background)?Nap" "Smart Nap self-process exclusion is missing."
 Assert-Contains '$knownGameNames = New-Object' "Known game name set is missing."
 Assert-Contains "bf6" "BF6 executable alias is missing from game detection."
+Assert-Contains "Discovery-d" "The Finals/Discovery executable alias is missing from game detection."
 Assert-Contains "game-paths.user.json" "Saved game path fallback is missing."
 Assert-Contains "Resolve-UserGamePathForProcess" "Protected game path resolver is missing."
 Assert-Contains "Resolve-GameExecutablePath" "Generic game executable resolver is missing."
 Assert-Contains "Test-GenericGameProcessCandidate" "Generic game process classifier is missing."
+Assert-Contains 'if ($isFullscreen -and $UdpEndpoints -ge $networkUdpGuardMinEndpoints) { return $true }' "Zero Ping must accept pathless fullscreen foreground games with direct UDP endpoints."
 Assert-Contains "GenericGameDetection" "Generic game detection flag is missing."
 Assert-Contains "Get-CommonGameSearchRoots" "Common game install root search is missing."
 Assert-Contains "Get-ProcessGameRootHints" "Related process game root hints are missing."
@@ -120,6 +122,31 @@ foreach ($needle in @("anchorLooksLikeGame", "Test-RealGameProcessCandidate", "G
         throw "Zero Ping context is missing $needle."
     }
 }
+$openGameBlock = Get-FunctionBlock "Find-OpenGameForUdpGuard"
+foreach ($needle in @("direct-udp", "multiplayer-udp", "Get-RelatedUdpEndpointSummary", "Get-BestRelatedUdpGameProcess", "root-canonical-game-anchor")) {
+    if ($openGameBlock -notlike "*$needle*") {
+        throw "Zero Ping open-game lock is missing multiplayer network evidence: $needle."
+    }
+}
+foreach ($forbidden in @("Get-LauncherUdpEndpointSummary", "Get-AssistiveUdpEndpointSummaryForGame")) {
+    if ($openGameBlock -like "*$forbidden*") {
+        throw "Zero Ping must not arm from global launcher UDP evidence; require game or related-session UDP: $forbidden"
+    }
+}
+
+$udpProtectedBlock = Get-FunctionBlock "Test-UdpProtectedProcess"
+foreach ($needle in @("GameRoot", "Get-GameSessionRootFromPath", "Test-SameGameSessionRoot")) {
+    if ($udpProtectedBlock -notlike "*$needle*") {
+        throw "Zero Ping local protection must cover same-root game processes: $needle"
+    }
+}
+
+$gameProfileKeyBlock = Get-FunctionBlock "Get-GameProfileKey"
+foreach ($needle in @("Get-GameSessionRootFromPath", '"root:"')) {
+    if ($gameProfileKeyBlock -notlike "*$needle*") {
+        throw "Per-game profiles must use the game session root before executable path identity: $needle"
+    }
+}
 
 $intentBlock = Get-FunctionBlock "Get-IntentContext"
 foreach ($needle in @("fgLooksLikeGame", "Test-RealGameProcessCandidate", "Resolve-GameExecutablePath", "udp-game-background")) {
@@ -137,21 +164,21 @@ if ($assistiveBlock -like "*Test-NeverGameProcess*") {
 }
 
 $rowsBlock = Get-FunctionBlock "Get-BackgroundProcessRows"
-foreach ($needle in @("currentStreamingContext", "currentGpuOptimization", "Get-StreamingContext", "Get-GpuOptimizationContext", "StreamingProfile", "GpuOptimizationStatus")) {
+foreach ($needle in @("currentStreamingContext", "currentGpuOptimization", "Get-StreamingContext", "Get-GpuOptimizationContext", "StreamingProfile", "GpuOptimizationStatus", "GameSessionRoot")) {
     if ($rowsBlock -notlike "*$needle*") {
         throw "Background process rows are missing $needle."
     }
 }
 
 $weightBlock = Get-FunctionBlock "Get-CandidateWeight"
-foreach ($needle in @("Test-StreamingSafeLaneActive", "GpuOptimizationActive", "LauncherHelper")) {
+foreach ($needle in @("Test-StreamingSafeLaneActive", "GpuOptimizationActive", "LauncherHelper", "Test-MultiplayerGameSessionActive")) {
     if ($weightBlock -notlike "*$needle*") {
         throw "Candidate weighting is missing $needle."
     }
 }
 
 $policyBlock = Get-FunctionBlock "Get-NapPolicy"
-foreach ($needle in @("Test-StreamingSafeLaneActive", "gpu-workload-helper-containment", "vram-action-helper-containment", "gpu-action")) {
+foreach ($needle in @("Test-StreamingSafeLaneActive", "gpu-workload-helper-containment", "vram-action-helper-containment", "gpu-action", "Test-MultiplayerGameSessionActive")) {
     if ($policyBlock -notlike "*$needle*") {
         throw "Nap policy is missing $needle."
     }
@@ -165,7 +192,7 @@ foreach ($needle in @("StreamGuard", "GpuOptimization", "LastPassValid", "Write-
 }
 
 $snapshotBlock = Get-FunctionBlock "New-StateSnapshot"
-foreach ($needle in @("rollbackStatePath", "UdpGameProtected", "GpuHelperPressure", "CpuBoundAssist", "ForegroundTreeProtected")) {
+foreach ($needle in @("rollbackStatePath", "UdpGameProtected", "GpuHelperPressure", "CpuBoundAssist", "ForegroundTreeProtected", "GameSessionRoot")) {
     if ($snapshotBlock -notlike "*$needle*") {
         throw "Rollback snapshot is missing $needle."
     }
