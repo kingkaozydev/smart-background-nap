@@ -52,7 +52,7 @@ function Assert-DashboardContains {
     }
 }
 
-Assert-Contains 'private const string AppVersion = "0.8.0"' "Launcher version was not bumped to 0.8.0."
+Assert-Contains 'private const string AppVersion = "0.8.1"' "Launcher version was not bumped to 0.8.1."
 Assert-Contains 'private const string MemoryStabilityGuardMode = "Shadow"' "Memory Stability Guard must start in shadow mode."
 Assert-Contains "CreateMemoryResourceNotification" "Memory Stability Guard must include Windows low-memory notification support."
 Assert-Contains "QueryMemoryResourceNotification" "Memory Stability Guard must query Windows low-memory notifications."
@@ -237,7 +237,7 @@ if ($memoryGuardEndIndex -lt 0) {
 $memoryGuardBlock = $source.Substring($memoryGuardIndex, $memoryGuardEndIndex - $memoryGuardIndex)
 foreach ($forbidden in @("RunApplyNow", "RunRestore", "SetProcessWorkingSetSize", "EmptyWorkingSet", "PagingFiles", "powercfg", "TrySetMemoryPriority", "TrySetIoPriority", "NtSetInformationProcess", "SetProcessInformation")) {
     if ($memoryGuardBlock -like "*$forbidden*") {
-        throw "Memory Stability Guard must stay diagnostic/shadow in 0.8.0: $forbidden"
+        throw "Memory Stability Guard must stay diagnostic/shadow in 0.8.1: $forbidden"
     }
 }
 

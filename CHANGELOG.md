@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.1 - 2026-08-02
+
+- Added Game VRAM Priority as a preventive gaming-session guard: when a real game is detected, surrounding GPU/VRAM consumers can be softened before VRAM pressure becomes elevated or critical.
+- Kept the game, foreground tree, Zero Ping protected process, streaming/audio/media apps, shader compilers, realtime-friendly processes, and user-protected apps out of the new VRAM priority containment path.
+- Added a separate, bounded CPU-affinity budget for Game VRAM Priority helpers so the preventive path does not consume the older critical VRAM action budget.
+- Preserved the existing VRAM Pressure Guard as the stronger reactive path for elevated/critical VRAM pressure while adding clearer telemetry through `GameVramPriorityActive` and `game-vram-priority-helper`.
+- Added regression coverage to keep Game VRAM Priority enabled, ordered ahead of generic launcher-helper containment, and guarded against unsafe process targets.
+
 ## 0.7.4 - 2026-08-01
 
 - Added Memory Stability Guard in shadow mode through the Core Service snapshot, tracking physical RAM, commit headroom, pagefile headroom, Windows low-memory notification, top process consumers, and browser-burst signals without changing pagefile, trimming globally, or acting like a RAM cleaner.

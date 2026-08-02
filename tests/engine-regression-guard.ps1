@@ -82,6 +82,8 @@ Assert-Contains "EALocalHostSvc" "EA launcher local host service must be classif
 Assert-Contains '"\Electronic Arts\"' "Broad Electronic Arts game path fragment filter is missing."
 Assert-Contains "Get-StreamingContext" "Streaming context telemetry is missing."
 Assert-Contains "Get-GpuOptimizationContext" "GPU optimization context is missing."
+Assert-Contains "GameVramPriorityMode" "Game VRAM priority mode config is missing."
+Assert-Contains "Test-GameVramPriorityCandidate" "Game VRAM priority candidate guard is missing."
 Assert-Contains "Test-StreamingSafeLaneActive" "Streaming safe lane switch is missing."
 Assert-Contains "Write-EngineDiagnostic" "Structured engine diagnostics are missing."
 Assert-Contains "Rotate-LogFile" "Diagnostic log rotation is missing."
@@ -178,9 +180,21 @@ foreach ($needle in @("Test-StreamingSafeLaneActive", "GpuOptimizationActive", "
 }
 
 $policyBlock = Get-FunctionBlock "Get-NapPolicy"
-foreach ($needle in @("Test-StreamingSafeLaneActive", "gpu-workload-helper-containment", "vram-action-helper-containment", "gpu-action", "Test-MultiplayerGameSessionActive")) {
+foreach ($needle in @("Test-StreamingSafeLaneActive", "gpu-workload-helper-containment", "vram-action-helper-containment", "game-vram-priority-helper", "gpu-vram", "gpu-action", "Test-MultiplayerGameSessionActive")) {
     if ($policyBlock -notlike "*$needle*") {
         throw "Nap policy is missing $needle."
+    }
+}
+$gameVramPolicyIndex = $policyBlock.IndexOf("game-vram-priority-helper", [StringComparison]::Ordinal)
+$launcherHelperPolicyIndex = $policyBlock.IndexOf('$Row.Role -eq "LauncherHelper"', [StringComparison]::Ordinal)
+if ($gameVramPolicyIndex -lt 0 -or $launcherHelperPolicyIndex -lt 0 -or $gameVramPolicyIndex -gt $launcherHelperPolicyIndex) {
+    throw "Game VRAM priority must win before generic launcher-helper containment."
+}
+
+$gameVramCandidateBlock = Get-FunctionBlock "Test-GameVramPriorityCandidate"
+foreach ($needle in @("UdpGameProtected", "GuardReason", "SwitchFastWake", "AppPolicy -eq `"Protect`"", "GameCandidate", "GpuDedicatedMB", "GpuPercent")) {
+    if ($gameVramCandidateBlock -notlike "*$needle*") {
+        throw "Game VRAM priority candidate guard is missing $needle."
     }
 }
 

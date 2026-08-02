@@ -1,10 +1,27 @@
-Smart Nap 0.5.45
+Smart Nap 0.8.1 Hotfix
 
-Highlights since the latest 0.5 updates:
-- Cleaner dashboard spacing with the hero area using its available space properly.
-- Stronger Zero Ping behavior, game classification, and launcher/browser filtering.
-- CPU-bound, GPU/VRAM pressure, streamer-safe, and background helper improvements kept from the recent engine work.
-- Beta Games library with per-game optimization presets, local discovery, confirmations, and restore-to-default support.
-- Premium WebView UX refinements, updated logo/tray identity, and safer built-in update/install flow.
+Highlights:
+- Game VRAM Priority now starts during detected game sessions, not only after VRAM pressure is already high.
+- Surrounding browser, launcher, and helper processes that consume GPU/VRAM can be softened earlier so the active game keeps priority.
+- The hotfix preserves safety guards for the foreground tree, protected apps, Zero Ping protected games, voice/media, streaming, shader compilation, and realtime-friendly processes.
+- Critical VRAM Pressure Guard remains available as the stronger reactive path when the adapter is already under pressure.
+- Engine regression coverage now locks this behavior so VRAM priority cannot be accidentally moved behind generic helper handling.
 
-This build keeps the local-first safety model: no telemetry, no DNS/IP/Winsock changes, no driver changes, and no app killing.
+Validation performed:
+- Engine regression guard passed.
+- Launcher regression guard passed.
+- Responsive launcher guard passed.
+- Responsive visual guard passed across 39 scenarios.
+- Installed build verified as version 0.8.1 with the same SHA256 published in this release.
+
+Executable:
+- `SmartBackgroundNap.exe`
+- SHA256: `86399367A52E70E9F64F5D492BFA24BE95AFE1A39CE40926F33D684D7C86B82E`
+
+Safety model:
+- No driver changes.
+- No GPU clock, voltage, BIOS, or control-panel tuning.
+- No global Windows VRAM tweak.
+- No game-process affinity lock.
+- No DNS, IP, Winsock, adapter, or firewall rewrites.
+- No app killing.

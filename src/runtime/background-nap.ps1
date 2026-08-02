@@ -185,6 +185,12 @@ $vramActionGpuPercent = 0.8
 $vramActionCpuAffinityPercent = 28
 $vramActionMaxCpuPercent = 8.0
 $vramActionMaxAffinityTargets = 4
+$gameVramPriorityMode = $true
+$gameVramPriorityDedicatedMemoryMB = 96.0
+$gameVramPriorityGpuPercent = 0.2
+$gameVramPriorityCpuAffinityPercent = 36
+$gameVramPriorityMaxCpuPercent = 10.0
+$gameVramPriorityMaxAffinityTargets = 6
 $cpuBoundAssist = $true
 $cpuBoundGameCpuPercent = 6.0
 $cpuBoundBackgroundBoost = 1.35
@@ -349,6 +355,12 @@ if ($smart) {
     if ($smart.PSObject.Properties.Name -contains "VramActionCpuAffinityPercent") { $vramActionCpuAffinityPercent = [int]$smart.VramActionCpuAffinityPercent }
     if ($smart.PSObject.Properties.Name -contains "VramActionMaxCpuPercent") { $vramActionMaxCpuPercent = [double]$smart.VramActionMaxCpuPercent }
     if ($smart.PSObject.Properties.Name -contains "VramActionMaxAffinityTargets") { $vramActionMaxAffinityTargets = [int]$smart.VramActionMaxAffinityTargets }
+    if ($smart.PSObject.Properties.Name -contains "GameVramPriorityMode") { $gameVramPriorityMode = [bool]$smart.GameVramPriorityMode }
+    if ($smart.PSObject.Properties.Name -contains "GameVramPriorityDedicatedMemoryMB") { $gameVramPriorityDedicatedMemoryMB = [double]$smart.GameVramPriorityDedicatedMemoryMB }
+    if ($smart.PSObject.Properties.Name -contains "GameVramPriorityGpuPercent") { $gameVramPriorityGpuPercent = [double]$smart.GameVramPriorityGpuPercent }
+    if ($smart.PSObject.Properties.Name -contains "GameVramPriorityCpuAffinityPercent") { $gameVramPriorityCpuAffinityPercent = [int]$smart.GameVramPriorityCpuAffinityPercent }
+    if ($smart.PSObject.Properties.Name -contains "GameVramPriorityMaxCpuPercent") { $gameVramPriorityMaxCpuPercent = [double]$smart.GameVramPriorityMaxCpuPercent }
+    if ($smart.PSObject.Properties.Name -contains "GameVramPriorityMaxAffinityTargets") { $gameVramPriorityMaxAffinityTargets = [int]$smart.GameVramPriorityMaxAffinityTargets }
     if ($smart.PSObject.Properties.Name -contains "CpuBoundAssist") { $cpuBoundAssist = [bool]$smart.CpuBoundAssist }
     if ($smart.PSObject.Properties.Name -contains "CpuBoundGameCpuPercent") { $cpuBoundGameCpuPercent = [double]$smart.CpuBoundGameCpuPercent }
     if ($smart.PSObject.Properties.Name -contains "CpuBoundBackgroundBoost") { $cpuBoundBackgroundBoost = [double]$smart.CpuBoundBackgroundBoost }
@@ -3203,6 +3215,26 @@ function Test-VramPressureActive {
     return ([string]$script:currentGpuPressure.Pressure -in @("Elevated", "Critical", "Busy"))
 }
 
+function Test-GameVramPrioritySession {
+    param(
+        [int]$GamePid,
+        [object]$UdpGuard
+    )
+
+    if (-not $gameVramPriorityMode) { return $false }
+    if ($GamePid -le 0) { return $false }
+    if ($script:currentIntent -and [string]$script:currentIntent.Kind -eq "Gaming") { return $true }
+    if ($UdpGuard -and [bool]$UdpGuard.Active -and [int]$UdpGuard.GamePid -eq $GamePid) { return $true }
+    return $false
+}
+
+function Test-GameVramPriorityActive {
+    if (-not $gameVramPriorityMode) { return $false }
+    if (-not $script:currentGpuOptimization -or -not [bool]$script:currentGpuOptimization.Active) { return $false }
+    if ([int]$script:currentGpuOptimization.GamePid -le 0) { return $false }
+    return ([string]$script:currentGpuOptimization.Status -in @("GameVramPriority", "VRAMPressureGuard", "CpuBoundAssist", "GameWorkloadProtected"))
+}
+
 function Get-StreamingContext {
     param([array]$Processes, [hashtable]$CpuMap, [object]$GpuSnapshot, [object]$Foreground, [object]$UdpGuard)
 
@@ -3342,13 +3374,16 @@ function Get-GpuOptimizationContext {
     if ($GpuSnapshot -and $GpuSnapshot.ProcessDedicatedMBByPid -and $GpuSnapshot.ProcessDedicatedMBByPid.ContainsKey($gameProcessId)) { $dedicated = [double]$GpuSnapshot.ProcessDedicatedMBByPid[$gameProcessId] }
     $vramActive = Test-VramPressureActive
     $cpuAssist = ($script:currentCpuBoundAssist -and [bool]$script:currentCpuBoundAssist.Active -and [int]$script:currentCpuBoundAssist.GamePid -eq $gameProcessId)
-    $status = if ($vramActive) { "VRAMPressureGuard" } elseif ($cpuAssist) { "CpuBoundAssist" } elseif ($gpu -gt 1.0 -or $dedicated -gt 64.0) { "GameWorkloadProtected" } else { "Ready" }
+    $gameVramPriority = Test-GameVramPrioritySession -GamePid $gameProcessId -UdpGuard $UdpGuard
+    $status = if ($vramActive) { "VRAMPressureGuard" } elseif ($cpuAssist) { "CpuBoundAssist" } elseif ($gameVramPriority) { "GameVramPriority" } elseif ($gpu -gt 1.0 -or $dedicated -gt 64.0) { "GameWorkloadProtected" } else { "Ready" }
     $active = ($status -ne "Ready")
-    $strategy = if ($vramActive) { "reduce-surrounding-contention" } elseif ($cpuAssist) { "release-cpu-for-game" } elseif ($active) { "protect-game-workload" } else { "observe" }
+    $strategy = if ($vramActive) { "reduce-surrounding-contention" } elseif ($cpuAssist) { "release-cpu-for-game" } elseif ($gameVramPriority) { "reserve-vram-for-game" } elseif ($active) { "protect-game-workload" } else { "observe" }
     $reason = if ($vramActive) {
         "VRAM pressure detected; surrounding helpers are softened, driver and clocks untouched"
     } elseif ($cpuAssist) {
         "CPU-bound game detected; background contention is reduced to help GPU utilization"
+    } elseif ($gameVramPriority) {
+        "Game session active; surrounding GPU/VRAM consumers are softened before pressure builds"
     } elseif ($active) {
         "Game GPU workload detected and protected from background policy"
     } else {
@@ -5604,6 +5639,13 @@ function Get-CandidateWeight {
     if ([bool]$Row.CpuBoundAssist) { $weight *= $cpuBoundBackgroundBoost }
     if ([bool]$Row.GpuHelperPressure) { $weight *= 1.24 }
     if ([bool]$Row.VramPressureActive -and -not [bool]$Row.UdpGameProtected -and -not $Row.GuardReason -and -not [bool]$Row.SwitchFastWake) { $weight *= 1.12 }
+    if ([bool]$Row.GameVramPriorityActive -and -not [bool]$Row.UdpGameProtected -and -not $Row.GuardReason -and -not [bool]$Row.SwitchFastWake) {
+        if (Test-GameVramPriorityCandidate -Row $Row) {
+            $weight *= 1.22
+        } elseif ([double]$Row.GpuDedicatedMB -gt 0.0 -or [double]$Row.GpuPercent -gt 0.0) {
+            $weight *= 1.08
+        }
+    }
     if (Test-StreamingSafeLaneActive) {
         if ([string]$Row.Role -in @("Streaming", "Communication", "Media", "GameCandidate")) {
             $weight *= 0.20
@@ -5688,6 +5730,10 @@ function Get-NapPolicy {
             $reason = "user-deep-softened"
         }
         $policySource = "user"
+    } elseif (Test-GameVramPriorityCandidate -Row $Row) {
+        $tier = "Balanced"
+        $reason = "game-vram-priority-helper"
+        $policySource = "gpu-vram"
     } elseif ([string]$Row.Role -eq "LauncherHelper" -and -not [bool]$Row.SwitchFastWake -and -not $Row.GuardReason -and -not [bool]$Row.UdpGameProtected) {
         if ([double]$Row.CpuPercent -ge 0.2 -or [int]$Row.BurstCount -gt 0 -or [double]$Row.WorkingSetMB -ge 80.0) {
             $tier = "Balanced"
@@ -5811,7 +5857,7 @@ function Get-NapPolicy {
     $priorityClassValue = $napTierPriority[$tier]
     $memoryPriorityValue = [int]$napTierMemory[$tier]
     $ioPriorityValue = [int]$napTierIo[$tier]
-    if ($reason -eq "vram-action-helper-containment") {
+    if ($reason -in @("vram-action-helper-containment", "game-vram-priority-helper")) {
         $priorityClassValue = $napTierPriority["Deep"]
         $memoryPriorityValue = [int]$napTierMemory["Deep"]
         $ioPriorityValue = [int]$napTierIo["Deep"]
@@ -5936,6 +5982,25 @@ function Test-VramActionCandidate {
     return $false
 }
 
+function Test-GameVramPriorityCandidate {
+    param([object]$Row)
+
+    if (-not $gameVramPriorityMode) { return $false }
+    if (-not (Test-GameVramPriorityActive)) { return $false }
+    if (-not [bool]$Row.GpuOptimizationActive) { return $false }
+    if ([int]$Row.Id -eq [int]$script:currentGpuOptimization.GamePid) { return $false }
+    if ([bool]$Row.ForegroundTreeProtected -or [bool]$Row.NewProcessStabilizing) { return $false }
+    if ([bool]$Row.UdpGameProtected -or $Row.GuardReason -or [bool]$Row.SwitchFastWake) { return $false }
+    if ([string]$Row.AppPolicy -eq "Protect") { return $false }
+    if ($realtimeFriendlyNames.Contains([string]$Row.ProcessName)) { return $false }
+    if ([string]$Row.Role -in @("Streaming", "Communication", "Media", "GameCandidate", "ShaderCompiler")) { return $false }
+    if ([double]$Row.CpuPercent -gt $gameVramPriorityMaxCpuPercent) { return $false }
+    if ([double]$Row.GpuDedicatedMB -ge $gameVramPriorityDedicatedMemoryMB) { return $true }
+    if ([double]$Row.GpuPercent -ge $gameVramPriorityGpuPercent -and [double]$Row.WorkingSetMB -ge 64.0) { return $true }
+    if ([string]$Row.Role -in @("Browser", "Launcher", "LauncherHelper", "StreamHelper") -and [double]$Row.WorkingSetMB -ge 96.0) { return $true }
+    return $false
+}
+
 function Test-VramActionAffinityCandidate {
     param(
         [object]$Row,
@@ -5945,6 +6010,17 @@ function Test-VramActionAffinityCandidate {
     if (-not (Test-VramActionCandidate -Row $Row)) { return $false }
     if (-not $Policy -or [string]$Policy.Tier -eq "Light") { return $false }
     return $true
+}
+
+function Test-GameVramPriorityAffinityCandidate {
+    param(
+        [object]$Row,
+        [object]$Policy
+    )
+
+    if (-not (Test-GameVramPriorityCandidate -Row $Row)) { return $false }
+    if (-not $Policy -or [string]$Policy.Tier -eq "Light") { return $false }
+    return ([string]$Row.Role -in @("Browser", "Launcher", "LauncherHelper", "StreamHelper"))
 }
 
 function Set-ProcessAffinityMask {
@@ -6251,6 +6327,7 @@ function Get-BackgroundProcessRows {
         $guardDecision = Get-GuardDecision -ProcessId ([int]$p.Id) -ProcessName $p.ProcessName -Path $path -Role $role -CpuPercent $cpuPercent -BurstCount $burstCount -Foreground $foreground -SwitchProfile $switchProfile -UdpEndpoints $udpEndpoints -UdpGameProtected:$udpGameProtected
         $gpuMetric = Get-GpuMetricForPid -ProcessId ([int]$p.Id)
         $vramPressureActive = Test-VramPressureActive
+        $gameVramPriorityActive = Test-GameVramPriorityActive
         $guardReasonText = if ($guardDecision) { [string]$guardDecision.Reason } else { "" }
         $gpuHelperPressure = Test-GpuHelperPressure -Role $role -CpuPercent $cpuPercent -GpuPercent ([double]$gpuMetric.Percent) -GpuDedicatedMB ([double]$gpuMetric.DedicatedMB) -UdpProtected:$udpGameProtected -GuardReason $guardReasonText -SwitchFastWake:$switchFastWake
         $cpuBoundBackground = $false
@@ -6305,6 +6382,7 @@ function Get-BackgroundProcessRows {
             GpuSharedMB = [double]$gpuMetric.SharedMB
             GpuHelperPressure = [bool]$gpuHelperPressure
             VramPressureActive = [bool]$vramPressureActive
+            GameVramPriorityActive = [bool]$gameVramPriorityActive
             CpuBoundAssist = [bool]$cpuBoundBackground
             StreamingActive = if ($script:currentStreamingContext) { [bool]$script:currentStreamingContext.Active } else { $false }
             StreamingProfile = if ($script:currentStreamingContext) { [string]$script:currentStreamingContext.Profile } else { "Off" }
@@ -6513,6 +6591,7 @@ function Convert-NapResultGroupToScoreItem {
     $gpuShared = 0.0
     $gpuHelperPressure = $false
     $vramPressureActive = $false
+    $gameVramPriorityActive = $false
     $cpuBoundActive = $false
     $streamingActive = $false
     $streamingProfile = "Off"
@@ -6542,6 +6621,7 @@ function Convert-NapResultGroupToScoreItem {
         if ($item.GpuSharedMB -ne $null) { $gpuShared += [double]$item.GpuSharedMB }
         if ($item.GpuHelperPressure -ne $null -and [bool]$item.GpuHelperPressure) { $gpuHelperPressure = $true }
         if ($item.VramPressureActive -ne $null -and [bool]$item.VramPressureActive) { $vramPressureActive = $true }
+        if ($item.GameVramPriorityActive -ne $null -and [bool]$item.GameVramPriorityActive) { $gameVramPriorityActive = $true }
         if ($item.CpuBoundAssist -ne $null -and [bool]$item.CpuBoundAssist) { $cpuBoundActive = $true }
         if ($item.StreamingActive -ne $null -and [bool]$item.StreamingActive) {
             $streamingActive = $true
@@ -6616,6 +6696,7 @@ function Convert-NapResultGroupToScoreItem {
         GpuSharedMB = [math]::Round($gpuShared, 1)
         GpuHelperPressure = [bool]$gpuHelperPressure
         VramPressureActive = [bool]$vramPressureActive
+        GameVramPriorityActive = [bool]$gameVramPriorityActive
         CpuBoundAssist = [bool]$cpuBoundActive
         StreamingActive = [bool]$streamingActive
         StreamingProfile = $streamingProfile
@@ -6779,6 +6860,7 @@ function Invoke-ApplyOnce {
     $deepTargetsUsed = 0
     $affinityTargetsUsed = 0
     $vramActionTargetsUsed = 0
+    $gameVramPriorityAffinityTargetsUsed = 0
     $trimTargetsUsed = 0
     $results = foreach ($row in $targets) {
         $p = Get-Process -Id $row.Id -ErrorAction SilentlyContinue
@@ -6832,23 +6914,25 @@ function Invoke-ApplyOnce {
         $affinityStatus = "Disabled"
         $affinityTarget = [UInt64]0
         $vramActionAffinity = Test-VramActionAffinityCandidate -Row $row -Policy $policy
+        $gameVramPriorityAffinity = (-not $vramActionAffinity) -and (Test-GameVramPriorityAffinityCandidate -Row $row -Policy $policy)
         $frameStabilityAffinity = Test-FrameStabilityAffinityCandidate -Row $row -Policy $policy
-        if ($vramActionAffinity -or (Test-StreamerAffinityCandidate -Row $row -Policy $policy) -or $frameStabilityAffinity) {
-            $budgetHit = if ($vramActionAffinity) { $vramActionTargetsUsed -ge $vramActionMaxAffinityTargets } else { $affinityTargetsUsed -ge $maxAffinityTargetsPerPass }
+        if ($vramActionAffinity -or $gameVramPriorityAffinity -or (Test-StreamerAffinityCandidate -Row $row -Policy $policy) -or $frameStabilityAffinity) {
+            $budgetHit = if ($vramActionAffinity) { $vramActionTargetsUsed -ge $vramActionMaxAffinityTargets } elseif ($gameVramPriorityAffinity) { $gameVramPriorityAffinityTargetsUsed -ge $gameVramPriorityMaxAffinityTargets } else { $affinityTargetsUsed -ge $maxAffinityTargetsPerPass }
             if ($budgetHit) {
-                $affinityStatus = if ($vramActionAffinity) { "BudgetSkippedVramAction" } else { "BudgetSkipped" }
+                $affinityStatus = if ($vramActionAffinity) { "BudgetSkippedVramAction" } elseif ($gameVramPriorityAffinity) { "BudgetSkippedGameVramPriority" } else { "BudgetSkipped" }
             } else {
-                $affinityTarget = if ($vramActionAffinity) { Get-StreamerAffinityMask -Percent $vramActionCpuAffinityPercent -IgnoreStreamerToggle } elseif ($frameStabilityAffinity) { Get-StreamerAffinityMask -Percent $frameStabilityBrowserAffinityPercent -IgnoreStreamerToggle } elseif ([bool]$row.CpuBoundAssist) { Get-StreamerAffinityMask -Percent $cpuBoundAffinityPercent } elseif ([string]$row.Role -eq "StreamHelper") { Get-StreamerAffinityMask -Percent $streamerBrowserHelperAffinityPercent } else { Get-StreamerAffinityMask }
+                $affinityTarget = if ($vramActionAffinity) { Get-StreamerAffinityMask -Percent $vramActionCpuAffinityPercent -IgnoreStreamerToggle } elseif ($gameVramPriorityAffinity) { Get-StreamerAffinityMask -Percent $gameVramPriorityCpuAffinityPercent -IgnoreStreamerToggle } elseif ($frameStabilityAffinity) { Get-StreamerAffinityMask -Percent $frameStabilityBrowserAffinityPercent -IgnoreStreamerToggle } elseif ([bool]$row.CpuBoundAssist) { Get-StreamerAffinityMask -Percent $cpuBoundAffinityPercent } elseif ([string]$row.Role -eq "StreamHelper") { Get-StreamerAffinityMask -Percent $streamerBrowserHelperAffinityPercent } else { Get-StreamerAffinityMask }
                 if ($affinityTarget -gt 0) {
                     if ($PreviewMode) {
-                        $affinityStatus = if ($vramActionAffinity) { "WouldLimitVramAction" } elseif ($frameStabilityAffinity) { "WouldLimitFrameStability" } else { "WouldLimit" }
+                        $affinityStatus = if ($vramActionAffinity) { "WouldLimitVramAction" } elseif ($gameVramPriorityAffinity) { "WouldLimitGameVramPriority" } elseif ($frameStabilityAffinity) { "WouldLimitFrameStability" } else { "WouldLimit" }
                     } else {
                         $affinityStatus = Set-ProcessAffinityMask -Process $p -Mask $affinityTarget
                         if ($vramActionAffinity -and $affinityStatus -eq "OK") { $affinityStatus = "OKVramAction" }
+                        if ($gameVramPriorityAffinity -and $affinityStatus -eq "OK") { $affinityStatus = "OKGameVramPriority" }
                         if ($frameStabilityAffinity -and $affinityStatus -eq "OK") { $affinityStatus = "OKFrameStability" }
                     }
                     if ($affinityStatus -ne "Disabled") {
-                        if ($vramActionAffinity) { $vramActionTargetsUsed++ } else { $affinityTargetsUsed++ }
+                        if ($vramActionAffinity) { $vramActionTargetsUsed++ } elseif ($gameVramPriorityAffinity) { $gameVramPriorityAffinityTargetsUsed++ } else { $affinityTargetsUsed++ }
                     }
                 }
             }
@@ -6874,7 +6958,7 @@ function Invoke-ApplyOnce {
                 $trimThreshold = [math]::Max(24.0, [math]::Round($trimThreshold * 0.82, 1))
             }
         }
-        if ([string]$row.Role -in @("StreamHelper", "LauncherHelper") -or [bool]$row.GpuHelperPressure -or ([bool]$row.VramPressureActive -and [double]$row.GpuDedicatedMB -gt 0.0)) {
+        if ([string]$row.Role -in @("StreamHelper", "LauncherHelper") -or [bool]$row.GpuHelperPressure -or [string]$policy.Reason -eq "game-vram-priority-helper" -or ([bool]$row.VramPressureActive -and [double]$row.GpuDedicatedMB -gt 0.0)) {
             $trimThreshold = [math]::Max($trimThreshold, ([double]$row.WorkingSetMB + 1.0))
         }
 
@@ -6957,6 +7041,7 @@ function Invoke-ApplyOnce {
             GpuSharedMB = $row.GpuSharedMB
             GpuHelperPressure = $row.GpuHelperPressure
             VramPressureActive = $row.VramPressureActive
+            GameVramPriorityActive = $row.GameVramPriorityActive
             CpuBoundAssist = $row.CpuBoundAssist
             StreamingActive = $row.StreamingActive
             StreamingProfile = $row.StreamingProfile
